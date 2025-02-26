@@ -1,0 +1,1 @@
+{"version":1,"defects":{"App\\Tests\\Controller\\AuthControllerTest::testSuccessfulLogin":4,"App\\Tests\\Controller\\AuthControllerTest::testInvalidLogin":4},"times":{"App\\Tests\\Controller\\AuthControllerTest::testSuccessfulLogin":0.008,"App\\Tests\\Controller\\AuthControllerTest::testInvalidLogin":0}}
