@@ -2,36 +2,51 @@
 
 namespace App\Tests\Controller;
 
+use App\Repository\UserRepository;
+use App\Tests\DatabaseTestCase;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-class AuthControllerTest extends WebTestCase
+class AuthControllerTest extends DatabaseTestCase
 {
-    private $client;
-    private $entityManager;
-    private $passwordHasher;
+    private const TEST_USER_NAME = 'testuser';
+    private const TEST_USER_PASSWORD = 'testpassword';
+    private UserPasswordHasherInterface $passwordHasher;
+    private UserRepository $userRepository;
+
+    public function __construct(?string $name = null, array $data = [], $dataName = '')
+    {
+        parent::__construct($name, $data, $dataName);
+    }
 
     protected function setUp(): void
     {
-        $this->client = static::createClient();
-        $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        parent::setUp();
         $this->passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
+        $this->userRepository = $this->entityManager->getRepository(User::class);
+
+        $testUser = $this->userRepository->findOneBy(['username' => self::TEST_USER_NAME]);
+        if (null !== $testUser) {
+            $this->entityManager->remove($testUser);
+            $this->entityManager->flush();
+        }
     }
 
     public function testSuccessfulLogin()
     {
         $user = new User();
-        $user->setUsername("testuser");
-        $user->setPassword($this->passwordHasher->hashPassword($user, "testpass"));
+        $user->setUsername(self::TEST_USER_NAME);
+        $user->setPassword($this->passwordHasher->hashPassword($user, self::TEST_USER_PASSWORD));
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
         $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => 'testuser',
-            'password' => 'testpass'
+            'username' => self::TEST_USER_NAME,
+            'password' => self::TEST_USER_PASSWORD
         ]));
 
         $this->assertResponseIsSuccessful();

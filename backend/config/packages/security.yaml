@@ -17,8 +17,8 @@ security:
             lazy: true
             provider: app_user_provider
             form_login:
-                login_path: app_login
-                check_path: app_login
+                login_path: /auth/login
+                check_path: /auth/login
                 default_target_path: /dashboard
                 enable_csrf: true
             logout:
@@ -29,7 +29,6 @@ security:
 
     access_control:
         - { path: ^/admin, roles: ROLE_ADMIN }
-        #- { path: ^/api, roles: ROLE_ADMIN }
 
 when@test:
     security:
