@@ -14,7 +14,7 @@ final class Version20250303195508 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Adding forum schema';
     }
 
     public function up(Schema $schema): void
@@ -35,7 +35,6 @@ final class Version20250303195508 extends AbstractMigration
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('CREATE SCHEMA public');
         $this->addSql('CREATE TABLE "user" (id SERIAL NOT NULL, username VARCHAR(180) NOT NULL, roles JSON NOT NULL, password VARCHAR(255) NOT NULL, PRIMARY KEY(id))');
         $this->addSql('CREATE UNIQUE INDEX uniq_identifier_username ON "user" (username)');
         $this->addSql('CREATE TABLE post (id SERIAL NOT NULL, author_id INT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, last_modified TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, PRIMARY KEY(id))');
