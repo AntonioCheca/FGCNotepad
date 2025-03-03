@@ -15,7 +15,7 @@ abstract class DatabaseTestCase extends WebTestCase
 
     protected function setUp(): void
     {
-        if(null === $this->entityManager) {
+        if (null === $this->entityManager) {
             $this->client = self::createClient();
             self::bootKernel();
             $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
@@ -32,8 +32,10 @@ abstract class DatabaseTestCase extends WebTestCase
         $entities = [Post::class, User::class];
 
         foreach ($entities as $entity) {
+            $metadata = $this->entityManager->getClassMetadata($entity);
+            $fullyQualifiedNameForTable = sprintf("%s.%s", $metadata->getSchemaName(), $metadata->getTableName());
             $query = $databasePlatform->getTruncateTableSQL(
-                $this->entityManager->getClassMetadata($entity)->getTableName(),
+                $fullyQualifiedNameForTable,
                 true,
             );
             $connection->executeStatement($query);

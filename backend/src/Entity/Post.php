@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
+#[ORM\Table(name: 'post', schema: 'forum')]
 #[ORM\Entity(repositoryClass: PostRepository::class)]
 class Post
 {
