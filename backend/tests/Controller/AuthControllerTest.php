@@ -2,12 +2,9 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Tests\DatabaseTestCase;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use App\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AuthControllerTest extends DatabaseTestCase

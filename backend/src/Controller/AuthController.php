@@ -9,11 +9,9 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[Route('/api')]
 class AuthController extends AbstractController
@@ -29,11 +27,12 @@ class AuthController extends AbstractController
 
     #[Route('/login', name: 'api_login', methods: ['POST'])]
     public function login(
-        Request $request,
-        EntityManagerInterface $entityManager,
+        Request                     $request,
+        EntityManagerInterface      $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        Security $security
-    ): JsonResponse {
+        Security                    $security
+    ): JsonResponse
+    {
         $data = json_decode($request->getContent(), true);
         if (!isset($data['username'], $data['password'])) {
             return new JsonResponse(['message' => 'Invalid request'], Response::HTTP_BAD_REQUEST);

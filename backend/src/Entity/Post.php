@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\PostRepository;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -25,6 +26,12 @@ class Post
 
     #[ORM\Column(type: Types::TEXT)]
     private ?string $body = null;
+
+    #[ORM\ManyToMany(targetEntity: Component::class, inversedBy: "posts")]
+    #[ORM\JoinTable(name: "post_components", schema: "forum")]
+    #[ORM\JoinColumn(name: "post_id", referencedColumnName: "id", onDelete: "CASCADE")]
+    #[ORM\InverseJoinColumn(name: "component_id", referencedColumnName: "id", onDelete: "CASCADE")]
+    private Collection $components;
 
     #[ORM\ManyToOne(inversedBy: 'posts')]
     #[ORM\JoinColumn(nullable: false)]
@@ -98,6 +105,28 @@ class Post
     {
         $this->last_modified = $last_modified;
 
+        return $this;
+    }
+
+    public function getComponents(): Collection
+    {
+        return $this->components;
+    }
+
+    public function addComponent(Component $component): self
+    {
+        if (!$this->components->contains($component)) {
+            $this->components->add($component);
+            $component->addPost($this);
+        }
+        return $this;
+    }
+
+    public function removeComponent(Component $component): self
+    {
+        if ($this->components->removeElement($component)) {
+            $component->removePost($this);
+        }
         return $this;
     }
 }

@@ -11,18 +11,20 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\HttpFoundation\Response;
 
 #[Route('/api/posts', name: 'api_posts_')]
 class PostController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private Security $security
-    ) {}
+        private Security               $security
+    )
+    {
+    }
 
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(Request $request, ValidatorInterface $validator, UserRepository $userRepository): JsonResponse
@@ -50,7 +52,7 @@ class PostController extends AbstractController
 
         $errors = $validator->validate($post);
         if (count($errors) > 0) {
-            return new JsonResponse(['error' => (string) $errors], Response::HTTP_BAD_REQUEST);
+            return new JsonResponse(['error' => (string)$errors], Response::HTTP_BAD_REQUEST);
         }
 
         $this->entityManager->persist($post);
@@ -83,7 +85,7 @@ class PostController extends AbstractController
     {
         $posts = $postRepository->findBy([], ['createdAt' => 'DESC']);
 
-        $data = array_map(fn (Post $post) => [
+        $data = array_map(fn(Post $post) => [
             'id' => $post->getId(),
             'title' => $post->getTitle(),
             'author' => $post->getAuthor()->getUsername(),
@@ -118,7 +120,7 @@ class PostController extends AbstractController
 
         $errors = $validator->validate($post);
         if (count($errors) > 0) {
-            return new JsonResponse(['error' => (string) $errors], Response::HTTP_BAD_REQUEST);
+            return new JsonResponse(['error' => (string)$errors], Response::HTTP_BAD_REQUEST);
         }
 
         $this->entityManager->flush();

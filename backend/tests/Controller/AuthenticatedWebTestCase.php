@@ -2,9 +2,8 @@
 
 namespace App\Tests\Controller;
 
-use App\Tests\DatabaseTestCase;
 use App\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Tests\DatabaseTestCase;
 
 abstract class AuthenticatedWebTestCase extends DatabaseTestCase
 {
