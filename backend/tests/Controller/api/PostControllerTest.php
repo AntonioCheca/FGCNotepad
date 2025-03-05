@@ -2,6 +2,8 @@
 
 namespace App\Tests\Controller\api;
 
+use App\Entity\Character;
+use App\Entity\Move;
 use App\Entity\Post;
 use App\Entity\User;
 use App\Tests\Controller\AuthenticatedWebTestCase;
@@ -66,7 +68,38 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $entityManager = self::$kernel->getContainer()->get('doctrine')->getManager();
         $entityManager->persist($post);
         $entityManager->flush();
-        
+
         return $post;
+    }
+
+    public function testCreatePostWithMove(): void
+    {
+        $client = $this->createAuthenticatedClient();
+
+        // Create a move and persist it
+        $move = $this->addMoveInBackend();
+
+        $client->request('POST', '/api/posts', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'title' => 'Test Post with Move',
+            'body' => 'Using Aki’s special move [[move:' . $move->getId() . ']] in this match.'
+        ]));
+
+        $this->assertResponseStatusCodeSame(201);
+    }
+
+    private function addMoveInBackend(): Move
+    {
+        $character = new Character();
+        $character->setName('Test character');
+        $move = new Move();
+        $move->setNumpadNotation('5HP');
+        $move->setCharacter($character);
+
+        $entityManager = self::$kernel->getContainer()->get('doctrine')->getManager();
+        $entityManager->persist($character);
+        $entityManager->persist($move);
+        $entityManager->flush();
+
+        return $move;
     }
 }

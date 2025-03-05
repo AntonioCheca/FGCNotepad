@@ -2,8 +2,10 @@
 
 namespace App\Controller\api;
 
+use App\Entity\Component;
 use App\Entity\Post;
 use App\Entity\User;
+use App\Repository\MoveRepository;
 use App\Repository\PostRepository;
 use App\Repository\UserRepository;
 use App\Service\MarkdownParserToHtml;
@@ -28,7 +30,12 @@ class PostController extends AbstractController
     }
 
     #[Route('', name: 'create', methods: ['POST'])]
-    public function create(Request $request, ValidatorInterface $validator, UserRepository $userRepository): JsonResponse
+    public function create(
+        Request                $request,
+        ValidatorInterface     $validator,
+        MoveRepository         $moveRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
@@ -51,13 +58,25 @@ class PostController extends AbstractController
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTimeImmutable());
 
+        // Extract Move UUIDs from body
+        preg_match_all('/\[\[move:([a-f0-9\-]+)\]\]/i', $data['body'], $matches);
+        $moveUuids = $matches[1] ?? [];
+
+        if (!empty($moveUuids)) {
+            $moves = $moveRepository->findBy(['id' => $moveUuids]);
+            
+            foreach ($moves as $move) {
+                $post->addComponent($move);
+            }
+        }
+
         $errors = $validator->validate($post);
         if (count($errors) > 0) {
             return new JsonResponse(['error' => (string)$errors], Response::HTTP_BAD_REQUEST);
         }
 
-        $this->entityManager->persist($post);
-        $this->entityManager->flush();
+        $entityManager->persist($post);
+        $entityManager->flush();
 
         return new JsonResponse(['message' => 'Post created', 'id' => $post->getId()], Response::HTTP_CREATED);
     }
