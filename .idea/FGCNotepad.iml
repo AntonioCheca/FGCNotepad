@@ -137,6 +137,15 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/sebastian/resource-operations" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/sebastian/global-state" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/sebastian/object-reflector" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/nette/schema" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/nette/utils" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/dflydev/dot-access-data" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/league/config" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/league/commonmark" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/uid" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/polyfill-uuid" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/elgigi/commonmark-emoji" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/zoon/commonmark-ext-youtube-iframe" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
