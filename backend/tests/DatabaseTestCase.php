@@ -29,11 +29,10 @@ abstract class DatabaseTestCase extends WebTestCase
         $connection = $this->entityManager->getConnection();
         $databasePlatform = $connection->getDatabasePlatform();
 
-        $entities = [Post::class, User::class];
+        $allMetadata = $this->entityManager->getMetadataFactory()->getAllMetadata();
 
-        foreach ($entities as $entity) {
-            $metadata = $this->entityManager->getClassMetadata($entity);
-            $fullyQualifiedNameForTable = sprintf("%s.%s", $metadata->getSchemaName(), $metadata->getTableName());
+        foreach ($allMetadata as $classMetadata) {
+            $fullyQualifiedNameForTable = sprintf("%s.%s", $classMetadata->getSchemaName(), $classMetadata->getTableName());
             $query = $databasePlatform->getTruncateTableSQL(
                 $fullyQualifiedNameForTable,
                 true,

@@ -112,12 +112,12 @@ class FrameData
     private ?int $hitstop = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?array $extraInformation = null;
+    private ?string $extraInformation = null;
 
     #[ORM\OneToOne(mappedBy: 'frameData', cascade: ['persist', 'remove'])]
     private ?Move $move = null;
 
-    public function getId(): ?int
+    public function getId(): ?Uuid
     {
         return $this->id;
     }
@@ -494,12 +494,12 @@ class FrameData
         return $this;
     }
 
-    public function getExtraInformation(): ?array
+    public function getExtraInformation(): ?string
     {
         return $this->extraInformation;
     }
 
-    public function setExtraInformation(?array $extraInformation): static
+    public function setExtraInformation(?string $extraInformation): static
     {
         $this->extraInformation = $extraInformation;
 
