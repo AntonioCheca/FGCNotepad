@@ -2,6 +2,9 @@
 
 namespace App\Tests\Controller\api;
 
+use App\Entity\Character;
+use App\Entity\Post;
+use App\Entity\User;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -9,9 +12,11 @@ class MoveControllerTest extends AuthenticatedWebTestCase
 {
     public function testCreateMove(): void
     {
+        $characterForMove = $this->addCharacterInBackend();
+
         $this->client->request('POST', '/api/moves', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'numpadNotation' => '236P',
-            'startup' => 5
+            'characterId' => $characterForMove->getId(),
         ]));
 
         $response = $this->client->getResponse();
@@ -26,5 +31,17 @@ class MoveControllerTest extends AuthenticatedWebTestCase
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
         $this->assertJson($response->getContent());
+    }
+
+    private function addCharacterInBackend(): Character
+    {
+        $character = new Character();
+        $character->setName('Test Character');
+
+        $entityManager = self::$kernel->getContainer()->get('doctrine')->getManager();
+        $entityManager->persist($character);
+        $entityManager->flush();
+
+        return $character;
     }
 }

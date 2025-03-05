@@ -34,7 +34,7 @@ class Post
     private Collection $components;
 
     #[ORM\ManyToOne(inversedBy: 'posts')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(name: "author_id", nullable: false)]
     private ?User $author = null;
 
     #[ORM\Column]

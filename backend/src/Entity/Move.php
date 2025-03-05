@@ -4,16 +4,23 @@ namespace App\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Table(name: "move", schema: "sf6")]
 #[ORM\Entity]
 class Move extends Component
 {
+    #[Groups(["move:read", "character:read"])]
     #[ORM\Column(type: Types::TEXT)]
     private string $numpadNotation;
 
-    #[ORM\Column(type: "integer")]
-    private int $startup;
+    #[ORM\ManyToOne(inversedBy: 'moves')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(["move:read"])]
+    private ?Character $character = null;
+
+    #[ORM\OneToOne(inversedBy: 'move', cascade: ['persist', 'remove'])]
+    private ?FrameData $frameData = null;
 
     public function getNumpadNotation(): string
     {
@@ -26,14 +33,27 @@ class Move extends Component
         return $this;
     }
 
-    public function getStartup(): int
+    public function getCharacter(): ?Character
     {
-        return $this->startup;
+        return $this->character;
     }
 
-    public function setStartup(int $startup): self
+    public function setCharacter(?Character $character): static
     {
-        $this->startup = $startup;
+        $this->character = $character;
+
+        return $this;
+    }
+
+    public function getFrameData(): ?FrameData
+    {
+        return $this->frameData;
+    }
+
+    public function setFrameData(?FrameData $frameData): static
+    {
+        $this->frameData = $frameData;
+
         return $this;
     }
 }
