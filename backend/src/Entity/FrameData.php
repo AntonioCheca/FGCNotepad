@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
+#[ORM\Table(name: "frame_data", schema: "sf6")]
 #[ORM\Entity(repositoryClass: FrameDataRepository::class)]
 class FrameData
 {
