@@ -6,6 +6,7 @@ use App\Entity\Post;
 use App\Entity\User;
 use App\Repository\PostRepository;
 use App\Repository\UserRepository;
+use App\Service\MarkdownParserToHtml;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -62,7 +63,7 @@ class PostController extends AbstractController
     }
 
     #[Route('/{id}', name: 'read', methods: ['GET'])]
-    public function read(int $id, PostRepository $postRepository): JsonResponse
+    public function read(string $id, PostRepository $postRepository, MarkdownParserToHtml $markdownParser, Request $request): JsonResponse
     {
         $post = $postRepository->find($id);
 
@@ -70,10 +71,13 @@ class PostController extends AbstractController
             throw new NotFoundHttpException('Post not found');
         }
 
+        $markdownParse = $request->query->getBoolean('markdown_parse', false);
+        $body = $markdownParse ? $markdownParser->parse($post->getBody()) : $post->getBody();
+
         return new JsonResponse([
             'id' => $post->getId(),
             'title' => $post->getTitle(),
-            'body' => $post->getBody(),
+            'body' => $body,
             'author' => $post->getAuthor()->getUsername(),
             'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
             'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'),
