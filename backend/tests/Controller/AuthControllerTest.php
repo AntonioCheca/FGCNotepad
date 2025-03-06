@@ -41,18 +41,18 @@ class AuthControllerTest extends DatabaseTestCase
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $this->client->request('POST', '/api/login_check', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => self::TEST_USER_NAME,
             'password' => self::TEST_USER_PASSWORD
         ]));
 
         $this->assertResponseIsSuccessful();
-        $this->assertJsonStringEqualsJsonString(json_encode(['message' => 'Login successful']), $this->client->getResponse()->getContent());
+        $this->assertNotNull(json_decode($this->client->getResponse()->getContent(), true)['token']);
     }
 
     public function testInvalidLogin()
     {
-        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $this->client->request('POST', '/api/login_check', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => 'wronguser',
             'password' => 'wrongpass'
         ]));

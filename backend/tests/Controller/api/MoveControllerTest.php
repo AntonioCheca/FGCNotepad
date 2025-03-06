@@ -14,7 +14,7 @@ class MoveControllerTest extends AuthenticatedWebTestCase
     {
         $characterForMove = $this->addCharacterInBackend();
 
-        $this->client->request('POST', '/api/moves', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $this->client->request('POST', '/api/moves', [], [], $this->getHeaders(), json_encode([
             'numpadNotation' => '236P',
             'characterId' => $characterForMove->getId(),
         ]));
@@ -26,7 +26,7 @@ class MoveControllerTest extends AuthenticatedWebTestCase
 
     public function testListMoves(): void
     {
-        $this->client->request('GET', '/api/moves');
+        $this->client->request('GET', '/api/moves', [], [], $this->getHeaders());
         $response = $this->client->getResponse();
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());

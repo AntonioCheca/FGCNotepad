@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -11,7 +13,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 #[Route('/api')]
 class AuthController extends AbstractController
@@ -19,32 +20,39 @@ class AuthController extends AbstractController
     private EntityManagerInterface $entityManager;
     private UserPasswordHasherInterface $passwordHasher;
 
-    public function __construct(EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher)
+    private JWTTokenManagerInterface $jwtManager;
+    private UserRepository $userRepository;
+
+    public function __construct(EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher, JWTTokenManagerInterface $jwtManager, UserRepository $userRepository)
     {
         $this->entityManager = $entityManager;
         $this->passwordHasher = $passwordHasher;
+        $this->jwtManager = $jwtManager;
+        $this->userRepository = $userRepository;
     }
 
-    #[Route('/login', name: 'api_login', methods: ['POST'])]
-    public function login(
-        Request                     $request,
-        EntityManagerInterface      $entityManager,
-        UserPasswordHasherInterface $passwordHasher,
-        Security                    $security
-    ): JsonResponse
+    /**
+     * @Route("/login", methods={"POST"})
+     */
+    public function login(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        if (!isset($data['username'], $data['password'])) {
-            return new JsonResponse(['message' => 'Invalid request'], Response::HTTP_BAD_REQUEST);
+        $username = $data['username'] ?? '';
+        $password = $data['password'] ?? '';
+
+        /**
+         * @var User $user
+         */
+        $user = $this->userRepository->findOneBy(['username' => $username]);
+
+        if (!$user || !$this->passwordHasher->isPasswordValid($user, $password)) {
+            return new JsonResponse(['error' => 'Invalid credentials'], 401);
         }
 
-        $user = $entityManager->getRepository(User::class)->findOneBy(['username' => $data['username']]);
-        if (!$user || !$passwordHasher->isPasswordValid($user, $data['password'])) {
-            return new JsonResponse(['message' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
-        }
+        // Generate JWT Token
+        $token = $this->jwtManager->create($user);
 
-        $security->login($user);
-        return new JsonResponse(['message' => 'Login successful'], Response::HTTP_OK);
+        return new JsonResponse(['token' => $token]);
     }
 
     #[Route('/register', name: 'api_register', methods: ['POST'])]

@@ -9,7 +9,9 @@ class ComboControllerTest extends AuthenticatedWebTestCase
 {
     public function testCreateCombo(): void
     {
-        $this->client->request('POST', '/api/combos', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $this->addContentTypeJsonToHeaders();
+
+        $this->client->request('POST', '/api/combos', [], [], $this->getHeaders(), json_encode([
             'numpadNotation' => '5P > 236K',
             'damage' => 200
         ]));
@@ -21,7 +23,7 @@ class ComboControllerTest extends AuthenticatedWebTestCase
 
     public function testListCombos(): void
     {
-        $this->client->request('GET', '/api/combos');
+        $this->client->request('GET', '/api/combos', [], [], $this->getHeaders());
         $response = $this->client->getResponse();
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());

@@ -14,7 +14,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
     public function testCreatePost(): void
     {
         $client = $this->createAuthenticatedClient();
-        $client->request('POST', '/api/posts', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
             'title' => 'Test Post',
             'body' => 'This is a test post'
         ]));
@@ -26,7 +26,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
     {
         $post = $this->addPostInBackend();
 
-        $this->client->request('GET', '/api/posts/' . $post->getId());
+        $this->client->request('GET', '/api/posts/' . $post->getId(), [], [], $this->getHeaders());
         $response = $this->client->getResponse();
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -39,7 +39,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
     {
         $post = $this->addPostInBackend();
         $uuid = $post->getId();
-        $this->client->request('GET', "/api/posts/$uuid?markdown_parse=true");
+        $this->client->request('GET', "/api/posts/$uuid?markdown_parse=true", [], [], $this->getHeaders());
         $response = $this->client->getResponse();
 
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -79,7 +79,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
         // Create a move and persist it
         $move = $this->addMoveInBackend();
 
-        $client->request('POST', '/api/posts', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
             'title' => 'Test Post with Move',
             'body' => 'Using Aki’s special move [[move:' . $move->getId() . ']] in this match.'
         ]));
