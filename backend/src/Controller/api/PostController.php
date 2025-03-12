@@ -64,7 +64,7 @@ class PostController extends AbstractController
 
         if (!empty($moveUuids)) {
             $moves = $moveRepository->findBy(['id' => $moveUuids]);
-            
+
             foreach ($moves as $move) {
                 $post->addComponent($move);
             }
@@ -87,7 +87,7 @@ class PostController extends AbstractController
         $post = $postRepository->find($id);
 
         if (!$post) {
-            throw new NotFoundHttpException('Post not found');
+            throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
         }
 
         $markdownParse = $request->query->getBoolean('markdown_parse', false);

@@ -1,33 +1,28 @@
+"use client";
+
 import {useState} from "react";
-import PostForm from "@/src/components/forms/PostForm";
 import {useRouter} from "next/navigation";
+import PostForm from "@/src/components/forms/PostForm";
+import {createPost} from "@/services/api";
 
 export default function NewPostPage() {
+    console.log('Hello World!');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     const handleSubmit = async (title: string, body: string) => {
+        console.log('Submitted form!');
         setLoading(true);
         setError(null);
 
         try {
-            const response = await fetch("/api/posts", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({title, body}),
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to create post");
-            }
-
-            const data = await response.json();
-            router.push(`/posts/${data.id}`); // Redirect to the created post
+            console.log("Sending create Post");
+            const data = await createPost(title, body);
+            console.log("Post created??");
+            router.push(`/posts/${data.id}`);
         } catch (err: any) {
-            setError(err.message || "An error occurred");
+            setError(err.response?.data?.message || "An error occurred");
         } finally {
             setLoading(false);
         }

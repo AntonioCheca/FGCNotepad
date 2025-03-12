@@ -1,5 +1,6 @@
 import {useState} from "react";
 import MoveSelector from "@/src/components/forum/MoveSelector";
+import {createPost} from "@/services/api";
 
 export default function PostForm() {
     const [title, setTitle] = useState("");
@@ -18,12 +19,7 @@ export default function PostForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const postData = {title, body};
-        const response = await fetch("/api/posts", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(postData),
-        });
+        const response = await createPost(title, body);
         if (response.ok) {
             alert("Post created successfully!");
         }
