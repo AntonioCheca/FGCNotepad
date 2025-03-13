@@ -1,5 +1,7 @@
-import { createContext, useState, useEffect, ReactNode } from "react";
-import { useRouter } from "next/navigation";
+'use client';
+
+import {createContext, useState, useEffect, ReactNode} from "react";
+import {useRouter} from "next/navigation";
 
 interface User {
     token: string;
@@ -13,7 +15,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({children}: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
 
@@ -21,15 +23,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = localStorage.getItem("jwt");
         if (token) {
             console.log("Token found in localStorage, setting user.");
-            setUser({ token });
+            setUser({token});
         }
     }, []);
 
     const login = (token: string) => {
         console.log("Logging in, storing token.");
         localStorage.setItem("jwt", token);
-        setUser({ token });
-        router.push("/");
+        setUser({token});
+        const redirectPath = localStorage.getItem("redirectAfterLogin");
+        localStorage.removeItem("redirectAfterLogin");
+        router.push(redirectPath || "/");
     };
 
     const logout = () => {
@@ -40,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{user, login, logout}}>
             {children}
         </AuthContext.Provider>
     );

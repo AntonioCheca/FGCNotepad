@@ -1,38 +1,21 @@
-"use client";
-
-import {useState} from "react";
-import {useRouter} from "next/navigation";
-import PostForm from "@/src/components/forms/PostForm";
+import PostEditor from "@/src/components/forum/PostEditor";
 import {createPost} from "@/services/api";
+import {Container, Typography} from "@mui/material";
 
-export default function NewPostPage() {
-    console.log('Hello World!');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
-
+export default function CreatePostPage() {
     const handleSubmit = async (title: string, body: string) => {
-        console.log('Submitted form!');
-        setLoading(true);
-        setError(null);
-
-        try {
-            console.log("Sending create Post");
-            const data = await createPost(title, body);
-            console.log("Post created??");
-            router.push(`/posts/${data.id}`);
-        } catch (err: any) {
-            setError(err.response?.data?.message || "An error occurred");
-        } finally {
-            setLoading(false);
+        const response = await createPost(title, body);
+        if (response.ok) {
+            alert("Post created successfully!");
         }
     };
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-4">Create a New Post</h1>
-            {error && <p className="text-red-500">{error}</p>}
-            <PostForm onSubmit={handleSubmit} loading={loading}/>
-        </div>
+        <Container maxWidth="md" sx={{mt: 4}}>
+            <Typography variant="h4" gutterBottom>
+                Create a New Post
+            </Typography>
+            <PostEditor onSubmit={handleSubmit}/>
+        </Container>
     );
 }
