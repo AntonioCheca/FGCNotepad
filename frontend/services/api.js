@@ -50,8 +50,8 @@ export const createPost = async (title, body) => {
 
     if (!token) throw new Error("No token found");
 
-    const response = await axios.post(
-        "http://localhost:8000/api/posts",
+    const response = await api.post(
+        "/api/posts",
         {title, body},
         {
             headers: {

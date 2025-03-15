@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Move;
+use App\Util\QueryHelper;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -16,28 +17,22 @@ class MoveRepository extends ServiceEntityRepository
         parent::__construct($registry, Move::class);
     }
 
-    //    /**
-    //     * @return Post[] Returns an array of Post objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('p')
-    //            ->andWhere('p.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('p.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Move[]
+     */
+    public function queryForSpecificNumpadOrCharactersFromString(string $query): array
+    {
+        $queryDraft = $this->createQueryBuilder('m')
+            ->innerJoin('m.character', 'c');
 
-    //    public function findOneBySomeField($value): ?Post
-    //    {
-    //        return $this->createQueryBuilder('p')
-    //            ->andWhere('p.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $arrayOfItemsToQuery = explode(' ', $query);
+        foreach ($arrayOfItemsToQuery as $itemToQuery) {
+            $quotedItem = QueryHelper::quoteStringForQuery($itemToQuery);
+            $queryDraft->andWhere(sprintf('LOWER(c.name) LIKE LOWER(%1$s) OR LOWER(m.numpadNotation) LIKE LOWER(%1$s)', $quotedItem));
+        }
+
+        return $queryDraft->setMaxResults(10)
+            ->getQuery()
+            ->getResult();
+    }
 }

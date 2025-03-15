@@ -4,6 +4,7 @@ namespace App\Controller\api;
 
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
+use App\Repository\MoveRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -34,6 +35,22 @@ class MoveController extends AbstractController
             [],
             true
         );
+    }
+
+    #[Route('/query', methods: ['GET'], name: 'query')]
+    public function querySpecificMoves(Request $request, MoveRepository $moveRepository): JsonResponse
+    {
+        $query = $request->query->get('query', '');
+        if (empty($query)) {
+            return $this->json([]);
+        }
+
+        $moves = $moveRepository->queryForSpecificNumpadOrCharactersFromString($query);
+
+        return $this->json(array_map(fn($move) => [
+            'id' => $move->getId(),
+            'summary' => $move->getCharacter()->getName() . ' ' . $move->getNumpadNotation()
+        ], $moves));
     }
 
     #[Route('', methods: ['POST'], name: 'create')]
