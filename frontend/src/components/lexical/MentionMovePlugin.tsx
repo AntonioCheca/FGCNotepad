@@ -99,11 +99,11 @@ export default function NewMentionsPlugin() {
 
     const onSelectOption = useCallback((selectedOption, nodeToReplace, closeMenu) => {
         editor.update(() => {
-            const mentionNode = $createMentionNode(selectedOption.summary);
+            const mentionNode = $createMentionNode(selectedOption.summary, selectedOption.id);
             if (nodeToReplace) {
                 nodeToReplace.replace(mentionNode);
             }
-            
+
             closeMenu();
         });
     }, [editor]);

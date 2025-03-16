@@ -1,12 +1,3 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- */
-
-import {Chip} from "@mui/material";
 import React, {ReactNode} from "react";
 import {
     $applyNodeReplacement, DecoratorNode,
@@ -20,6 +11,7 @@ import {
     type Spread,
     TextNode,
 } from "lexical";
+import MentionCardPopup from "@/src/components/lexical/MentionCardPopup";
 
 export type SerializedMentionNode = Spread<{
     mentionName: string;
@@ -27,13 +19,17 @@ export type SerializedMentionNode = Spread<{
     SerializedTextNode>;
 
 function $convertMentionElement(domNode: HTMLElement): DOMConversionOutput | null {
-    const textContent = domNode.textContent;
     const mentionName = domNode.getAttribute("data-lexical-mention-name");
+    const idForMove = domNode.getAttribute("data-lexical-mention-move-id");
+    const text = domNode.getAttribute("data-lexical-mention-text");
+    const details = domNode.getAttribute("data-lexical-mention-details");
 
-    if (textContent !== null) {
+    if (idForMove !== null) {
         const node = $createMentionNode(
-            typeof mentionName === "string" ? mentionName : textContent,
-            textContent
+            mentionName,
+            idForMove,
+            text,
+            details
         );
         return {node};
     }
@@ -43,45 +39,46 @@ function $convertMentionElement(domNode: HTMLElement): DOMConversionOutput | nul
 
 export class MentionNode extends DecoratorNode<ReactNode> {
     __mention: string;
-    __text: string | undefined;
+    __id_for_component: string;
+    __text: string;
+    __detailsText: string;
 
     static getType(): string {
         return "custom_mention";
     }
 
     static clone(node: MentionNode): MentionNode {
-        return new MentionNode(node.__mention, node.__text, node.__key);
+        return new MentionNode(node.__mention, node.__id_for_component, node.__text, node.__detailsText, node.__key);
     }
 
     static importJSON(serializedNode: SerializedMentionNode): MentionNode {
-        return $createMentionNode(serializedNode.mentionName).updateFromJSON(serializedNode);
+        return $createMentionNode(serializedNode.mentionName, serializedNode.idForComponent, serializedNode.text, serializedNode.detailsText).updateFromJSON(serializedNode);
     }
 
-    constructor(mentionName: string, text?: string, key?: NodeKey) {
+    constructor(mentionName: string, idForComponent: string, text?: string, detailsText?: string, key?: NodeKey) {
         console.log("Creating the Mention!");
         super(key); // Ensure text and key are properly passed
-        console.log("Created?? the Mention!");
         this.__mention = mentionName;
-        this.__text = text;
+        this.__id_for_component = idForComponent;
+        console.log("CREATING ID");
+        console.log(idForComponent);
+        this.__text = text || "";
+        this.__detailsText = detailsText || ""; // Optional details text
     }
 
     exportJSON(): SerializedMentionNode {
         return {
             ...super.exportJSON(),
             mentionName: this.__mention,
+            idForComponent: this.__id_for_component,
+            text: this.__text,
+            detailsText: this.__detailsText
         };
     }
 
     createDOM(config: EditorConfig): HTMLElement {
-        console.log("Create DOM");
         const dom = document.createElement("span");
         dom.className = "mention";
-
-        // Create MUI Chip inside the span
-        const chipContainer = document.createElement("span");
-        chipContainer.innerHTML = `<span id="mention-chip-${this.__key}"></span>`;
-        dom.appendChild(chipContainer);
-
         return dom;
     }
 
@@ -93,10 +90,12 @@ export class MentionNode extends DecoratorNode<ReactNode> {
         console.log("Export DOM");
         const element = document.createElement("span");
         element.setAttribute("data-lexical-mention", "true");
-        if (this.__text !== this.__mention) {
+        if (this.__id_for_component) {
             element.setAttribute("data-lexical-mention-name", this.__mention);
+            element.setAttribute("data-lexical-mention-move-id", this.__id_for_component);
+            element.setAttribute("data-lexical-mention-text", this.__text);
+            element.setAttribute("data-lexical-mention-details", this.__detailsText);
         }
-        element.textContent = `@${this.__mention}`;
         return {element};
     }
 
@@ -116,23 +115,17 @@ export class MentionNode extends DecoratorNode<ReactNode> {
 
     decorate() {
         return (
-            <Chip
-                label={`${this.__mention}`}
-                size="small"
-                variant="outlined"
-                color="primary"
-                data-lexical-mention="true"
+            <MentionCardPopup
+                mentionName={this.__mention}
+                moveId={this.__id_for_component}
+                previewText={`Preview of @${this.__mention}`}
+                detailsText={this.__detailsText}
             />
         );
     }
 }
 
-export function $createMentionNode(mentionName: string, textContent?: string): MentionNode {
-    const mentionNode = new MentionNode(mentionName, textContent ?? mentionName);
-
+export function $createMentionNode(mentionName: string, idForMove: string, detailsText: string, textContent?: string): MentionNode {
+    const mentionNode = new MentionNode(mentionName, idForMove, textContent ?? mentionName, detailsText);
     return $applyNodeReplacement(mentionNode);
-}
-
-export function $isMentionNode(node: LexicalNode | null | undefined): node is MentionNode {
-    return node instanceof MentionNode;
 }

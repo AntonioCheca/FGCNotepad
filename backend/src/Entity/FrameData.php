@@ -527,4 +527,47 @@ class FrameData
 
         return $this;
     }
+
+    public function getSummaryAsArray(): array
+    {
+        $dataAsArray = [];
+        $dataAsArray['startup'] = $this->startup;
+        $dataAsArray['active'] = $this->active;
+        $dataAsArray['recovery'] = $this->recovery;
+        $dataAsArray['on_hit'] = $this->onHit;
+        $dataAsArray['on_block'] = $this->onBlock;
+
+        return $dataAsArray;
+    }
+
+    public function getFullDataAsArray(): array
+    {
+        $dataAsArray = $this->getSummaryAsArray();
+        $dataAsArray['total'] = $this->total;
+        $dataAsArray['on_punish_counter'] = $this->onPunishCounter;
+        $dataAsArray['move_type'] = $this->moveType;
+        $dataAsArray['cancels_to'] = $this->cancelsTo;
+        $dataAsArray['damage'] = $this->damage;
+        $dataAsArray['scaling'] = $this->scaling;
+        $dataAsArray['chip_damage'] = $this->chipDamage;
+        $dataAsArray['attack_level'] = $this->attackLevel;
+        $dataAsArray['on_hit_after_drive_rush'] = $this->onHitAfterDriveRush;
+        $dataAsArray['on_block_after_drive_rush'] = $this->onBlockAfterDriveRush;
+        $dataAsArray['on_perfect_parry'] = $this->onPerfectParry;
+        $dataAsArray['drive_damage_on_hit'] = $this->driveDamageOnHit;
+        $dataAsArray['drive_damage_on_block'] = $this->driveDamageOnBlock;
+        $dataAsArray['drive_gain'] = $this->driveGain;
+        $dataAsArray['on_hit_self_super_meter_gain'] = $this->onHitSelfSuperMeterGain;
+        $dataAsArray['on_block_self_super_meter_gain'] = $this->onBlockSelfSuperMeterGain;
+        $dataAsArray['hit_confirm_specials_and_supers'] = $this->hitConfirmSpecialsAndSupers;
+        $dataAsArray['hit_confirm_target_combos'] = $this->hitConfirmTargetCombos;
+        $dataAsArray['juggle_limit'] = $this->juggleLimit;
+        $dataAsArray['juggle_increase'] = $this->juggleIncrease;
+        $dataAsArray['juggle_start'] = $this->juggleStart;
+        $dataAsArray['hitstun'] = $this->hitstun;
+        $dataAsArray['blockstun'] = $this->blockstun;
+        $dataAsArray['hitstop'] = $this->hitstop;
+
+        return $dataAsArray;
+    }
 }

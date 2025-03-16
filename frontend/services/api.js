@@ -68,4 +68,16 @@ export const searchMoves = async (query) => {
     return response.data
 };
 
+export const getSpecificMove = async (id) => {
+    const token = localStorage.getItem("jwt"); // Ensure it's being retrieved
+
+    if (!token) throw new Error("No token found");
+
+    const response = await api.get(
+        `/moves/${id}`,
+    );
+
+    return response.data
+};
+
 export default api;

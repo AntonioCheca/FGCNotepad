@@ -82,4 +82,25 @@ class MoveController extends AbstractController
             true
         );
     }
+
+    #[Route('/{id}', name: 'read', methods: ['GET'])]
+    public function read(string $id, MoveRepository $moveRepository, Request $request): JsonResponse
+    {
+        /**
+         * @var Move $move
+         */
+        $move = $moveRepository->find($id);
+
+        if (!$move) {
+            throw new NotFoundHttpException(sprintf('Move not found with id %s', $id));
+        }
+
+        return new JsonResponse([
+            'id' => $move->getId(),
+            'character' => $move->getCharacter()->getName(),
+            'numpad_notation' => $move->getNumpadNotation(),
+            'full_frame_data' => $move->getFrameData()->getFullDataAsArray(),
+            'summary_frame_data' => $move->getFrameData()->getSummaryAsArray(),
+        ]);
+    }
 }

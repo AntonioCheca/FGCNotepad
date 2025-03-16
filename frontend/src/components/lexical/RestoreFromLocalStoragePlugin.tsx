@@ -41,8 +41,8 @@ function RestoreFromLocalStoragePlugin() {
             if (editor) {
                 editor.read(() => {
                     const html = $generateHtmlFromNodes(editor);
-                    console.log("HTML CREATED");
-                    console.log(html)
+                    console.log("HTML SAVED");
+                    console.log(html);
                     setSerializedEditorState(html);
                 });
             }
