@@ -46,7 +46,6 @@ export default function PostEditor({onSubmit}: PostEditorProps) {
             QuoteNode,
             MentionNode,
         ],
-        text: 'Enter text',
     };
 
     useEffect(() => {
@@ -77,7 +76,10 @@ export default function PostEditor({onSubmit}: PostEditorProps) {
                 <LexicalComposer initialConfig={initialConfig}>
                     <RichTextPlugin
                         contentEditable={
-                            <ContentEditable className="outline-none p-2 w-full min-h-[150px]"/>
+                            <ContentEditable
+                                className="outline-none p-2 w-full min-h-[150px]"
+                                style={{fontSize: '16px', lineHeight: '1.8', fontFamily: 'Arial, sans-serif'}}
+                            />
                         }
                         ErrorBoundary={LexicalErrorBoundary}
                     />
