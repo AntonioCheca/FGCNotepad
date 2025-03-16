@@ -23,26 +23,17 @@ export default function PostPage() {
 
     const {user} = authContext;
 
-    console.log("Router state:", {
-        isReady: router.isReady,
-        query: router.query,
-    });
-
     // Ensure uuid is a string (router.query types can be string | string[] | undefined)
     const safeUuid = ((typeof uuid) === "string") ? uuid : undefined;
 
     useEffect(() => {
-        console.log("Effect triggered:", {routerReady: router.isReady, safeUuid, user});
-
         if (!router.isReady) return;  // Ensure the router is ready before accessing query params
 
         if (!safeUuid || !user?.token) {
-            console.log("UUID or token is missing, exiting effect");
             setLoading(false);
             return;
         }
 
-        console.log("Just about to do a fetch", {routerReady: router.isReady, safeUuid, user});
         setLoading(true);
         fetch(`/api/posts/${safeUuid}?markdown_parse=true`, {
             headers: {
@@ -57,7 +48,6 @@ export default function PostPage() {
                 return res.json();
             })
             .then((data) => {
-                console.log("Data received:", data);
                 setPost(data);
                 setLoading(false);
             })

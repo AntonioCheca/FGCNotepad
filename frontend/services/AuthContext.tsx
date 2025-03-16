@@ -22,13 +22,11 @@ export function AuthProvider({children}: { children: ReactNode }) {
     useEffect(() => {
         const token = localStorage.getItem("jwt");
         if (token) {
-            console.log("Token found in localStorage, setting user.");
             setUser({token});
         }
     }, []);
 
     const login = (token: string) => {
-        console.log("Logging in, storing token.");
         localStorage.setItem("jwt", token);
         setUser({token});
         const redirectPath = localStorage.getItem("redirectAfterLogin");
@@ -37,7 +35,6 @@ export function AuthProvider({children}: { children: ReactNode }) {
     };
 
     const logout = () => {
-        console.log("Logging out, clearing user.");
         localStorage.removeItem("jwt");
         setUser(null);
         router.push("/login_check");

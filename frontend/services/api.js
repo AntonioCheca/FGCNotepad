@@ -13,7 +13,6 @@ const getToken = () => localStorage.getItem("jwt");
 // Attach token to all requests
 api.interceptors.request.use((config) => {
     const token = getToken();
-    console.log("Adding Authorization header:", token);
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -46,19 +45,24 @@ export const loginUser = async (username, password) => {
 
 export const createPost = async (title, body) => {
     const token = localStorage.getItem("jwt"); // Ensure it's being retrieved
-    console.log("Adding Authorization header:", token);
 
     if (!token) throw new Error("No token found");
 
     const response = await api.post(
-        "/api/posts",
+        "/posts",
         {title, body},
-        {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-        }
+    );
+
+    return response.data
+};
+
+export const searchMoves = async (query) => {
+    const token = localStorage.getItem("jwt"); // Ensure it's being retrieved
+
+    if (!token) throw new Error("No token found");
+
+    const response = await api.get(
+        `/moves/search?query=${encodeURIComponent(query)}`,
     );
 
     return response.data

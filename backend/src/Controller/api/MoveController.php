@@ -37,7 +37,7 @@ class MoveController extends AbstractController
         );
     }
 
-    #[Route('/query', methods: ['GET'], name: 'query')]
+    #[Route('/search', methods: ['GET'], name: 'query')]
     public function querySpecificMoves(Request $request, MoveRepository $moveRepository): JsonResponse
     {
         $query = $request->query->get('query', '');
