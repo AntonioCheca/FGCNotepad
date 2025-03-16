@@ -14,6 +14,8 @@ import {HorizontalRuleNode} from '@lexical/react/LexicalHorizontalRuleNode';
 import {TRANSFORMERS} from '@lexical/markdown';
 import {MarkdownShortcutPlugin} from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import RestoreFromLocalStoragePlugin from "@/src/components/lexical/RestoreFromLocalStoragePlugin";
+import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
+import {MentionNode} from "@/src/components/lexical/MentionNode"
 
 interface PostEditorProps {
     onSubmit: (title: string, body: string) => void;
@@ -42,6 +44,7 @@ export default function PostEditor({onSubmit}: PostEditorProps) {
             ListItemNode,
             HeadingNode,
             QuoteNode,
+            MentionNode,
         ],
         text: 'Enter text',
     };
@@ -79,6 +82,7 @@ export default function PostEditor({onSubmit}: PostEditorProps) {
                         ErrorBoundary={LexicalErrorBoundary}
                     />
                     <MarkdownShortcutPlugin transformers={TRANSFORMERS}/>
+                    <MentionMovePlugin/>
                     <HistoryPlugin/>
                     <RestoreFromLocalStoragePlugin/>
                     <AutoFocusPlugin/>

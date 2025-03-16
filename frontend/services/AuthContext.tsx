@@ -37,7 +37,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
     const logout = () => {
         localStorage.removeItem("jwt");
         setUser(null);
-        router.push("/login_check");
+        router.push("/auth/login");
     };
 
     return (

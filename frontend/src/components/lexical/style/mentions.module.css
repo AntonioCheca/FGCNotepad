@@ -1,0 +1,37 @@
+.suggestion-menu {
+    background: white;
+    border: 0px solid #ddd;
+    box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    padding: 0px 0;
+    min-width: 200px;
+    max-width: 500px;
+    z-index: 1000;
+    position: absolute;
+}
+
+.suggestion-menu-item:hover {
+    background: #f0f0f0;
+}
+
+.selected {
+    background: #e0e0e0; /* Slightly darker hover effect */
+}
+
+.suggestion-menu-item {
+    padding: 2px 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center; /* Ensure proper vertical alignment */
+    gap: 8px; /* Slightly bigger gap for better spacing */
+}
+
+.move-icon {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    margin: 0; /* Reset margin if needed */
+    padding: 0; /* Reset padding */
+}
+
+

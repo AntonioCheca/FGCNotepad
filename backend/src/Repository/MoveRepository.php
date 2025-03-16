@@ -27,8 +27,10 @@ class MoveRepository extends ServiceEntityRepository
 
         $arrayOfItemsToQuery = explode(' ', $query);
         foreach ($arrayOfItemsToQuery as $itemToQuery) {
+            $itemToQuery = '%' . $itemToQuery . '%';
             $quotedItem = QueryHelper::quoteStringForQuery($itemToQuery);
-            $queryDraft->andWhere(sprintf('LOWER(c.name) LIKE LOWER(%1$s) OR LOWER(m.numpadNotation) LIKE LOWER(%1$s)', $quotedItem));
+            $lowerItem = sprintf('LOWER(%s)', $quotedItem);
+            $queryDraft->andWhere(sprintf('(LOWER(c.name) LIKE %1$s) OR (LOWER(m.numpadNotation) LIKE %1$s)', $lowerItem));
         }
 
         return $queryDraft->setMaxResults(10)
