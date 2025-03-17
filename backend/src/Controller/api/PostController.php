@@ -8,15 +8,19 @@ use App\Entity\User;
 use App\Repository\MoveRepository;
 use App\Repository\PostRepository;
 use App\Repository\UserRepository;
+use App\Service\HtmlSanitizerService;
 use App\Service\MarkdownParserToHtml;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Constraints\Collection;
+use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/posts', name: 'api_posts_')]
@@ -34,18 +38,30 @@ class PostController extends AbstractController
         Request                $request,
         ValidatorInterface     $validator,
         MoveRepository         $moveRepository,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['title'], $data['body'])) {
-            return new JsonResponse(['error' => 'Missing required fields'], Response::HTTP_BAD_REQUEST);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new JsonResponse(['error' => 'Invalid JSON'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        // Define validation constraints
+        $constraints = new Collection([
+            'title' => new NotBlank(),
+            'body' => new NotBlank(),
+        ]);
+
+        $violations = $validator->validate($data, $constraints);
+
+        if (count($violations) > 0) {
+            return new JsonResponse(['error' => (string)$violations], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         $userFromSymfony = $this->security->getUser();
         if (!$userFromSymfony) {
-            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
         /** @var User $internalUserEntity */
@@ -53,18 +69,17 @@ class PostController extends AbstractController
 
         $post = new Post();
         $post->setTitle($data['title']);
-        $post->setBody($data['body']);
+        $post->setBody(json_encode($data['body'])); // Store JSON safely
         $post->setAuthor($internalUserEntity);
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTimeImmutable());
 
-        // Extract Move UUIDs from body
-        preg_match_all('/\[\[move:([a-f0-9\-]+)\]\]/i', $data['body'], $matches);
+        // Extract Move UUIDs from JSON structure
+        preg_match_all('/\[\[move:([a-f0-9\-]+)\]\]/i', json_encode($data['body']), $matches);
         $moveUuids = $matches[1] ?? [];
 
         if (!empty($moveUuids)) {
             $moves = $moveRepository->findBy(['id' => $moveUuids]);
-
             foreach ($moves as $move) {
                 $post->addComponent($move);
             }
@@ -72,13 +87,13 @@ class PostController extends AbstractController
 
         $errors = $validator->validate($post);
         if (count($errors) > 0) {
-            return new JsonResponse(['error' => (string)$errors], Response::HTTP_BAD_REQUEST);
+            return new JsonResponse(['error' => (string)$errors], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         $entityManager->persist($post);
         $entityManager->flush();
 
-        return new JsonResponse(['message' => 'Post created', 'id' => $post->getId()], Response::HTTP_CREATED);
+        return new JsonResponse(['message' => 'Post created', 'id' => $post->getId()], JsonResponse::HTTP_CREATED);
     }
 
     #[Route('/{id}', name: 'read', methods: ['GET'])]

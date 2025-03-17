@@ -16,7 +16,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $client = $this->createAuthenticatedClient();
         $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
             'title' => 'Test Post',
-            'body' => 'This is a test post'
+            'body' => ["content" => "This is a test post"]
         ]));
 
         $this->assertResponseStatusCodeSame(201);
@@ -35,11 +35,11 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertEquals($post->getId(), $data['id']);
     }
 
-    private function addPostInBackend(): Post
+    private function addPostInBackend(?array $body = null): Post
     {
         $post = new Post();
         $post->setTitle('Test Post');
-        $post->setBody('This is a test post.');
+        $post->setBody(json_encode($body ?? ["content" => "This is a test post."]));
 
         $user = new User();
         $user->setUsername('test_username');
@@ -61,16 +61,92 @@ class PostControllerTest extends AuthenticatedWebTestCase
     public function testCreatePostWithMove(): void
     {
         $client = $this->createAuthenticatedClient();
-
-        // Create a move and persist it
         $move = $this->addMoveInBackend();
 
         $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
             'title' => 'Test Post with Move',
-            'body' => 'Using Aki’s special move [[move:' . $move->getId() . ']] in this match.'
+            'body' => ["content" => "Using Aki’s special move [[move:" . $move->getId() . "]] in this match."]
         ]));
 
         $this->assertResponseStatusCodeSame(201);
+    }
+
+    public function testCreatePostWithRealisticJson(): void
+    {
+        $jsonBody = <<< JSON
+        {
+          "root": {
+            "children": [
+              {
+                "children": [
+                  {
+                    "detail": 0,
+                    "format": 0,
+                    "mode": "normal",
+                    "style": "",
+                    "text": "dkjashdjkahskjhdakjhsdkja d",
+                    "type": "text",
+                    "version": 1
+                  },
+                  {
+                    "type": "custom_mention",
+                    "version": 1,
+                    "mentionName": "Aki 5LP",
+                    "idForComponent": "1effa04d-dcc6-63b6-9b09-99e145a845f5",
+                    "text": "",
+                    "detailsText": "Aki 5LP"
+                  },
+                  {
+                    "detail": 0,
+                    "format": 0,
+                    "mode": "normal",
+                    "style": "",
+                    "text": "dddddd",
+                    "type": "text",
+                    "version": 1
+                  }
+                ],
+                "direction": "ltr",
+                "format": "",
+                "indent": 0,
+                "type": "paragraph",
+                "version": 1,
+                "textFormat": 0,
+                "textStyle": ""
+              }
+            ],
+            "direction": "ltr",
+            "format": "",
+            "indent": 0,
+            "type": "root",
+            "version": 1
+          }
+        }
+        JSON;
+
+        $client = $this->createAuthenticatedClient();
+        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
+            'title' => 'Test Post',
+            'body' => json_decode($jsonBody, true)
+        ]));
+
+        $this->assertResponseStatusCodeSame(201);
+
+        /**
+         * @var $response Response
+         */
+        $response = $this->client->getResponse();
+        $content = json_decode($response->getContent(), true);
+        $uuid = $content['id'];
+
+        $this->client->request('GET', '/api/posts/' . $uuid, [], [], $this->getHeaders());
+        $response = $this->client->getResponse();
+
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertJson($response->getContent());
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals($uuid, $data['id']);
+        $this->assertEquals(json_decode($jsonBody, true), json_decode($data['body'], true));
     }
 
     private function addMoveInBackend(): Move

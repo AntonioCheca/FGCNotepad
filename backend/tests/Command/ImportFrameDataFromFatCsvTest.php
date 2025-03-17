@@ -9,7 +9,7 @@ use App\Tests\DatabaseTestCase;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Console\Application;
-use App\Command\ImportFrameDataFromFatCsv;
+use App\Command\ImportFrameDataFromFatCsvCommand;
 use Doctrine\ORM\EntityManagerInterface;
 
 class ImportFrameDataFromFatCsvTest extends DatabaseTestCase
@@ -27,14 +27,14 @@ class ImportFrameDataFromFatCsvTest extends DatabaseTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        
+
         unlink($this->testCsvPath); // Clean up test CSV file
     }
 
     public function testImportFrameDataCommand(): void
     {
         $application = new Application();
-        $command = self::getContainer()->get(ImportFrameDataFromFatCsv::class);
+        $command = self::getContainer()->get(ImportFrameDataFromFatCsvCommand::class);
         $application->add($command);
 
         $commandTester = new CommandTester($command);

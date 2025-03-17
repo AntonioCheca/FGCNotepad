@@ -18,7 +18,7 @@ use League\Csv\Reader;
     name: 'frame-data:import:fat-csv',
     description: 'Import frame data for a character from a CSV file'
 )]
-class ImportFrameDataFromFatCsv extends Command
+class ImportFrameDataFromFatCsvCommand extends Command
 {
     private EntityManagerInterface $entityManager;
 

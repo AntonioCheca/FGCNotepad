@@ -15,7 +15,7 @@ import {TRANSFORMERS} from '@lexical/markdown';
 import {MarkdownShortcutPlugin} from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import {
     RestoreFromLocalStoragePlugin,
-    LoadFromHtmlStringPlugin
+    LoadFromJsonStringPlugin
 } from "@/src/components/lexical/RestoreFromLocalStoragePlugin";
 import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
 import {MentionNode} from "@/src/components/lexical/MentionNode"
@@ -73,7 +73,8 @@ export default function PostEditor({onSubmit, initialTitle = '', initialBody = '
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(title, body);
+        const savedBody = localStorage.getItem('postDraftBody');
+        onSubmit(title, savedBody);
     };
 
     return (
@@ -103,7 +104,7 @@ export default function PostEditor({onSubmit, initialTitle = '', initialBody = '
                     <MentionMovePlugin/>
                     <HistoryPlugin/>
                     {editable ? <RestoreFromLocalStoragePlugin/> :
-                        <LoadFromHtmlStringPlugin htmlString={initialBody ?? body}/>}
+                        <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>}
                     <AutoFocusPlugin/>
                 </LexicalComposer>
                 {editable && <Button type="submit" variant="contained" color="primary">

@@ -2,71 +2,60 @@ import {useLocalStorage} from 'react-use';
 import {useState, useEffect, useCallback} from 'react';
 import {OnChangePlugin} from '@lexical/react/LexicalOnChangePlugin';
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {$generateHtmlFromNodes, $generateNodesFromDOM} from '@lexical/html';
 import {EditorState} from 'lexical';
 import {$createParagraphNode, $getRoot} from 'lexical';
 
 /**
- * Loads saved HTML content into the editor from a given string.
+ * Loads saved JSON content into the editor from a given string.
  * Ensures the editor starts with a valid state even if the string is empty.
  */
-const loadEditorContent = (editor: any, htmlString: string) => {
-    if (htmlString) {
+const loadEditorContent = (editor, jsonString) => {
+    if (jsonString) {
         try {
-            editor.update(() => {
-                const parser = new DOMParser();
-                const dom = parser.parseFromString(htmlString, 'text/html');
-
-                const nodes = $generateNodesFromDOM(editor, dom);
-                const root = $getRoot();
-
-                root.clear();
-
-                if (nodes.length > 0) {
-                    root.append(...nodes);
-                } else {
-                    root.append($createParagraphNode()); // Ensure there's at least one paragraph
-                }
-            });
+            const parsedJson = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+            const editorState = editor.parseEditorState(parsedJson);
+            editor.setEditorState(editorState);
         } catch (error) {
-            console.error("Error while updating the editor:", error);
+            console.warn("Error while updating the editor with JSON:", error);
         }
     }
 };
 
+
 /**
  * Handles saving the editor content to local storage on change.
  */
-const useEditorSaveToStorage = (storageKey: string) => {
+const useEditorSaveToStorage = (storageKey) => {
     const [editor] = useLexicalComposerContext();
 
     return useCallback(
-        (editorState: EditorState) => {
-            editor.read(() => {
-                const html = $generateHtmlFromNodes(editor);
-                console.log("SAVING HTML", html);
-                localStorage.setItem(storageKey, html);
-            });
+        (editorState) => {
+            try {
+                const json = JSON.stringify(editorState);
+                localStorage.setItem(storageKey, json);
+            } catch (error) {
+                console.error("Error while saving editor state to localStorage:", error);
+            }
         },
         [editor]
     );
 };
 
 /**
- * Plugin to load content from a given HTML string on first render.
+ * Plugin to load content from a given JSON string on first render.
  */
-function LoadFromHtmlStringPlugin({htmlString}: { htmlString: string }) {
+function LoadFromJsonStringPlugin({jsonString}) {
     const [editor] = useLexicalComposerContext();
     const [isFirstRender, setIsFirstRender] = useState(true);
 
     useEffect(() => {
         if (isFirstRender) {
             setIsFirstRender(false);
-            loadEditorContent(editor, htmlString);
+            loadEditorContent(editor, jsonString);
         }
-    }, [isFirstRender, htmlString, editor]);
+    }, [isFirstRender, jsonString, editor]);
 
-    return null; // No need for OnChangePlugin since we are not saving changes
+    return null;
 }
 
 /**
@@ -78,11 +67,13 @@ function RestoreFromLocalStoragePlugin() {
     const onChange = useEditorSaveToStorage('postDraftBody');
 
     useEffect(() => {
-        console.log(localStorage.getItem('postDraftBody'));
-        loadEditorContent(editor, localStorage.getItem('postDraftBody') ?? '');
+        const storedJson = localStorage.getItem('postDraftBody');
+        if (storedJson) {
+            loadEditorContent(editor, storedJson);
+        }
     }, [editor]);
 
     return <OnChangePlugin onChange={onChange}/>;
 }
 
-export {RestoreFromLocalStoragePlugin, LoadFromHtmlStringPlugin};
+export {RestoreFromLocalStoragePlugin, LoadFromJsonStringPlugin};

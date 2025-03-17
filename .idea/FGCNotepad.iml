@@ -150,6 +150,12 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/lcobucci/jwt" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/lcobucci/clock" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/lexik/jwt-authentication-bundle" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/league/uri" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/league/uri-interfaces" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/html-sanitizer" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/psr/http-factory" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/psr/http-message" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/ezyang/htmlpurifier" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
