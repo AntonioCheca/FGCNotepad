@@ -35,20 +35,6 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertEquals($post->getId(), $data['id']);
     }
 
-    public function testReadPostMarkdownParsed(): void
-    {
-        $post = $this->addPostInBackend();
-        $uuid = $post->getId();
-        $this->client->request('GET', "/api/posts/$uuid?markdown_parse=true", [], [], $this->getHeaders());
-        $response = $this->client->getResponse();
-
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('body', $data);
-        $this->assertStringContainsString('<p>', $data['body']); // Checking for parsed HTML
-    }
-
     private function addPostInBackend(): Post
     {
         $post = new Post();

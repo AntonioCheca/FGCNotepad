@@ -82,7 +82,7 @@ class PostController extends AbstractController
     }
 
     #[Route('/{id}', name: 'read', methods: ['GET'])]
-    public function read(string $id, PostRepository $postRepository, MarkdownParserToHtml $markdownParser, Request $request): JsonResponse
+    public function read(string $id, PostRepository $postRepository): JsonResponse
     {
         $post = $postRepository->find($id);
 
@@ -90,8 +90,7 @@ class PostController extends AbstractController
             throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
         }
 
-        $markdownParse = $request->query->getBoolean('markdown_parse', false);
-        $body = $markdownParse ? $markdownParser->parse($post->getBody()) : $post->getBody();
+        $body = $post->getBody();
 
         return new JsonResponse([
             'id' => $post->getId(),

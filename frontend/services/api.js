@@ -80,4 +80,16 @@ export const getSpecificMove = async (id) => {
     return response.data
 };
 
+export const getSpecificPost = async (id) => {
+    const token = localStorage.getItem("jwt"); // Ensure it's being retrieved
+
+    if (!token) throw new Error("No token found");
+
+    const response = await api.get(
+        `/posts/${id}`,
+    );
+
+    return response.data
+};
+
 export default api;

@@ -15,7 +15,7 @@ export default function CreatePostPage() {
             <Typography variant="h4" gutterBottom>
                 Create a New Post
             </Typography>
-            <PostEditor onSubmit={handleSubmit}/>
+            <PostEditor onSubmit={handleSubmit} initialTitle={''} initialBody={''} editable={true}/>
         </Container>
     );
 }
