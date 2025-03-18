@@ -10,6 +10,7 @@ use App\Repository\PostRepository;
 use App\Repository\UserRepository;
 use App\Service\HtmlSanitizerService;
 use App\Service\MarkdownParserToHtml;
+use App\Service\PostComponentExtractor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -39,6 +40,7 @@ class PostController extends AbstractController
         ValidatorInterface     $validator,
         MoveRepository         $moveRepository,
         EntityManagerInterface $entityManager,
+        PostComponentExtractor $componentExtractor
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -47,14 +49,12 @@ class PostController extends AbstractController
             return new JsonResponse(['error' => 'Invalid JSON'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        // Define validation constraints
         $constraints = new Collection([
             'title' => new NotBlank(),
             'body' => new NotBlank(),
         ]);
 
         $violations = $validator->validate($data, $constraints);
-
         if (count($violations) > 0) {
             return new JsonResponse(['error' => (string)$violations], JsonResponse::HTTP_BAD_REQUEST);
         }
@@ -74,9 +74,7 @@ class PostController extends AbstractController
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTimeImmutable());
 
-        // Extract Move UUIDs from JSON structure
-        preg_match_all('/\[\[move:([a-f0-9\-]+)\]\]/i', json_encode($data['body']), $matches);
-        $moveUuids = $matches[1] ?? [];
+        $moveUuids = $componentExtractor->extractComponentIds(json_decode($data['body'], true));
 
         if (!empty($moveUuids)) {
             $moves = $moveRepository->findBy(['id' => $moveUuids]);
