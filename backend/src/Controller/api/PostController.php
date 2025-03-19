@@ -116,18 +116,26 @@ class PostController extends AbstractController
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
-    public function list(PostRepository $postRepository): JsonResponse
+    public function list(PostRepository $postRepository, Request $request): JsonResponse
     {
-        $posts = $postRepository->findBy([], ['createdAt' => 'DESC']);
+        $page = max(1, (int)$request->query->get('page', 1));
+        $limit = min(500, (int)$request->query->get('size', 10));
+
+        $result = $postRepository->findPaginated($page, $limit);
 
         $data = array_map(fn(Post $post) => [
             'id' => $post->getId(),
             'title' => $post->getTitle(),
             'author' => $post->getAuthor()->getUsername(),
-            'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
-        ], $posts);
+        ], $result['posts']);
 
-        return new JsonResponse($data);
+        return new JsonResponse([
+            'page' => $page,
+            'size' => $limit,
+            'total_pages' => ceil($result['total'] / $limit),
+            'total_posts' => $result['total'],
+            'data' => $data,
+        ]);
     }
 
     #[Route('/{id}', name: 'update', methods: ['PUT'])]
