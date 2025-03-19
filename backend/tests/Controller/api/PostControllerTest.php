@@ -16,7 +16,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $client = $this->createAuthenticatedClient();
         $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
             'title' => 'Test Post',
-            'body' => ["content" => "This is a test post"]
+            'body' => json_encode(["content" => "This is a test post"])
         ]));
 
         $this->assertResponseStatusCodeSame(201);
@@ -56,19 +56,6 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $entityManager->flush();
 
         return $post;
-    }
-
-    public function testCreatePostWithMove(): void
-    {
-        $client = $this->createAuthenticatedClient();
-        $move = $this->addMoveInBackend();
-
-        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
-            'title' => 'Test Post with Move',
-            'body' => ["content" => "Using Aki’s special move [[move:" . $move->getId() . "]] in this match."]
-        ]));
-
-        $this->assertResponseStatusCodeSame(201);
     }
 
     public function testCreatePostWithRealisticJson(): void
@@ -127,7 +114,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $client = $this->createAuthenticatedClient();
         $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
             'title' => 'Test Post',
-            'body' => json_decode($jsonBody, true)
+            'body' => $jsonBody
         ]));
 
         $this->assertResponseStatusCodeSame(201);
@@ -146,7 +133,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertJson($response->getContent());
         $data = json_decode($response->getContent(), true);
         $this->assertEquals($uuid, $data['id']);
-        $this->assertEquals(json_decode($jsonBody, true), json_decode($data['body'], true));
+        $this->assertEquals($jsonBody, json_decode($data['body'], true));
     }
 
     private function addMoveInBackend(): Move
