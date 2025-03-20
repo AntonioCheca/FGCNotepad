@@ -56,12 +56,9 @@ export class MentionNode extends DecoratorNode<ReactNode> {
     }
 
     constructor(mentionName: string, idForComponent: string, text?: string, detailsText?: string, key?: NodeKey) {
-        console.log("Creating the Mention!");
         super(key); // Ensure text and key are properly passed
         this.__mention = mentionName;
         this.__id_for_component = idForComponent;
-        console.log("CREATING ID");
-        console.log(idForComponent);
         this.__text = text || "";
         this.__detailsText = detailsText || ""; // Optional details text
     }
@@ -87,7 +84,6 @@ export class MentionNode extends DecoratorNode<ReactNode> {
     }
 
     exportDOM(): DOMExportOutput {
-        console.log("Export DOM");
         const element = document.createElement("span");
         element.setAttribute("data-lexical-mention", "true");
         if (this.__id_for_component) {

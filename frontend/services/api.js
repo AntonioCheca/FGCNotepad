@@ -92,15 +92,18 @@ export const getSpecificPost = async (id) => {
     return response.data
 };
 
-export const fetchPosts = async (page = 1, size = 10) => {
+export const fetchPosts = async (page = 1, size = 10, query) => {
     const token = localStorage.getItem("jwt");
 
     if (!token) throw new Error("No token found");
 
-    const response = await api.get(`/posts`, {
+    let response;
+
+    response = await api.get(`/posts`, {
         params: {
             page: Number(page),  // Ensure it's a number
             size: Number(size),  // Ensure it's a number
+            query: query ?? '',
         },
     });
 

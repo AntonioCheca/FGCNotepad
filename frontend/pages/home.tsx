@@ -9,18 +9,24 @@ const HomePage = () => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const loadPosts = async (query) => {
+        try {
+            setLoading(true);
+            const response = await fetchPosts(1, 10, query);
+            setPosts(response['data']);
+        } catch (error) {
+            console.error("Failed to load posts:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearchSubmit = async (query) => {
+        await loadPosts(query);
+    };
+
     useEffect(() => {
-        const loadPosts = async () => {
-            try {
-                const response = await fetchPosts({page: 1, size: 10});
-                setPosts(response['data']);
-            } catch (error) {
-                console.error("Failed to load posts:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadPosts();
+        loadPosts(null).then();
     }, []);
 
     return (
@@ -28,7 +34,7 @@ const HomePage = () => {
             <Typography variant="h4" sx={{my: 3}}>
                 Latest Posts
             </Typography>
-            <SearchBar/>
+            <SearchBar onSubmit={handleSearchSubmit}/>
             <PostList posts={posts} loading={loading}/>
         </Container>
     );

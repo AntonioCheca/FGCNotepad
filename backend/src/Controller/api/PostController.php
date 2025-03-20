@@ -120,8 +120,9 @@ class PostController extends AbstractController
     {
         $page = max(1, (int)$request->query->get('page', 1));
         $limit = min(500, (int)$request->query->get('size', 10));
+        $query = $request->query->get('query', '');
 
-        $result = $postRepository->findPaginated($page, $limit);
+        $result = $postRepository->findPaginated($page, $limit, $query);
 
         $data = array_map(fn(Post $post) => [
             'id' => $post->getId(),
@@ -137,6 +138,7 @@ class PostController extends AbstractController
             'data' => $data,
         ]);
     }
+
 
     #[Route('/{id}', name: 'update', methods: ['PUT'])]
     public function update(int $id, Request $request, PostRepository $postRepository, ValidatorInterface $validator): JsonResponse

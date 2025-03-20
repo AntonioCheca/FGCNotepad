@@ -16,16 +16,22 @@ class PostRepository extends ServiceEntityRepository
         parent::__construct($registry, Post::class);
     }
 
-    public function findPaginated(int $page, int $limit): array
+    public function findPaginated(int $page, int $limit, string $query = ''): array
     {
-        $query = $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->orderBy('p.createdAt', 'DESC')
             ->setFirstResult(($page - 1) * $limit)
-            ->setMaxResults($limit)
-            ->getQuery();
+            ->setMaxResults($limit);
+
+        if (!empty($query)) {
+            $qb->andWhere('p.title LIKE :query')
+                ->setParameter('query', '%' . $query . '%');
+        }
+
+        $queryObj = $qb->getQuery();
 
         return [
-            'posts' => $query->getResult(),
+            'posts' => $queryObj->getResult(),
             'total' => $this->count([]),
         ];
     }
