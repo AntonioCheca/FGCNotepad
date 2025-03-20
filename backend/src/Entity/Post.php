@@ -44,9 +44,14 @@ class Post
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $last_modified = null;
 
+    #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'posts')]
+    #[ORM\JoinTable(name: "post_tag", schema: "forum")]
+    private Collection $tags;
+
     public function __construct()
     {
         $this->components = new ArrayCollection();
+        $this->tags = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -133,6 +138,30 @@ class Post
         if ($this->components->removeElement($component)) {
             $component->removePost($this);
         }
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Tag>
+     */
+    public function getTags(): Collection
+    {
+        return $this->tags;
+    }
+
+    public function addTag(Tag $tag): static
+    {
+        if (!$this->tags->contains($tag)) {
+            $this->tags->add($tag);
+        }
+
+        return $this;
+    }
+
+    public function removeTag(Tag $tag): static
+    {
+        $this->tags->removeElement($tag);
+
         return $this;
     }
 }

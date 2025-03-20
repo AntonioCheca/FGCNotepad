@@ -5,6 +5,7 @@ namespace App\Tests\Controller\api;
 use App\Entity\Character;
 use App\Entity\Move;
 use App\Entity\Post;
+use App\Entity\Tag;
 use App\Entity\User;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -150,5 +151,72 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $entityManager->flush();
 
         return $move;
+    }
+
+    public function testCreatePostWithTags(): void
+    {
+        $this->createAuthenticatedClient();
+        $this->client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
+            'title' => 'Test Post with Tags',
+            'body' => json_encode(['content' => 'This is a test post.']),
+            'tags' => ['Tag1', 'Tag2']
+        ]));
+
+        $response = $this->client->getResponse();
+        $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
+        $this->assertJson($response->getContent());
+        $data = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('id', $data);
+
+        // Verify post in DB
+        $post = $this->entityManager->getRepository(Post::class)->find($data['id']);
+        $this->assertCount(2, $post->getTags());
+        $this->assertEquals('Tag1', $post->getTags()[0]->getName());
+        $this->assertEquals('Tag2', $post->getTags()[1]->getName());
+    }
+
+    public function testReadPostWithTags(): void
+    {
+        $this->createAuthenticatedClient();
+        $post = $this->addPostWithTags(['Tag1', 'Tag2']);
+
+        $this->client->request('GET', '/api/posts/' . $post->getId(), [], [], $this->getHeaders());
+        $response = $this->client->getResponse();
+
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertJson($response->getContent());
+        $data = json_decode($response->getContent(), true);
+
+        $this->assertEquals($post->getId(), $data['id']);
+        $this->assertEquals(['Tag1', 'Tag2'], $data['tags']);
+    }
+
+    private function addPostWithTags(array $tagNames): Post
+    {
+        $post = new Post();
+        $post->setTitle('Test Post');
+        $post->setBody(json_encode(["content" => "This is a test post."]));
+
+        $user = new User();
+        $user->setUsername('test_username');
+        $user->setRoles(['ROLE_USER']);
+        $user->setPassword('test_hashed_password');
+        $this->entityManager->persist($user);
+        $post->setAuthor($user);
+
+        $post->setCreatedAt(new \DateTimeImmutable());
+        $post->setLastModified(new \DateTime());
+
+        foreach ($tagNames as $tagName) {
+            $tag = new Tag();
+            $tag->setName($tagName);
+            $this->entityManager->persist($tag);
+            $post->addTag($tag);
+        }
+
+        $this->entityManager->persist($post);
+        $this->entityManager->flush();
+
+        return $post;
     }
 }

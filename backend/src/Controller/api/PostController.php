@@ -2,19 +2,16 @@
 
 namespace App\Controller\api;
 
-use App\Entity\Component;
 use App\Entity\Post;
+use App\Entity\Tag;
 use App\Entity\User;
 use App\Repository\MoveRepository;
 use App\Repository\PostRepository;
-use App\Repository\UserRepository;
-use App\Service\HtmlSanitizerService;
-use App\Service\MarkdownParserToHtml;
+use App\Repository\TagRepository;
 use App\Service\PostComponentExtractor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +19,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Constraints\Collection;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Optional;
+use Symfony\Component\Validator\Constraints\Type;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/posts', name: 'api_posts_')]
@@ -39,6 +38,7 @@ class PostController extends AbstractController
         Request                $request,
         ValidatorInterface     $validator,
         MoveRepository         $moveRepository,
+        TagRepository          $tagRepository,
         EntityManagerInterface $entityManager,
         PostComponentExtractor $componentExtractor
     ): JsonResponse
@@ -52,6 +52,9 @@ class PostController extends AbstractController
         $constraints = new Collection([
             'title' => new NotBlank(),
             'body' => new NotBlank(),
+            'tags' => new Optional([
+                new Type('array'),
+            ]),
         ]);
 
         $violations = $validator->validate($data, $constraints);
@@ -69,17 +72,25 @@ class PostController extends AbstractController
 
         $post = new Post();
         $post->setTitle($data['title']);
-        $post->setBody(json_encode($data['body'])); // Store JSON safely
+        $post->setBody(json_encode($data['body']));
         $post->setAuthor($internalUserEntity);
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTimeImmutable());
 
         $moveUuids = $componentExtractor->extractComponentIds(json_decode($data['body'], true));
-
         if (!empty($moveUuids)) {
             $moves = $moveRepository->findBy(['id' => $moveUuids]);
             foreach ($moves as $move) {
                 $post->addComponent($move);
+            }
+        }
+
+        if (!empty($data['tags'])) {
+            foreach ($data['tags'] as $tagName) {
+                $tag = $tagRepository->findOneBy(['name' => $tagName]) ?? new Tag();
+                $tag->setName($tagName);
+                $entityManager->persist($tag);
+                $post->addTag($tag);
             }
         }
 
@@ -98,20 +109,18 @@ class PostController extends AbstractController
     public function read(string $id, PostRepository $postRepository): JsonResponse
     {
         $post = $postRepository->find($id);
-
         if (!$post) {
             throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
         }
 
-        $body = $post->getBody();
-
         return new JsonResponse([
             'id' => $post->getId(),
             'title' => $post->getTitle(),
-            'body' => $body,
+            'body' => $post->getBody(),
             'author' => $post->getAuthor()->getUsername(),
             'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
             'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'),
+            'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),
         ]);
     }
 
