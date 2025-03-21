@@ -26,22 +26,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 #[Route('/api/posts', name: 'api_posts_')]
 class PostController extends AbstractController
 {
-    public function __construct(
-        private EntityManagerInterface $entityManager,
-        private Security               $security
-    )
+    public function __construct(private EntityManagerInterface $entityManager, private Security $security)
     {
     }
 
     #[Route('', name: 'create', methods: ['POST'])]
-    public function create(
-        Request                $request,
-        ValidatorInterface     $validator,
-        MoveRepository         $moveRepository,
-        TagRepository          $tagRepository,
-        EntityManagerInterface $entityManager,
-        PostComponentExtractor $componentExtractor
-    ): JsonResponse
+    public function create(Request $request, ValidatorInterface $validator, MoveRepository $moveRepository, TagRepository $tagRepository, EntityManagerInterface $entityManager, PostComponentExtractor $componentExtractor): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
@@ -49,13 +39,7 @@ class PostController extends AbstractController
             return new JsonResponse(['error' => 'Invalid JSON'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $constraints = new Collection([
-            'title' => new NotBlank(),
-            'body' => new NotBlank(),
-            'tags' => new Optional([
-                new Type('array'),
-            ]),
-        ]);
+        $constraints = new Collection(['title' => new NotBlank(), 'body' => new NotBlank(), 'tags' => new Optional([new Type('array'),]),]);
 
         $violations = $validator->validate($data, $constraints);
         if (count($violations) > 0) {
@@ -113,15 +97,7 @@ class PostController extends AbstractController
             throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
         }
 
-        return new JsonResponse([
-            'id' => $post->getId(),
-            'title' => $post->getTitle(),
-            'body' => $post->getBody(),
-            'author' => $post->getAuthor()->getUsername(),
-            'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
-            'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'),
-            'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),
-        ]);
+        return new JsonResponse(['id' => $post->getId(), 'title' => $post->getTitle(), 'body' => $post->getBody(), 'author' => $post->getAuthor()->getUsername(), 'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'), 'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'), 'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),]);
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
@@ -131,22 +107,16 @@ class PostController extends AbstractController
         $limit = min(500, (int)$request->query->get('size', 10));
         $query = $request->query->get('query', '');
 
-        $result = $postRepository->findPaginated($page, $limit, $query);
+        // Get included and excluded tags from query parameters
+        $includedTags = $request->query->get('includedTags') ? explode(',', $request->query->get('includedTags')) : [];
+        $excludedTags = $request->query->get('excludedTags') ? explode(',', $request->query->get('excludedTags')) : [];
 
-        $data = array_map(fn(Post $post) => [
-            'id' => $post->getId(),
-            'title' => $post->getTitle(),
-            'author' => $post->getAuthor()->getUsername(),
-            'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),
-        ], $result['posts']);
+        // Fetch posts using the repository method
+        $result = $postRepository->findPaginated($page, $limit, $query, $includedTags, $excludedTags);
 
-        return new JsonResponse([
-            'page' => $page,
-            'size' => $limit,
-            'total_pages' => ceil($result['total'] / $limit),
-            'total_posts' => $result['total'],
-            'data' => $data,
-        ]);
+        $data = $result['posts'];
+
+        return new JsonResponse(['page' => $page, 'size' => $limit, 'data' => $data]);
     }
 
 

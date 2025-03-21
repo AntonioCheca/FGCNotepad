@@ -7,6 +7,7 @@ use App\Entity\Move;
 use App\Entity\Post;
 use App\Entity\Tag;
 use App\Entity\User;
+use App\Repository\UserRepository;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -15,10 +16,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
     public function testCreatePost(): void
     {
         $client = $this->createAuthenticatedClient();
-        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
-            'title' => 'Test Post',
-            'body' => json_encode(["content" => "This is a test post"])
-        ]));
+        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode(['title' => 'Test Post', 'body' => json_encode(["content" => "This is a test post"])]));
 
         $this->assertResponseStatusCodeSame(201);
     }
@@ -113,10 +111,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
         JSON;
 
         $client = $this->createAuthenticatedClient();
-        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
-            'title' => 'Test Post',
-            'body' => $jsonBody
-        ]));
+        $client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode(['title' => 'Test Post', 'body' => $jsonBody]));
 
         $this->assertResponseStatusCodeSame(201);
 
@@ -156,11 +151,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
     public function testCreatePostWithTags(): void
     {
         $this->createAuthenticatedClient();
-        $this->client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode([
-            'title' => 'Test Post with Tags',
-            'body' => json_encode(['content' => 'This is a test post.']),
-            'tags' => ['Tag1', 'Tag2']
-        ]));
+        $this->client->request('POST', '/api/posts', [], [], $this->getHeaders(), json_encode(['title' => 'Test Post with Tags', 'body' => json_encode(['content' => 'This is a test post.']), 'tags' => ['Tag1', 'Tag2']]));
 
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
@@ -193,24 +184,40 @@ class PostControllerTest extends AuthenticatedWebTestCase
 
     private function addPostWithTags(array $tagNames): Post
     {
+        /** @var TagRepository $tagRepository */
+        $tagRepository = $this->entityManager->getRepository(Tag::class);
+        /** @var UserRepository $userRepository */
+        $userRepository = $this->entityManager->getRepository(User::class);
+
         $post = new Post();
         $post->setTitle('Test Post');
         $post->setBody(json_encode(["content" => "This is a test post."]));
 
-        $user = new User();
-        $user->setUsername('test_username');
-        $user->setRoles(['ROLE_USER']);
-        $user->setPassword('test_hashed_password');
-        $this->entityManager->persist($user);
+        $userName = 'test_username';
+        $user = $userRepository->findOneBy(['username' => $userName]);
+        if (!$user) {
+            $user = new User();
+            $user->setUsername($userName);
+            $user->setRoles(['ROLE_USER']);
+            $user->setPassword('test_hashed_password');
+            $this->entityManager->persist($user);
+        }
         $post->setAuthor($user);
 
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTime());
 
         foreach ($tagNames as $tagName) {
-            $tag = new Tag();
-            $tag->setName($tagName);
-            $this->entityManager->persist($tag);
+            // Check if the tag already exists
+            $tag = $tagRepository->findOneBy(['name' => $tagName]);
+
+            // If not found, create a new one
+            if (!$tag) {
+                $tag = new Tag();
+                $tag->setName($tagName);
+                $this->entityManager->persist($tag);
+            }
+
             $post->addTag($tag);
         }
 
@@ -218,5 +225,35 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->entityManager->flush();
 
         return $post;
+    }
+
+
+    public function testListPostsWithIncludedAndExcludedTags(): void
+    {
+        $this->createAuthenticatedClient();
+
+        // Create posts with different tag combinations
+        $post1 = $this->addPostWithTags(['TagA', 'TagB']); // Should be included
+        $post2 = $this->addPostWithTags(['TagB', 'TagC']); // Should be excluded
+        $post3 = $this->addPostWithTags(['TagD']);         // Should be excluded
+        $post4 = $this->addPostWithTags(['TagC', 'TagD']); // Should be excluded
+
+        // Search for posts with TagB but excluding TagD
+        $this->client->request('GET', '/api/posts', ['query' => '', 'includedTags' => 'TagB', // Must include at least TagB and TagC
+            'excludedTags' => 'TagC', // Must NOT include TagD
+        ], [], $this->getHeaders());
+
+        $response = $this->client->getResponse();
+
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertJson($response->getContent());
+
+        $data = json_decode($response->getContent(), true);
+        $returnedPostIds = array_column($data['data'], 'id');
+
+        $this->assertContains($post1->getId()->toString(), $returnedPostIds);
+        $this->assertNotContains($post2->getId()->toString(), $returnedPostIds);
+        $this->assertNotContains($post3->getId()->toString(), $returnedPostIds);
+        $this->assertNotContains($post4->getId()->toString(), $returnedPostIds);
     }
 }
