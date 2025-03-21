@@ -137,6 +137,7 @@ class PostController extends AbstractController
             'id' => $post->getId(),
             'title' => $post->getTitle(),
             'author' => $post->getAuthor()->getUsername(),
+            'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),
         ], $result['posts']);
 
         return new JsonResponse([

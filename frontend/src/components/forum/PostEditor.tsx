@@ -19,9 +19,11 @@ import {
 } from "@/src/components/lexical/RestoreFromLocalStoragePlugin";
 import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
 import {MentionNode} from "@/src/components/lexical/MentionNode"
+import TagInput from "@/src/components/forum/TagInput";
+import TagList from "@/src/components/forum/TagList";
 
 interface PostEditorProps {
-    onSubmit: (title: string, body) => void;
+    onSubmit: (title: string, body: string, tags) => void;
     initialTitle: string,
     initialBody: string,
     editable: boolean
@@ -35,7 +37,13 @@ function onError(error) {
     console.error(error);
 }
 
-export default function PostEditor({onSubmit, initialTitle = '', initialBody = '', editable = true}: PostEditorProps) {
+export default function PostEditor({
+                                       onSubmit,
+                                       initialTitle = '',
+                                       initialBody = '',
+                                       initialTags = [],
+                                       editable = true
+                                   }: PostEditorProps) {
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
     const initialConfig = {
@@ -70,11 +78,22 @@ export default function PostEditor({onSubmit, initialTitle = '', initialBody = '
             setTitle(initialTitle);
         }
     }, []);
+    const [tags, setTags] = useState<string[]>(initialTags);  // Initialize from props
+
+    const handleAddTag = (tag: string) => {
+        if (!tags.includes(tag)) {
+            setTags([...tags, tag]);
+        }
+    };
+
+    const handleDeleteTag = (tagToDelete: string) => {
+        setTags(tags.filter(tag => tag !== tagToDelete));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const savedBody = localStorage.getItem('postDraftBody');
-        onSubmit(title, savedBody);
+        onSubmit(title, savedBody, tags);  // Ensure tags are included in submission
     };
 
     return (
@@ -107,6 +126,7 @@ export default function PostEditor({onSubmit, initialTitle = '', initialBody = '
                         <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>}
                     <AutoFocusPlugin/>
                 </LexicalComposer>
+                <TagList tags={tags} onDeleteTag={handleDeleteTag} onAddTag={handleAddTag} editable={editable}/>
                 {editable && <Button type="submit" variant="contained" color="primary">
                     Submit Post
                 </Button>}
@@ -114,3 +134,4 @@ export default function PostEditor({onSubmit, initialTitle = '', initialBody = '
         </Paper>
     );
 }
+

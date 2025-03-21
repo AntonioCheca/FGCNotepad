@@ -43,17 +43,17 @@ export const loginUser = async (username, password) => {
     return response.data;
 };
 
-export const createPost = async (title, body) => {
-    const token = localStorage.getItem("jwt"); // Ensure it's being retrieved
+export const createPost = async (title, body, tags = []) => {
+    const token = localStorage.getItem("jwt");
 
     if (!token) throw new Error("No token found");
 
     const response = await api.post(
         "/posts",
-        {title, body},
+        {title, body, tags}, // Include tags
     );
 
-    return response.data
+    return response.data;
 };
 
 export const searchMoves = async (query) => {

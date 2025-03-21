@@ -146,12 +146,7 @@
       <path value="$PROJECT_DIR$/backend/vendor/lcobucci/jwt" />
       <path value="$PROJECT_DIR$/backend/vendor/lcobucci/clock" />
       <path value="$PROJECT_DIR$/backend/vendor/lexik/jwt-authentication-bundle" />
-      <path value="$PROJECT_DIR$/backend/vendor/league/uri" />
-      <path value="$PROJECT_DIR$/backend/vendor/league/uri-interfaces" />
-      <path value="$PROJECT_DIR$/backend/vendor/symfony/html-sanitizer" />
-      <path value="$PROJECT_DIR$/backend/vendor/psr/http-factory" />
-      <path value="$PROJECT_DIR$/backend/vendor/psr/http-message" />
-      <path value="$PROJECT_DIR$/backend/vendor/ezyang/htmlpurifier" />
+      <path value="$PROJECT_DIR$/backend/vendor/uestla/simplex-calculator" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.1" />
