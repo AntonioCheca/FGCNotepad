@@ -150,7 +150,10 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/lcobucci/jwt" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/lcobucci/clock" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/lexik/jwt-authentication-bundle" />
-      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/uestla/simplex-calculator" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/rector/rector" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/phpstan/phpstan" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/phpstan/phpstan-doctrine" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor/phpstan/extension-installer" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

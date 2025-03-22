@@ -146,7 +146,10 @@
       <path value="$PROJECT_DIR$/backend/vendor/lcobucci/jwt" />
       <path value="$PROJECT_DIR$/backend/vendor/lcobucci/clock" />
       <path value="$PROJECT_DIR$/backend/vendor/lexik/jwt-authentication-bundle" />
-      <path value="$PROJECT_DIR$/backend/vendor/uestla/simplex-calculator" />
+      <path value="$PROJECT_DIR$/backend/vendor/rector/rector" />
+      <path value="$PROJECT_DIR$/backend/vendor/phpstan/phpstan" />
+      <path value="$PROJECT_DIR$/backend/vendor/phpstan/phpstan-doctrine" />
+      <path value="$PROJECT_DIR$/backend/vendor/phpstan/extension-installer" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.1" />
