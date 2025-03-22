@@ -9,8 +9,6 @@ export type Post = {
 };
 
 export const PostItem = ({post}: { post: Post }) => {
-
-    console.log("TAGS", post.tags);
     return (
         <>
             <ListItem component={Link} href={`/forum/post/${post.id}`} sx={{textDecoration: "none", color: "inherit"}}>

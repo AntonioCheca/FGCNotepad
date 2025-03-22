@@ -1,9 +1,10 @@
 import {useState} from "react";
 import PostEditor from "@/src/components/forum/PostEditor";
-import {createPost} from "@/services/api";
+import usePosts from "@/hooks/usePosts";
 import {Container, Typography} from "@mui/material";
 
 export default function CreatePostPage() {
+    const {createPost} = usePosts();
 
     const handleSubmit = async (title: string, body: string, tags) => {
         const response = await createPost(title, body, tags);

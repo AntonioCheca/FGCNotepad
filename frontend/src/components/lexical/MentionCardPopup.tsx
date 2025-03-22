@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from "react";
 import {Card, CardContent, Typography, Box, CircularProgress, Chip} from "@mui/material";
-import {getSpecificMove} from "@/services/api";
+import useMoves from "@/hooks/useMoves";
 
 // Define the props to pass information about the mention.
 interface MentionCardPopupProps {
@@ -12,6 +12,7 @@ interface MentionCardPopupProps {
 
 
 const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}) => {
+    const {getSpecificMove} = useMoves();
     const [moveData, setMoveData] = useState<any>(null); // State to hold move data
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(false);

@@ -1,30 +1,59 @@
-import {Chip, Box} from "@mui/material";
-import TagInput from "@/src/components/forum/TagInput"; // Ensure TagInput is imported
+import {useState} from "react";
+import {TextField, IconButton, Chip, Stack} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 
 interface TagListProps {
     tags: string[];
-    onDeleteTag: (tag: string) => void;
-    onAddTag: (tag: string) => void;
-    editable: boolean; // Add editable prop to control tag editing
+    onTagsChange: (updatedTags: string[]) => void;
+    editable: boolean;
 }
 
-const TagList = ({tags, onDeleteTag, onAddTag, editable}: TagListProps) => {
+export default function TagList({tags, onTagsChange, editable}: TagListProps) {
+    const [tagInput, setTagInput] = useState("");
+
+    const handleAddTag = () => {
+        if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+            onTagsChange([...tags, tagInput.trim()]);
+            setTagInput("");
+        }
+    };
+
+    const handleDeleteTag = (tagToDelete: string) => {
+        onTagsChange(tags.filter((tag) => tag !== tagToDelete));
+    };
+
     return (
-        <Box sx={{display: "flex", flexWrap: "wrap", gap: 1, mt: 1}}>
-            {/* Render the TagInput component for adding tags */}
-            {editable && <TagInput onAddTag={onAddTag}/>}
+        <Stack spacing={1}>
+            {editable && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                    <TextField
+                        label="Add Tag"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        size="small"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddTag();
+                            }
+                        }}
+                    />
+                    <IconButton onClick={handleAddTag} color="primary">
+                        <AddIcon/>
+                    </IconButton>
+                </Stack>
+            )}
 
-            {/* Render existing tags */}
-            {tags.map((tag) => (
-                <Chip
-                    key={tag}
-                    label={tag}
-                    // Only pass onDelete when editable is true
-                    {...(editable ? {onDelete: () => onDeleteTag(tag)} : {})}
-                />
-            ))}
-        </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+                {tags.map((tag, index) => (
+                    <Chip
+                        key={index}
+                        label={tag}
+                        onDelete={editable ? () => handleDeleteTag(tag) : undefined}
+                        color="primary"
+                    />
+                ))}
+            </Stack>
+        </Stack>
     );
-};
-
-export default TagList;
+}

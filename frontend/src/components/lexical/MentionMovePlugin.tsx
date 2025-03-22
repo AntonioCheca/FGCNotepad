@@ -1,15 +1,9 @@
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {
-    LexicalTypeaheadMenuPlugin,
-    MenuOption,
-    MenuTextMatch,
-    useBasicTypeaheadTriggerMatch,
-} from '@lexical/react/LexicalTypeaheadMenuPlugin';
-import {TextNode} from 'lexical';
+import {LexicalTypeaheadMenuPlugin, MenuOption} from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {searchMoves} from '@/services/api';
+import useMoves from '@/hooks/useMoves';
 import {$createMentionNode} from '@/src/components/lexical/MentionNode';
 import styles from '@/src/components/lexical/style/mentions.module.css';
 import {GiPunchBlast} from "react-icons/gi";
@@ -18,6 +12,7 @@ const TRIGGER = '@';
 const SUGGESTION_LIST_LENGTH_LIMIT = 5;
 
 function useMoveLookupService(query) {
+    const {searchMoves} = useMoves();
     const [results, setResults] = useState([]);
 
     useEffect(() => {
@@ -27,17 +22,21 @@ function useMoveLookupService(query) {
         }
 
         let isActive = true;
-        searchMoves(query)
-            .then((data) => {
+
+        const fetchMoves = async () => {
+            try {
+                const data = await searchMoves(query);
                 if (isActive) {
                     setResults(data);
                 }
-            })
-            .catch(() => {
+            } catch (error) {
                 if (isActive) {
                     setResults([]);
                 }
-            });
+            }
+        };
+
+        fetchMoves();
 
         return () => {
             isActive = false;
