@@ -32,6 +32,7 @@ const useEditorSaveToStorage = (storageKey) => {
         (editorState) => {
             try {
                 const json = JSON.stringify(editorState);
+                console.log("DETECTING CGHANGE IN EDITOR; SAVING", json);
                 localStorage.setItem(storageKey, json);
             } catch (error) {
                 console.error("Error while saving editor state to localStorage:", error);

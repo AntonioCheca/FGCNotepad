@@ -20,6 +20,8 @@ import {
 import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
 import {MentionNode} from "@/src/components/lexical/MentionNode";
 import TagList from "@/src/components/forum/TagList";
+import {ScenarioTableNode} from "@/src/components/lexical/ScenarioTableNode";
+import AddScenarioTablePlugin from "@/src/components/lexical/AddScenarioTablePlugin";
 
 interface PostEditorProps {
     onSubmit: (title: string, body: string, tags: string[]) => void;
@@ -60,7 +62,8 @@ export default function PostEditor({
             ListItemNode,
             HeadingNode,
             MentionNode,
-            QuoteNode
+            QuoteNode,
+            ScenarioTableNode
         ],
         editable: editable
     };
@@ -69,6 +72,7 @@ export default function PostEditor({
         if (editable) {
             const savedTitle = localStorage.getItem("postDraftTitle");
             const savedBody = localStorage.getItem("postDraftBody");
+            console.log("LOOOOOOOADING", savedBody);
             if (savedTitle) setTitle(savedTitle);
             if (savedBody) setBody(savedBody);
         }
@@ -116,7 +120,10 @@ export default function PostEditor({
                         {editable ? <RestoreFromLocalStoragePlugin/> :
                             <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>}
                         <AutoFocusPlugin/>
+                        {/* Add the Scenario Table button */}
+                        {editable && <AddScenarioTablePlugin/>}
                     </LexicalComposer>
+
 
                     {/* Render TagList separately */}
                     <TagList tags={tags} onTagsChange={handleTagUpdate} editable={editable}/>
