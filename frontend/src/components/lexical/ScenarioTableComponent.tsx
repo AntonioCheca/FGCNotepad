@@ -19,6 +19,7 @@ import EditableTextCell from "@/src/components/lexical/EditableTextCell";
 import {ArrowBack, ArrowDownward, ArrowForward, ArrowUpward} from "@mui/icons-material";
 import {useLexicalComposerContext} from "@lexical/react/LexicalComposerContext";
 import {$createParagraphNode, $getNodeByKey} from "lexical";
+import useSolverGames from "@/hooks/useSolverGame";
 
 // Table Component (Main Wrapper)
 function ScenarioTableComponent({
@@ -34,6 +35,7 @@ function ScenarioTableComponent({
     const [columns, setColumns] = useState(initialColumns);
     const [values, setValues] = useState(initialValues);
     const [editor] = useLexicalComposerContext();
+    const {solveGame} = useSolverGames();
 
     const setAndUpdateRows = useCallback((rows) => {
         editor.update(() => {
@@ -215,6 +217,30 @@ function ScenarioTableComponent({
         }
     };
 
+    const formatPayoffMatrix = () => {
+        // Prepare the payoff matrix in the expected format for solving the game
+        const payoffMatrix = {};
+
+        rows.forEach((row, rowIndex) => {
+            const rowName = row; // Row names are the values in `rows`
+            payoffMatrix[rowName] = {};
+
+            columns.forEach((col, colIndex) => {
+                payoffMatrix[rowName][col] = values[rowIndex][colIndex]; // Payoff value;
+            });
+        });
+
+        // Log the payoff matrix to the console for now
+        console.log("Payoff Matrix for Solver:", JSON.stringify(payoffMatrix, null, 2));
+
+        // Call the API to solve the game with the payoff matrix
+        solveGame(payoffMatrix).then((result) => {
+            console.log("Game Result:", result);  // Log the result from the API
+        }).catch((error) => {
+            console.error("Error solving game:", error);
+        });
+    };
+
     return (
         <div className="scenario-table-container"
              style={{
@@ -240,6 +266,24 @@ function ScenarioTableComponent({
                 }}
             >
                 ✕
+            </button>
+            {/* Button to trigger matrix solving */}
+            <button
+                className="solve-game-button"
+                onClick={formatPayoffMatrix}
+                style={{
+                    position: 'absolute',
+                    top: '40px',
+                    right: '5px',
+                    background: "#007bff",
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    zIndex: 2
+                }}>
+                S
             </button>
             <TableContainer component={Paper} elevation={3}
                             sx={{
