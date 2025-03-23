@@ -32,7 +32,8 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
 
     createDOM() {
         const div = document.createElement("div");
-        div.className = "lexical-scenario-table";
+        div.className = "scenario-table";
+        div.setAttribute('contenteditable', 'false');
         return div;
     }
 
@@ -41,9 +42,6 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
     }
 
     decorate() {
-
-        console.log("_VALUES");
-        console.log(Object.getOwnPropertyDescriptor(this, "values"));
         return (
             <ScenarioTableComponent
                 initialRows={this.rows}
@@ -52,6 +50,7 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
                 updateRows={this.setRows}
                 updateColumns={this.setColumns}
                 updateValues={this.setValues}
+                nodeKey={this.__key}
             />
         );
     }
@@ -68,7 +67,6 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
     }
 
     static importJSON(serializedNode: SerializedLexicalNode) {
-        console.log("AQUI ES DONDE SE LIA?");
         return $createScenarioTableNode(
             serializedNode.rows,
             serializedNode.columns,
@@ -105,7 +103,7 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         const self = this.getLatest();
         return self.values;
     }
-    
+
     isInline() {
         return false; // This is a block-level element
     }

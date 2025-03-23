@@ -2,7 +2,7 @@ import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 import {useCallback} from 'react';
 import {Button} from '@mui/material';
 import {$createScenarioTableNode, ScenarioTableNode} from '@/src/components/lexical/ScenarioTableNode';
-import {$getRoot, $isElementNode, $applyNodeReplacement, TextNode} from 'lexical';
+import {$getRoot, $isElementNode, $applyNodeReplacement, TextNode, $createTextNode} from 'lexical';
 import styles from '@/src/components/lexical/style/table-scenario.module.css';
 
 
@@ -33,10 +33,7 @@ export default function AddScenarioTablePlugin() {
 
             // If there are children, insert the table node after the last child
             if ($isElementNode(lastChild)) {
-                console.log("Last child inserting node?");
-                console.log(tableNode);
                 lastChild.insertAfter(tableNode);
-                lastChild.insertAfter(new TextNode(''));
             } else {
                 // If there are no children, just append it to the root
                 root.append(tableNode);

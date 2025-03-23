@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from "react";
+import React, {useState, useCallback, useEffect} from "react";
 import {
     IconButton,
     Table,
@@ -18,9 +18,18 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import EditableTextCell from "@/src/components/lexical/EditableTextCell";
 import {ArrowBack, ArrowDownward, ArrowForward, ArrowUpward} from "@mui/icons-material";
 import {useLexicalComposerContext} from "@lexical/react/LexicalComposerContext";
+import {$createParagraphNode, $getNodeByKey} from "lexical";
 
 // Table Component (Main Wrapper)
-function ScenarioTableComponent({initialRows, initialColumns, initialValues, updateRows, updateColumns, updateValues}) {
+function ScenarioTableComponent({
+                                    initialRows,
+                                    initialColumns,
+                                    initialValues,
+                                    updateRows,
+                                    updateColumns,
+                                    updateValues,
+                                    nodeKey
+                                }) {
     const [rows, setRows] = useState(initialRows);
     const [columns, setColumns] = useState(initialColumns);
     const [values, setValues] = useState(initialValues);
@@ -46,6 +55,57 @@ function ScenarioTableComponent({initialRows, initialColumns, initialValues, upd
             updateValues(values);
         })
     }, [editor]);
+
+    const handleDelete = useCallback(() => {
+        editor.update(() => {
+            const node = $getNodeByKey(nodeKey);
+            if (node) {
+                node.remove();
+            }
+        });
+    }, [editor, nodeKey]);
+
+    useEffect(() => {
+        editor.update(() => {
+            const node = $getNodeByKey(nodeKey);
+            if (node) {
+                const nextSibling = node.getNextSibling();
+                if (!nextSibling) {
+                    const paragraph = $createParagraphNode();
+                    node.insertAfter(paragraph);
+                }
+            }
+        });
+    }, [editor, nodeKey]);
+
+    const handleBottomAreaClick = useCallback((event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const isBottomArea = event.clientY > rect.bottom - 20;
+
+        if (isBottomArea) {
+            editor.update(() => {
+                const node = $getNodeByKey(nodeKey);
+                if (node) {
+                    const nextSibling = node.getNextSibling();
+                    if (nextSibling) {
+                        nextSibling.selectStart();
+                    } else {
+                        const paragraph = $createParagraphNode();
+                        node.insertAfter(paragraph);
+                        paragraph.selectStart();
+                    }
+                    const previousSibling = node.getPreviousSibling();
+                    if (previousSibling) {
+                        previousSibling.selectStart();
+                    } else {
+                        const paragraph = $createParagraphNode();
+                        node.insertBefore(paragraph);
+                        paragraph.selectStart();
+                    }
+                }
+            });
+        }
+    }, [editor, nodeKey]);
 
     const moveRowUp = (rowIndex) => {
         if (rowIndex > 0) {
@@ -156,40 +216,66 @@ function ScenarioTableComponent({initialRows, initialColumns, initialValues, upd
     };
 
     return (
-        <TableContainer component={Paper} elevation={3}
-                        sx={{
-                            maxWidth: "90%",
-                            overflowX: "auto",
-                            borderRadius: 2,
-                            marginRight: '10px',
-                            marginBottom: '10px'
-                        }}
-                        className="table-container"
-                        display='inline-block'>
-            <Table>
-                <TableHeader columns={columns} addColumn={addColumn} removeColumn={removeColumn}
-                             setColumns={setAndUpdateColumns}/>
-                <TableBody>
-                    {rows.map((row, rowIndex) => (
-                        <TableRowComponent
-                            key={rowIndex}
-                            row={row}
-                            rows={rows}
-                            rowIndex={rowIndex}
-                            columns={columns}
-                            values={values}
-                            handleValueChange={handleValueChange}
-                            setRows={setAndUpdateRows}
-                            removeRow={removeRow}
-                            moveRowDown={moveRowDown}
-                            moveRowUp={moveRowUp}
-                        />
-                    ))}
-                </TableBody>
-                <TableFooterComponent addRow={addRow} removeRow={removeRow} columns={columns}
-                                      moveColumnLeft={moveColumnLeft} moveColumnRight={moveColumnRight}/>
-            </Table>
-        </TableContainer>
+        <div className="scenario-table-container"
+             style={{
+                 position: 'relative',
+                 marginTop: '10px'
+             }}
+             onClick={handleBottomAreaClick}
+        >
+            <button
+                className="delete-button"
+                onClick={handleDelete}
+                style={{
+                    position: 'absolute',
+                    top: '5px',
+                    right: '5px',
+                    background: '#ff4d4f',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    zIndex: 2
+                }}
+            >
+                ✕
+            </button>
+            <TableContainer component={Paper} elevation={3}
+                            sx={{
+                                maxWidth: "95%",
+                                overflowX: "auto",
+                                borderRadius: 2,
+                                marginRight: '10px',
+                                marginBottom: '10px'
+                            }}
+                            className="table-container"
+                            display='inline-block'>
+                <Table>
+                    <TableHeader columns={columns} addColumn={addColumn} removeColumn={removeColumn}
+                                 setColumns={setAndUpdateColumns}/>
+                    <TableBody>
+                        {rows.map((row, rowIndex) => (
+                            <TableRowComponent
+                                key={rowIndex}
+                                row={row}
+                                rows={rows}
+                                rowIndex={rowIndex}
+                                columns={columns}
+                                values={values}
+                                handleValueChange={handleValueChange}
+                                setRows={setAndUpdateRows}
+                                removeRow={removeRow}
+                                moveRowDown={moveRowDown}
+                                moveRowUp={moveRowUp}
+                            />
+                        ))}
+                    </TableBody>
+                    <TableFooterComponent addRow={addRow} removeRow={removeRow} columns={columns}
+                                          moveColumnLeft={moveColumnLeft} moveColumnRight={moveColumnRight}/>
+                </Table>
+            </TableContainer>
+        </div>
     );
 }
 
