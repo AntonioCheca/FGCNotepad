@@ -11,15 +11,25 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
     rows;
     columns;
     values;
+    rowFrequencies;
+    columnFrequencies;
+    expectedValue;
 
-    constructor(rows, columns, values, key?: NodeKey) {
+    constructor(rows, columns, values, rowFrequencies, columnFrequencies, expectedValue, key?: NodeKey) {
         super(key);
         this.rows = rows;
         this.columns = columns;
         this.values = values;
+        this.rowFrequencies = rowFrequencies;
+        this.columnFrequencies = columnFrequencies;
+        this.expectedValue = expectedValue;
+
         this.setRows = this.setRows.bind(this);
         this.setColumns = this.setColumns.bind(this);
         this.setValues = this.setValues.bind(this);
+        this.setRowFrequencies = this.setRowFrequencies.bind(this);
+        this.setColumnFrequencies = this.setColumnFrequencies.bind(this);
+        this.setExpectedValue = this.setExpectedValue.bind(this);
     }
 
     static getType() {
@@ -27,7 +37,14 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
     }
 
     static clone(node) {
-        return new ScenarioTableNode(node.rows, node.columns, node.values, node.__key);
+        return new ScenarioTableNode(
+            node.rows,
+            node.columns,
+            node.values,
+            node.rowFrequencies,
+            node.columnFrequencies,
+            node.expectedValue,
+            node.__key);
     }
 
     createDOM() {
@@ -47,9 +64,15 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
                 initialRows={this.rows}
                 initialColumns={this.columns}
                 initialValues={this.values}
+                initialRowFrequencies={this.rowFrequencies}
+                initialColumnFrequencies={this.columnFrequencies}
+                initialExpectedValue={this.expectedValue}
                 updateRows={this.setRows}
                 updateColumns={this.setColumns}
                 updateValues={this.setValues}
+                updateRowFrequencies={this.setRowFrequencies}
+                updateColumnFrequencies={this.setColumnFrequencies}
+                updateExpectedValue={this.setExpectedValue}
                 nodeKey={this.__key}
             />
         );
@@ -62,7 +85,7 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
             rows: this.rows,
             columns: this.columns,
             values: this.values,
-            key: this.__key
+            key: this.__key,
         };
     }
 
@@ -70,7 +93,10 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         return $createScenarioTableNode(
             serializedNode.rows,
             serializedNode.columns,
-            serializedNode.values
+            serializedNode.values,
+            serializedNode.rowFrequencies,
+            serializedNode.columnFrequencies,
+            serializedNode.expectedValue,
         ).updateFromJSON(serializedNode);
     }
 
@@ -104,6 +130,30 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         return self.values;
     }
 
+    getRowFrequencies() {
+        return this.getLatest().rowFrequencies;
+    }
+
+    setRowFrequencies(frequencies) {
+        this.getWritable().rowFrequencies = frequencies;
+    }
+
+    getColumnFrequencies() {
+        return this.getLatest().columnFrequencies;
+    }
+
+    setColumnFrequencies(frequencies) {
+        this.getWritable().columnFrequencies = frequencies;
+    }
+
+    getExpectedValue() {
+        return this.getLatest().expectedValue;
+    }
+
+    setExpectedValue(expectedValue) {
+        this.getWritable().expectedValue = expectedValue;
+    }
+
     isInline() {
         return false; // This is a block-level element
     }
@@ -113,8 +163,8 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
     }
 }
 
-export function $createScenarioTableNode(rows, columns, values) {
-    const tableNode = new ScenarioTableNode(rows, columns, values);
+export function $createScenarioTableNode(rows, columns, values, rowFrequencies, columnFrequencies, expectedValue) {
+    const tableNode = new ScenarioTableNode(rows, columns, values, rowFrequencies, columnFrequencies, expectedValue);
     return $applyNodeReplacement(tableNode);
 }
 

@@ -26,14 +26,26 @@ function ScenarioTableComponent({
                                     initialRows,
                                     initialColumns,
                                     initialValues,
+                                    initialRowFrequencies,
+                                    initialColumnFrequencies,
+                                    initialExpectedValue,
                                     updateRows,
                                     updateColumns,
                                     updateValues,
+                                    updateRowFrequencies,
+                                    updateColumnFrequencies,
+                                    updateExpectedValue,
                                     nodeKey
                                 }) {
     const [rows, setRows] = useState(initialRows);
     const [columns, setColumns] = useState(initialColumns);
     const [values, setValues] = useState(initialValues);
+    const [rowFrequencies, setRowFrequencies] = useState(
+        initialRowFrequencies || Array(initialRows.length).fill(1 / initialRows.length));
+    const [columnFrequencies, setColumnFrequencies] = useState(
+        initialColumnFrequencies || Array(initialColumns.length).fill(1 / initialColumns.length)
+    );
+    const [expectedValue, setExpectedValue] = useState(initialExpectedValue || 0);
     const [editor] = useLexicalComposerContext();
     const {solveGame} = useSolverGames();
 
@@ -55,6 +67,27 @@ function ScenarioTableComponent({
         editor.update(() => {
             setValues(values);
             updateValues(values);
+        })
+    }, [editor]);
+
+    const setAndUpdateRowFrequencies = useCallback((rowFrequencies) => {
+        editor.update(() => {
+            setRowFrequencies(rowFrequencies);
+            updateRowFrequencies(rowFrequencies);
+        })
+    }, [editor]);
+
+    const setAndUpdateColumnFrequencies = useCallback((columnFrequencies) => {
+        editor.update(() => {
+            setColumnFrequencies(columnFrequencies);
+            updateColumnFrequencies(columnFrequencies);
+        })
+    }, [editor]);
+
+    const setAndUpdateExpectedValue = useCallback((expectedValue) => {
+        editor.update(() => {
+            setExpectedValue(expectedValue);
+            updateExpectedValue(expectedValue);
         })
     }, [editor]);
 
@@ -120,6 +153,11 @@ function ScenarioTableComponent({
             const [movedValues] = newValues.splice(rowIndex, 1);
             newValues.splice(rowIndex - 1, 0, movedValues);
             setAndUpdateValues(newValues);
+
+            const newRowFrequencies = [...rowFrequencies];
+            const [movedFreq] = newRowFrequencies.splice(rowIndex, 1);
+            newRowFrequencies.splice(rowIndex - 1, 0, movedFreq);
+            setAndUpdateRowFrequencies(newRowFrequencies)
         }
     };
 
@@ -134,6 +172,11 @@ function ScenarioTableComponent({
             const [movedValues] = newValues.splice(rowIndex, 1);
             newValues.splice(rowIndex + 1, 0, movedValues);
             setAndUpdateValues(newValues);
+
+            const newRowFrequencies = [...rowFrequencies];
+            const [movedFreq] = newRowFrequencies.splice(rowIndex, 1);
+            newRowFrequencies.splice(rowIndex + 1, 0, movedFreq);
+            setAndUpdateRowFrequencies(newRowFrequencies);
         }
     };
 
@@ -151,6 +194,11 @@ function ScenarioTableComponent({
                 return newRow;
             });
             setAndUpdateValues(newValues);
+
+            const newColumnFrequencies = [...columnFrequencies];
+            const [movedFreq] = newColumnFrequencies.splice(colIndex, 1);
+            newColumnFrequencies.splice(colIndex - 1, 0, movedFreq);
+            setAndUpdateColumnFrequencies(newColumnFrequencies);
         }
     };
 
@@ -168,7 +216,43 @@ function ScenarioTableComponent({
                 return newRow;
             });
             setAndUpdateValues(newValues);
+
+            const newColumnFrequencies = [...columnFrequencies];
+            const [movedFreq] = newColumnFrequencies.splice(colIndex, 1);
+            newColumnFrequencies.splice(colIndex + 1, 0, movedFreq);
+            setAndUpdateColumnFrequencies(newColumnFrequencies);
         }
+    };
+
+    const handleRowFrequencyChange = (rowIndex, newValue) => {
+        if (newValue === "" || newValue === "0." || (parseFloat(newValue) >= 0 && parseFloat(newValue) <= 1)) {
+            const newFrequencies = [...rowFrequencies];
+            newFrequencies[rowIndex] = (newValue === "" || newValue === "0.") ? newValue : parseFloat(newValue);
+            setAndUpdateRowFrequencies(newFrequencies);
+        }
+    };
+
+    const handleColumnFrequencyChange = (colIndex, newValue) => {
+        if (newValue === "" || newValue === "0." || (parseFloat(newValue) >= 0 && parseFloat(newValue) <= 1)) {
+            const newFrequencies = [...columnFrequencies];
+            newFrequencies[colIndex] = (newValue === "" || newValue === "0.") ? newValue : parseFloat(newValue);
+            setAndUpdateColumnFrequencies(newFrequencies);
+        }
+    };
+
+    // Calculate expected value
+    const calculateExpectedValue = () => {
+        let ev = 0;
+        for (let i = 0; i < rows.length; i++) {
+            for (let j = 0; j < columns.length; j++) {
+                // Skip if any frequency is not a valid number
+                if (typeof rowFrequencies[i] !== 'number' || typeof columnFrequencies[j] !== 'number') {
+                    continue;
+                }
+                ev += values[i][j] * rowFrequencies[i] * columnFrequencies[j];
+            }
+        }
+        return ev.toFixed(2);
     };
 
     const handleValueChange = (rowIndex, colIndex, newValue) => {
@@ -195,25 +279,48 @@ function ScenarioTableComponent({
         const newRow = `Row ${rows.length + 1}`;
         setAndUpdateRows([...rows, newRow]);
         setAndUpdateValues([...values, Array(columns.length).fill(0)]);
-    };
-
-    const removeRow = () => {
-        if (rows.length > 1) {
-            setAndUpdateRows(rows.slice(0, -1));
-            setAndUpdateValues(values.slice(0, -1));
-        }
+        const newFrequencies = Array(rows.length + 1).fill(1 / (rows.length + 1));
+        setAndUpdateRowFrequencies(newFrequencies);
     };
 
     const addColumn = () => {
         const newColumn = `Move ${columns.length + 1}`;
         setAndUpdateColumns([...columns, newColumn]);
         setAndUpdateValues(values.map(row => [...row, 0]));
+        const newFrequencies = Array(rows.length - 1).fill(1 / (rows.length - 1));
+        setAndUpdateRowFrequencies(newFrequencies);
     };
 
-    const removeColumn = () => {
+    const removeRow = (rowIndex) => {
+        if (rows.length > 1) {
+            const newRows = [...rows];
+            newRows.splice(rowIndex, 1);
+            setAndUpdateRows(newRows);
+
+            const newValues = [...values];
+            newValues.splice(rowIndex, 1);
+            setAndUpdateValues(newValues);
+
+            const newFrequencies = Array(newRows.length).fill(1 / newRows.length);
+            setAndUpdateRowFrequencies(newFrequencies);
+        }
+    };
+
+    const removeColumn = (colIndex) => {
         if (columns.length > 1) {
-            setAndUpdateColumns(columns.slice(0, -1));
-            setAndUpdateValues(values.map(row => row.slice(0, -1))); // Remove last column from each row
+            const newColumns = [...columns];
+            newColumns.splice(colIndex, 1);
+            setAndUpdateColumns(newColumns);
+
+            const newValues = values.map(row => {
+                const newRow = [...row];
+                newRow.splice(colIndex, 1);
+                return newRow;
+            });
+            setAndUpdateValues(newValues);
+
+            const newFrequencies = Array(newColumns.length).fill(1 / newColumns.length);
+            setAndUpdateColumnFrequencies(newFrequencies);
         }
     };
 
@@ -230,12 +337,30 @@ function ScenarioTableComponent({
             });
         });
 
-        // Log the payoff matrix to the console for now
-        console.log("Payoff Matrix for Solver:", JSON.stringify(payoffMatrix, null, 2));
-
         // Call the API to solve the game with the payoff matrix
         solveGame(payoffMatrix).then((result) => {
-            console.log("Game Result:", result);  // Log the result from the API
+            // Parse the optimal frequencies and update state
+            if (result && result.P1 && result.P2) {
+                // Map the optimal frequencies for rows (P1)
+                const newRowFrequencies = rows.map(rowName => {
+                    // Find the matching frequency in the result
+                    return result.P1[rowName] || 0;
+                });
+
+                // Map the optimal frequencies for columns (P2)
+                const newColumnFrequencies = columns.map(colName => {
+                    // Find the matching frequency in the result
+                    return result.P2[colName] || 0;
+                });
+
+                // Update the state with the new frequencies
+                setAndUpdateRowFrequencies(newRowFrequencies);
+                setAndUpdateColumnFrequencies(newColumnFrequencies);
+
+                // Also calculate and update the expected value based on the new optimal strategy
+                const expectedVal = calculateExpectedValue();
+                setAndUpdateExpectedValue(expectedVal);
+            }
         }).catch((error) => {
             console.error("Error solving game:", error);
         });
@@ -296,8 +421,12 @@ function ScenarioTableComponent({
                             className="table-container"
                             display='inline-block'>
                 <Table>
-                    <TableHeader columns={columns} addColumn={addColumn} removeColumn={removeColumn}
-                                 setColumns={setAndUpdateColumns}/>
+                    <TableHeader
+                        columns={columns}
+                        addColumn={addColumn}
+                        removeColumn={removeColumn}
+                        setColumns={setAndUpdateColumns}
+                    />
                     <TableBody>
                         {rows.map((row, rowIndex) => (
                             <TableRowComponent
@@ -312,16 +441,61 @@ function ScenarioTableComponent({
                                 removeRow={removeRow}
                                 moveRowDown={moveRowDown}
                                 moveRowUp={moveRowUp}
+                                // New props
+                                rowFrequency={rowFrequencies[rowIndex]}
+                                onRowFrequencyChange={(newValue) => handleRowFrequencyChange(rowIndex, newValue)}
                             />
                         ))}
+                        {/* Add frequency row */}
+                        <FrequencyRow
+                            columns={columns}
+                            columnFrequencies={columnFrequencies}
+                            handleColumnFrequencyChange={handleColumnFrequencyChange}
+                            expectedValue={calculateExpectedValue()}
+                        />
                     </TableBody>
-                    <TableFooterComponent addRow={addRow} removeRow={removeRow} columns={columns}
-                                          moveColumnLeft={moveColumnLeft} moveColumnRight={moveColumnRight}/>
+                    <TableFooterComponent
+                        addRow={addRow}
+                        removeRow={removeRow}
+                        columns={columns}
+                        moveColumnLeft={moveColumnLeft}
+                        moveColumnRight={moveColumnRight}
+                        removeColumn={removeColumn}
+                    />
                 </Table>
             </TableContainer>
         </div>
     );
 }
+
+function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, expectedValue}) {
+    return (
+        <TableRow sx={{backgroundColor: "#f0f0f0"}}>
+            <TableCell sx={{fontWeight: "bold"}}>P2 Frequencies</TableCell>
+            {columns.map((_, colIndex) => (
+                <TableCell key={colIndex} sx={{textAlign: "center"}}>
+                    <NumberField.Root>
+                        <NumberField.Input
+                            value={columnFrequencies[colIndex]}
+                            onChange={(e) => handleColumnFrequencyChange(colIndex, e.target.value)}
+                            size="small"
+                            sx={{width: "60px"}}
+                            inputProps={{
+                                min: 0,
+                                max: 1,
+                                step: 0.01
+                            }}
+                        />
+                    </NumberField.Root>
+                </TableCell>
+            ))}
+            <TableCell sx={{textAlign: "center", fontWeight: "bold"}}>
+                EV: {expectedValue}
+            </TableCell>
+        </TableRow>
+    );
+}
+
 
 // Table Header Component
 function TableHeader({columns, addColumn, removeColumn, setColumns}) {
@@ -353,7 +527,21 @@ function TableHeader({columns, addColumn, removeColumn, setColumns}) {
     );
 }
 
-function TableRowComponent({row, rows, rowIndex, columns, values, handleValueChange, setRows, moveRowUp, moveRowDown}) {
+// Modify TableRowComponent to add frequency column
+function TableRowComponent({
+                               row,
+                               rows,
+                               rowIndex,
+                               columns,
+                               values,
+                               handleValueChange,
+                               setRows,
+                               moveRowUp,
+                               moveRowDown,
+                               rowFrequency,
+                               onRowFrequencyChange,
+                               removeRow,
+                           }) {
     const handleRowNameChange = (newName) => {
         const updatedRows = [...rows];
         updatedRows[rowIndex] = newName;
@@ -375,9 +563,28 @@ function TableRowComponent({row, rows, rowIndex, columns, values, handleValueCha
                     />
                 </TableCell>
             ))}
+            {/* Add frequency cell */}
+            <TableCell sx={{textAlign: "center"}}>
+                <NumberField.Root>
+                    <NumberField.Input
+                        value={rowFrequency}
+                        onChange={(e) => onRowFrequencyChange(e.target.value)}
+                        size="small"
+                        sx={{width: "60px"}}
+                        inputProps={{
+                            min: 0,
+                            max: 1,
+                            step: 0.01
+                        }}
+                    />
+                </NumberField.Root>
+            </TableCell>
             <TableCell sx={{textAlign: "center"}}>
                 <IconButton size="small" onClick={() => moveRowUp(rowIndex)}>
                     <ArrowUpward fontSize="small"/>
+                </IconButton>
+                <IconButton size="small" onClick={() => removeRow(rowIndex)}>
+                    <RemoveIcon fontSize="small"/>
                 </IconButton>
                 <IconButton size="small" onClick={() => moveRowDown(rowIndex)}>
                     <ArrowDownward fontSize="small"/>
@@ -387,7 +594,7 @@ function TableRowComponent({row, rows, rowIndex, columns, values, handleValueCha
     );
 }
 
-function TableFooterComponent({addRow, removeRow, columns, moveColumnLeft, moveColumnRight}) {
+function TableFooterComponent({addRow, removeRow, columns, moveColumnLeft, moveColumnRight, removeColumn}) {
     return (
         <TableFooter>
             <TableRow>
@@ -405,6 +612,9 @@ function TableFooterComponent({addRow, removeRow, columns, moveColumnLeft, moveC
                     <TableCell key={colIndex} sx={{textAlign: "center"}}>
                         <IconButton onClick={() => moveColumnLeft(colIndex)} size="small">
                             <ArrowBack fontSize="small"/>
+                        </IconButton>
+                        <IconButton onClick={() => removeColumn(colIndex)} size="small">
+                            <RemoveIcon fontSize="small"/>
                         </IconButton>
                         <IconButton onClick={() => moveColumnRight(colIndex)} size="small">
                             <ArrowForward fontSize="small"/>

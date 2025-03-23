@@ -13,7 +13,7 @@ const useSolverGames = () => {
 
             const response = await request(() => api.post("/solve_game", {'game': jsonPayload}));
 
-            return response.data; // Return the response data (equilibria)
+            return response.equilibria[0];
         } catch (error) {
             console.error("Error solving game", error);
             throw error; // Re-throw the error for handling elsewhere
