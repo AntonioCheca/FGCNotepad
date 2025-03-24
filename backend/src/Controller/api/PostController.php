@@ -26,6 +26,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 #[Route('/api/posts', name: 'api_posts_')]
 class PostController extends AbstractController
 {
+    public const SEPARATOR_FOR_TAGS_IN_FETCH_API = ',';
+
     public function __construct(private EntityManagerInterface $entityManager, private Security $security)
     {
     }
@@ -39,7 +41,11 @@ class PostController extends AbstractController
             return new JsonResponse(['error' => 'Invalid JSON'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $constraints = new Collection(['title' => new NotBlank(), 'body' => new NotBlank(), 'tags' => new Optional([new Type('array'),]),]);
+        $constraints = new Collection([
+            'title' => new NotBlank(),
+            'body' => new NotBlank(),
+            'tags' => new Optional([new Type('array')])
+        ]);
 
         $violations = $validator->validate($data, $constraints);
         if (count($violations) > 0) {
@@ -51,12 +57,18 @@ class PostController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
+        $bodyAsString = json_encode($data['body']);
+
+        if (false === $bodyAsString) {
+            return new JsonResponse(['error' => 'Body should be JSON format, could not encode it'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
         /** @var User $internalUserEntity */
         $internalUserEntity = $userFromSymfony;
 
         $post = new Post();
         $post->setTitle($data['title']);
-        $post->setBody(json_encode($data['body']));
+        $post->setBody($bodyAsString);
         $post->setAuthor($internalUserEntity);
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTimeImmutable());
@@ -97,7 +109,8 @@ class PostController extends AbstractController
             throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
         }
 
-        return new JsonResponse(['id' => $post->getId(), 'title' => $post->getTitle(), 'body' => $post->getBody(), 'author' => $post->getAuthor()->getUsername(), 'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'), 'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'), 'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),]);
+        $author = $post->getAuthor() ?? 'UNKNOWN_USER';
+        return new JsonResponse(['id' => $post->getId(), 'title' => $post->getTitle(), 'body' => $post->getBody(), 'author' => $author, 'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'), 'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'), 'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),]);
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
@@ -106,12 +119,16 @@ class PostController extends AbstractController
         $page = max(1, (int)$request->query->get('page', 1));
         $limit = min(500, (int)$request->query->get('size', 10));
         $query = $request->query->get('query', '');
+        $includedTagsInRequest = $request->query->get('includedTags', '');
+        $excludedTagsInRequest = $request->query->get('excludedTags', '');
 
-        // Get included and excluded tags from query parameters
-        $includedTags = $request->query->get('includedTags') ? explode(',', $request->query->get('includedTags')) : [];
-        $excludedTags = $request->query->get('excludedTags') ? explode(',', $request->query->get('excludedTags')) : [];
+        if (!is_string($query) || !is_string($includedTagsInRequest) || !is_string($excludedTagsInRequest)) {
+            return new JsonResponse(['error' => 'Tags in includeTags and excludeTags should be strings with the tags separated by a comma'], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
-        // Fetch posts using the repository method
+        $includedTags = explode(self::SEPARATOR_FOR_TAGS_IN_FETCH_API, $includedTagsInRequest);
+        $excludedTags = explode(self::SEPARATOR_FOR_TAGS_IN_FETCH_API, $excludedTagsInRequest);
+
         $result = $postRepository->findPaginated($page, $limit, $query, $includedTags, $excludedTags);
 
         $data = $result['posts'];

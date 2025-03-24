@@ -42,7 +42,7 @@ class MoveController extends AbstractController
     public function querySpecificMoves(Request $request, MoveRepository $moveRepository): JsonResponse
     {
         $query = $request->query->get('query', '');
-        if (empty($query)) {
+        if (!is_string($query) || empty($query)) {
             return $this->json([]);
         }
 
@@ -88,7 +88,7 @@ class MoveController extends AbstractController
     public function read(string $id, MoveRepository $moveRepository, Request $request): JsonResponse
     {
         /**
-         * @var Move $move
+         * @var Move|null $move
          */
         $move = $moveRepository->find($id);
 
@@ -96,12 +96,14 @@ class MoveController extends AbstractController
             throw new NotFoundHttpException(sprintf('Move not found with id %s', $id));
         }
 
+        $frameData = $move->getFrameData();
+
         return new JsonResponse([
             'id' => $move->getId(),
             'character' => $move->getCharacter()->getName(),
             'numpad_notation' => $move->getNumpadNotation(),
-            'full_frame_data' => $move->getFrameData()->getFullDataAsArray(),
-            'summary_frame_data' => $move->getFrameData()->getSummaryAsArray(),
+            'full_frame_data' => $frameData ? $frameData->getFullDataAsArray() : '',
+            'summary_frame_data' => $frameData ? $frameData->getSummaryAsArray() : '',
         ]);
     }
 }

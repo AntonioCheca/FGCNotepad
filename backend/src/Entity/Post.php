@@ -24,11 +24,14 @@ class Post
 
     #[Assert\Length(min: 3, max: 255)]
     #[ORM\Column(type: Types::TEXT)]
-    private ?string $title = null;
+    private string $title;
 
     #[ORM\Column(type: Types::TEXT)]
-    private ?string $body = null;
+    private string $body;
 
+    /**
+     * @var Collection<int, Component>
+     */
     #[ORM\ManyToMany(targetEntity: Component::class, inversedBy: "posts")]
     #[ORM\JoinTable(name: "post_components", schema: "forum")]
     #[ORM\JoinColumn(name: "post_id", referencedColumnName: "id", onDelete: "CASCADE")]
@@ -36,15 +39,18 @@ class Post
     private Collection $components;
 
     #[ORM\ManyToOne(inversedBy: 'posts')]
-    #[ORM\JoinColumn(name: "author_id", nullable: false)]
+    #[ORM\JoinColumn(name: "author_id", nullable: true)]
     private ?User $author = null;
 
     #[ORM\Column]
-    private ?\DateTimeImmutable $createdAt = null;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $last_modified = null;
+    private \DateTimeInterface $last_modified;
 
+    /**
+     * @var Collection<int, Tag>
+     */
     #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'posts')]
     #[ORM\JoinTable(name: "post_tag", schema: "forum")]
     private Collection $tags;
@@ -60,7 +66,7 @@ class Post
         return $this->id;
     }
 
-    public function getTitle(): ?string
+    public function getTitle(): string
     {
         return $this->title;
     }
@@ -72,7 +78,7 @@ class Post
         return $this;
     }
 
-    public function getBody(): ?string
+    public function getBody(): string
     {
         return $this->body;
     }
@@ -96,7 +102,7 @@ class Post
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
@@ -108,7 +114,7 @@ class Post
         return $this;
     }
 
-    public function getLastModified(): ?\DateTimeInterface
+    public function getLastModified(): \DateTimeInterface
     {
         return $this->last_modified;
     }
@@ -120,6 +126,9 @@ class Post
         return $this;
     }
 
+    /**
+     * @return Collection<int, Component>
+     */
     public function getComponents(): Collection
     {
         return $this->components;

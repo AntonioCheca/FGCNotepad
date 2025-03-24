@@ -17,7 +17,7 @@ class Move extends Component
     #[ORM\ManyToOne(inversedBy: 'moves')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(["move:read"])]
-    private ?Character $character = null;
+    private Character $character;
 
     #[ORM\OneToOne(inversedBy: 'move', cascade: ['persist', 'remove'])]
     private ?FrameData $frameData = null;
@@ -33,12 +33,12 @@ class Move extends Component
         return $this;
     }
 
-    public function getCharacter(): ?Character
+    public function getCharacter(): Character
     {
         return $this->character;
     }
 
-    public function setCharacter(?Character $character): static
+    public function setCharacter(Character $character): static
     {
         $this->character = $character;
 

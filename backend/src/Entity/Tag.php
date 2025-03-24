@@ -22,8 +22,11 @@ class Tag
     private ?Uuid $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    private ?string $name = null;
+    private string $name;
 
+    /**
+     * @var Collection<int, Post>
+     */
     #[ORM\ManyToMany(targetEntity: Post::class, mappedBy: 'tags')]
     private Collection $posts;
 
@@ -37,7 +40,7 @@ class Tag
         return $this->id;
     }
 
-    public function getName(): ?string
+    public function getName(): string
     {
         return $this->name;
     }

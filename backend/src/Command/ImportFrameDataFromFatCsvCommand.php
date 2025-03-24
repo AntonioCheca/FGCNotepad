@@ -40,6 +40,10 @@ class ImportFrameDataFromFatCsvCommand extends Command
         $characterName = $input->getArgument('character');
         $filePath = $input->getArgument('file');
 
+        if (!is_string($characterName) || !is_string($filePath)) {
+            throw new \ValueError('Character name and file path should be strings');
+        }
+
         // Find or create character
         $character = $this->entityManager->getRepository(Character::class)->findOneBy(['name' => $characterName]);
 

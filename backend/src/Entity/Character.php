@@ -38,7 +38,7 @@ class Character
         $this->moves = new ArrayCollection();
     }
 
-    public function getId(): Uuid
+    public function getId(): ?Uuid
     {
         return $this->id;
     }
@@ -67,18 +67,6 @@ class Character
         if (!$this->moves->contains($move)) {
             $this->moves->add($move);
             $move->setCharacter($this);
-        }
-
-        return $this;
-    }
-
-    public function removeMove(Move $move): static
-    {
-        if ($this->moves->removeElement($move)) {
-            // set the owning side to null (unless already changed)
-            if ($move->getCharacter() === $this) {
-                $move->setCharacter(null);
-            }
         }
 
         return $this;

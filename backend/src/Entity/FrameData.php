@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\FrameDataRepository;
+use App\Util\Enum\MoveType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\IdGenerator\UuidGenerator;
@@ -41,7 +42,7 @@ class FrameData
     private ?int $onPunishCounter = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    private ?string $moveType = null;
+    private string $moveType = "";
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $cancelsTo = null;
@@ -207,14 +208,14 @@ class FrameData
         return $this;
     }
 
-    public function getMoveType(): ?string
+    public function getMoveType(): string
     {
         return $this->moveType;
     }
 
     public function setMoveType(string $moveType): static
     {
-        $this->moveType = $moveType;
+        $this->moveType = MoveType::fromValueToString($moveType);
 
         return $this;
     }
@@ -529,6 +530,9 @@ class FrameData
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getSummaryAsArray(): array
     {
         $dataAsArray = [];
@@ -541,6 +545,9 @@ class FrameData
         return $dataAsArray;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getFullDataAsArray(): array
     {
         $dataAsArray = $this->getSummaryAsArray();

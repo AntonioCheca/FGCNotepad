@@ -23,8 +23,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\CustomIdGenerator(class: UuidGenerator::class)]
     private ?Uuid $id = null;
 
+    /**
+     * @var non-empty-string
+     */
     #[ORM\Column(length: 180)]
-    private ?string $username = null;
+    private string $username;
 
     /**
      * @var list<string> The user roles
@@ -36,7 +39,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
-    private ?string $password = null;
+    private string $password;
 
     /**
      * @var Collection<int, Post>
@@ -54,13 +57,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-    public function getUsername(): ?string
+    /**
+     * @return non-empty-string
+     */
+    public function getUsername(): string
     {
         return $this->username;
     }
 
     public function setUsername(string $username): static
     {
+        if ("" === $username) {
+            throw new \ValueError("You are trying to set up a user with empty username!");
+        }
         $this->username = $username;
 
         return $this;
@@ -69,17 +78,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * A visual identifier that represents this user.
      *
+     * @return non-empty-string
      * @see UserInterface
      */
     public function getUserIdentifier(): string
     {
-        return (string)$this->username;
+        return $this->username;
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      * @see UserInterface
-     *
      */
     public function getRoles(): array
     {
@@ -103,7 +112,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @see PasswordAuthenticatedUserInterface
      */
-    public function getPassword(): ?string
+    public function getPassword(): string
     {
         return $this->password;
     }

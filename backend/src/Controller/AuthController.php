@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Util\MixedValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,11 +38,16 @@ class AuthController extends AbstractController
     public function login(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+
+        MixedValidator::validateMixedValueIsArray($data, "Data to login must be a proper JSON");
+
         $username = $data['username'] ?? '';
         $password = $data['password'] ?? '';
 
+        MixedValidator::validateMixedValueIsString($username, 'Username must be a string');
+        MixedValidator::validateMixedValueIsString($username, 'Password must be a string');
         /**
-         * @var User $user
+         * @var User|null $user
          */
         $user = $this->userRepository->findOneBy(['username' => $username]);
 
@@ -49,7 +55,6 @@ class AuthController extends AbstractController
             return new JsonResponse(['error' => 'Invalid credentials'], 401);
         }
 
-        // Generate JWT Token
         $token = $this->jwtManager->create($user);
 
         return new JsonResponse(['token' => $token]);

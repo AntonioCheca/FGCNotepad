@@ -17,6 +17,11 @@ class PostRepository extends ServiceEntityRepository
         parent::__construct($registry, Post::class);
     }
 
+    /**
+     * @param array<string> $excludedTags
+     * @param array<string> $includedTags
+     * @return array<string, list<array<string, mixed>>>
+     */
     public function findPaginated(int $page, int $limit, string $query = '', array $includedTags = [], array $excludedTags = []): array
     {
         list($elementsForPreparedSql, $sql) = $this->getSqlAndElementsForPreparedStatement($query, $includedTags, $excludedTags, $limit, $page);
@@ -33,10 +38,15 @@ class PostRepository extends ServiceEntityRepository
             $post['tags'] = trim($post['tags'], '{}');
             $post['tags'] = explode(',', $post['tags']);
         }
-        
+
         return ['posts' => $posts];
     }
 
+    /**
+     * @param array<string> $excludedTags
+     * @param array<string> $includedTags
+     * @return array<mixed>
+     */
     public function getSqlAndElementsForPreparedStatement(string $query, array $includedTags, array $excludedTags, int $limit, int $page): array
     {
         $elementsForPreparedSql = [];

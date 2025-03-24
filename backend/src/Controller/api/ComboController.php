@@ -3,6 +3,7 @@
 namespace App\Controller\api;
 
 use App\Entity\Combo;
+use App\Util\MixedValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,8 +17,7 @@ class ComboController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private SerializerInterface    $serializer,
-        private ValidatorInterface     $validator
+        private SerializerInterface    $serializer
     )
     {
     }
@@ -38,14 +38,15 @@ class ComboController extends AbstractController
     public function create(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        $combo = new Combo();
-        $combo->setNumpadNotation($data['numpadNotation']);
-        $combo->setDamage($data['damage']);
+        $numpadNotationFromJson = $data['numpadNotation'];
+        $damageFromJson = $data['damage'];
 
-        $errors = $this->validator->validate($combo);
-        if (count($errors) > 0) {
-            return new JsonResponse($this->serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
-        }
+        MixedValidator::validateMixedValueIsString($numpadNotationFromJson, "NumpadNotation must be a string");
+        MixedValidator::validateMixedValueIsInteger($damageFromJson, "Damage must be an integer");
+
+        $combo = new Combo();
+        $combo->setNumpadNotation($numpadNotationFromJson);
+        $combo->setDamage($damageFromJson);
 
         $this->entityManager->persist($combo);
         $this->entityManager->flush();

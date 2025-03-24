@@ -4,6 +4,10 @@ namespace App\Service;
 
 class PostComponentExtractor
 {
+    /**
+     * @param array<mixed> $jsonBody
+     * @return array<string>
+     */
     public function extractComponentIds(array $jsonBody): array
     {
         $ids = [];
@@ -13,6 +17,10 @@ class PostComponentExtractor
         return array_unique($ids); // Avoid duplicate IDs
     }
 
+    /**
+     * @param array<mixed> $node
+     * @param array<string> $ids
+     */
     private function recursiveSearch(array $node, array &$ids): void
     {
         if (isset($node['idForComponent']) && is_string($node['idForComponent'])) {

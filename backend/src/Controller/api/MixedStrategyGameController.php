@@ -14,7 +14,7 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api/solve_game', name: 'api_solve_game_')]
 class MixedStrategyGameController extends AbstractController
 {
-    private $solver;
+    private MixedStrategyGameSolver $solver;
 
     public function __construct(MixedStrategyGameSolver $solver)
     {

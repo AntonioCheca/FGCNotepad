@@ -23,6 +23,9 @@ abstract class Component
     #[Groups(["move:read", "character:read"])]
     private ?Uuid $id = null;
 
+    /**
+     * @var Collection<int, Post>
+     */
     #[ORM\ManyToMany(targetEntity: Post::class, mappedBy: "components")]
     private Collection $posts;
 
@@ -36,6 +39,9 @@ abstract class Component
         return $this->id;
     }
 
+    /**
+     * @return Collection<int, Post>
+     */
     public function getPosts(): Collection
     {
         return $this->posts;
