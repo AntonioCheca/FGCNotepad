@@ -227,7 +227,6 @@ class PostControllerTest extends AuthenticatedWebTestCase
         return $post;
     }
 
-
     public function testListPostsWithIncludedAndExcludedTags(): void
     {
         $this->createAuthenticatedClient();
@@ -255,5 +254,32 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertNotContains($post2->getId()->toString(), $returnedPostIds);
         $this->assertNotContains($post3->getId()->toString(), $returnedPostIds);
         $this->assertNotContains($post4->getId()->toString(), $returnedPostIds);
+    }
+
+    public function testListPostsWithoutTags(): void
+    {
+        $this->createAuthenticatedClient();
+
+        // Create posts with different tag combinations
+        $post1 = $this->addPostWithTags(['TagA', 'TagB']); // Should be included
+        $post2 = $this->addPostWithTags(['TagB', 'TagC']); // Should be excluded
+        $post3 = $this->addPostWithTags(['TagD']);         // Should be excluded
+        $post4 = $this->addPostWithTags(['TagC', 'TagD']); // Should be excluded
+
+        // Search for posts with TagB but excluding TagD
+        $this->client->request('GET', '/api/posts', [], [], $this->getHeaders());
+
+        $response = $this->client->getResponse();
+
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertJson($response->getContent());
+
+        $data = json_decode($response->getContent(), true);
+        $returnedPostIds = array_column($data['data'], 'id');
+
+        $this->assertContains($post1->getId()->toString(), $returnedPostIds);
+        $this->assertContains($post2->getId()->toString(), $returnedPostIds);
+        $this->assertContains($post3->getId()->toString(), $returnedPostIds);
+        $this->assertContains($post4->getId()->toString(), $returnedPostIds);
     }
 }

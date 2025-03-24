@@ -60,7 +60,7 @@ class PostRepository extends ServiceEntityRepository
         SQL;
 
         // Add search condition for title if query is provided
-        if (!empty($query)) {
+        if ('' !== $query) {
             $sql .= ' AND fp.title LIKE :query';
             $elementsForPreparedSql['query'] = $query;
         }

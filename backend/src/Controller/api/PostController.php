@@ -104,13 +104,25 @@ class PostController extends AbstractController
     #[Route('/{id}', name: 'read', methods: ['GET'])]
     public function read(string $id, PostRepository $postRepository): JsonResponse
     {
+        /**
+         * @var Post|false $post
+         */
         $post = $postRepository->find($id);
         if (!$post) {
             throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
         }
 
-        $author = $post->getAuthor() ?? 'UNKNOWN_USER';
-        return new JsonResponse(['id' => $post->getId(), 'title' => $post->getTitle(), 'body' => $post->getBody(), 'author' => $author, 'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'), 'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'), 'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),]);
+        $author = $post->getAuthor();
+        $authorName = $author ? $author->getUsername() : 'UNKNOWN_USER';
+        return new JsonResponse([
+            'id' => $post->getId(),
+            'title' => $post->getTitle(),
+            'body' => $post->getBody(),
+            'author' => $authorName,
+            'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
+            'last_modified' => $post->getLastModified()->format('Y-m-d H:i:s'),
+            'tags' => array_map(fn(Tag $tag) => $tag->getName(), $post->getTags()->toArray()),
+        ]);
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
@@ -126,8 +138,15 @@ class PostController extends AbstractController
             return new JsonResponse(['error' => 'Tags in includeTags and excludeTags should be strings with the tags separated by a comma'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $includedTags = explode(self::SEPARATOR_FOR_TAGS_IN_FETCH_API, $includedTagsInRequest);
-        $excludedTags = explode(self::SEPARATOR_FOR_TAGS_IN_FETCH_API, $excludedTagsInRequest);
+        $includedTags = [];
+        $excludedTags = [];
+
+        if ('' !== $includedTagsInRequest) {
+            $includedTags = explode(self::SEPARATOR_FOR_TAGS_IN_FETCH_API, $includedTagsInRequest);
+        }
+        if ('' !== $excludedTagsInRequest) {
+            $excludedTags = explode(self::SEPARATOR_FOR_TAGS_IN_FETCH_API, $excludedTagsInRequest);
+        }
 
         $result = $postRepository->findPaginated($page, $limit, $query, $includedTags, $excludedTags);
 

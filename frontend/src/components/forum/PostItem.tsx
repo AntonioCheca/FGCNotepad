@@ -1,5 +1,7 @@
-import {ListItem, ListItemText, Divider, Box, Chip} from "@mui/material";
+// PostItem.tsx
+import {ListItem, ListItemText, Divider} from "@mui/material";
 import Link from "next/link";
+import PostTags from "@/src/components/forum/PostTags";
 
 export type Post = {
     id: string;
@@ -11,24 +13,18 @@ export type Post = {
 export const PostItem = ({post}: { post: Post }) => {
     return (
         <>
-            <ListItem component={Link} href={`/forum/post/${post.id}`} sx={{textDecoration: "none", color: "inherit"}}>
+            <ListItem alignItems="flex-start">
                 <ListItemText
-                    primary={post.title}
-                    secondary={post.author}
-                    primaryTypographyProps={{fontWeight: "bold"}}
+                    primary={
+                        <Link href={`/forum/post/${post.id}`} passHref>
+                            {post.title}
+                        </Link>
+                    }
+                    secondary={`by ${post.author}`}
                 />
             </ListItem>
-            {/* Render tags if available */}
-            {post.tags && post.tags.length > 0 && (
-                <Box sx={{display: "flex", flexWrap: "wrap", gap: 1, ml: 2, mt: 1}}>
-                    {post.tags.map((tag, index) => (
-                        <Chip key={index} label={tag} size="small" color="primary"/>
-                    ))}
-                </Box>
-            )}
-
-            <Divider/>
-            <Divider/>
+            <PostTags tags={post.tags}/>
+            <Divider component="li"/>
         </>
     );
 };
