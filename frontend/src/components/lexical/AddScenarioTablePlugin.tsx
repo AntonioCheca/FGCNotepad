@@ -1,9 +1,8 @@
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 import {useCallback} from 'react';
-import {Button} from '@mui/material';
-import {$createScenarioTableNode, ScenarioTableNode} from '@/src/components/lexical/ScenarioTableNode';
-import {$getRoot, $isElementNode, $applyNodeReplacement, TextNode, $createTextNode} from 'lexical';
-import styles from '@/src/components/lexical/style/table-scenario.module.css';
+import {$createScenarioTableNode} from '@/src/components/lexical/ScenarioTableNode';
+import {$getRoot, $isElementNode} from 'lexical';
+import {AppButton} from "@/src/components/ui/AppButton";
 
 
 export default function AddScenarioTablePlugin() {
@@ -42,13 +41,13 @@ export default function AddScenarioTablePlugin() {
     }, [editor]);
 
     return (
-        <Button
+        <AppButton
             onClick={addScenarioTable}
             variant="contained"
             color="secondary"
             sx={{my: 2}}
         >
             Add Scenario Table
-        </Button>
+        </AppButton>
     );
 }

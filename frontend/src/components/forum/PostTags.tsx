@@ -1,14 +1,15 @@
-import {Box, Chip} from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppChip} from "@/src/components/ui/AppChip";
 
 export const PostTags = ({tags}: { tags: string[] }) => {
     if (!tags || tags.length === 0) return null;
 
     return (
-        <Box display="flex" gap={1} flexWrap="wrap">
+        <AppBox display="flex" gap={1} flexWrap="wrap">
             {tags.map((tag, index) => (
-                <Chip key={index} label={tag} variant="outlined"/>
+                <AppChip key={index} label={tag} variant="outlined"/>
             ))}
-        </Box>
+        </AppBox>
     );
 };
 

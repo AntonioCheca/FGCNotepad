@@ -1,5 +1,4 @@
 import {useState, useEffect} from "react";
-import {TextField, Button, Paper, Stack} from "@mui/material";
 import {LexicalComposer} from "@lexical/react/LexicalComposer";
 import {RichTextPlugin} from "@lexical/react/LexicalRichTextPlugin";
 import {ContentEditable} from "@lexical/react/LexicalContentEditable";
@@ -22,6 +21,11 @@ import {MentionNode} from "@/src/components/lexical/MentionNode";
 import TagList from "@/src/components/forum/TagList";
 import {ScenarioTableNode} from "@/src/components/lexical/ScenarioTableNode";
 import AddScenarioTablePlugin from "@/src/components/lexical/AddScenarioTablePlugin";
+import {AppButton} from "@/src/components/ui/AppButton";
+import {AppTextField} from "@/src/components/ui/AppTextField";
+import {AppPaper} from "@/src/components/ui/AppPaper";
+import {AppStack} from "@/src/components/ui/AppStack";
+import AdvancedEditableWrapper from "@/src/components/util/AdvancedEditableWrapper";
 
 interface PostEditorProps {
     onSubmit: (title: string, body: string, tags: string[]) => void;
@@ -92,20 +96,19 @@ export default function PostEditor({
     };
 
     return (
-        <Paper elevation={3} sx={{p: 3}}>
-            <Stack spacing={2}>
-                {editable && (
-                    <TextField
+        <AppPaper elevation={3} sx={{p: 3}}>
+            <AppStack spacing={2}>
+                <AdvancedEditableWrapper condition={editable}>
+                    <AppTextField
                         label="Post title"
                         value={title}
                         onChange={(e) => {
                             setTitle(e.target.value);
                             localStorage.setItem("postDraftTitle", e.target.value);
                         }}
-                        fullWidth
                         required
                     />
-                )}
+                </AdvancedEditableWrapper>
 
                 <LexicalComposer initialConfig={initialConfig}>
                     <RichTextPlugin
@@ -120,23 +123,27 @@ export default function PostEditor({
                     <MarkdownShortcutPlugin transformers={TRANSFORMERS}/>
                     <MentionMovePlugin/>
                     <HistoryPlugin/>
-                    {editable ? <RestoreFromLocalStoragePlugin/> :
-                        <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>}
+                    <AdvancedEditableWrapper condition={editable}>
+                        <RestoreFromLocalStoragePlugin/>
+
+                        <AddScenarioTablePlugin/>
+                    </AdvancedEditableWrapper>
+                    <AdvancedEditableWrapper condition={!editable}>
+                        <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>
+                    </AdvancedEditableWrapper>
                     <AutoFocusPlugin/>
-                    {/* Add the Scenario Table button */}
-                    {editable && <AddScenarioTablePlugin/>}
                 </LexicalComposer>
 
 
                 {/* Render TagList separately */}
                 <TagList tags={tags} onTagsChange={handleTagUpdate} editable={editable}/>
 
-                {editable && (
-                    <Button type="submit" variant="contained" color="primary" onClick={handlePostSubmit}>
+                <AdvancedEditableWrapper condition={editable}>
+                    <AppButton onClick={handlePostSubmit}>
                         Submit Post
-                    </Button>
-                )}
-            </Stack>
-        </Paper>
+                    </AppButton>
+                </AdvancedEditableWrapper>
+            </AppStack>
+        </AppPaper>
     );
 }

@@ -1,8 +1,11 @@
 import {useState} from "react";
 import {useRouter} from "next/router";
-import {Container, Card, CardContent, Typography} from "@mui/material";
 import LoginForm from "@/src/components/forms/LoginForm";
 import useAuth from "@/hooks/useAuth";
+import {AppTypography} from "@/src/components/ui/AppTypography";
+import {AppContainer} from "@/src/components/ui/AppContainer";
+import {AppCard} from "@/src/components/ui/AppCard";
+import {AppCardContent} from "@/src/components/ui/AppCardContent";
 
 const LoginPage = () => {
     const {loginUser} = useAuth();
@@ -21,16 +24,16 @@ const LoginPage = () => {
     };
 
     return (
-        <Container maxWidth="sm">
-            <Card variant="outlined" sx={{mt: 4, p: 3}}>
-                <CardContent>
-                    <Typography variant="h4" align="center" gutterBottom>
+        <AppContainer maxWidth="sm">
+            <AppCard variant="outlined" sx={{mt: 4, p: 3}}>
+                <AppCardContent>
+                    <AppTypography variant="h4" align="center" gutterBottom>
                         Login
-                    </Typography>
+                    </AppTypography>
                     <LoginForm onSubmit={handleLogin} error={error}/>
-                </CardContent>
-            </Card>
-        </Container>
+                </AppCardContent>
+            </AppCard>
+        </AppContainer>
     );
 };
 

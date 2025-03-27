@@ -1,16 +1,16 @@
-import {TextField, TableCell} from "@mui/material";
+import {AppTextField} from "@/src/components/ui/AppTextField";
+import {AppTableCell} from "@/src/components/ui/AppTableCell";
 
 function EditableTextCell({value, onChange, sx}) {
     return (
-        <TableCell sx={sx}>
-            <TextField
+        <AppTableCell sx={sx}>
+            <AppTextField
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 variant="standard"
                 size="small"
-                sx={{width: "100%"}}
             />
-        </TableCell>
+        </AppTableCell>
     );
 }
 

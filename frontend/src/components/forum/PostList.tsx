@@ -1,5 +1,6 @@
-import {List, CircularProgress} from "@mui/material";
 import {PostItem, Post} from "@/src/components/forum/PostItem";
+import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
+import {AppList} from "@/src/components/ui/AppList";
 
 
 type Props = {
@@ -8,14 +9,14 @@ type Props = {
 };
 
 export const PostList = ({posts, loading}: Props) => {
-    if (loading) return <CircularProgress sx={{display: "block", mx: "auto", my: 4}}/>;
+    if (loading) return <AppCircularProgress sx={{display: "block", mx: "auto", my: 4}}/>;
     if (posts.length === 0) return <p>No posts found.</p>;
 
     return (
-        <List>
+        <AppList>
             {posts.map((post) => (
                 <PostItem key={post.id} post={post}/>
             ))}
-        </List>
+        </AppList>
     );
 };

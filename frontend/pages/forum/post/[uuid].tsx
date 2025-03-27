@@ -1,9 +1,11 @@
 import {useEffect, useState, useContext} from "react";
 import {useRouter} from "next/router";
-import {Container, Typography, CircularProgress} from "@mui/material";
 import AuthContext from "@/services/AuthContext";
 import PostEditor from "@/src/components/forum/PostEditor";
 import usePost from "@/hooks/usePosts";
+import {AppTypography} from "@/src/components/ui/AppTypography";
+import {AppContainer} from "@/src/components/ui/AppContainer";
+import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 
 interface Post {
     id: string;
@@ -59,15 +61,15 @@ export default function PostPage() {
     }, [router.isReady, safeUuid, user?.token]);
 
 
-    if (loading) return <CircularProgress sx={{display: "block", margin: "auto", mt: 4}}/>;
-    if (error) return <Typography color="error">Error: {error}</Typography>;
-    if (!post) return <Typography>No post found.</Typography>;
+    if (loading) return <AppCircularProgress sx={{display: "block", margin: "auto", mt: 4}}/>;
+    if (error) return <AppTypography color="error">Error: {error}</AppTypography>;
+    if (!post) return <AppTypography>No post found.</AppTypography>;
 
     return (
-        <Container maxWidth="md" sx={{mt: 4}}>
-            <Typography variant="h4" gutterBottom>
+        <AppContainer maxWidth="md" sx={{mt: 4}}>
+            <AppTypography variant="h4" gutterBottom>
                 {post.title}
-            </Typography>
+            </AppTypography>
             {/* Pass tags as the initialTags prop to PostEditor */}
             <PostEditor
                 onSubmit={null}
@@ -76,6 +78,6 @@ export default function PostPage() {
                 initialTags={post.tags}  // Pass the tags here
                 editable={false}
             />
-        </Container>
+        </AppContainer>
     );
 }

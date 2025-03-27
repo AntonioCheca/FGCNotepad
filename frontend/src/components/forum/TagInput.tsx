@@ -1,6 +1,6 @@
 import {useState} from "react";
-import {TextField, IconButton} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import {AppTextField} from "@/src/components/ui/AppTextField";
+import {AppAddIconButton} from "@/src/components/ui/AppAddIconButton";
 
 interface TagInputProps {
     onAddTag: (tag: string) => void;
@@ -17,18 +17,15 @@ const TagInput = ({onAddTag}: TagInputProps) => {
     };
 
     return (
-        <TextField
+        <AppTextField
             label="Add a Tag"
-            variant="outlined"
             size="small"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddTag()}
             InputProps={{
                 endAdornment: (
-                    <IconButton onClick={handleAddTag}>
-                        <AddIcon/>
-                    </IconButton>
+                    <AppAddIconButton onClick={handleAddTag}/>
                 ),
             }}
         />

@@ -1,6 +1,11 @@
 import React, {useState, useEffect} from "react";
-import {Card, CardContent, Typography, Box, CircularProgress, Chip} from "@mui/material";
 import useMoves from "@/hooks/useMoves";
+import {AppTypography} from "@/src/components/ui/AppTypography";
+import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppCard} from "@/src/components/ui/AppCard";
+import {AppCardContent} from "@/src/components/ui/AppCardContent";
+import {AppChip} from "@/src/components/ui/AppChip";
 
 // Define the props to pass information about the mention.
 interface MentionCardPopupProps {
@@ -36,14 +41,14 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
 
     if (loading) {
         return (
-            <Box sx={{display: "flex", justifyContent: "center", alignItems: "center", height: "100px"}}>
-                <CircularProgress/>
-            </Box>
+            <AppBox sx={{display: "flex", justifyContent: "center", alignItems: "center", height: "100px"}}>
+                <AppCircularProgress/>
+            </AppBox>
         );
     }
 
     if (!moveData) {
-        return <Typography variant="body2" color="error">Move data not found</Typography>;
+        return <AppTypography variant="body2" color="error">Move data not found</AppTypography>;
     }
 
     const formatFrameData = (frameData) => {
@@ -100,9 +105,9 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
     };
 
     return (
-        <Box sx={{position: "relative", display: "inline-block"}} onMouseEnter={handleMouseEnter}
-             onMouseLeave={handleMouseLeave}>
-            <Box
+        <AppBox sx={{position: "relative", display: "inline-block"}} onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}>
+            <AppBox
                 sx={{
                     position: "absolute",
                     top: "-60px",
@@ -114,17 +119,17 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
                 }}
             >
                 {/* Hover Preview Card */}
-                <Card sx={{maxWidth: 700, borderRadius: "2px", boxShadow: 2}}>
-                    <CardContent>
-                        <Typography variant="body2" color="textSecondary"
-                                    sx={{textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden"}}>
+                <AppCard sx={{maxWidth: 700, borderRadius: "2px", boxShadow: 2}}>
+                    <AppCardContent>
+                        <AppTypography variant="body2" color="textSecondary"
+                                       sx={{textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden"}}>
                             {previewText}
-                        </Typography>
-                    </CardContent>
-                </Card>
-            </Box>
+                        </AppTypography>
+                    </AppCardContent>
+                </AppCard>
+            </AppBox>
 
-            <Chip
+            <AppChip
                 label={mentionName}
                 onClick={handleClick}
                 sx={{
@@ -132,10 +137,10 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
                     padding: "0.1rem",
                 }}
             >
-            </Chip>
+            </AppChip>
 
             {expanded && (
-                <Box
+                <AppBox
                     sx={{
                         position: "fixed",
                         top: "50%",
@@ -149,17 +154,17 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
                     }}
                 >
                     {/* Expanded Card */}
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" color="textPrimary" gutterBottom>
+                    <AppCard>
+                        <AppCardContent>
+                            <AppTypography variant="h6" color="textPrimary" gutterBottom>
                                 {mentionName}
-                            </Typography>
+                            </AppTypography>
                             {detailsText}
-                        </CardContent>
-                    </Card>
-                </Box>
+                        </AppCardContent>
+                    </AppCard>
+                </AppBox>
             )}
-        </Box>
+        </AppBox>
     );
 };
 

@@ -1,9 +1,10 @@
 import {useEffect, useState} from "react";
-import {Container, Typography} from "@mui/material";
 import {PostList} from "@/src/components/forum/PostList";
 import {Post} from "@/src/components/forum/PostItem";
 import SearchBar from "@/src/components/forum/SearchBar";
 import usePosts from "@/hooks/usePosts";
+import {AppContainer} from "@/src/components/ui/AppContainer";
+import {AppTypography} from "@/src/components/ui/AppTypography";
 
 const HomePage = () => {
     const {fetchPosts} = usePosts();
@@ -28,13 +29,13 @@ const HomePage = () => {
     }, []);
 
     return (
-        <Container maxWidth="md">
-            <Typography variant="h4" sx={{my: 3}}>
+        <AppContainer maxWidth="md">
+            <AppTypography variant="h4" sx={{my: 3}}>
                 Latest Posts
-            </Typography>
+            </AppTypography>
             <SearchBar onSubmit={loadPosts}/>
             <PostList posts={posts} loading={loading}/>
-        </Container>
+        </AppContainer>
     );
 };
 

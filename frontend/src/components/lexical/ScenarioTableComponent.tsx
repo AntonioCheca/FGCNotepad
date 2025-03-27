@@ -1,25 +1,24 @@
 import React, {useState, useCallback, useEffect} from "react";
-import {
-    IconButton,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TableFooter,
-    Paper,
-    TextField,
-} from "@mui/material";
 import {NumberField} from '@base-ui-components/react/number-field';
 
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
 import EditableTextCell from "@/src/components/lexical/EditableTextCell";
-import {ArrowBack, ArrowDownward, ArrowForward, ArrowUpward} from "@mui/icons-material";
 import {useLexicalComposerContext} from "@lexical/react/LexicalComposerContext";
 import {$createParagraphNode, $getNodeByKey} from "lexical";
 import useSolverGames from "@/hooks/useSolverGame";
+import {AppAddIconButton} from "@/src/components/ui/AppAddIconButton";
+import {AppRemoveIconButton} from "@/src/components/ui/AppRemoveIconButton";
+import {AppTableCell} from "@/src/components/ui/AppTableCell";
+import {AppLeftArrowButton} from "@/src/components/ui/AppLeftArrowButton";
+import {AppRightArrowButton} from "@/src/components/ui/AppRightArrowButton";
+import {AppUpArrowButton} from "@/src/components/ui/AppUpArrowButton";
+import {AppDownArrowButton} from "@/src/components/ui/AppDownArrowButton";
+import {AppPaper} from "@/src/components/ui/AppPaper";
+import {AppTableFooter} from "@/src/components/ui/AppTableFooter";
+import {AppTableRow} from "@/src/components/ui/AppTableRow";
+import {AppTableHead} from "@/src/components/ui/AppTableHead";
+import {AppTableContainer} from "@/src/components/ui/AppTableContainer";
+import {AppTable} from "@/src/components/ui/AppTable";
+import {AppTableBody} from "@/src/components/ui/AppTableBody";
 
 // Table Component (Main Wrapper)
 function ScenarioTableComponent({
@@ -410,24 +409,24 @@ function ScenarioTableComponent({
                 }}>
                 S
             </button>
-            <TableContainer component={Paper} elevation={3}
-                            sx={{
-                                maxWidth: "95%",
-                                overflowX: "auto",
-                                borderRadius: 2,
-                                marginRight: '10px',
-                                marginBottom: '10px'
-                            }}
-                            className="table-container"
-                            display='inline-block'>
-                <Table>
+            <AppTableContainer component={AppPaper} elevation={3}
+                               sx={{
+                                   maxWidth: "95%",
+                                   overflowX: "auto",
+                                   borderRadius: 2,
+                                   marginRight: '10px',
+                                   marginBottom: '10px'
+                               }}
+                               className="table-container"
+                               display='inline-block'>
+                <AppTable>
                     <TableHeader
                         columns={columns}
                         addColumn={addColumn}
                         removeColumn={removeColumn}
                         setColumns={setAndUpdateColumns}
                     />
-                    <TableBody>
+                    <AppTableBody>
                         {rows.map((row, rowIndex) => (
                             <TableRowComponent
                                 key={rowIndex}
@@ -453,7 +452,7 @@ function ScenarioTableComponent({
                             handleColumnFrequencyChange={handleColumnFrequencyChange}
                             expectedValue={calculateExpectedValue()}
                         />
-                    </TableBody>
+                    </AppTableBody>
                     <TableFooterComponent
                         addRow={addRow}
                         removeRow={removeRow}
@@ -462,18 +461,18 @@ function ScenarioTableComponent({
                         moveColumnRight={moveColumnRight}
                         removeColumn={removeColumn}
                     />
-                </Table>
-            </TableContainer>
+                </AppTable>
+            </AppTableContainer>
         </div>
     );
 }
 
 function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, expectedValue}) {
     return (
-        <TableRow sx={{backgroundColor: "#f0f0f0"}}>
-            <TableCell sx={{fontWeight: "bold"}}>P2 Frequencies</TableCell>
+        <AppTableRow sx={{backgroundColor: "#f0f0f0"}}>
+            <AppTableCell sx={{fontWeight: "bold"}}>P2 Frequencies</AppTableCell>
             {columns.map((_, colIndex) => (
-                <TableCell key={colIndex} sx={{textAlign: "center"}}>
+                <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
                     <NumberField.Root>
                         <NumberField.Input
                             value={columnFrequencies[colIndex]}
@@ -487,12 +486,12 @@ function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, 
                             }}
                         />
                     </NumberField.Root>
-                </TableCell>
+                </AppTableCell>
             ))}
-            <TableCell sx={{textAlign: "center", fontWeight: "bold"}}>
+            <AppTableCell sx={{textAlign: "center", fontWeight: "bold"}}>
                 EV: {expectedValue}
-            </TableCell>
-        </TableRow>
+            </AppTableCell>
+        </AppTableRow>
     );
 }
 
@@ -506,9 +505,9 @@ function TableHeader({columns, addColumn, removeColumn, setColumns}) {
     };
 
     return (
-        <TableHead>
-            <TableRow sx={{backgroundColor: "#f5f5f5"}}>
-                <TableCell sx={{fontWeight: "bold"}}>Moves (P1 \ P2)</TableCell>
+        <AppTableHead>
+            <AppTableRow sx={{backgroundColor: "#f5f5f5"}}>
+                <AppTableCell sx={{fontWeight: "bold"}}>Moves (P1 \ P2)</AppTableCell>
                 {columns.map((col, colIndex) => (
                     <EditableTextCell
                         key={colIndex}
@@ -517,13 +516,11 @@ function TableHeader({columns, addColumn, removeColumn, setColumns}) {
                         sx={{textAlign: "center", fontWeight: "bold"}}
                     />
                 ))}
-                <TableCell sx={{textAlign: "center"}}>
-                    <IconButton onClick={addColumn} size="small">
-                        <AddIcon fontSize="small"/>
-                    </IconButton>
-                </TableCell>
-            </TableRow>
-        </TableHead>
+                <AppTableCell sx={{textAlign: "center"}}>
+                    <AppAddIconButton onClick={addColumn} size="small"/>
+                </AppTableCell>
+            </AppTableRow>
+        </AppTableHead>
     );
 }
 
@@ -549,22 +546,22 @@ function TableRowComponent({
     };
 
     return (
-        <TableRow sx={{backgroundColor: rowIndex % 2 ? "#fafafa" : "inherit"}}>
+        <AppTableRow sx={{backgroundColor: rowIndex % 2 ? "#fafafa" : "inherit"}}>
             <EditableTextCell
                 value={row}
                 onChange={handleRowNameChange}
                 sx={{fontWeight: "bold"}}
             />
             {columns.map((_, colIndex) => (
-                <TableCell key={colIndex} sx={{textAlign: "center"}}>
+                <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
                     <NumberInputField
                         value={values[rowIndex][colIndex]}
                         onValueChange={(newValue) => handleValueChange(rowIndex, colIndex, newValue)}
                     />
-                </TableCell>
+                </AppTableCell>
             ))}
             {/* Add frequency cell */}
-            <TableCell sx={{textAlign: "center"}}>
+            <AppTableCell sx={{textAlign: "center"}}>
                 <NumberField.Root>
                     <NumberField.Input
                         value={rowFrequency}
@@ -578,51 +575,35 @@ function TableRowComponent({
                         }}
                     />
                 </NumberField.Root>
-            </TableCell>
-            <TableCell sx={{textAlign: "center"}}>
-                <IconButton size="small" onClick={() => moveRowUp(rowIndex)}>
-                    <ArrowUpward fontSize="small"/>
-                </IconButton>
-                <IconButton size="small" onClick={() => removeRow(rowIndex)}>
-                    <RemoveIcon fontSize="small"/>
-                </IconButton>
-                <IconButton size="small" onClick={() => moveRowDown(rowIndex)}>
-                    <ArrowDownward fontSize="small"/>
-                </IconButton>
-            </TableCell>
-        </TableRow>
+            </AppTableCell>
+            <AppTableCell sx={{textAlign: "center"}}>
+                <AppUpArrowButton size="small" onClick={() => moveRowUp(rowIndex)}/>
+                <AppRemoveIconButton size="small" onClick={() => removeRow(rowIndex)}/>
+                <AppDownArrowButton size="small" onClick={() => moveRowDown(rowIndex)}/>
+            </AppTableCell>
+        </AppTableRow>
     );
 }
 
 function TableFooterComponent({addRow, removeRow, columns, moveColumnLeft, moveColumnRight, removeColumn}) {
     return (
-        <TableFooter>
-            <TableRow>
-                <TableCell colSpan={1}> {/* Empty cell for the row control buttons */}
-                    <IconButton onClick={addRow} size="small">
-                        <AddIcon fontSize="small"/>
-                    </IconButton>
-                    <IconButton onClick={removeRow} size="small">
-                        <RemoveIcon fontSize="small"/>
-                    </IconButton>
-                </TableCell>
+        <AppTableFooter>
+            <AppTableRow>
+                <AppTableCell colSpan={1}> {/* Empty cell for the row control buttons */}
+                    <AppAddIconButton onClick={addRow} size="small"/>
+                    <AppRemoveIconButton onClick={removeRow} size="small"/>
+                </AppTableCell>
 
                 {/* Create cells for each column with move left and move right buttons */}
                 {columns.map((_, colIndex) => (
-                    <TableCell key={colIndex} sx={{textAlign: "center"}}>
-                        <IconButton onClick={() => moveColumnLeft(colIndex)} size="small">
-                            <ArrowBack fontSize="small"/>
-                        </IconButton>
-                        <IconButton onClick={() => removeColumn(colIndex)} size="small">
-                            <RemoveIcon fontSize="small"/>
-                        </IconButton>
-                        <IconButton onClick={() => moveColumnRight(colIndex)} size="small">
-                            <ArrowForward fontSize="small"/>
-                        </IconButton>
-                    </TableCell>
+                    <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
+                        <AppLeftArrowButton onClick={() => moveColumnLeft(colIndex)} size="small"/>
+                        <AppRemoveIconButton onClick={() => removeColumn(colIndex)} size="small"/>
+                        <AppRightArrowButton onClick={() => moveColumnRight(colIndex)} size="small"/>
+                    </AppTableCell>
                 ))}
-            </TableRow>
-        </TableFooter>
+            </AppTableRow>
+        </AppTableFooter>
     );
 }
 

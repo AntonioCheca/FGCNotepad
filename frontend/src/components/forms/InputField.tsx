@@ -1,15 +1,13 @@
-import TextField from '@mui/material/TextField';
+import {AppTextField} from "@/src/components/ui/AppTextField";
 
-const InputField = ({ label, type, name, register, errors }) => {
+const InputField = ({label, type, name, register, errors}) => {
     return (
-        <TextField
+        <AppTextField
             label={label}
             type={type}
             {...register(name)}
-            fullWidth
             error={!!errors[name]}
             helperText={errors[name]?.message}
-            margin="normal"
         />
     );
 };

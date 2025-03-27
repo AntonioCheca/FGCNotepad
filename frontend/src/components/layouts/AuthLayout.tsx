@@ -1,15 +1,17 @@
-import { Container, Paper, Typography } from '@mui/material';
+import {AppTypography} from "@/src/components/ui/AppTypography";
+import {AppPaper} from "@/src/components/ui/AppPaper";
+import {AppContainer} from "@/src/components/ui/AppContainer";
 
-const AuthLayout = ({ title, children }) => {
+const AuthLayout = ({title, children}) => {
     return (
-        <Container maxWidth="sm">
-            <Paper elevation={3} style={{ padding: '20px', marginTop: '50px' }}>
-                <Typography variant="h5" align="center" gutterBottom>
+        <AppContainer maxWidth="sm">
+            <AppPaper elevation={3} style={{padding: '20px', marginTop: '50px'}}>
+                <AppTypography variant="h5" align="center" gutterBottom>
                     {title}
-                </Typography>
+                </AppTypography>
                 {children}
-            </Paper>
-        </Container>
+            </AppPaper>
+        </AppContainer>
     );
 };
 

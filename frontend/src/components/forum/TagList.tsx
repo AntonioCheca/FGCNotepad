@@ -1,6 +1,9 @@
 import {useState} from "react";
-import {TextField, IconButton, Chip, Stack} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import {AppTextField} from "@/src/components/ui/AppTextField";
+import {AppStack} from "@/src/components/ui/AppStack";
+import {AppChip} from "@/src/components/ui/AppChip";
+import {AppAddIconButton} from "@/src/components/ui/AppAddIconButton";
+import AdvancedEditableWrapper from "@/src/components/util/AdvancedEditableWrapper";
 
 interface TagListProps {
     tags: string[];
@@ -23,10 +26,10 @@ export default function TagList({tags, onTagsChange, editable}: TagListProps) {
     };
 
     return (
-        <Stack spacing={1}>
-            {editable && (
-                <Stack direction="row" spacing={1} alignItems="center">
-                    <TextField
+        <AppStack spacing={1}>
+            <AdvancedEditableWrapper condition={editable}>
+                <AppStack direction="row" spacing={1} alignItems="center">
+                    <AppTextField
                         label="Add Tag"
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
@@ -38,22 +41,20 @@ export default function TagList({tags, onTagsChange, editable}: TagListProps) {
                             }
                         }}
                     />
-                    <IconButton onClick={handleAddTag} color="primary">
-                        <AddIcon/>
-                    </IconButton>
-                </Stack>
-            )}
+                    <AppAddIconButton onClick={handleAddTag} color="primary"/>
+                </AppStack>
+            </AdvancedEditableWrapper>
 
-            <Stack direction="row" spacing={1} flexWrap="wrap">
+            <AppStack direction="row" spacing={1} flexWrap="wrap">
                 {tags.map((tag, index) => (
-                    <Chip
+                    <AppChip
                         key={index}
                         label={tag}
                         onDelete={editable ? () => handleDeleteTag(tag) : undefined}
                         color="primary"
                     />
                 ))}
-            </Stack>
-        </Stack>
+            </AppStack>
+        </AppStack>
     );
 }

@@ -1,7 +1,7 @@
-import {useState} from "react";
 import PostEditor from "@/src/components/forum/PostEditor";
 import usePosts from "@/hooks/usePosts";
-import {Container, Typography} from "@mui/material";
+import {AppTypography} from "@/src/components/ui/AppTypography";
+import {AppContainer} from "@/src/components/ui/AppContainer";
 
 export default function CreatePostPage() {
     const {createPost} = usePosts();
@@ -14,11 +14,11 @@ export default function CreatePostPage() {
     };
 
     return (
-        <Container maxWidth="md" sx={{mt: 4}}>
-            <Typography variant="h4" gutterBottom>
+        <AppContainer maxWidth="md" sx={{mt: 4}}>
+            <AppTypography variant="h4" gutterBottom>
                 Create a New Post
-            </Typography>
+            </AppTypography>
             <PostEditor onSubmit={handleSubmit} initialTitle={''} initialBody={''} initialTags={[]} editable={true}/>
-        </Container>
+        </AppContainer>
     );
 }

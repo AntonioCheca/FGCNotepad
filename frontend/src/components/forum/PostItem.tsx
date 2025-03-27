@@ -1,7 +1,8 @@
-// PostItem.tsx
-import {ListItem, ListItemText, Divider} from "@mui/material";
 import Link from "next/link";
 import PostTags from "@/src/components/forum/PostTags";
+import {AppListItem} from "@/src/components/ui/AppListItem";
+import {AppListItemText} from "@/src/components/ui/AppListItemText";
+import {AppDivider} from "@/src/components/ui/AppDivider";
 
 export type Post = {
     id: string;
@@ -13,8 +14,8 @@ export type Post = {
 export const PostItem = ({post}: { post: Post }) => {
     return (
         <>
-            <ListItem alignItems="flex-start">
-                <ListItemText
+            <AppListItem alignItems="flex-start">
+                <AppListItemText
                     primary={
                         <Link href={`/forum/post/${post.id}`} passHref>
                             {post.title}
@@ -22,9 +23,9 @@ export const PostItem = ({post}: { post: Post }) => {
                     }
                     secondary={`by ${post.author}`}
                 />
-            </ListItem>
+            </AppListItem>
             <PostTags tags={post.tags}/>
-            <Divider component="li"/>
+            <AppDivider component="li"/>
         </>
     );
 };

@@ -4,7 +4,7 @@ import * as yup from 'yup';
 import useAuth from '@/hooks/useAuth';
 import {useState} from 'react';
 import InputField from './InputField';
-import {Button} from '@mui/material';
+import {AppButton} from "@/src/components/ui/AppButton";
 
 const schema = yup.object().shape({
     username: yup.string().min(4, 'Username must be at least 4 characters').required('Username is required'),
@@ -41,9 +41,9 @@ const RegisterForm = () => {
             <InputField label="Username" type="username" name="username" register={register} errors={errors}/>
             <InputField label="Password" type="password" name="password" register={register} errors={errors}/>
             {message && <p>{message}</p>}
-            <Button type="submit" variant="contained" color="primary" disabled={loading}>
+            <AppButton disabled={loading}>
                 {loading ? 'Registering...' : 'Register'}
-            </Button>
+            </AppButton>
         </form>
     );
 };
