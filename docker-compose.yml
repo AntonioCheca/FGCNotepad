@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: fgc_backend
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      - postgres
+    environment:
+      - APP_ENV=dev
+      - DATABASE_URL=pgsql://fgc_user:fgc_pass@postgres:5432/fgc_db
+    networks:
+      - fgcnet
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: fgc_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm run dev
+    networks:
+      - fgcnet
+
+  postgres:
+    image: postgres:15
+    container_name: fgc_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: fgc_db
+      POSTGRES_USER: fgc_user
+      POSTGRES_PASSWORD: fgc_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - fgcnet
+
+volumes:
+  pgdata:
+
+networks:
+  fgcnet:
