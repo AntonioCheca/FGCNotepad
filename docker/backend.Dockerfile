@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.2-fpm
 
 # --------------------------
 # OS + PHP Dependencies
@@ -7,8 +7,7 @@ RUN apt-get update && apt-get install -y \
     git unzip zip curl \
     libpq-dev \
     python3 python3-pip python3-venv \
-    && docker-php-ext-install pdo pdo_pgsql \
-    && a2enmod rewrite
+    && docker-php-ext-install pdo pdo_pgsql
 
 # --------------------------
 # Composer
@@ -31,3 +30,11 @@ RUN python3 -m venv /opt/venv \
 # Add virtualenv Python to PATH
 # --------------------------
 ENV PATH="/opt/venv/bin:$PATH"
+
+# --------------------------
+# PHP-FPM exposes port 9000 internally (Nginx connects to it)
+# --------------------------
+EXPOSE 9000
+
+# Start PHP-FPM (default entrypoint)
+CMD ["php-fpm"]

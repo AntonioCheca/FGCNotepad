@@ -1,11 +1,14 @@
-up:
-	docker-compose up -d --build
+build:
+	docker compose up -d --build
 
-down:
-	docker-compose down
+up:
+	docker compose up
+
+stop:
+	docker compose stop
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 create-jwt-keys:
 	docker exec -it fgc_backend php bin/console lexik:jwt:generate-keypair
@@ -24,6 +27,9 @@ composer-install:
 
 bash:
 	docker exec -it fgc_backend bash
+
+frontend-bash:
+	docker exec -it fgc_frontend bash
 
 psql:
 	docker exec -it fgc_postgres psql -U fgc_user -d fgc_db
