@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: docker/backend.Dockerfile
     container_name: fgc_backend
-    ports:
-      - "8000:80"
+    expose:
+      - "9000"  # Internal only; nginx connects to this
     volumes:
       - ./backend:/var/www/html
     depends_on:
@@ -13,6 +13,19 @@ services:
     environment:
       - APP_ENV=dev
       - DATABASE_URL=pgsql://fgc_user:fgc_pass@postgres:5432/fgc_db
+    networks:
+      - fgcnet
+
+  nginx:
+    image: nginx:stable
+    container_name: fgc_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
     networks:
       - fgcnet
 
@@ -30,6 +43,9 @@ services:
     command: npm run dev
     networks:
       - fgcnet
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+
 
   postgres:
     image: postgres:15
