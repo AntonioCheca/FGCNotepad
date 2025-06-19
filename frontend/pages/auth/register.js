@@ -1,5 +1,5 @@
-import RegisterForm from '@/src/toolbar-components/forms/RegisterForm';
-import AuthLayout from '@/src/toolbar-components/layouts/AuthLayout';
+import RegisterForm from '@/src/components/forms/RegisterForm';
+import AuthLayout from '@/src/components/layouts/AuthLayout';
 
 const RegisterPage = () => {
     return (
