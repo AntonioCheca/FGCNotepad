@@ -5,7 +5,7 @@ interface AppTextFieldProps extends MUITextFieldProps {
 }
 
 export const AppTextField: React.FC<AppTextFieldProps> = ({
-                                                              margin = "primary",
+                                                              margin = "normal",
                                                               variant = "outlined",
                                                               ...props
                                                           }) => {

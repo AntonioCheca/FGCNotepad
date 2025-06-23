@@ -102,7 +102,7 @@ export default function PostEditor({
                     <AppTextField
                         label="Post title"
                         value={title}
-                        onChange={(e) => {
+                        onChange={(e: any) => {
                             setTitle(e.target.value);
                             localStorage.setItem("postDraftTitle", e.target.value);
                         }}
