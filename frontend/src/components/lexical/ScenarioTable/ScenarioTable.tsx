@@ -17,15 +17,68 @@ import { AppTable } from "@/src/components/ui/AppTable";
 import { AppTableBody } from "@/src/components/ui/AppTableBody";
 import { ScenarioTableState } from '@/hooks/useScenarioTableState';
 import { ScenarioTableService } from '@/services/ScenarioTableService';
+import { styled } from '@mui/material/styles';
 
 interface ScenarioTableProps {
     state: ScenarioTableState;
     tableService: ScenarioTableService;
 }
 
+// Enhanced styled components for proper frozen headers and columns
+const StyledTableContainer = styled(AppTableContainer)(({ theme }) => ({
+    '& .MuiTable-root': {
+        // Frozen header row
+        '& .MuiTableHead-root': {
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            backgroundColor: 'white',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        },
+        // Frozen first column
+        '& .frozen-first-column': {
+            position: 'sticky',
+            left: 0,
+            zIndex: 5,
+            backgroundColor: 'white',
+            boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
+            // Ensure content doesn't get cut off
+            minWidth: 'max-content',
+        },
+        // Frozen corner cell (intersection of frozen row and column)
+        '& .frozen-corner-cell': {
+            position: 'sticky',
+            left: 0,
+            top: 0,
+            zIndex: 15,
+            backgroundColor: '#f5f5f5',
+            boxShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+            minWidth: 'max-content',
+        },
+        // Special styling for frequency row first column
+        '& .frozen-frequency-cell': {
+            position: 'sticky',
+            left: 0,
+            zIndex: 5,
+            backgroundColor: '#f0f0f0', // Match frequency row background
+            boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
+            minWidth: 'max-content',
+        },
+        // Special styling for footer first column
+        '& .frozen-footer-cell': {
+            position: 'sticky',
+            left: 0,
+            zIndex: 5,
+            backgroundColor: 'white',
+            boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
+            minWidth: 'max-content',
+        }
+    }
+}));
+
 export function ScenarioTable({ state, tableService }: ScenarioTableProps) {
     return (
-        <AppTableContainer
+        <StyledTableContainer
             component={AppPaper}
             elevation={3}
             sx={{
@@ -85,15 +138,19 @@ export function ScenarioTable({ state, tableService }: ScenarioTableProps) {
                     removeColumn={(colIndex) => tableService.removeColumn(colIndex)}
                 />
             </AppTable>
-        </AppTableContainer>
+        </StyledTableContainer>
     );
 }
 
-// These components were already in the original file but need to be moved here
 function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, expectedValue}) {
     return (
         <AppTableRow sx={{backgroundColor: "#f0f0f0"}}>
-            <AppTableCell sx={{fontWeight: "bold"}}>P2 Frequencies</AppTableCell>
+            <AppTableCell
+                sx={{fontWeight: "bold"}}
+                className="frozen-frequency-cell"
+            >
+                P2 Frequencies
+            </AppTableCell>
             {columns.map((_, colIndex) => (
                 <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
                     <NumberField.Root>
@@ -128,7 +185,12 @@ function TableHeader({columns, addColumn, removeColumn, setColumns}) {
     return (
         <AppTableHead>
             <AppTableRow sx={{backgroundColor: "#f5f5f5"}}>
-                <AppTableCell sx={{fontWeight: "bold"}}>Moves (P1 \ P2)</AppTableCell>
+                <AppTableCell
+                    sx={{fontWeight: "bold"}}
+                    className="frozen-corner-cell"
+                >
+                    Moves (P1 \ P2)
+                </AppTableCell>
                 {columns.map((col, colIndex) => (
                     <EditableTextCell
                         key={colIndex}
@@ -167,11 +229,15 @@ function TableRowComponent({
 
     return (
         <AppTableRow sx={{backgroundColor: rowIndex % 2 ? "#fafafa" : "inherit"}}>
-            <EditableTextCell
-                value={row}
-                onChange={handleRowNameChange}
+            <AppTableCell
                 sx={{fontWeight: "bold"}}
-            />
+                className="frozen-first-column"
+            >
+                <EditableTextCell
+                    value={row}
+                    onChange={handleRowNameChange}
+                />
+            </AppTableCell>
             {columns.map((_, colIndex) => (
                 <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
                     <NumberInputField
@@ -208,7 +274,10 @@ function TableFooterComponent({addRow, removeRow, columns, moveColumnLeft, moveC
     return (
         <AppTableFooter>
             <AppTableRow>
-                <AppTableCell colSpan={1}>
+                <AppTableCell
+                    colSpan={1}
+                    className="frozen-footer-cell"
+                >
                     <AppAddIconButton onClick={addRow} size="small"/>
                     <AppRemoveIconButton onClick={removeRow} size="small"/>
                 </AppTableCell>
