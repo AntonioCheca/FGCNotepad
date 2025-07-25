@@ -2,39 +2,39 @@
 
 namespace App\Repository;
 
-use App\Entity\Combo;
+use App\Entity\ConnectionType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<Combo>
+ * @extends ServiceEntityRepository<ConnectionType>
  */
-class ComboRepository extends ServiceEntityRepository
+class ConnectionTypeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, Combo::class);
+        parent::__construct($registry, ConnectionType::class);
     }
 
     //    /**
-    //     * @return Post[] Returns an array of Post objects
+    //     * @return ConnectionType[] Returns an array of ConnectionType objects
     //     */
     //    public function findByExampleField($value): array
     //    {
-    //        return $this->createQueryBuilder('p')
-    //            ->andWhere('p.exampleField = :val')
+    //        return $this->createQueryBuilder('c')
+    //            ->andWhere('c.exampleField = :val')
     //            ->setParameter('val', $value)
-    //            ->orderBy('p.id', 'ASC')
+    //            ->orderBy('c.id', 'ASC')
     //            ->setMaxResults(10)
     //            ->getQuery()
     //            ->getResult()
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?Post
+    //    public function findOneBySomeField($value): ?ConnectionType
     //    {
-    //        return $this->createQueryBuilder('p')
-    //            ->andWhere('p.exampleField = :val')
+    //        return $this->createQueryBuilder('c')
+    //            ->andWhere('c.exampleField = :val')
     //            ->setParameter('val', $value)
     //            ->getQuery()
     //            ->getOneOrNullResult()

@@ -13,7 +13,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: "component", schema: "sf6")]
 #[ORM\InheritanceType("JOINED")]
 #[ORM\DiscriminatorColumn(name: "type", type: "string")]
-#[ORM\DiscriminatorMap(["move" => Move::class, "combo" => Combo::class])]
+#[ORM\DiscriminatorMap(["move" => Move::class])]
 abstract class Component
 {
     #[ORM\Id]
