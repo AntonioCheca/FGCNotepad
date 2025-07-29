@@ -47,9 +47,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Post::class, mappedBy: 'author')]
     private Collection $posts;
 
+    /**
+     * @var Collection<int, UserCombo>
+     */
+    #[ORM\OneToMany(targetEntity: UserCombo::class, mappedBy: 'user_name', orphanRemoval: true)]
+    private Collection $userCombos;
+
     public function __construct()
     {
         $this->posts = new ArrayCollection();
+        $this->userCombos = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -157,6 +164,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($post->getAuthor() === $this) {
                 $post->setAuthor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, UserCombo>
+     */
+    public function getUserCombos(): Collection
+    {
+        return $this->userCombos;
+    }
+
+    public function addUserCombo(UserCombo $userCombo): static
+    {
+        if (!$this->userCombos->contains($userCombo)) {
+            $this->userCombos->add($userCombo);
+            $userCombo->setUserName($this);
+        }
+
+        return $this;
+    }
+
+    public function removeUserCombo(UserCombo $userCombo): static
+    {
+        if ($this->userCombos->removeElement($userCombo)) {
+            // set the owning side to null (unless already changed)
+            if ($userCombo->getUserName() === $this) {
+                $userCombo->setUserName(null);
             }
         }
 
