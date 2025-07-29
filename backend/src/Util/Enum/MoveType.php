@@ -12,6 +12,8 @@ enum MoveType: string
     case SUPER = 'super';
     case THROW = 'throw';
     case OTHER = 'other';
+    case MOVEMENT_SPECIAL = 'movement-special';
+    case COMMAND_GRAB = 'command-grab';
 
     /**
      * @return array<string>

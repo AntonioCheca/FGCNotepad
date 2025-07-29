@@ -50,8 +50,8 @@ class FrameData
     #[ORM\Column(nullable: true)]
     private ?int $damage = null;
 
-    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
-    private ?int $scaling = null;
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $scaling = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $chipDamage = null;
@@ -244,12 +244,12 @@ class FrameData
         return $this;
     }
 
-    public function getScaling(): ?int
+    public function getScaling(): ?string
     {
         return $this->scaling;
     }
 
-    public function setScaling(int $scaling): static
+    public function setScaling(?string $scaling): static
     {
         $this->scaling = $scaling;
 
