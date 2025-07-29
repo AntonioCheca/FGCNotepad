@@ -1,0 +1,57 @@
+<?php declare(strict_types=1);
+
+namespace App\Serializer\Denormalizer;
+
+use App\Entity\ComboRequirement;
+use App\Entity\ComboSequences;
+use App\Entity\RequirementSpecificCharacter;
+use App\Repository\ComboSequencesRepository;
+use Symfony\Component\Serializer\Normalizer\ContextAwareDenormalizerInterface;
+use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
+use Doctrine\ORM\EntityManagerInterface;
+
+class ComboRequirementDenormalizer implements ContextAwareDenormalizerInterface
+{
+    public function __construct(
+        private ComboSequencesRepository $sequencesRepository,
+        private EntityManagerInterface $em,
+    ) {}
+
+    public function supportsDenormalization(mixed $data, string $type, string $format = null, array $context = []): bool
+    {
+        return $type === ComboRequirement::class;
+    }
+
+    public function denormalize(mixed $data, string $type, string $format = null, array $context = []): ComboRequirement
+    {
+        if (!is_array($data)) {
+            throw new NotNormalizableValueException('Data must be an array.');
+        }
+
+        $requirement = $context['object_to_populate'] ?? new ComboRequirement();
+
+        if (isset($data['sequence'])) {
+            $sequence = $this->sequencesRepository->find($data['sequence']);
+            if (!$sequence instanceof ComboSequences) {
+                throw new NotNormalizableValueException("ComboSequence with ID {$data['sequence']} not found.");
+            }
+            $requirement->setSequence($sequence);
+        }
+
+        $requirement->setCounterHitRequired((bool) ($data['counter_hit_required'] ?? false));
+        $requirement->setPunishCounterRequired((bool) ($data['punish_counter_required'] ?? false));
+        $requirement->setCornerRequired((bool) ($data['corner_required'] ?? false));
+        $requirement->setAirborneRequired((bool) ($data['airborne_required'] ?? false));
+        $requirement->setMidScreenRequired((bool) ($data['mid_screen_required'] ?? false));
+
+        // Handle nested character-specific requirement if present
+        if (isset($data['requirement_specific_character'])) {
+            $charReq = $requirement->getRequirementSpecificCharacter() ?? new RequirementSpecificCharacter();
+            $charReq->setCharacterName($data['requirement_specific_character']['character_name'] ?? '');
+            $charReq->setRequirement($requirement);
+            $requirement->setRequirementSpecificCharacter($charReq);
+        }
+
+        return $requirement;
+    }
+}
