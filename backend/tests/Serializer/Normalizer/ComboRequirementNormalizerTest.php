@@ -4,39 +4,59 @@ declare(strict_types=1);
 
 namespace App\Tests\Serializer;
 
-use App\Entity\ComboRequirements;
-use App\Entity\Move;
-use App\Serializer\ComboRequirementsNormalizer;
-use PHPUnit\Framework\TestCase;
+use App\Entity\ComboRequirement;
+use App\Serializer\Normalizer\ComboRequirementNormalizer;
+use App\Tests\TestEntityFactory;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
+use Doctrine\ORM\EntityManagerInterface;
 
-class ComboRequirementsNormalizerTest extends TestCase
+class ComboRequirementsNormalizerTest extends KernelTestCase
 {
+    private EntityManagerInterface $em;
+    private TestEntityFactory $factory;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $this->em = self::getContainer()->get(EntityManagerInterface::class);
+        $this->factory = new TestEntityFactory($this->em);
+    }
+
     public function testNormalize(): void
     {
-        $move = new Move();
-        $move->setId(10); // assuming setter exists
+        $sequence = $this->factory->createComboSequence();
 
-        $requirements = new ComboRequirements();
-        $requirements->setMinDistance(20);
-        $requirements->setMaxDistance(40);
-        $requirements->setStarter($move);
+        $requirement = new ComboRequirement();
+        $requirement->setSequence($sequence);
+        $requirement->setCounterHitRequired(true);
+        $requirement->setPunishCounterRequired(false);
+        $requirement->setCornerRequired(true);
+        $requirement->setAirborneRequired(false);
+        $requirement->setMidScreenRequired(true);
 
-        $normalizer = new ComboRequirementsNormalizer();
+        $this->em->persist($requirement);
+        $this->em->flush();
+
+        $objectNormalizer = new ObjectNormalizer();
+        $normalizer = new ComboRequirementNormalizer($objectNormalizer);
         $serializer = new Serializer([
             new DateTimeNormalizer(),
-            new ObjectNormalizer(),
+            $objectNormalizer,
             $normalizer,
         ], [new JsonEncoder()]);
 
-        $data = $serializer->normalize($requirements);
+        $data = $serializer->normalize($requirement);
 
         $this->assertIsArray($data);
-        $this->assertSame(20, $data['min_distance']);
-        $this->assertSame(40, $data['max_distance']);
-        $this->assertSame(10, $data['starter_id']);
+        $this->assertSame(true, $data['counterHitRequired']);
+        $this->assertSame(false, $data['punishCounterRequired']);;
+        $this->assertSame(true, $data['cornerRequired']);;
+        $this->assertSame(false, $data['airborneRequired']);
+        $this->assertSame(true, $data['midScreenRequired']);
+        $this->assertNull($data['requirementSpecificCharacter']); // None assigned
     }
 }
