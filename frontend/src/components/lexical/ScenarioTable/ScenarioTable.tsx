@@ -1,30 +1,30 @@
 import React from 'react';
-import { NumberField } from '@base-ui-components/react/number-field';
+import {NumberField} from '@base-ui-components/react/number-field';
 import EditableTextCell from "@/src/components/lexical/EditableTextCell";
-import { AppAddIconButton } from "@/src/components/ui/AppAddIconButton";
-import { AppRemoveIconButton } from "@/src/components/ui/AppRemoveIconButton";
-import { AppTableCell } from "@/src/components/ui/AppTableCell";
-import { AppLeftArrowButton } from "@/src/components/ui/AppLeftArrowButton";
-import { AppRightArrowButton } from "@/src/components/ui/AppRightArrowButton";
-import { AppUpArrowButton } from "@/src/components/ui/AppUpArrowButton";
-import { AppDownArrowButton } from "@/src/components/ui/AppDownArrowButton";
-import { AppPaper } from "@/src/components/ui/AppPaper";
-import { AppTableFooter } from "@/src/components/ui/AppTableFooter";
-import { AppTableRow } from "@/src/components/ui/AppTableRow";
-import { AppTableHead } from "@/src/components/ui/AppTableHead";
-import { AppTableContainer } from "@/src/components/ui/AppTableContainer";
-import { AppTable } from "@/src/components/ui/AppTable";
-import { AppTableBody } from "@/src/components/ui/AppTableBody";
-import { ScenarioTableState } from '@/hooks/useScenarioTableState';
-import { ScenarioTableService } from '@/services/ScenarioTableService';
-import { styled } from '@mui/material/styles';
+import {AppAddIconButton} from "@/src/components/ui/AppAddIconButton";
+import {AppRemoveIconButton} from "@/src/components/ui/AppRemoveIconButton";
+import {AppTableCell} from "@/src/components/ui/AppTableCell";
+import {AppLeftArrowButton} from "@/src/components/ui/AppLeftArrowButton";
+import {AppRightArrowButton} from "@/src/components/ui/AppRightArrowButton";
+import {AppUpArrowButton} from "@/src/components/ui/AppUpArrowButton";
+import {AppDownArrowButton} from "@/src/components/ui/AppDownArrowButton";
+import {AppPaper} from "@/src/components/ui/AppPaper";
+import {AppTableFooter} from "@/src/components/ui/AppTableFooter";
+import {AppTableRow} from "@/src/components/ui/AppTableRow";
+import {AppTableHead} from "@/src/components/ui/AppTableHead";
+import {AppTableContainer} from "@/src/components/ui/AppTableContainer";
+import {AppTable} from "@/src/components/ui/AppTable";
+import {AppTableBody} from "@/src/components/ui/AppTableBody";
+import {ScenarioTableState} from '@/hooks/useScenarioTableState';
+import {ScenarioTableService} from '@/services/ScenarioTableService';
+import {styled} from '@mui/material/styles';
 
 interface ScenarioTableProps {
     state: ScenarioTableState;
     tableService: ScenarioTableService;
 }
 
-const StyledTableContainer = styled(AppTableContainer)(({ theme }) => ({
+const StyledTableContainer = styled(AppTableContainer)(({theme}) => ({
     '& .MuiTable-root': {
         '& .MuiTableHead-root': {
             position: 'sticky',
@@ -88,7 +88,7 @@ const StyledTableContainer = styled(AppTableContainer)(({ theme }) => ({
     },
 }));
 
-export function ScenarioTable({ state, tableService }: ScenarioTableProps) {
+export function ScenarioTable({state, tableService}: ScenarioTableProps) {
     const scrollRef = React.useRef<HTMLDivElement>(null);
     const topScrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -116,7 +116,7 @@ export function ScenarioTable({ state, tableService }: ScenarioTableProps) {
                 }}
                 ref={topScrollRef}
             >
-                <div style={{ width: scrollRef.current?.scrollWidth || '2000px' }} />
+                <div style={{width: scrollRef.current?.scrollWidth || '2000px'}}/>
             </div>
             <StyledTableContainer
                 onScroll={() => {
@@ -143,7 +143,7 @@ export function ScenarioTable({ state, tableService }: ScenarioTableProps) {
                         columns={state.columns}
                         addColumn={() => tableService.addColumn()}
                         removeColumn={(colIndex) => tableService.removeColumn(colIndex)}
-                        setColumns={(columns) => tableService.actions.setAndUpdateColumns(columns)} />
+                        setColumns={(columns) => tableService.actions.setAndUpdateColumns(columns)}/>
                     <AppTableBody>
                         {state.rows.map((row, rowIndex) => (
                             <TableRowComponent
@@ -159,7 +159,7 @@ export function ScenarioTable({ state, tableService }: ScenarioTableProps) {
                                 moveRowDown={(rowIndex) => tableService.moveRowDown(rowIndex)}
                                 moveRowUp={(rowIndex) => tableService.moveRowUp(rowIndex)}
                                 rowFrequency={state.rowFrequencies[rowIndex]}
-                                onRowFrequencyChange={(newValue) => tableService.updateRowFrequency(rowIndex, newValue)} />
+                                onRowFrequencyChange={(newValue) => tableService.updateRowFrequency(rowIndex, newValue)}/>
                         ))}
                     </AppTableBody>
                     <AppTableFooter>
@@ -167,48 +167,49 @@ export function ScenarioTable({ state, tableService }: ScenarioTableProps) {
                             columns={state.columns}
                             columnFrequencies={state.columnFrequencies}
                             handleColumnFrequencyChange={(colIndex, newValue) => tableService.updateColumnFrequency(colIndex, newValue)}
-                            expectedValue={tableService.calculateExpectedValue()} />
+                            expectedValue={tableService.calculateExpectedValue()}/>
                     </AppTableFooter>
                     <TableFooterComponent
                         addRow={() => tableService.addRow()}
-                        removeRow={() => { }}
+                        removeRow={() => {
+                        }}
                         columns={state.columns}
                         moveColumnLeft={(colIndex) => tableService.moveColumnLeft(colIndex)}
                         moveColumnRight={(colIndex) => tableService.moveColumnRight(colIndex)}
-                        removeColumn={(colIndex) => tableService.removeColumn(colIndex)} />
+                        removeColumn={(colIndex) => tableService.removeColumn(colIndex)}/>
                 </AppTable>
             </StyledTableContainer>
         </>
     );
 }
 
-function FrequencyRow({ columns, columnFrequencies, handleColumnFrequencyChange, expectedValue }) {
+function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, expectedValue}) {
     return (
-        <AppTableRow className="frozen-last-row" sx={{ backgroundColor: "#f0f0f0" }} component="tr">
-            <AppTableCell className="frozen-frequency-cell" sx={{ fontWeight: "bold" }}>
+        <AppTableRow className="frozen-last-row" component="tr">
+            <AppTableCell className="frozen-frequency-cell" sx={{fontWeight: "bold"}}>
                 P2 Frequencies
             </AppTableCell>
             {columns.map((_, colIndex) => (
-                <AppTableCell key={colIndex} sx={{ textAlign: "center" }}>
+                <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
                     <NumberField.Root>
                         <NumberField.Input
                             value={columnFrequencies[colIndex]}
                             onChange={(e) => handleColumnFrequencyChange(colIndex, e.target.value)}
                             size="small"
-                            sx={{ width: "60px" }}
-                            inputProps={{ min: 0, max: 1, step: 0.01 }}
+                            sx={{width: "60px"}}
+                            inputProps={{min: 0, max: 1, step: 0.01}}
                         />
                     </NumberField.Root>
                 </AppTableCell>
             ))}
-            <AppTableCell className="frozen-last-column" sx={{ textAlign: "center", fontWeight: "bold" }}>
+            <AppTableCell className="frozen-last-column" sx={{textAlign: "center", fontWeight: "bold"}}>
                 EV: {expectedValue}
             </AppTableCell>
         </AppTableRow>
     );
 }
 
-function TableHeader({ columns, addColumn, removeColumn, setColumns }) {
+function TableHeader({columns, addColumn, removeColumn, setColumns}) {
     const handleColumnNameChange = (colIndex, newName) => {
         const updatedColumns = [...columns];
         updatedColumns[colIndex] = newName;
@@ -217,8 +218,8 @@ function TableHeader({ columns, addColumn, removeColumn, setColumns }) {
 
     return (
         <AppTableHead>
-            <AppTableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                <AppTableCell className="frozen-corner-cell" sx={{ fontWeight: "bold" }}>
+            <AppTableRow>
+                <AppTableCell className="frozen-corner-cell" sx={{fontWeight: "bold"}}>
                     Moves (P1 \ P2)
                 </AppTableCell>
                 {columns.map((col, colIndex) => (
@@ -226,20 +227,33 @@ function TableHeader({ columns, addColumn, removeColumn, setColumns }) {
                         key={colIndex}
                         value={col}
                         onChange={(newValue) => handleColumnNameChange(colIndex, newValue)}
-                        sx={{ textAlign: "center", fontWeight: "bold" }}
+                        sx={{textAlign: "center", fontWeight: "bold"}}
                     />
                 ))}
-                <AppTableCell sx={{ textAlign: "center" }}>
-                    <AppAddIconButton onClick={addColumn} size="small" />
+                <AppTableCell sx={{textAlign: "center"}}>
+                    <AppAddIconButton onClick={addColumn} size="small"/>
                 </AppTableCell>
-                <AppTableCell className="frozen-last-column" />
-                <AppTableCell className="frozen-last-column" />
+                <AppTableCell className="frozen-last-column"/>
+                <AppTableCell className="frozen-last-column"/>
             </AppTableRow>
         </AppTableHead>
     );
 }
 
-function TableRowComponent({ row, rows, rowIndex, columns, values, handleValueChange, setRows, moveRowUp, moveRowDown, rowFrequency, onRowFrequencyChange, removeRow }) {
+function TableRowComponent({
+                               row,
+                               rows,
+                               rowIndex,
+                               columns,
+                               values,
+                               handleValueChange,
+                               setRows,
+                               moveRowUp,
+                               moveRowDown,
+                               rowFrequency,
+                               onRowFrequencyChange,
+                               removeRow
+                           }) {
     const handleRowNameChange = (newName) => {
         const updatedRows = [...rows];
         updatedRows[rowIndex] = newName;
@@ -247,12 +261,12 @@ function TableRowComponent({ row, rows, rowIndex, columns, values, handleValueCh
     };
 
     return (
-        <AppTableRow sx={{ backgroundColor: rowIndex % 2 ? "#fafafa" : "inherit" }}>
-            <AppTableCell className="frozen-first-column" sx={{ fontWeight: "bold" }}>
-                <EditableTextCell value={row} onChange={handleRowNameChange} />
+        <AppTableRow>
+            <AppTableCell className="frozen-first-column" sx={{fontWeight: "bold"}}>
+                <EditableTextCell value={row} onChange={handleRowNameChange}/>
             </AppTableCell>
             {columns.map((_, colIndex) => (
-                <AppTableCell key={colIndex} sx={{ textAlign: "center" }}>
+                <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
                     <NumberInputField
                         rowIndex={rowIndex}
                         colIndex={colIndex}
@@ -261,43 +275,43 @@ function TableRowComponent({ row, rows, rowIndex, columns, values, handleValueCh
                     />
                 </AppTableCell>
             ))}
-            <AppTableCell className="frozen-last-column" sx={{ textAlign: "center" }}>
+            <AppTableCell className="frozen-last-column" sx={{textAlign: "center"}}>
                 <NumberField.Root>
                     <NumberField.Input
                         value={rowFrequency}
                         onChange={(e) => onRowFrequencyChange(e.target.value)}
                         size="small"
-                        sx={{ width: "60px" }}
-                        inputProps={{ min: 0, max: 1, step: 0.01 }}
+                        sx={{width: "60px"}}
+                        inputProps={{min: 0, max: 1, step: 0.01}}
                     />
                 </NumberField.Root>
             </AppTableCell>
-            <AppTableCell className="frozen-last-column" sx={{ textAlign: "center" }}>
-                <AppUpArrowButton size="small" onClick={() => moveRowUp(rowIndex)} />
-                <AppRemoveIconButton size="small" onClick={() => removeRow(rowIndex)} />
-                <AppDownArrowButton size="small" onClick={() => moveRowDown(rowIndex)} />
+            <AppTableCell className="frozen-last-column" sx={{textAlign: "center"}}>
+                <AppUpArrowButton size="small" onClick={() => moveRowUp(rowIndex)}/>
+                <AppRemoveIconButton size="small" onClick={() => removeRow(rowIndex)}/>
+                <AppDownArrowButton size="small" onClick={() => moveRowDown(rowIndex)}/>
             </AppTableCell>
         </AppTableRow>
     );
 }
 
-function TableFooterComponent({ addRow, removeRow, columns, moveColumnLeft, moveColumnRight, removeColumn }) {
+function TableFooterComponent({addRow, removeRow, columns, moveColumnLeft, moveColumnRight, removeColumn}) {
     return (
         <AppTableFooter>
             <AppTableRow className="frozen-last-row">
                 <AppTableCell className="frozen-footer-cell">
-                    <AppAddIconButton onClick={addRow} size="small" />
-                    <AppRemoveIconButton onClick={removeRow} size="small" />
+                    <AppAddIconButton onClick={addRow} size="small"/>
+                    <AppRemoveIconButton onClick={removeRow} size="small"/>
                 </AppTableCell>
                 {columns.map((_, colIndex) => (
-                    <AppTableCell key={colIndex} sx={{ textAlign: "center" }}>
-                        <AppLeftArrowButton onClick={() => moveColumnLeft(colIndex)} size="small" />
-                        <AppRemoveIconButton onClick={() => removeColumn(colIndex)} size="small" />
-                        <AppRightArrowButton onClick={() => moveColumnRight(colIndex)} size="small" />
+                    <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
+                        <AppLeftArrowButton onClick={() => moveColumnLeft(colIndex)} size="small"/>
+                        <AppRemoveIconButton onClick={() => removeColumn(colIndex)} size="small"/>
+                        <AppRightArrowButton onClick={() => moveColumnRight(colIndex)} size="small"/>
                     </AppTableCell>
                 ))}
-                <AppTableCell className="frozen-last-column" />
-                <AppTableCell className="frozen-last-column" sx={{ textAlign: 'center' }}>
+                <AppTableCell className="frozen-last-column"/>
+                <AppTableCell className="frozen-last-column" sx={{textAlign: 'center'}}>
                 </AppTableCell>
             </AppTableRow>
         </AppTableFooter>
@@ -305,7 +319,7 @@ function TableFooterComponent({ addRow, removeRow, columns, moveColumnLeft, move
 }
 
 
-function NumberInputField({ rowIndex, colIndex, value, onValueChange }) {
+function NumberInputField({rowIndex, colIndex, value, onValueChange}) {
     const inputRef = React.useRef<HTMLInputElement>(null);
     const refMatrix = React.useRef<HTMLInputElement[][]>([]);
 
@@ -347,7 +361,7 @@ function NumberInputField({ rowIndex, colIndex, value, onValueChange }) {
                 onChange={(e) => onValueChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 size="small"
-                sx={{ width: "60px" }}
+                sx={{width: "60px"}}
                 tabIndex={0}
             />
         </NumberField.Root>
