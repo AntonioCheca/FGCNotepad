@@ -10,6 +10,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
+import {useMode} from "@/src/context/ThemeContext";
+import ThemeLogo from "@/src/components/ui/ThemeLogo";
 
 
 type SidebarProps = {
@@ -18,6 +22,8 @@ type SidebarProps = {
 };
 
 export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
+    const {mode, toggleColorMode} = useMode();
+
     return (
         <Box
             sx={{
@@ -47,17 +53,20 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                 }}
             >
                 <Link href="/" style={{textDecoration: 'none'}}>
-                    <Image
-                        src="/logos/favicon-color-neg.svg"
-                        alt="Logo"
-                        width={collapsed ? 32 : 120}
-                        height={collapsed ? 32 : 40}
-                        style={{margin: '0 auto'}}
-                    />
+                    <ThemeLogo/>
                 </Link>
                 <IconButton onClick={toggleCollapse} size="small" sx={{mt: 1}}>
                     {collapsed ? <ChevronRightIcon/> : <ChevronLeftIcon/>}
                 </IconButton>
+
+                <IconButton
+                    onClick={toggleColorMode}
+                    size="small"
+                    aria-label={mode === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                >
+                    {mode === "light" ? <Brightness4Icon/> : <Brightness7Icon/>}
+                </IconButton>
+
             </Box>
 
             {/* Navigation Sections */}

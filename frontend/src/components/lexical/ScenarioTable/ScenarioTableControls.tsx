@@ -1,28 +1,34 @@
-
 import React from 'react';
+import {useMode} from '@/src/context/ThemeContext';
 
 interface ScenarioTableControlsProps {
     onDelete: () => void;
     onSolveGame: () => void;
 }
 
-export function ScenarioTableControls({ onDelete, onSolveGame }: ScenarioTableControlsProps) {
+export function ScenarioTableControls({onDelete, onSolveGame}: ScenarioTableControlsProps) {
+    const {mode} = useMode();
+
+    const commonStyle: React.CSSProperties = {
+        position: 'absolute',
+        right: '5px',
+        border: 'none',
+        borderRadius: '4px',
+        padding: '4px 8px',
+        cursor: 'pointer',
+        zIndex: 2,
+        color: 'white'
+    };
+
     return (
         <>
             <button
                 className="delete-button"
                 onClick={onDelete}
                 style={{
-                    position: 'absolute',
+                    ...commonStyle,
                     top: '5px',
-                    right: '5px',
-                    background: '#ff4d4f',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    zIndex: 2
+                    background: mode === 'dark' ? '#ff7875' : '#ff4d4f'
                 }}
             >
                 ✕
@@ -31,16 +37,9 @@ export function ScenarioTableControls({ onDelete, onSolveGame }: ScenarioTableCo
                 className="solve-game-button"
                 onClick={onSolveGame}
                 style={{
-                    position: 'absolute',
+                    ...commonStyle,
                     top: '40px',
-                    right: '5px',
-                    background: "#007bff",
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    zIndex: 2
+                    background: mode === 'dark' ? '#1677ff' : '#1890ff'
                 }}
             >
                 S
