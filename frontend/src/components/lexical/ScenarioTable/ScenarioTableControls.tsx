@@ -7,7 +7,7 @@ interface ScenarioTableControlsProps {
 }
 
 export function ScenarioTableControls({onDelete, onSolveGame}: ScenarioTableControlsProps) {
-    const {mode} = useMode();
+    const {mode, theme} = useMode();
 
     const commonStyle: React.CSSProperties = {
         position: 'absolute',
@@ -17,7 +17,7 @@ export function ScenarioTableControls({onDelete, onSolveGame}: ScenarioTableCont
         padding: '4px 8px',
         cursor: 'pointer',
         zIndex: 2,
-        color: 'white'
+        color: theme.palette.text.primary
     };
 
     return (
@@ -28,7 +28,7 @@ export function ScenarioTableControls({onDelete, onSolveGame}: ScenarioTableCont
                 style={{
                     ...commonStyle,
                     top: '5px',
-                    background: mode === 'dark' ? '#ff7875' : '#ff4d4f'
+                    backgroundColor: mode === 'dark' ? '#ff7875' : '#ff4d4f'
                 }}
             >
                 ✕
@@ -39,7 +39,7 @@ export function ScenarioTableControls({onDelete, onSolveGame}: ScenarioTableCont
                 style={{
                     ...commonStyle,
                     top: '40px',
-                    background: mode === 'dark' ? '#1677ff' : '#1890ff'
+                    backgroundColor: mode === 'dark' ? '#1677ff' : '#1890ff'
                 }}
             >
                 S

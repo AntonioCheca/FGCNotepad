@@ -1,8 +1,19 @@
 // src/styles/ThemeContext.tsx
 "use client";
 
-import React, {createContext, useMemo, useState, useContext} from "react";
-import {Theme, ThemeProvider as MuiThemeProvider, createTheme, PaletteMode} from "@mui/material";
+import React, {
+    createContext,
+    useMemo,
+    useState,
+    useContext,
+    useEffect,
+} from "react";
+import {
+    Theme,
+    ThemeProvider as MuiThemeProvider,
+    createTheme,
+    PaletteMode,
+} from "@mui/material";
 import {getDesignTokens} from "@/styles/theme";
 
 interface ThemeContextType {
@@ -21,6 +32,12 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
     };
 
     const theme = useMemo(() => createTheme(getDesignTokens(mode)), [mode]);
+
+    // ✅ Update <body> background color when theme changes
+    useEffect(() => {
+        document.body.style.backgroundColor = theme.palette.background.default;
+        document.body.style.color = theme.palette.text.primary;
+    }, [theme]);
 
     return (
         <ThemeContext.Provider value={{mode, toggleColorMode, theme}}>
