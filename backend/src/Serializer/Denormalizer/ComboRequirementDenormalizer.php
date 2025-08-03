@@ -6,11 +6,11 @@ use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
 use App\Entity\RequirementSpecificCharacter;
 use App\Repository\ComboSequencesRepository;
-use Symfony\Component\Serializer\Normalizer\ContextAwareDenormalizerInterface;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
-class ComboRequirementDenormalizer implements ContextAwareDenormalizerInterface
+class ComboRequirementDenormalizer implements DenormalizerInterface
 {
     public function __construct(
         private ComboSequencesRepository $sequencesRepository,
@@ -47,11 +47,27 @@ class ComboRequirementDenormalizer implements ContextAwareDenormalizerInterface
         // Handle nested character-specific requirement if present
         if (isset($data['requirement_specific_character'])) {
             $charReq = $requirement->getRequirementSpecificCharacter() ?? new RequirementSpecificCharacter();
-            $charReq->setCharacterName($data['requirement_specific_character']['character_name'] ?? '');
+
+            // Use the correct property names from the entity
+            if (isset($data['requirement_specific_character']['object_name'])) {
+                $charReq->setObjectName($data['requirement_specific_character']['object_name']);
+            }
+
+            if (isset($data['requirement_specific_character']['status_required'])) {
+                $charReq->setStatusRequired($data['requirement_specific_character']['status_required']);
+            }
+
             $charReq->setRequirement($requirement);
             $requirement->setRequirementSpecificCharacter($charReq);
         }
 
         return $requirement;
+    }
+
+    public function getSupportedTypes(?string $format): array
+    {
+        return [
+            ComboRequirement::class => true,
+        ];
     }
 }

@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import { AppTypography } from "@/src/components/ui/AppTypography";
-import HorizontalLogo from "@/src/components/ui/HorizontalLogo";
+import Image from "next/image";
 
 export default function HeroSection() {
     return (
@@ -33,7 +33,27 @@ export default function HeroSection() {
 
             {/* Main Logo */}
             <Box sx={{ mb: 4, zIndex: 1 }}>
-                <HorizontalLogo size="large" />
+                <Box
+                    sx={{
+                        transition: 'transform 0.3s ease',
+                        '&:hover': {
+                            transform: 'scale(1.02)',
+                        }
+                    }}
+                >
+                    <Image
+                        src="/logos/fgt-completo-color-neg.svg"
+                        alt="Fighting Game Theory - Complete Logo"
+                        width={400}
+                        height={120}
+                        style={{
+                            objectFit: 'contain',
+                            maxWidth: '100%',
+                            height: 'auto'
+                        }}
+                        priority
+                    />
+                </Box>
             </Box>
 
             {/* Welcome Text */}

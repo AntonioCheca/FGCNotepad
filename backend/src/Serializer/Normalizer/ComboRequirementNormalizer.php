@@ -3,12 +3,11 @@
 namespace App\Serializer\Normalizer;
 
 use App\Entity\ComboRequirement;
-use Symfony\Component\Serializer\Normalizer\ContextAwareNormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
-class ComboRequirementNormalizer implements ContextAwareNormalizerInterface
+class ComboRequirementNormalizer implements NormalizerInterface
 {
-    public function __construct(private NormalizerInterface $normalizer)
+    public function __construct()
     {
     }
 
@@ -29,5 +28,12 @@ class ComboRequirementNormalizer implements ContextAwareNormalizerInterface
     public function supportsNormalization($data, $format = null, array $context = []): bool
     {
         return $data instanceof ComboRequirement;
+    }
+
+    public function getSupportedTypes(?string $format): array
+    {
+        return [
+            ComboRequirement::class => true,
+        ];
     }
 }
