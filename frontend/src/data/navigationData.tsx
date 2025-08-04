@@ -1,9 +1,13 @@
 import {NavigationSection} from "@/src/types/navigation";
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'; // ← Add this
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import SportsMartialArtsOutlinedIcon from '@mui/icons-material/SportsMartialArtsOutlined';
+import SportsKabaddiOutlinedIcon from '@mui/icons-material/SportsKabaddiOutlined';
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
-
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import {SportsMma} from "@mui/icons-material";
 
 export const navigationSections: NavigationSection[] = [
     {
@@ -12,12 +16,12 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Search Posts",
                 href: "/home",
-                icon: <ArticleOutlinedIcon/>
+                icon: <SearchOutlinedIcon/>  // magnifying glass for searching
             },
             {
                 label: "Create Post",
                 href: "/forum/post/new",
-                icon: <ArticleOutlinedIcon/>
+                icon: <ArticleOutlinedIcon/> // document icon for creating post
             }
         ]
     },
@@ -27,12 +31,12 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Search Combos",
                 href: "/combos",
-                icon: <SportsMartialArtsOutlinedIcon/>
+                icon: <SportsMma/> // related but distinct sports icon
             },
             {
                 label: "Create Combo",
                 href: "/combos/new",
-                icon: <SportsMartialArtsOutlinedIcon/>
+                icon: <SportsMartialArtsOutlinedIcon/> // main combos icon
             }
         ]
     },
@@ -42,12 +46,12 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Profile",
                 href: "/profile",
-                icon: <AccountCircleOutlinedIcon/>
+                icon: <AccountCircleOutlinedIcon/> // user icon for profile
             },
             {
                 label: "Settings",
                 href: "/settings",
-                icon: <AccountCircleOutlinedIcon/>
+                icon: <SettingsOutlinedIcon/> // gear icon for settings
             }
         ]
     },
@@ -57,9 +61,8 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "About Us",
                 href: "/about/aboutUs",
-                icon: <InfoOutlinedIcon/>
+                icon: <HelpOutlineOutlinedIcon/> // help icon for info/about
             }
         ]
     }
 ];
-
