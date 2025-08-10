@@ -153,6 +153,8 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/phpstan/phpstan" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/phpstan/phpstan-doctrine" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/phpstan/extension-installer" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/var" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/vendor" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
