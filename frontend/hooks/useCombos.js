@@ -31,6 +31,18 @@ const useCombos = () => {
         }
     };
 
+    const fetchLeafs = async () => {
+        try {
+            const response = await request(() =>
+                api.get("/combo-sequences/leafs/list")
+            );
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching leafs", error);
+            throw error;
+        }
+    };
+
     /**
      * Create a new combo
      * @param {Object} comboData - ComboSequences creation payload
@@ -44,6 +56,18 @@ const useCombos = () => {
             return response.data;
         } catch (error) {
             console.error("Error creating combo", error);
+            throw error;
+        }
+    };
+
+    const createFullCombo = async (payload) => {
+        try {
+            const response = await request(() =>
+                api.post("/combo-sequences/full", payload)
+            );
+            return response.data;
+        } catch (error) {
+            console.error("Error creating full combo", error);
             throw error;
         }
     };
@@ -101,10 +125,12 @@ const useCombos = () => {
 
     return {
         fetchCombos,
+        fetchLeafs,
         createCombo,
+        createFullCombo,
         getCombo,
         updateCombo,
-        deleteCombo,
+        deleteCombo
     };
 };
 

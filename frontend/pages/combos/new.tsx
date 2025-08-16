@@ -1,6 +1,6 @@
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import ComboForm from "@/src/components/combos/ComboForm";
+import ComboForm from "@/src/components/combos/create/ComboForm";
 import useCombos from "@/hooks/useCombos";
 
 export default function CreateComboPage() {

@@ -1,64 +1,73 @@
 import React from "react";
-import {Autocomplete, TextField, CircularProgress} from "@mui/material";
+import {
+    Autocomplete,
+    AutocompleteProps,
+    AutocompleteInputChangeReason,
+    TextField,
+} from "@mui/material";
 
-interface WrappedAutocompleteProps<T> {
-    options?: T[];
-    value: T | T[] | null;
-    onChange: (event: React.SyntheticEvent, value: T | T[] | null) => void;
-    loading?: boolean;
+type WrappedAutocompleteProps<T> = {
     label: string;
-    multiple?: boolean;
-    getOptionLabel?: (option: T) => string;
-    disabled?: boolean;
-    required?: boolean;
-    // Other props you want to pass down to Autocomplete or TextField can be added here
-}
+    options: T[];
+    value: T | null;
+    /** Single-select only */
+    onChange: (value: T | null) => void;
+    getOptionLabel: (option: T) => string;
+    isOptionEqualToValue?: (option: T, value: T) => boolean;
 
-export function WrappedAutocomplete<T>(props: WrappedAutocompleteProps<T>) {
-    const {
-        options = [],
-        value,
-        onChange,
-        loading = false,
-        label,
-        multiple = false,
-        getOptionLabel = (option) => (typeof option === "string" ? option : JSON.stringify(option)),
-        disabled = false,
-        required = false,
-        ...other
-    } = props;
+    /** Controlled input support (for async search) */
+    inputValue?: string;
+    onInputChange?: (
+        event: React.SyntheticEvent,
+        value: string,
+        reason: AutocompleteInputChangeReason
+    ) => void;
 
-    // Optional debug log to trace props changes - comment out when not needed
-    // React.useEffect(() => {
-    //   console.log("[WrappedAutocomplete] value:", value);
-    //   console.log("[WrappedAutocomplete] options:", options);
-    //   console.log("[WrappedAutocomplete] loading:", loading);
-    // }, [value, options, loading]);
+    placeholder?: string;
+    required?: boolean; // ✅ add this
+} & Omit<
+    AutocompleteProps<T, false, false, false>,
+    | "renderInput"
+    | "options"
+    | "value"
+    | "onChange"
+    | "getOptionLabel"
+    | "isOptionEqualToValue"
+    | "inputValue"
+    | "onInputChange"
+>;
 
+export function WrappedAutocomplete<T>({
+                                           label,
+                                           options,
+                                           value,
+                                           onChange,
+                                           getOptionLabel,
+                                           isOptionEqualToValue,
+                                           inputValue,
+                                           onInputChange,
+                                           placeholder,
+                                           required,
+                                           ...rest
+                                       }: WrappedAutocompleteProps<T>) {
     return (
-        <Autocomplete
-            {...other}
+        <Autocomplete<T, false, false, false>
+            {...rest}
             options={options}
             value={value}
-            onChange={onChange}
-            loading={loading}
-            multiple={multiple}
-            getOptionLabel={getOptionLabel}
-            disabled={disabled}
+            onChange={(_, newValue) => onChange(newValue)}
+            getOptionLabel={(option) =>
+                typeof option === "string" ? option : getOptionLabel(option)
+            }
+            isOptionEqualToValue={isOptionEqualToValue ?? ((a, b) => a === b)}
+            inputValue={inputValue}
+            onInputChange={onInputChange}
             renderInput={(params) => (
                 <TextField
                     {...params}
                     label={label}
-                    required={required}
-                    InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                            <>
-                                {loading ? <CircularProgress color="inherit" size={20}/> : null}
-                                {params.InputProps.endAdornment}
-                            </>
-                        ),
-                    }}
+                    placeholder={placeholder}
+                    required={required} // ✅ forward it
                 />
             )}
         />

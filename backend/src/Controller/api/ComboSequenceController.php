@@ -8,6 +8,7 @@ use App\Entity\ComboSequences;
 use App\Entity\Season;
 use App\Entity\ComboSequenceType;
 use App\Repository\ComboSequencesRepository;
+use App\Repository\ConnectionTypeRepository;
 use App\Repository\SeasonRepository;
 use App\Repository\ComboSequenceTypeRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,9 +26,10 @@ class ComboSequenceController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private SerializerInterface $serializer,
-        private ValidatorInterface $validator
-    ) {
+        private SerializerInterface    $serializer,
+        private ValidatorInterface     $validator
+    )
+    {
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
@@ -47,12 +49,28 @@ class ComboSequenceController extends AbstractController
         );
     }
 
+    #[Route('/leafs/list', name: 'leafs', methods: ['GET'])]
+    public function listLeafs(ComboSequencesRepository $repo): JsonResponse
+    {
+        $leafs = $repo->findAllLeafs();
+
+        error_log('Leaf example: ' . $leafs[0]->getName() . ' (' . $leafs[0]->getId());
+        $context = [
+            'circular_reference_handler' => function ($object) {
+                return $object->getId();
+            },
+        ];
+
+        return $this->json($leafs, 200, [], $context);
+    }
+
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(
-        Request $request,
+        Request                     $request,
         ComboSequenceTypeRepository $typeRepo,
-        SeasonRepository $seasonRepo
-    ): JsonResponse {
+        SeasonRepository            $seasonRepo
+    ): JsonResponse
+    {
         $data = json_decode($request->getContent(), true);
 
         $typeName = $data['type'] ?? null;
@@ -106,6 +124,101 @@ class ComboSequenceController extends AbstractController
         }
 
         $this->entityManager->flush();
+
+        return new JsonResponse(
+            $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
+            JsonResponse::HTTP_CREATED,
+            [],
+            true
+        );
+    }
+
+    #[Route('/full', name: 'create_full', methods: ['POST'])]
+    public function createFullCombo(
+        Request                     $request,
+        ComboSequenceTypeRepository $typeRepo,
+        SeasonRepository            $seasonRepo,
+        EntityManagerInterface      $em
+    ): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        // 1. Validate required top-level fields
+        if (empty($data['name']) || empty($data['steps']) || !is_array($data['steps'])) {
+            throw new BadRequestHttpException('Name and steps are required.');
+        }
+
+        // 2. Main combo sequence type (must be "combo")
+        $type = $typeRepo->findOneBy(['name' => 'combo']);
+        if (!$type) {
+            throw new NotFoundHttpException("ComboSequenceType 'combo' not found");
+        }
+
+        // 3. Create main combo sequence
+        $sequence = new ComboSequences();
+        $sequence->setName($data['name'])
+            ->setDescription($data['description'] ?? '')
+            ->setType($type);
+
+        $visibility = $em->getReference('App\\Entity\\Visibility', $data['visibility'] ?? 1);
+        $sequence->setVisibility($visibility);
+
+        // Add current season
+        if ($season = $seasonRepo->findOneBy([], ['start_date' => 'DESC'])) {
+            $sequence->addSeason($season);
+        }
+
+        $em->persist($sequence);
+
+        // 4. Add metrics (optional)
+        if (!empty($data['metrics']['damage'])) {
+            $metrics = new ComboMetrics();
+            $metrics->setSequence($sequence)
+                ->setDamage($data['metrics']['damage']);
+            $em->persist($metrics);
+        }
+
+        // 5. Add requirements (optional)
+        if (!empty($data['requirements'])) {
+            $req = new ComboRequirement();
+            $req->setSequence($sequence)
+                ->setCounterHitRequired($data['requirements']['counter_hit_required'] ?? false)
+                ->setPunishCounterRequired($data['requirements']['punish_counter_required'] ?? false)
+                ->setCornerRequired($data['requirements']['corner_required'] ?? false)
+                ->setAirborneRequired($data['requirements']['airborne_required'] ?? false)
+                ->setMidScreenRequired($data['requirements']['mid_screen_required'] ?? false);
+            $em->persist($req);
+        }
+
+        // 6. Persist steps
+        foreach ($data['steps'] as $stepData) {
+            if (empty($stepData['child_sequence_id']) || empty($stepData['ordinal_in_combo'])) {
+                throw new BadRequestHttpException('Each step must have child_sequence_id and ordinal_in_combo.');
+            }
+
+            $childSeq = $em->getRepository(ComboSequences::class)->find($stepData['child_sequence_id']);
+            if (!$childSeq) {
+                throw new NotFoundHttpException("Child sequence ID {$stepData['child_sequence_id']} not found.");
+            }
+
+            $step = new Step();
+            $step->setParentSequence($sequence)
+                ->setChildSequence($childSeq)
+                ->setOrdinalInCombo((int)$stepData['ordinal_in_combo']);
+
+            if (!empty($stepData['connection_type_id'])) {
+                $connectionType = $em->getRepository(ConnectionType::class)->find($stepData['connection_type_id']);
+                if (!$connectionType) {
+                    throw new NotFoundHttpException("Connection type ID {$stepData['connection_type_id']} not found.");
+                }
+                $step->setConnectionType($connectionType);
+            }
+
+            $em->persist($step);
+        }
+
+        // 7. Save everything
+        $em->flush();
 
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
