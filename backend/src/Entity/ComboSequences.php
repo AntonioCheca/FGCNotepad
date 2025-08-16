@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ComboSequencesRepository::class)]
 #[ORM\Table(name: "combo_sequence", schema: "sf6")]
@@ -15,12 +16,15 @@ class ComboSequences
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['combo:read'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['combo:read'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['combo:read'])]
     private ?string $description = null;
 
     #[ORM\OneToOne(inversedBy: 'comboSequence', cascade: ['persist', 'remove'])]
@@ -47,6 +51,7 @@ class ComboSequences
     #[ORM\JoinTable(
         name: "sf6.season_combo_sequence",
     )]
+    #[Groups(['combo:read'])]
     private Collection $season;
 
     public function __construct()
@@ -114,7 +119,6 @@ class ComboSequences
 
     public function setComboMetrics(ComboMetrics $comboMetrics): static
     {
-        // set the owning side of the relation if necessary
         if ($comboMetrics->getSequence() !== $this) {
             $comboMetrics->setSequence($this);
         }
@@ -131,7 +135,6 @@ class ComboSequences
 
     public function setComboRequirement(ComboRequirement $comboRequirement): static
     {
-        // set the owning side of the relation if necessary
         if ($comboRequirement->getSequence() !== $this) {
             $comboRequirement->setSequence($this);
         }

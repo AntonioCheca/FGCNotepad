@@ -10,13 +10,13 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Entity]
 class Move extends Component
 {
-    #[Groups(["move:read", "character:read"])]
+    #[Groups(["move:read", "character:read", "combo:read"])]
     #[ORM\Column(type: Types::TEXT)]
     private string $numpadNotation;
 
     #[ORM\ManyToOne(inversedBy: 'moves')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(["move:read"])]
+    #[Groups(["move:read", "combo:read"])]
     private Character $character;
 
     #[ORM\OneToOne(inversedBy: 'move', cascade: ['persist', 'remove'])]
@@ -80,5 +80,10 @@ class Move extends Component
         $this->comboSequence = $comboSequence;
 
         return $this;
+    }
+
+    public function getName(): string
+    {
+        return sprintf('%s - %s', $this->character->getName(), $this->numpadNotation);
     }
 }

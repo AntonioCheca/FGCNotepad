@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ConnectionTypeRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: ConnectionTypeRepository::class)]
 #[ORM\Table(name: "connection_type", schema: "sf6")]
@@ -12,10 +13,12 @@ class ConnectionType
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
+    #[Groups(['connection_type:read'])]
     #[ORM\Column]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['connection_type:read'])]
     private ?string $name = null;
 
     public function getId(): ?int

@@ -2,6 +2,7 @@ security:
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         # used to reload user from session & other features (e.g. switch_user)
@@ -9,7 +10,9 @@ security:
             entity:
                 class: App\Entity\User
                 property: username
+
     firewalls:
+        # API login (stateless JWT login endpoint)
         login:
             pattern: ^/api/login_check
             stateless: true
@@ -17,13 +20,19 @@ security:
                 check_path: /api/login_check
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+        # Main API firewall
         api:
             pattern: ^/api
             stateless: true
-            jwt: ~
+            jwt: ~  # normal in prod/dev; overridden in dev environment
+
+        # Dev tools, profiler, assets
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+
+        # Web main firewall
         main:
             lazy: true
             provider: app_user_provider
@@ -34,7 +43,6 @@ security:
                 enable_csrf: true
             logout:
                 path: app_logout
-                # where to redirect after logout
                 # target: app_any_route
             access_denied_url: /unauthorized
 
@@ -42,17 +50,27 @@ security:
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
-        - { path: ^/api,       roles: ROLE_USER }
+        - { path: ^/api, roles: ROLE_USER }
 
+# ========================
+# Dev environment override
+# ========================
+when@dev:
+    security:
+        firewalls:
+            api:
+                pattern: ^/api
+                stateless: true
+                security: false   # disables JWT authentication in dev
+
+# ========================
+# Test environment override
+# ========================
 when@test:
     security:
         password_hashers:
-            # By default, password hashers are resource intensive and take time. This is
-            # important to generate secure password hashes. In tests however, secure hashes
-            # are not important, waste resources and increase test times. The following
-            # reduces the work factor to the lowest possible values.
             Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
                 algorithm: auto
-                cost: 4 # Lowest possible value for bcrypt
-                time_cost: 3 # Lowest possible value for argon
-                memory_cost: 10 # Lowest possible value for argon
+                cost: 4       # minimal bcrypt cost for fast tests
+                time_cost: 3  # minimal argon time
+                memory_cost: 10

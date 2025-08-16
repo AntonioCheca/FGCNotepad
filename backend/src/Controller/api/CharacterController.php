@@ -17,18 +17,12 @@ class CharacterController extends AbstractController
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
+        // Now using the optimized repository method
+        error_log('Controller start: ' . microtime(true));
+        $data = $this->characterRepository->findAllIdsAndNames();
 
-        $start = microtime(true);
-        $characters = $this->characterRepository->findAll();
-        $end = microtime(true);
-        error_log('Characters query time: ' . ($end - $start) . ' seconds');
-        error_log('Characters count: ' . count($characters));
-
-        $data = array_map(fn($character) => [
-            'id' => $character->getId(),
-            'name' => $character->getName(),
-        ], $characters);
-
-        return $this->json($data);
+        $dataInJsonFormat = $this->json($data);
+        error_log('Controller end: ' . microtime(true));
+        return $dataInJsonFormat;
     }
 }

@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react";
+import {useState, useEffect, useCallback} from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 
@@ -9,34 +9,35 @@ export interface Character {
     imageUrl?: string;
 }
 
+let cachedCharacters: Character[] | null = null;
+
 export function useCharacters() {
     const {request} = useApi();
-    const [characters, setCharacters] = useState<Character[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [characters, setCharacters] = useState<Character[]>(cachedCharacters ?? []);
+    const [loading, setLoading] = useState(!cachedCharacters);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        async function fetchCharacters() {
-            setLoading(true);
-            try {
-                console.log("Fetching characters...");
-                const response = await request(() =>
-                    api.get<Character[]>("/characters")
-                );
-                console.log("Full response:", response); // array of characters
-                setCharacters(response);
-                setError(null);
-            } catch (err) {
-                console.error("Error fetching characters:", err);
-                setError(err as Error);
-            } finally {
-                console.log("Setting loading to false");
-                setLoading(false);
-            }
-        }
+        if (cachedCharacters) return;
 
-        fetchCharacters();
-    }, [request]);
+        let canceled = false;
+        setLoading(true);
+
+        request(() => api.get<Character[]>("/characters"))
+            .then((data) => {
+                if (!canceled) {
+                    cachedCharacters = data;
+                    setCharacters(data);
+                    setError(null);
+                }
+            })
+            .catch((err) => !canceled && setError(err as Error))
+            .finally(() => !canceled && setLoading(false));
+
+        return () => {
+            canceled = true;
+        };
+    }, []);
 
     return {characters, loading, error};
 }

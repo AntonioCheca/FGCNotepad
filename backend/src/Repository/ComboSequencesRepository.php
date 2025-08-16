@@ -16,28 +16,15 @@ class ComboSequencesRepository extends ServiceEntityRepository
         parent::__construct($registry, ComboSequences::class);
     }
 
-//    /**
-//     * @return ComboSequences[] Returns an array of ComboSequences objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('c')
-//            ->andWhere('c.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('c.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    public function findAllLeafs(): array
+    {
+        $qb = $this->createQueryBuilder('cs')
+            ->innerJoin('cs.type', 'cst')
+            ->addSelect('cst')
+            ->where('cst.name = :typeName')
+            ->setParameter('typeName', 'leaf')
+            ->orderBy('cs.id', 'ASC');
 
-//    public function findOneBySomeField($value): ?ComboSequences
-//    {
-//        return $this->createQueryBuilder('c')
-//            ->andWhere('c.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+        return $qb->getQuery()->getResult();
+    }
 }
