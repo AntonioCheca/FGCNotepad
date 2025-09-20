@@ -16,7 +16,7 @@ const useConnections = () => {
         setLoading(true);
         try {
             const res = await request(() => api.get("/connection-types"));
-            const data = (res?.data ?? []) as ConnectionType[];
+            const data = (res ?? []) as ConnectionType[];
             setConnections(data);
             return data;
         } finally {

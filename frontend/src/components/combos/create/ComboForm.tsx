@@ -7,6 +7,7 @@ import {useCharacters} from "@/hooks/useCharacters";
 import useConnections from "@/hooks/useConnections";
 import useCombos from "@/hooks/useCombos";
 import {StepList} from "@/src/components/combos/create/StepList";
+import usePersistentState from "@/hooks/usePersistentState"; // ✅ import here
 import type {
     StepDraft,
     CreateFullComboPayload,
@@ -19,12 +20,13 @@ interface ComboFormProps {
 }
 
 export default function ComboForm({onSuccess}: ComboFormProps) {
-    const [title, setTitle] = useState<string>("");
-    const [character, setCharacter] = useState<any>(null); // kept for UX parity; not used in payload yet
-    const [damage, setDamage] = useState<string>("");
-    const [description, setDescription] = useState<string>("");
-    const [notes, setNotes] = useState<string>(""); // not sent (no backend field yet)
-    const [steps, setSteps] = useState<StepDraft[]>([]);
+    const [title, setTitle] = usePersistentState<string>("comboForm.title", "");
+    const [character, setCharacter] = usePersistentState<any>("comboForm.character", null, true);
+    const [damage, setDamage] = usePersistentState<string>("comboForm.damage", "");
+    const [description, setDescription] = usePersistentState<string>("comboForm.description", "");
+    const [notes, setNotes] = usePersistentState<string>("comboForm.notes", "");
+    const [steps, setSteps] = usePersistentState<StepDraft[]>("comboForm.steps", [], true);
+
     const {fetchLeafs} = useCombos();
     const [leafs, setLeafs] = useState<LeafSequenceOption[]>([]);
 
@@ -34,9 +36,41 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     const {createFullCombo} = useCombos();
 
     useEffect(() => {
+        console.log("[ComboForm] fetching connections + leafs...");
         fetchConnections();
-        fetchLeafs().then(setLeafs).catch(console.error);
+
+        fetchLeafs()
+            .then((res) => {
+                console.log("[ComboForm] fetchLeafs response:", res);
+                setLeafs(res ?? []);
+            })
+            .catch((err) => {
+                console.error("[ComboForm] Failed to fetch leafs:", err);
+                setLeafs([]);
+            });
     }, []);
+
+    useEffect(() => {
+        console.log("[ComboForm] connections updated:", connections);
+    }, [connections]);
+
+    // Filter moves by selected character
+    const filteredLeafs = character
+        ? leafs.filter((l) => l.character?.id === character.id)
+        : leafs;
+
+    const [hydrated, setHydrated] = useState(false);
+
+    useEffect(() => {
+        if (leafs.length === 0) return; // wait for backend data
+        setSteps((prev) =>
+            prev.map((s) => ({
+                ...s,
+                move: leafs.find((l) => l.id === s.move?.id) ?? null
+            }))
+        );
+        setHydrated(true);
+    }, [leafs]);
 
     const handleAddStep = () =>
         setSteps((prev) => [...prev, {move: null, connection: null}]);
@@ -44,10 +78,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     const handleRemoveStep = (index: number) =>
         setSteps((prev) => prev.filter((_, i) => i !== index));
 
-    const handleChangeStep = (
-        index: number,
-        update: Partial<StepDraft>
-    ) =>
+    const handleChangeStep = (index: number, update: Partial<StepDraft>) =>
         setSteps((prev) => prev.map((s, i) => (i === index ? {...s, ...update} : s)));
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -80,14 +111,16 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             steps: steps.map((s, idx) => ({
                 child_sequence_id: (s.move as LeafSequenceOption).id,
                 ordinal_in_combo: idx + 1,
-                connection_type_id: idx === 0 ? null : (s.connection as ConnectionType | null)?.id ?? null,
+                connection_type_id:
+                    (s.connection as ConnectionType | null)?.id ?? null,
             })),
         };
+
+        console.log("[ComboForm] payload:", payload);
 
         try {
             await createFullCombo(payload);
             alert("Combo created successfully!");
-            // reset minimal fields
             setTitle("");
             setDescription("");
             setDamage("");
@@ -101,7 +134,11 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     };
 
     return (
-        <Box component="form" onSubmit={handleSubmit} sx={{display: "flex", flexDirection: "column", gap: 2}}>
+        <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{display: "flex", flexDirection: "column", gap: 2}}
+        >
             <TextField
                 label="Combo Title"
                 value={title}
@@ -109,13 +146,12 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 required
             />
 
-            {/* Character (optional; not sent today) */}
             <WrappedAutocomplete<any>
                 label="Character"
                 options={characterOptions ?? []}
                 loading={charactersLoading}
                 value={character}
-                onChange={(value) => setCharacter(value)} // ✅ only 1 arg now
+                onChange={(value) => setCharacter(value)}
                 getOptionLabel={(option: any) => option?.name ?? ""}
                 disableClearable={false}
             />
@@ -128,7 +164,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 searchMoves={searchMoves}
                 connections={connections}
                 connectionsLoading={connectionsLoading}
-                moves={leafs} // ← pass leafs here
+                leafs={filteredLeafs ?? []} // ✅ filtered by character
             />
 
             <TextField

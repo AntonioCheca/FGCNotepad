@@ -23,7 +23,7 @@ class Character
     private ?Uuid $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(["move:read", "character:read"])]
+    #[Groups(["move:read", "character:read", "combo:read"])]
     private string $name;
 
     /**

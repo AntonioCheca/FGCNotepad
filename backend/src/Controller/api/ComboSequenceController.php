@@ -5,12 +5,15 @@ namespace App\Controller\api;
 use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
+use App\Entity\ConnectionType;
 use App\Entity\Season;
 use App\Entity\ComboSequenceType;
+use App\Entity\Step;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
 use App\Repository\SeasonRepository;
 use App\Repository\ComboSequenceTypeRepository;
+use App\Repository\VisibilityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,28 +28,25 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class ComboSequenceController extends AbstractController
 {
     public function __construct(
-        private EntityManagerInterface $entityManager,
-        private SerializerInterface    $serializer,
-        private ValidatorInterface     $validator
+        private EntityManagerInterface      $entityManager,
+        private SerializerInterface         $serializer,
+        private ValidatorInterface          $validator,
+        private ComboSequencesRepository    $comboSequencesRepository,
+        private VisibilityRepository        $visibilityRepository,
+        private ComboSequenceTypeRepository $comboSequenceTypeRepository,
+        private SeasonRepository            $seasonRepository,
+        private ConnectionTypeRepository    $connectionTypeRepository
     )
     {
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
-    public function list(ComboSequencesRepository $repo): JsonResponse
+    public function list(): JsonResponse
     {
-        $items = $repo->findAll();
+        $sequences = $this->comboSequencesRepository->findAll();
+        $json = $this->serializer->serialize($sequences, 'json');
 
-        $filtered = array_filter($items, function (ComboSequences $seq) {
-            return in_array($seq->getType()?->getName(), ['combo', 'sequence']);
-        });
-
-        return new JsonResponse(
-            $this->serializer->serialize($filtered, 'json', ['groups' => ['combo:read']]),
-            JsonResponse::HTTP_OK,
-            [],
-            true
-        );
+        return new JsonResponse($json, 200, [], true);
     }
 
     #[Route('/leafs/list', name: 'leafs', methods: ['GET'])]
@@ -54,15 +54,19 @@ class ComboSequenceController extends AbstractController
     {
         $leafs = $repo->findAllLeafs();
 
-        error_log('Leaf example: ' . $leafs[0]->getName() . ' (' . $leafs[0]->getId());
-        $context = [
-            'circular_reference_handler' => function ($object) {
-                return $object->getId();
-            },
-        ];
+        if (!empty($leafs)) {
+            error_log('Leaf example: ' . $leafs[0]->getName() . ' (' . $leafs[0]->getId() . ')');
+        }
 
-        return $this->json($leafs, 200, [], $context);
+        // Debug: check which normalizer is being used
+        error_log('Serializing with class: ' . get_class($this->serializer));
+
+        // Explicitly serialize using your configured normalizers
+        $json = $this->serializer->serialize($leafs, 'json');
+
+        return new JsonResponse($json, 200, [], true);
     }
+
 
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(
@@ -92,7 +96,7 @@ class ComboSequenceController extends AbstractController
             throw new BadRequestHttpException('Leaf sequences cannot be created via API');
         }
 
-        $visibility = $this->entityManager->getReference('App\\Entity\\Visibility', $data['visibility'] ?? 1);
+        $visibility = $this->visibilityRepository->findOneBy(['name' => $data['visibility'] ?? 'public']);
         $sequence->setVisibility($visibility);
 
         // Set Season
@@ -160,7 +164,7 @@ class ComboSequenceController extends AbstractController
             ->setDescription($data['description'] ?? '')
             ->setType($type);
 
-        $visibility = $em->getReference('App\\Entity\\Visibility', $data['visibility'] ?? 1);
+        $visibility = $this->visibilityRepository->findOneBy(['name' => $data['visibility'] ?? 'public']);
         $sequence->setVisibility($visibility);
 
         // Add current season
@@ -168,14 +172,14 @@ class ComboSequenceController extends AbstractController
             $sequence->addSeason($season);
         }
 
-        $em->persist($sequence);
+        $this->entityManager->persist($sequence);
 
         // 4. Add metrics (optional)
         if (!empty($data['metrics']['damage'])) {
             $metrics = new ComboMetrics();
             $metrics->setSequence($sequence)
                 ->setDamage($data['metrics']['damage']);
-            $em->persist($metrics);
+            $this->entityManager->persist($metrics);
         }
 
         // 5. Add requirements (optional)
@@ -187,16 +191,16 @@ class ComboSequenceController extends AbstractController
                 ->setCornerRequired($data['requirements']['corner_required'] ?? false)
                 ->setAirborneRequired($data['requirements']['airborne_required'] ?? false)
                 ->setMidScreenRequired($data['requirements']['mid_screen_required'] ?? false);
-            $em->persist($req);
+            $this->entityManager->persist($req);
         }
 
-        // 6. Persist steps
+        // 6. Persist steps using repositories
         foreach ($data['steps'] as $stepData) {
             if (empty($stepData['child_sequence_id']) || empty($stepData['ordinal_in_combo'])) {
                 throw new BadRequestHttpException('Each step must have child_sequence_id and ordinal_in_combo.');
             }
 
-            $childSeq = $em->getRepository(ComboSequences::class)->find($stepData['child_sequence_id']);
+            $childSeq = $this->comboSequencesRepository->findOneBy(['id' => $stepData['child_sequence_id']]);
             if (!$childSeq) {
                 throw new NotFoundHttpException("Child sequence ID {$stepData['child_sequence_id']} not found.");
             }
@@ -207,18 +211,18 @@ class ComboSequenceController extends AbstractController
                 ->setOrdinalInCombo((int)$stepData['ordinal_in_combo']);
 
             if (!empty($stepData['connection_type_id'])) {
-                $connectionType = $em->getRepository(ConnectionType::class)->find($stepData['connection_type_id']);
+                $connectionType = $this->connectionTypeRepository->findOneBy(['id' => $stepData['connection_type_id']]);
                 if (!$connectionType) {
                     throw new NotFoundHttpException("Connection type ID {$stepData['connection_type_id']} not found.");
                 }
                 $step->setConnectionType($connectionType);
             }
 
-            $em->persist($step);
+            $this->entityManager->persist($step);
         }
 
         // 7. Save everything
-        $em->flush();
+        $this->entityManager->flush();
 
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),

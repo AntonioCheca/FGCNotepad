@@ -33,15 +33,25 @@ const useCombos = () => {
 
     const fetchLeafs = async () => {
         try {
+            console.log("[useCombos] Fetching leafs from API...");
             const response = await request(() =>
                 api.get("/combo-sequences/leafs/list")
             );
-            return response.data;
+            console.log("[useCombos] API response for leafs:", response);
+
+            // if response has .data, unwrap it for clarity
+            if (response?.data) {
+                console.log("[useCombos] response.data:", response.data);
+                return response.data;
+            }
+
+            return response;
         } catch (error) {
-            console.error("Error fetching leafs", error);
+            console.error("[useCombos] Error fetching leafs:", error);
             throw error;
         }
     };
+
 
     /**
      * Create a new combo

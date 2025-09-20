@@ -13,21 +13,18 @@ use Symfony\Component\Serializer\SerializerInterface;
 class ConnectionTypeController extends AbstractController
 {
     public function __construct(
-        private SerializerInterface $serializer
+        private ConnectionTypeRepository $connectionTypeRepository,
+        private SerializerInterface      $serializer
     )
     {
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
-    public function list(ConnectionTypeRepository $repo): JsonResponse
+    public function list(): JsonResponse
     {
-        $types = $repo->findAll();
+        $connectionTypes = $this->connectionTypeRepository->findAll();
+        $json = $this->serializer->serialize($connectionTypes, 'json');
 
-        return new JsonResponse(
-            $this->serializer->serialize($types, 'json', ['groups' => ['connection_type:read']]),
-            JsonResponse::HTTP_OK,
-            [],
-            true
-        );
+        return new JsonResponse($json, 200, [], true);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\MaxDepth;
 
 #[ORM\Table(name: "move", schema: "sf6")]
 #[ORM\Entity]
@@ -17,6 +18,7 @@ class Move extends Component
     #[ORM\ManyToOne(inversedBy: 'moves')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(["move:read", "combo:read"])]
+    #[MaxDepth(1)]
     private Character $character;
 
     #[ORM\OneToOne(inversedBy: 'move', cascade: ['persist', 'remove'])]

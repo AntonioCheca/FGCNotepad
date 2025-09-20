@@ -28,6 +28,7 @@ class ComboSequences
     private ?string $description = null;
 
     #[ORM\OneToOne(inversedBy: 'comboSequence', cascade: ['persist', 'remove'])]
+    #[Groups(['combo:read'])]
     private ?Move $move = null;
 
     #[ORM\ManyToOne]

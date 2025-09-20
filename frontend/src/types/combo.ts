@@ -5,9 +5,15 @@ export interface ConnectionType {
     name: string;
 }
 
-export interface LeafSequenceOption {
-    id: ID;         // This should be the ComboSequence ID for a LEAF/Move wrapper
+export interface CharacterOption {
+    id: ID;
     name: string;
+}
+
+export interface LeafSequenceOption {
+    id: ID;                  // ComboSequence ID for a LEAF/Move wrapper
+    name: string;
+    character: CharacterOption; // ✅ add character for filtering
 }
 
 export interface StepDraft {
