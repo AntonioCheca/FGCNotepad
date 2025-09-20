@@ -22,3 +22,11 @@ services:
     App\Command\ImportFrameDataFromFatJsonCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
+    App\Serializer\Normalizer\:
+        resource: '../src/Serializer/Normalizer'
+        tags:
+            - { name: serializer.normalizer, priority: 100 }
+        autoconfigure: true
+        autowire: true
+
+

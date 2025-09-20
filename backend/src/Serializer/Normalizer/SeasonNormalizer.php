@@ -2,34 +2,31 @@
 
 namespace App\Serializer\Normalizer;
 
-use App\Entity\ComboMetrics;
+use App\Entity\Season;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 
-class ComboMetricsNormalizer implements NormalizerInterface
+class SeasonNormalizer implements NormalizerInterface
 {
     public function normalize(mixed $object, ?string $format = null, array $context = []): array
     {
-        if (!$object instanceof ComboMetrics) {
-            throw new InvalidArgumentException('Expected ComboMetrics object.');
-        }
-
+        /** @var Season $object */
         return [
             'id' => $object->getId(),
-            'damage' => $object->getDamage(),
-            'sequence_id' => $object->getSequence()?->getId(),
+            'name' => $object->getName(),
+            'startDate' => $object->getStartDate()?->format('Y-m-d'),
+            'endDate' => $object->getEndDate()?->format('Y-m-d'),
         ];
     }
 
     public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool
     {
-        return $data instanceof ComboMetrics;
+        return $data instanceof Season;
     }
 
     public function getSupportedTypes(?string $format): array
     {
         return [
-            ComboMetrics::class => true,
+            Season::class => true,
         ];
     }
 }

@@ -2,34 +2,29 @@
 
 namespace App\Serializer\Normalizer;
 
-use App\Entity\ComboMetrics;
+use App\Entity\Tag;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 
-class ComboMetricsNormalizer implements NormalizerInterface
+class TagNormalizer implements NormalizerInterface
 {
     public function normalize(mixed $object, ?string $format = null, array $context = []): array
     {
-        if (!$object instanceof ComboMetrics) {
-            throw new InvalidArgumentException('Expected ComboMetrics object.');
-        }
-
+        /** @var Tag $object */
         return [
             'id' => $object->getId(),
-            'damage' => $object->getDamage(),
-            'sequence_id' => $object->getSequence()?->getId(),
+            'name' => $object->getName(),
         ];
     }
 
     public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool
     {
-        return $data instanceof ComboMetrics;
+        return $data instanceof Tag;
     }
 
     public function getSupportedTypes(?string $format): array
     {
         return [
-            ComboMetrics::class => true,
+            Tag::class => true,
         ];
     }
 }

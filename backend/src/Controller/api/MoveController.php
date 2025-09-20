@@ -26,17 +26,15 @@ class MoveController extends AbstractController
     {
     }
 
-    #[Route('', methods: ['GET'], name: 'list')]
+    #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
-        $moves = $this->entityManager->getRepository(Move::class)->findAll();
-        return new JsonResponse(
-            $this->serializer->serialize($moves, 'json', ['groups' => ['move:read']]),
-            JsonResponse::HTTP_OK,
-            [],
-            true
-        );
+        $moves = $this->moveRepository->findAll();
+        $json = $this->serializer->serialize($moves, 'json');
+
+        return new JsonResponse($json, 200, [], true);
     }
+
 
     #[Route('/search', methods: ['GET'], name: 'query')]
     public function querySpecificMoves(Request $request, MoveRepository $moveRepository): JsonResponse

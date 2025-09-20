@@ -3,10 +3,6 @@ import {AppButton} from "@/src/components/ui/AppButton";
 import StepItem from "@/src/components/combos/create/StepItem";
 import type {StepDraft, ConnectionType, LeafSequenceOption} from "@/src/types/combo";
 
-/**
- * Displays all steps + "Add Step" button.
- * Delegates each step UI to StepItem.
- */
 interface StepListProps {
     steps: StepDraft[];
     onAddStep: () => void;
@@ -15,7 +11,7 @@ interface StepListProps {
     searchMoves: (q: string) => Promise<{ data: LeafSequenceOption[] } | any>;
     connections: ConnectionType[];
     connectionsLoading: boolean;
-    leafs: LeafSequenceOption[]; // <-- NEW
+    leafs: LeafSequenceOption[];
 }
 
 export function StepList({
@@ -23,10 +19,9 @@ export function StepList({
                              onAddStep,
                              onRemoveStep,
                              onChangeStep,
-                             searchMoves,
                              connections,
                              connectionsLoading,
-                             leafs, // <-- NEW
+                             leafs,
                          }: StepListProps) {
     return (
         <Box sx={{display: "flex", flexDirection: "column", gap: 1}}>
@@ -37,8 +32,7 @@ export function StepList({
                     step={step}
                     onRemove={() => onRemoveStep(index)}
                     onChange={(update) => onChangeStep(index, update)}
-                    searchMoves={searchMoves}
-                    moves={leafs} // <-- PASS leafs instead of using searchMoves directly
+                    moves={leafs}
                     connections={connections}
                     connectionsLoading={connectionsLoading}
                 />

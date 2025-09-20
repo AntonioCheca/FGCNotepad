@@ -1,4 +1,5 @@
 
+
 build:
 	docker compose build --no-cache
 
@@ -36,6 +37,19 @@ install: composer-install npm-install
 # NEW: Start frontend development server
 frontend-dev:
 	docker exec -it fgc_frontend npm run dev
+
+# Setup frame data and basic fixtures
+setup-frame-data:
+	@echo "Setting up frame data and fixtures..."
+	@echo "Step 1: Downloading FAT JSON frame data..."
+	docker exec -it fgc_backend php bin/console frame-data:download:fat-json
+	@echo "Step 2: Importing frame data from FAT JSON..."
+	docker exec -it fgc_backend php bin/console frame-data:import:fat-json
+	@echo "Step 3: Creating minimum fixtures (combo types, visibilities, season)..."
+	docker exec -it fgc_backend php bin/console app:create-fixtures
+	@echo "Step 4: Generating leaf combo sequences from moves..."
+	docker exec -it fgc_backend php bin/console app:generate-leafs
+	@echo "Frame data setup complete!"
 
 bash:
 	docker exec -it fgc_backend bash

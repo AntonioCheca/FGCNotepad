@@ -2,34 +2,32 @@
 
 namespace App\Serializer\Normalizer;
 
-use App\Entity\ComboMetrics;
+use App\Entity\RequirementSpecificCharacter;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 
-class ComboMetricsNormalizer implements NormalizerInterface
+class RequirementSpecificCharacterNormalizer implements NormalizerInterface
 {
     public function normalize(mixed $object, ?string $format = null, array $context = []): array
     {
-        if (!$object instanceof ComboMetrics) {
-            throw new InvalidArgumentException('Expected ComboMetrics object.');
-        }
-
+        /** @var RequirementSpecificCharacter $object */
         return [
             'id' => $object->getId(),
-            'damage' => $object->getDamage(),
-            'sequence_id' => $object->getSequence()?->getId(),
+            'character' => $object->getCharacter() ? [
+                'id' => $object->getCharacter()->getId(),
+                'name' => $object->getCharacter()->getName(),
+            ] : null,
         ];
     }
 
     public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool
     {
-        return $data instanceof ComboMetrics;
+        return $data instanceof RequirementSpecificCharacter;
     }
 
     public function getSupportedTypes(?string $format): array
     {
         return [
-            ComboMetrics::class => true,
+            RequirementSpecificCharacter::class => true,
         ];
     }
 }

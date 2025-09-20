@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react";
+import {useState} from "react";
 import {Box, IconButton} from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
@@ -9,7 +9,7 @@ interface StepItemProps {
     step: StepDraft;
     onChange: (update: Partial<StepDraft>) => void;
     onRemove: () => void;
-    moves: LeafSequenceOption[]; // <-- NEW: all leafs passed from parent
+    moves: LeafSequenceOption[];
     connections: ConnectionType[];
     connectionsLoading: boolean;
 }
@@ -19,19 +19,29 @@ export default function StepItem({
                                      step,
                                      onChange,
                                      onRemove,
-                                     moves,
+                                     moves = [],
                                      connections,
                                      connectionsLoading,
                                  }: StepItemProps) {
     const [movesInputValue, setMovesInputValue] = useState<string>("");
 
-    // Filter the passed moves locally based on input value
     const filteredMoves = moves.filter((m) =>
         m.name.toLowerCase().includes(movesInputValue.toLowerCase())
     );
 
     return (
         <Box sx={{display: "flex", gap: 1, alignItems: "center"}}>
+            <WrappedAutocomplete<ConnectionType>
+                label="Connection"
+                options={connections}
+                value={step.connection}
+                onChange={(v) => onChange({connection: v})}
+                getOptionLabel={(o) => o?.name ?? ""}
+                loading={connectionsLoading}
+                disabled={false}
+                sx={{flex: 1, minWidth: 150}}
+            />
+
             <WrappedAutocomplete<LeafSequenceOption>
                 label={`Step ${index + 1} Move`}
                 options={filteredMoves}
@@ -40,20 +50,9 @@ export default function StepItem({
                 getOptionLabel={(o) => o?.name ?? ""}
                 inputValue={movesInputValue}
                 onInputChange={(event, newValue) => setMovesInputValue(newValue)}
-                filterOptions={(options) => options} // already filtered manually
+                filterOptions={(options) => options}
                 required
-                sx={{minWidth: 200}} // make input bigger for UX
-            />
-
-            <WrappedAutocomplete<ConnectionType>
-                label="Connection"
-                options={connections}
-                value={step.connection}
-                onChange={(v) => onChange({connection: v})}
-                getOptionLabel={(o) => o?.name ?? ""}
-                loading={connectionsLoading}
-                disabled={index === 0} // first step has no connection type
-                sx={{minWidth: 150}} // make input bigger
+                sx={{flex: 1, minWidth: 200}}
             />
 
             <IconButton aria-label="Remove step" onClick={onRemove}>
