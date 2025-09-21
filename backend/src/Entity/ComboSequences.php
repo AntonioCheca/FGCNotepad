@@ -55,9 +55,21 @@ class ComboSequences
     #[Groups(['combo:read'])]
     private Collection $season;
 
+    /**
+     * @var Collection<int, Step>
+     */
+    #[ORM\OneToMany(targetEntity: Step::class, mappedBy: 'parent_sequence', cascade: ['persist', 'remove'], fetch: 'EAGER')]
+    private Collection $steps;
+
     public function __construct()
     {
-        $this->season = new ArrayCollection();
+        // Force initialize the properties that Doctrine will access
+        if (!isset($this->season)) {
+            $this->season = new ArrayCollection();
+        }
+        if (!isset($this->steps)) {
+            $this->steps = new ArrayCollection();
+        }
     }
 
     public function getId(): ?int
@@ -179,5 +191,53 @@ class ComboSequences
         $this->season->removeElement($season);
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Step>
+     */
+    public function getSteps(): Collection
+    {
+        return $this->steps;
+    }
+
+    public function addStep(Step $step): static
+    {
+        if (!$this->steps->contains($step)) {
+            $this->steps->add($step);
+            $step->setParentSequence($this);
+        }
+
+        return $this;
+    }
+
+    public function removeStep(Step $step): static
+    {
+        if ($this->steps->removeElement($step)) {
+            if ($step->getParentSequence() === $this) {
+                $step->setParentSequence(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getCharacter(): ?Character
+    {
+        if (null !== $this->move) {
+            return $this->move->getCharacter();
+        }
+
+        if ($this->getSteps()->count() > 0) {
+            return $this->getSteps()->first()->getChildSequence()->getCharacter();
+        }
+
+        return null;
+    }
+
+    public function __wakeup()
+    {
+        error_log('__wakeup called on ' . __CLASS__);
+        $this->__construct();
     }
 }

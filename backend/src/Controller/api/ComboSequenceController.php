@@ -43,25 +43,16 @@ class ComboSequenceController extends AbstractController
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
-        $sequences = $this->comboSequencesRepository->findAll();
+        $sequences = $this->comboSequencesRepository->findAllNonLeafs();
         $json = $this->serializer->serialize($sequences, 'json');
 
         return new JsonResponse($json, 200, [], true);
     }
 
     #[Route('/leafs/list', name: 'leafs', methods: ['GET'])]
-    public function listLeafs(ComboSequencesRepository $repo): JsonResponse
+    public function listLeafs(): JsonResponse
     {
-        $leafs = $repo->findAllLeafs();
-
-        if (!empty($leafs)) {
-            error_log('Leaf example: ' . $leafs[0]->getName() . ' (' . $leafs[0]->getId() . ')');
-        }
-
-        // Debug: check which normalizer is being used
-        error_log('Serializing with class: ' . get_class($this->serializer));
-
-        // Explicitly serialize using your configured normalizers
+        $leafs = $this->comboSequencesRepository->findAllLeafs();
         $json = $this->serializer->serialize($leafs, 'json');
 
         return new JsonResponse($json, 200, [], true);

@@ -5,6 +5,7 @@ import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import ComboFilters from "@/src/components/combos/ComboFilters";
 import ComboTable from "@/src/components/combos/ComboTable";
 import useCombos from "@/hooks/useCombos";
+import {mapComboToRow} from "@/src/types/combo";
 
 export default function SearchCombosPage() {
     const {fetchCombos} = useCombos();
@@ -16,9 +17,13 @@ export default function SearchCombosPage() {
         setLoading(true);
         try {
             const data = await fetchCombos(filters);
-            setCombos(data);
+            console.log("[SearchCombosPage] raw combos:", data);
+            const mapped = (data ?? []).map(mapComboToRow);
+            console.log("[SearchCombosPage] mapped combos:", mapped);
+            setCombos(mapped);
         } catch (err) {
             console.error(err);
+            setCombos([]);
         } finally {
             setLoading(false);
         }
@@ -28,12 +33,17 @@ export default function SearchCombosPage() {
         loadCombos();
     }, [filters]);
 
+    console.log("[SearchCombosPage] Rendering with combos:", combos);
+
     return (
         <AppContainer maxWidth={false}>
             <AppTypography variant="h4" gutterBottom>
                 Search Combos
             </AppTypography>
-            <ComboFilters onChange={setFilters}/>
+            <ComboFilters onChange={(newFilters) => {
+                console.log("[SearchCombosPage] Filters changed:", newFilters);
+                setFilters(newFilters);
+            }}/>
             {loading ? (
                 <AppCircularProgress sx={{display: "block", margin: "auto", mt: 4}}/>
             ) : (

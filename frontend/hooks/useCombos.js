@@ -24,7 +24,7 @@ const useCombos = () => {
             const response = await request(() =>
                 api.get("/combo-sequences", {params: {...options}})
             );
-            return response.data;
+            return response;
         } catch (error) {
             console.error("Error fetching combos", error);
             throw error;

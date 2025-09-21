@@ -31,3 +31,28 @@ export interface CreateFullComboPayload {
         connection_type_id: ID | null;
     }>;
 }
+
+// types/combo.ts
+export interface ComboRow {
+    id: number;
+    title: string;
+    characterName: string;
+    moves: string[];        // just move names
+    damage: number | string;
+    season: string;         // human-readable
+}
+
+// utils/combos.ts
+export function mapComboToRow(combo: any): ComboRow {
+    return {
+        id: combo.id,
+        title: combo.name ?? "-",
+        characterName: combo.character?.name ?? "-",
+        moves: combo.moves?.map((m: any) => m.name) ?? [],
+        damage: combo.comboMetrics?.damage ?? "-",
+        season: Array.isArray(combo.season)
+            ? combo.season.map((s: any) => s.name).join(", ")
+            : "-"
+    };
+}
+
