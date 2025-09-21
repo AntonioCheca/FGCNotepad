@@ -14,8 +14,8 @@ class Step
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\ManyToOne(inversedBy: 'steps')]
+    #[ORM\JoinColumn(name: "parent_sequence_id", referencedColumnName: "id", nullable: false)]
     private ?ComboSequences $parent_sequence = null;
 
     #[ORM\ManyToOne]

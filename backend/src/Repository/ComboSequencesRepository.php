@@ -27,4 +27,16 @@ class ComboSequencesRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function findAllNonLeafs(): array
+    {
+        $qb = $this->createQueryBuilder('cs')
+            ->innerJoin('cs.type', 'cst')
+            ->addSelect('cst')
+            ->where('cst.name != :typeName')
+            ->setParameter('typeName', 'leaf')
+            ->orderBy('cs.id', 'ASC');
+
+        return $qb->getQuery()->getResult();
+    }
 }

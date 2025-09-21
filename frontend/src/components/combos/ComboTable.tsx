@@ -18,15 +18,24 @@ export default function ComboTable({combos}: ComboTableProps) {
                 </TableRow>
             </TableHead>
             <TableBody>
-                {combos.map((combo) => (
-                    <TableRow key={combo.id}>
-                        <TableCell>{combo.title}</TableCell>
-                        <TableCell>{combo.characterName}</TableCell>
-                        <TableCell>{combo.moves.map((m: any) => m.name).join(", ")}</TableCell>
-                        <TableCell>{combo.damage}</TableCell>
-                        <TableCell>{combo.season}</TableCell>
-                    </TableRow>
-                ))}
+                {combos.map((combo) => {
+                    const moves = combo.moves ?? [];
+                    const season = combo.season
+                        ? typeof combo.season === "string"
+                            ? combo.season
+                            : combo.season.name // or `${combo.season.startDate} - ${combo.season.endDate}`
+                        : "-";
+
+                    return (
+                        <TableRow key={combo.id}>
+                            <TableCell>{combo.title}</TableCell>
+                            <TableCell>{combo.characterName ?? "-"}</TableCell>
+                            <TableCell>{moves.map((m: any) => m.name).join(", ")}</TableCell>
+                            <TableCell>{combo.damage ?? "-"}</TableCell>
+                            <TableCell>{season}</TableCell>
+                        </TableRow>
+                    );
+                })}
             </TableBody>
         </AppTable>
     );
