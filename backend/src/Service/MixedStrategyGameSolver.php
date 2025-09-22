@@ -8,7 +8,8 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 class MixedStrategyGameSolver
 {
     private const PYTHON_SCRIPT_PATH = __DIR__ . '/python_scripts/';
-    private const SCRIPTS = ['SOLVE_MIXED_STRATEGY' => 'solve_mixed_strategy_game.py',];
+    private const SCRIPTS = ['SOLVE_MIXED_STRATEGY' => 'solve_mixed_strategy_game.py',
+        'MWU_SOLVER' => 'mwu_solver.py'];
 
     /**
      * @param array<string, list<array<string, list<array<string, int>>>>> $payoffMatrix
@@ -16,7 +17,7 @@ class MixedStrategyGameSolver
      */
     public function solveMixedStrategyGame(array $payoffMatrix): array
     {
-        $scriptPath = self::PYTHON_SCRIPT_PATH . self::SCRIPTS['SOLVE_MIXED_STRATEGY'];
+        $scriptPath = self::PYTHON_SCRIPT_PATH . self::SCRIPTS['MWU_SOLVER'];
         $jsonMatrix = json_encode($payoffMatrix);
 
         if ($jsonMatrix === false) {
