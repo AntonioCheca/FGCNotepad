@@ -21,7 +21,8 @@ class MoveController extends AbstractController
     public function __construct(
         private EntityManagerInterface $entityManager,
         private SerializerInterface    $serializer,
-        private ValidatorInterface     $validator
+        private ValidatorInterface     $validator,
+        private MoveRepository         $moveRepository,
     )
     {
     }

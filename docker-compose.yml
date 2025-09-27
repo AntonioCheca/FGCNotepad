@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
+      args:
+        USER_ID: 1000  # Change this to your actual UID if different
+        GROUP_ID: 1000 # Change this to your actual GID if different
     container_name: fgc_backend
     expose:
       - "9000"
