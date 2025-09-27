@@ -29,8 +29,8 @@ class MoveControllerTest extends AuthenticatedWebTestCase
         $this->client->request('GET', '/api/moves', [], [], $this->getHeaders());
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
         $this->assertJson($response->getContent());
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode(), $message = $response->getContent());
     }
 
     private function addCharacterInBackend(): Character

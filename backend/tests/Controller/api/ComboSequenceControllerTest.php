@@ -7,42 +7,38 @@ use App\Entity\ComboSequences;
 use App\Entity\Move;
 use App\Entity\User;
 use App\Repository\ComboSequencesRepository;
+use App\Tests\Controller\AuthenticatedWebTestCase;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Response;
 
-class ComboSequenceControllerTest extends WebTestCase
+class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 {
-    private function getToken(): string
-    {
-        self::bootKernel();
-        $container = static::getContainer();
-
-        /** @var EntityManagerInterface $em */
-        $em = $container->get(EntityManagerInterface::class);
-        $user = $em->getRepository(User::class)->findOneBy(['username' => 'Checa']);
-
-        $jwtManager = $container->get('lexik_jwt_authentication.jwt_manager');
-        return $jwtManager->create($user);
-    }
-
     public function testListLeafs(): void
     {
-        $client = static::createClient();
-        $token = $this->getToken();
-
-        $client->request(
+        $this->client->request(
             'GET',
             '/api/combo-sequences/leafs/list',
-            [],
-            [],
-            [
-                'HTTP_Authorization' => 'Bearer ' . $token,
-                'CONTENT_TYPE' => 'application/json',
-            ]
+            [], [], $this->getHeaders(),
         );
 
-        $this->assertResponseIsSuccessful();
-        $this->assertResponseStatusCodeSame(200);
+        $response = $this->client->getResponse();
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    }
+
+    public function testWorkingRouteComparison(): void
+    {
+        // Test the working route
+        $this->client->request('GET', '/api/moves', [], [], $this->getHeaders());
+        $workingResponse = $this->client->getResponse();
+
+        // Test the broken route
+        $this->client->request('GET', '/api/combo-sequences/leafs/list', [], [], $this->getHeaders());
+        $brokenResponse = $this->client->getResponse();
+
+        echo "Working route status: " . $workingResponse->getStatusCode() . "\n";
+        echo "Broken route status: " . $brokenResponse->getStatusCode() . "\n";
+        echo "Broken route content: " . $brokenResponse->getContent() . "\n";
     }
 }

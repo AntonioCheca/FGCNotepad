@@ -52,7 +52,12 @@ abstract class AuthenticatedWebTestCase extends DatabaseTestCase
 
     protected function addContentTypeJsonToHeaders(): void
     {
-        $this->headers['CONTENT_TYPE'] = 'json';
+        $this->headers['HTTP_CONTENT_TYPE'] = 'application/json';
+    }
+
+    protected function addExpectedTypeJsonToHeaders(): void
+    {
+        $this->headers['HTTP_ACCEPT'] = 'application/json';
     }
 
     protected function getHeaders(): array
