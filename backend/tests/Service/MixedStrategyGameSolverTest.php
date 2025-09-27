@@ -34,7 +34,7 @@ class MixedStrategyGameSolverTest extends TestCase
             $payoffMatrix[$rowKey] = [];
             for ($j = 1; $j <= 10; $j++) {
                 $colKey = "B{$j}";
-                
+
                 $payoffMatrix[$rowKey][$colKey] = (($i * $j) % 7) - 3;
             }
         }
@@ -55,27 +55,23 @@ class MixedStrategyGameSolverTest extends TestCase
         ];
 
         $result = $solver->solveMixedStrategyGame($payoffMatrix);
-
         self::assertArrayHasKey('derivedMetrics', $result);
 
         $metrics = $result['derivedMetrics'];
 
-        // Check Universality exists for both players
-        self::assertArrayHasKey('P1', $metrics);
-        self::assertArrayHasKey('P2', $metrics);
+        self::assertEqualsWithDelta(2 / 3, $metrics['P1']['A1']['universality'], 0.01);
+        self::assertEqualsWithDelta(1 / 3, $metrics['P1']['A2']['universality'], 0.01);
+        self::assertEqualsWithDelta(2 / 3, $metrics['P2']['B1']['universality'], 0.01);
+        self::assertEqualsWithDelta(1 / 3, $metrics['P2']['B2']['universality'], 0.01);
 
-        // P1 universality scores should exist
-        self::assertArrayHasKey('A1', $metrics['P1']);
-        self::assertArrayHasKey('universality', $metrics['P1']['A1']);
+        self::assertEquals(['B1'], $metrics['P1']['A1']['topBeats']);
+        self::assertEquals(['B2'], $metrics['P1']['A1']['topLosses']);
+        self::assertEquals(['B2'], $metrics['P1']['A2']['topBeats']);
+        self::assertEquals(['B1'], $metrics['P1']['A2']['topLosses']);
 
-        // P2 universality scores should exist
-        self::assertArrayHasKey('B1', $metrics['P2']);
-        self::assertArrayHasKey('universality', $metrics['P2']['B1']);
-
-        // TopBeats / TopLosses exist
-        self::assertArrayHasKey('topBeats', $metrics['P1']['A1']);
-        self::assertArrayHasKey('topLosses', $metrics['P1']['A1']);
-        self::assertArrayHasKey('topBeats', $metrics['P2']['B1']);
-        self::assertArrayHasKey('topLosses', $metrics['P2']['B1']);
+        self::assertEquals(['A2'], $metrics['P2']['B1']['topBeats']);
+        self::assertEquals(['A1'], $metrics['P2']['B1']['topLosses']);
+        self::assertEquals(['A1'], $metrics['P2']['B2']['topBeats']);
+        self::assertEquals(['A2'], $metrics['P2']['B2']['topLosses']);
     }
 }
