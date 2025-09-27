@@ -57,13 +57,6 @@ class MixedStrategyGameSolver
         return $decodedOutput;
     }
 
-    /**
-     * Compute UniversalityScore, TopBeats, TopLosses for both P1 and P2.
-     *
-     * @param array<string, mixed> $solverResult
-     * @param array<string, array<string, int>> $payoffMatrix
-     * @return array<string, mixed>
-     */
     private function calculateDerivedMetrics(array $solverResult, array $payoffMatrix): array
     {
         $metrics = ['P1' => [], 'P2' => []];
