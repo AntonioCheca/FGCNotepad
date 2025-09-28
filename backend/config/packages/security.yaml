@@ -53,17 +53,6 @@ security:
         - { path: ^/api, roles: ROLE_USER }
 
 # ========================
-# Dev environment override
-# ========================
-when@dev:
-    security:
-        firewalls:
-            api:
-                pattern: ^/api
-                stateless: true
-                security: false   # disables JWT authentication in dev
-
-# ========================
 # Test environment override
 # ========================
 when@test:

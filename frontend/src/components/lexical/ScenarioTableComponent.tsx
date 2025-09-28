@@ -1,12 +1,12 @@
 import React from "react";
-import { useScenarioTableState } from "@/hooks/useScenarioTableState";
-import { useScenarioTableEditor } from "@/hooks/useScenarioTableEditor";
-import { ScenarioTableService } from "@/services/ScenarioTableService";
-import { GameSolverService } from "@/services/GameSolverService";
+import {useScenarioTableState} from "@/hooks/useScenarioTableState";
+import {useScenarioTableEditor} from "@/hooks/useScenarioTableEditor";
+import {ScenarioTableService} from "@/services/ScenarioTableService";
+import {GameSolverService} from "@/services/GameSolverService";
 import useSolverGames from "@/hooks/useSolverGame";
-import { ScenarioTableLayout } from "@/src/components/lexical/ScenarioTable/ScenarioTableLayout";
-import { ScenarioTableControls } from "@/src/components/lexical/ScenarioTable/ScenarioTableControls";
-import { ScenarioTable } from "@/src/components/lexical/ScenarioTable/ScenarioTable";
+import {ScenarioTableLayout} from "@/src/components/lexical/ScenarioTable/ScenarioTableLayout";
+import {ScenarioTableControls} from "@/src/components/lexical/ScenarioTable/ScenarioTableControls";
+import {ScenarioTable} from "@/src/components/lexical/ScenarioTable/ScenarioTable";
 
 interface ScenarioTableComponentProps {
     initialRows: string[];
@@ -21,22 +21,23 @@ interface ScenarioTableComponentProps {
     updateRowFrequencies: (frequencies: (number | string)[]) => void;
     updateColumnFrequencies: (frequencies: (number | string)[]) => void;
     updateExpectedValue: (value: number) => void;
-    nodeKey: string;
+    onDelete?: () => void;
+    onBottomAreaClick?: () => void;
 }
+
 
 function ScenarioTableComponent(props: ScenarioTableComponentProps) {
     const [state, actions] = useScenarioTableState(props);
-    const { handleDelete, handleBottomAreaClick } = useScenarioTableEditor(props.nodeKey);
-    const { solveGame } = useSolverGames();
+    const {solveGame} = useSolverGames();
 
     // Create service instances
     const tableService = new ScenarioTableService(state, actions);
     const gameSolverService = new GameSolverService(state, actions, solveGame);
 
     return (
-        <ScenarioTableLayout onBottomAreaClick={handleBottomAreaClick}>
+        <ScenarioTableLayout onBottomAreaClick={props.onBottomAreaClick}>
             <ScenarioTableControls
-                onDelete={handleDelete}
+                onDelete={props.onDelete}
                 onSolveGame={() => gameSolverService.solveOptimalStrategy()}
             />
             <ScenarioTable
