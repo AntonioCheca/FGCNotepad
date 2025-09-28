@@ -11,9 +11,11 @@ const useSolverGames = () => {
             const jsonPayload = payoffMatrix;
             console.log("LOGGING JSON PAYLOAD", jsonPayload);
 
-            const response = await request(() => api.post("/solve_game", {'game': jsonPayload}));
+            const response = await request(() => api.post("/solve_game", {game: jsonPayload}));
 
-            return response.equilibria[0];
+            return {
+                equilibria: response.equilibria, derivedMetrics: response.derivedMetrics
+            };
         } catch (error) {
             console.error("Error solving game", error);
             throw error; // Re-throw the error for handling elsewhere

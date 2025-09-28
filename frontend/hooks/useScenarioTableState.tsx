@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import {useState, useCallback} from 'react';
+import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 
 export interface ScenarioTableState {
     rows: string[];
@@ -8,6 +8,7 @@ export interface ScenarioTableState {
     rowFrequencies: (number | string)[];
     columnFrequencies: (number | string)[];
     expectedValue: number;
+    derivedMetrics?: Record<string, any>;
 }
 
 export interface ScenarioTableActions {
@@ -17,6 +18,7 @@ export interface ScenarioTableActions {
     setAndUpdateRowFrequencies: (frequencies: (number | string)[]) => void;
     setAndUpdateColumnFrequencies: (frequencies: (number | string)[]) => void;
     setAndUpdateExpectedValue: (value: number) => void;
+    setDerivedMetrics: (metrics: Record<string, any>) => void;
 }
 
 interface UseScenarioTableStateProps {
@@ -47,6 +49,7 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
         props.initialColumnFrequencies || Array(props.initialColumns.length).fill(1 / props.initialColumns.length)
     );
     const [expectedValue, setExpectedValue] = useState(props.initialExpectedValue || 0);
+    const [derivedMetrics, setDerivedMetricsState] = useState<Record<string, any>>({});
 
     const setAndUpdateRows = useCallback((rows: string[]) => {
         editor.update(() => {
@@ -90,13 +93,20 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
         });
     }, [editor, props.updateExpectedValue]);
 
+    const setDerivedMetrics = useCallback((metrics: Record<string, any>) => {
+        editor.update(() => {
+            setDerivedMetricsState(metrics);
+        });
+    }, [editor]);
+
     const state: ScenarioTableState = {
         rows,
         columns,
         values,
         rowFrequencies,
         columnFrequencies,
-        expectedValue
+        expectedValue,
+        derivedMetrics
     };
 
     const actions: ScenarioTableActions = {
@@ -105,7 +115,8 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
         setAndUpdateValues,
         setAndUpdateRowFrequencies,
         setAndUpdateColumnFrequencies,
-        setAndUpdateExpectedValue
+        setAndUpdateExpectedValue,
+        setDerivedMetrics
     };
 
     return [state, actions];

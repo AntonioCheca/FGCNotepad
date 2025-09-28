@@ -1,11 +1,11 @@
-
-import { ScenarioTableState, ScenarioTableActions } from '@/hooks/useScenarioTableState';
+import {ScenarioTableState, ScenarioTableActions} from '@/hooks/useScenarioTableState';
 
 export class ScenarioTableService {
     constructor(
         private state: ScenarioTableState,
         private actions: ScenarioTableActions
-    ) {}
+    ) {
+    }
 
     calculateExpectedValue(): string {
         let ev = 0;
@@ -37,6 +37,14 @@ export class ScenarioTableService {
         this.actions.setAndUpdateValues(this.state.values.map(row => [...row, 0]));
         const newFrequencies = Array(this.state.columns.length + 1).fill(1 / (this.state.columns.length + 1));
         this.actions.setAndUpdateColumnFrequencies(newFrequencies);
+    }
+
+    setColumns(newColumns: string[]) {
+        this.actions.setAndUpdateColumns(newColumns);
+    }
+
+    setRows(newRows: string[]) {
+        this.actions.setAndUpdateRows(newRows);
     }
 
     removeRow(rowIndex: number): void {
