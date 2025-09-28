@@ -28,16 +28,12 @@ class MixedStrategyGameSolver
 
         $result = $this->runPythonScript($scriptPath, [$jsonMatrix]);
 
-        // Post-process into derived metrics
-        $result['derivedMetrics'] = $this->calculateDerivedMetrics($result, $payoffMatrix);
+        // Post-process derived metrics
+        $result['derivedMetrics'] = $this->calculateAllMetrics($result, $payoffMatrix);
 
         return $result;
     }
 
-    /**
-     * @param array<string> $arguments
-     * @return array<string, mixed>
-     */
     private function runPythonScript(string $scriptPath, array $arguments): array
     {
         $process = new Process(array_merge(['python', $scriptPath], $arguments));
@@ -47,9 +43,7 @@ class MixedStrategyGameSolver
             throw new ProcessFailedException($process);
         }
 
-        $output = $process->getOutput();
-        $decodedOutput = json_decode($output, true);
-
+        $decodedOutput = json_decode($process->getOutput(), true);
         if ($decodedOutput === null) {
             throw new \RuntimeException('Failed to decode JSON response from Python script.');
         }
@@ -57,16 +51,32 @@ class MixedStrategyGameSolver
         return $decodedOutput;
     }
 
-    private function calculateDerivedMetrics(array $solverResult, array $payoffMatrix): array
+    /**
+     * @param array<string, mixed> $solverResult
+     * @param array<string, array<string, int>> $payoffMatrix
+     * @return array<string, array<string, mixed>>
+     */
+    private function calculateAllMetrics(array $solverResult, array $payoffMatrix): array
     {
         $metrics = ['P1' => [], 'P2' => []];
-        $equilibria = $solverResult['equilibria'] ?? [];
 
+        $equilibria = $solverResult['equilibria'] ?? [];
         if (empty($equilibria)) {
             return $metrics;
         }
 
-        // Universality scores
+        $metrics = $this->calculateUniversality($equilibria);
+        $metrics = $this->calculateTopBeatsAndLosses($metrics, $payoffMatrix, $equilibria);
+        $metrics = $this->addUsage($metrics, $equilibria);
+        $metrics = $this->addExpectedValue($metrics, $equilibria, $payoffMatrix);
+
+        return $metrics;
+    }
+
+    private function calculateUniversality(array $equilibria): array
+    {
+        $metrics = ['P1' => [], 'P2' => []];
+
         foreach (['P1', 'P2'] as $player) {
             $universalityScores = [];
             foreach ($equilibria as $eq) {
@@ -79,39 +89,72 @@ class MixedStrategyGameSolver
             }
         }
 
-        // TopBeats & TopLosses
+        return $metrics;
+    }
+
+    private function calculateTopBeatsAndLosses(array $metrics, array $payoffMatrix, array $equilibria): array
+    {
         foreach ($equilibria as $eq) {
-            // For P1: evaluate against each B move
+            // P1
             foreach ($eq['P1'] as $move => $_prob) {
-                $bestOpp = null;
-                $worstOpp = null;
+                $bestOpp = $worstOpp = null;
                 foreach ($payoffMatrix[$move] as $oppMove => $val) {
-                    if ($bestOpp === null || $val > $payoffMatrix[$move][$bestOpp]) {
-                        $bestOpp = $oppMove;
-                    }
-                    if ($worstOpp === null || $val < $payoffMatrix[$move][$worstOpp]) {
-                        $worstOpp = $oppMove;
-                    }
+                    if ($bestOpp === null || $val > $payoffMatrix[$move][$bestOpp]) $bestOpp = $oppMove;
+                    if ($worstOpp === null || $val < $payoffMatrix[$move][$worstOpp]) $worstOpp = $oppMove;
                 }
                 $metrics['P1'][$move]['topBeats'] = [$bestOpp];
                 $metrics['P1'][$move]['topLosses'] = [$worstOpp];
             }
 
-            // For P2: transpose perspective
+            // P2 (transpose perspective)
             foreach ($eq['P2'] as $move => $_prob) {
-                $bestOpp = null;
-                $worstOpp = null;
+                $bestOpp = $worstOpp = null;
                 foreach ($payoffMatrix as $p1Move => $row) {
                     $val = $row[$move];
-                    if ($bestOpp === null || $val < $payoffMatrix[$bestOpp][$move]) {
-                        $bestOpp = $p1Move; // minimizing, since payoff is for P1
-                    }
-                    if ($worstOpp === null || $val > $payoffMatrix[$worstOpp][$move]) {
-                        $worstOpp = $p1Move;
-                    }
+                    if ($bestOpp === null || $val < $payoffMatrix[$bestOpp][$move]) $bestOpp = $p1Move;
+                    if ($worstOpp === null || $val > $payoffMatrix[$worstOpp][$move]) $worstOpp = $p1Move;
                 }
                 $metrics['P2'][$move]['topBeats'] = [$bestOpp];
                 $metrics['P2'][$move]['topLosses'] = [$worstOpp];
+            }
+        }
+
+        return $metrics;
+    }
+
+    private function addUsage(array $metrics, array $equilibria): array
+    {
+        // Only take the first equilibrium
+        $eq = $equilibria[0] ?? null;
+        if (!$eq) return $metrics;
+
+        foreach (['P1', 'P2'] as $player) {
+            foreach ($eq[$player] as $move => $prob) {
+                $metrics[$player][$move]['usage'] = $prob;
+            }
+        }
+
+        return $metrics;
+    }
+
+    private function addExpectedValue(array $metrics, array $equilibria, array $payoffMatrix): array
+    {
+        $eq = $equilibria[0] ?? null;
+        if (!$eq) return $metrics;
+
+        $ev = 0;
+        foreach ($payoffMatrix as $row => $cols) {
+            foreach ($cols as $col => $val) {
+                $rowProb = $eq['P1'][$row] ?? 0;
+                $colProb = $eq['P2'][$col] ?? 0;
+                $ev += $val * $rowProb * $colProb;
+            }
+        }
+
+        // Attach EV to all moves for display purposes if needed
+        foreach (['P1', 'P2'] as $player) {
+            foreach ($metrics[$player] as $move => $_) {
+                $metrics[$player][$move]['expectedValue'] = $ev;
             }
         }
 
