@@ -19,8 +19,6 @@ import {
 import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
 import {MentionNode} from "@/src/components/lexical/MentionNode";
 import TagList from "@/src/components/forum/TagList";
-import {ScenarioTableNode} from "@/src/components/lexical/ScenarioTableNode";
-import AddScenarioTablePlugin from "@/src/components/lexical/AddScenarioTablePlugin";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppPaper} from "@/src/components/ui/AppPaper";
@@ -66,8 +64,7 @@ export default function PostEditor({
             ListItemNode,
             HeadingNode,
             MentionNode,
-            QuoteNode,
-            ScenarioTableNode
+            QuoteNode
         ],
         editable: editable
     };
@@ -125,8 +122,6 @@ export default function PostEditor({
                     <HistoryPlugin/>
                     <AdvancedEditableWrapper condition={editable}>
                         <RestoreFromLocalStoragePlugin/>
-
-                        <AddScenarioTablePlugin/>
                     </AdvancedEditableWrapper>
                     <AdvancedEditableWrapper condition={!editable}>
                         <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>
