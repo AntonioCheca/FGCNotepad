@@ -1,17 +1,23 @@
 <?php declare(strict_types=1);
 
-namespace App\Normalizer;
+namespace App\Serializer\Denormalizer;
 
 use App\Entity\ComboMetrics;
 use App\Repository\ComboSequencesRepository;
-use Symfony\Component\Serializer\Normalizer\ContextAwareDenormalizerInterface;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
+use Symfony\Component\Serializer\Normalizer\DenormalizerAwareInterface;
+use Symfony\Component\Serializer\Normalizer\DenormalizerAwareTrait;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
-class ComboMetricsDenormalizer implements ContextAwareDenormalizerInterface
+class ComboMetricsDenormalizer implements DenormalizerInterface, DenormalizerAwareInterface
 {
+    use DenormalizerAwareTrait;
+
     public function __construct(
         private ComboSequencesRepository $comboSequencesRepository,
-    ) {}
+    )
+    {
+    }
 
     public function supportsDenormalization($data, string $type, string $format = null, array $context = []): bool
     {
@@ -27,7 +33,7 @@ class ComboMetricsDenormalizer implements ContextAwareDenormalizerInterface
         $metrics = new ComboMetrics();
 
         if (isset($data['damage'])) {
-            $metrics->setDamage((int) $data['damage']);
+            $metrics->setDamage((int)$data['damage']);
         }
 
         if (isset($data['sequence_id'])) {
@@ -39,5 +45,12 @@ class ComboMetricsDenormalizer implements ContextAwareDenormalizerInterface
         }
 
         return $metrics;
+    }
+
+    public function getSupportedTypes(?string $format): array
+    {
+        return [
+            ComboMetrics::class => true,
+        ];
     }
 }

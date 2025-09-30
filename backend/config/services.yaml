@@ -26,7 +26,9 @@ services:
         resource: '../src/Serializer/Normalizer'
         tags:
             - { name: serializer.normalizer, priority: 100 }
-        autoconfigure: true
-        autowire: true
+    App\Serializer\Denormalizer\:
+        resource: '../src/Serializer/Denormalizer'
+        tags:
+            - { name: serializer.denormalizer, priority: 100 }
 
 

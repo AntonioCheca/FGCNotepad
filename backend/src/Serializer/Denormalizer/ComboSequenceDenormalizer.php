@@ -1,13 +1,18 @@
 <?php declare(strict_types=1);
 
-namespace App\Normalizer;
+namespace App\Serializer\Denormalizer;
 
 use App\Entity\ComboSequences;
 use Symfony\Component\Serializer\Normalizer\ContextAwareDenormalizerInterface;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
+use Symfony\Component\Serializer\Normalizer\DenormalizerAwareInterface;
+use Symfony\Component\Serializer\Normalizer\DenormalizerAwareTrait;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
-class ComboSequencesDenormalizer implements ContextAwareDenormalizerInterface
+class ComboSequenceDenormalizer implements DenormalizerInterface, DenormalizerAwareInterface
 {
+    use DenormalizerAwareTrait;
+
     public function supportsDenormalization($data, string $type, string $format = null, array $context = []): bool
     {
         return $type === ComboSequences::class;
@@ -30,5 +35,12 @@ class ComboSequencesDenormalizer implements ContextAwareDenormalizerInterface
         }
 
         return $sequence;
+    }
+
+    public function getSupportedTypes(?string $format): array
+    {
+        return [
+            ComboSequences::class => true,
+        ];
     }
 }
