@@ -4,18 +4,20 @@ namespace App\Command;
 
 use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
+use App\Entity\Move;
 use App\Entity\Season;
 use App\Entity\Visibility;
+use App\Repository\CharacterRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'app:create-fixtures', description: 'Insert base ComboSequenceTypes, Visibilities, and Season')]
+#[AsCommand(name: 'app:create-fixtures', description: 'Insert base ComboSequenceTypes, Visibilities, Season and Moves')]
 class CreateMinimumFixtures extends Command
 {
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em, private CharacterRepository $characterRepository)
     {
         parent::__construct();
     }
@@ -69,7 +71,41 @@ class CreateMinimumFixtures extends Command
             }
         }
 
-        $this->em->flush();
+        // === Movement Moves for ALL Characters ===
+        $allCharacters = $this->characterRepository->findAll();
+
+        $moveRepo = $this->em->getRepository(Move::class);
+        $movementMoves = [
+            '5N' => 'Neutral',
+            '6' => 'Forward',
+            '4' => 'Back',
+            '2' => 'Down',
+            '1' => 'Down-Back',
+            '3' => 'Down-Forward',
+            '7' => 'Jump Back',
+            '8' => 'Jump Neutral',
+            '9' => 'Jump Forward',
+            '66' => 'Dash',
+            '44' => 'Backdash',
+        ];
+
+        foreach ($allCharacters as $character) {
+            foreach ($movementMoves as $notation => $label) {
+                $notation = (string)$notation;
+                $existing = $moveRepo->findOneBy([
+                    'numpadNotation' => $notation,
+                    'character' => $character,
+                ]);
+
+                if (!$existing) {
+                    $move = new Move();
+                    $move->setNumpadNotation($notation);
+                    $move->setCharacter($character);
+                    $this->em->persist($move);
+                    $output->writeln("Inserted Movement Move for {$character->getName()}: $label ($notation)");
+                }
+            }
+        }
 
         $this->em->flush();
 
