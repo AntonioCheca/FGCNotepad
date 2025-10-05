@@ -18,7 +18,7 @@ class ScenarioOptionRelationships
     #[ORM\JoinColumn(nullable: false)]
     private ?ScenarioOption $option = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?ScenarioOptionPart $move = null;
 

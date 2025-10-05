@@ -26,7 +26,7 @@ class ScenarioLayer
     /**
      * @var Collection<int, ScenarioOption>
      */
-    #[ORM\ManyToMany(targetEntity: ScenarioOption::class)]
+    #[ORM\ManyToMany(targetEntity: ScenarioOption::class, cascade: ['persist'])]
     #[ORM\JoinTable(
         name: "sf6.scenario_layer_first_options",
         joinColumns: [new ORM\JoinColumn(name: "layer_id", referencedColumnName: "id", onDelete: "CASCADE")],
@@ -37,7 +37,7 @@ class ScenarioLayer
     /**
      * @var Collection<int, ScenarioOption>
      */
-    #[ORM\ManyToMany(targetEntity: ScenarioOption::class)]
+    #[ORM\ManyToMany(targetEntity: ScenarioOption::class, cascade: ['persist'])]
     #[ORM\JoinTable(
         name: "sf6.scenario_layer_second_options",
         joinColumns: [new ORM\JoinColumn(name: "layer_id", referencedColumnName: "id", onDelete: "CASCADE")],

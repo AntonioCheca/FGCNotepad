@@ -19,7 +19,7 @@ class ScenarioOption
     /**
      * @var Collection<int, ScenarioOptionRelationships>
      */
-    #[ORM\OneToMany(targetEntity: ScenarioOptionRelationships::class, mappedBy: 'option', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: ScenarioOptionRelationships::class, mappedBy: 'option', orphanRemoval: true, cascade: ['persist'])]
     private Collection $scenarioOptionRelationships;
 
     public function __construct()
