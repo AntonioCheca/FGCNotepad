@@ -27,7 +27,7 @@ class Scenario
     /**
      * @var Collection<int, ScenarioLayer>
      */
-    #[ORM\OneToMany(targetEntity: ScenarioLayer::class, mappedBy: 'scenario')]
+    #[ORM\OneToMany(mappedBy: 'scenario', targetEntity: ScenarioLayer::class, cascade: ['persist'])]
     private Collection $layers;
 
     public function __construct()
