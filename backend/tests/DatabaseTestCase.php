@@ -2,8 +2,6 @@
 
 namespace App\Tests;
 
-use App\Entity\Post;
-use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -28,16 +26,26 @@ abstract class DatabaseTestCase extends WebTestCase
     {
         $connection = $this->entityManager->getConnection();
         $databasePlatform = $connection->getDatabasePlatform();
-
         $allMetadata = $this->entityManager->getMetadataFactory()->getAllMetadata();
 
-        foreach ($allMetadata as $classMetadata) {
-            $fullyQualifiedNameForTable = sprintf("%s.%s", $classMetadata->getSchemaName(), $classMetadata->getTableName());
-            $query = $databasePlatform->getTruncateTableSQL(
-                $fullyQualifiedNameForTable,
-                true,
-            );
-            $connection->executeStatement($query);
+        $this->entityManager->clear();
+        $connection->executeStatement("SET synchronous_commit = OFF");
+
+        $connection->beginTransaction();
+        try {
+            foreach ($allMetadata as $classMetadata) {
+                $tableName = $classMetadata->getSchemaName()
+                    ? sprintf('%s.%s', $classMetadata->getSchemaName(), $classMetadata->getTableName())
+                    : $classMetadata->getTableName();
+
+                $connection->executeStatement(
+                    $databasePlatform->getTruncateTableSQL($tableName, true)
+                );
+            }
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+            throw $e;
         }
     }
 }
