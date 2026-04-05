@@ -3,6 +3,7 @@ import {Geist, Geist_Mono} from "next/font/google";
 import {AuthProvider} from "@/services/AuthContext";
 import {ThemeModeProvider} from "@/src/context/ThemeContext";
 import ThemeWrapper from "@/src/context/ThemeWrapper";
+import {AppRouterCacheProvider} from "@mui/material-nextjs/v15-appRouter";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,11 +25,13 @@ export default function RootLayout({children}: { children: React.ReactNode }) {
     return (
         <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-            <ThemeModeProvider>
-                <ThemeWrapper>{children}</ThemeWrapper>
-            </ThemeModeProvider>
-        </AuthProvider>
+        <AppRouterCacheProvider>
+            <AuthProvider>
+                <ThemeModeProvider>
+                    <ThemeWrapper>{children}</ThemeWrapper>
+                </ThemeModeProvider>
+            </AuthProvider>
+        </AppRouterCacheProvider>
         </body>
         </html>
     );
