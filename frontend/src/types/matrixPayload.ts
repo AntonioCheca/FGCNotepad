@@ -46,6 +46,8 @@ export interface MatrixSerializationInput {
     rows: string[];
     columns: string[];
     values: Array<Array<number | string | null | undefined>>;
+    bodyCellTypes?: Array<Array<"value" | "reference" | "computed" | undefined>>;
+    bodyCellMetadata?: Array<Array<Record<string, unknown> | undefined>>;
     rowFrequencies?: Array<number | string | null | undefined>;
     columnFrequencies?: Array<number | string | null | undefined>;
     expectedValue?: number | string | null;

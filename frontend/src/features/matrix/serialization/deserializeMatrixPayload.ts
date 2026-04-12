@@ -122,6 +122,17 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
     );
 
     const rawCells = Array.isArray(raw.cells) ? raw.cells : [];
+    const normalizedBodyCellTypes = normalizedRows.map((_, rowIndex) => {
+        const rawRow = Array.isArray(rawCells[rowIndex]) ? rawCells[rowIndex] : [];
+        return normalizedColumns.map((_, columnIndex) => {
+            const cell = coerceCell(rawRow[columnIndex], issues, `cells[${rowIndex}][${columnIndex}]`);
+            if (cell.cellType === "reference" || cell.cellType === "computed") {
+                return cell.cellType;
+            }
+            return "value";
+        });
+    });
+
     const normalizedValues = normalizedRows.map((_, rowIndex) => {
         const rawRow = Array.isArray(rawCells[rowIndex]) ? rawCells[rowIndex] : [];
         return normalizedColumns.map((_, columnIndex) => {
@@ -149,6 +160,7 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
         rows: normalizedRows,
         columns: normalizedColumns,
         values: normalizedValues,
+        bodyCellTypes: normalizedBodyCellTypes,
         rowFrequencies,
         columnFrequencies,
         expectedValue,

@@ -1,23 +1,8 @@
 import {createBodyCellKey, createColumnSummaryKey, createExpectedValueKey, createRowSummaryKey, isBodyCellKey, isColumnSummaryKey, isRowSummaryKey} from "../model/keys";
-import {MatrixAxisItem, MatrixEditorState, MatrixValidationIssue} from "../model/stateTypes";
+import {MatrixAxisItem, MatrixEditorState} from "../model/stateTypes";
+import {validateCommittedNumericDraft} from "../model/numericValidation";
+import {isEditableBodyCell} from "../model/cellGuards";
 import {MatrixAction} from "./actions";
-
-function parseNumericDraft(draft: string): { value: number | null; issues: MatrixValidationIssue[] } {
-    const trimmed = draft.trim();
-    if (trimmed === "") {
-        return {value: null, issues: []};
-    }
-
-    const parsed = Number(trimmed);
-    if (Number.isFinite(parsed)) {
-        return {value: parsed, issues: []};
-    }
-
-    return {
-        value: null,
-        issues: [{code: "invalid_number", message: "Value must be numeric."}],
-    };
-}
 
 function createNextAxisItem(axis: MatrixAxisItem[], prefix: "row" | "column"): MatrixAxisItem {
     const nextIndex = axis.length + 1;
@@ -84,7 +69,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
     switch (action.type) {
         case "grid/setCellValue": {
             const cell = state.grid.bodyCells[action.payload.key];
-            if (!cell) {
+            if (!isEditableBodyCell(cell)) {
                 return state;
             }
 
@@ -98,6 +83,180 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                             ...cell,
                             value: action.payload.value,
                         },
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/updateReferenceCache": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            if (!cell || cell.kind !== "reference" || !cell.reference) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {
+                            ...cell,
+                            value: action.payload.cachedValue,
+                            reference: {
+                                ...cell.reference,
+                                cachedValue: action.payload.cachedValue,
+                            },
+                        },
+                    },
+                },
+            };
+        }
+
+        case "grid/batchUpdateReferenceCache": {
+            if (action.payload.updates.length === 0) {
+                return state;
+            }
+
+            let hasChanges = false;
+            const nextBodyCells = {...state.grid.bodyCells};
+
+            action.payload.updates.forEach((update) => {
+                const cell = nextBodyCells[update.key];
+                if (!cell || cell.kind !== "reference" || !cell.reference) {
+                    return;
+                }
+
+                if (cell.reference.cachedValue === update.cachedValue && cell.value === update.cachedValue) {
+                    return;
+                }
+
+                hasChanges = true;
+                nextBodyCells[update.key] = {
+                    ...cell,
+                    value: update.cachedValue,
+                    reference: {
+                        ...cell.reference,
+                        cachedValue: update.cachedValue,
+                    },
+                };
+            });
+
+            if (!hasChanges) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: nextBodyCells,
+                },
+            };
+        }
+
+        case "grid/linkReferenceCell": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            if (!cell) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {
+                            ...cell,
+                            kind: "reference",
+                            reference: {
+                                kind: "reference",
+                                scenarioId: action.payload.scenarioId,
+                                scenarioLabel: action.payload.scenarioLabel,
+                                cachedValue: cell.value,
+                            },
+                        },
+                    },
+                },
+                validation: {
+                    ...state.validation,
+                    byKey: {
+                        ...state.validation.byKey,
+                        [action.payload.key]: [],
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setRowSummaryValue": {
+            const key = createRowSummaryKey(action.payload.rowId);
+            const current = state.grid.rowSummaryCells[key];
+            if (!current) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    rowSummaryCells: {
+                        ...state.grid.rowSummaryCells,
+                        [key]: {
+                            ...current,
+                            value: action.payload.value,
+                        },
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setColumnSummaryValue": {
+            const key = createColumnSummaryKey(action.payload.columnId);
+            const current = state.grid.columnSummaryCells[key];
+            if (!current) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    columnSummaryCells: {
+                        ...state.grid.columnSummaryCells,
+                        [key]: {
+                            ...current,
+                            value: action.payload.value,
+                        },
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setExpectedValue": {
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    expectedValueCell: {
+                        ...state.grid.expectedValueCell,
+                        value: action.payload.value,
                     },
                 },
                 derived: {
@@ -136,7 +295,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     key,
                     rowId: nextRow.id,
                     columnId: column.id,
-                    kind: "value",
+                    kind: "static",
                     value: null,
                     reference: null,
                 };
@@ -201,7 +360,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     key,
                     rowId: row.id,
                     columnId: nextColumn.id,
-                    kind: "value",
+                    kind: "static",
                     value: null,
                     reference: null,
                 };
@@ -277,6 +436,13 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     activeKey: action.payload.key,
                     draft: action.payload.draft,
                 },
+                validation: {
+                    ...state.validation,
+                    byKey: {
+                        ...state.validation.byKey,
+                        [action.payload.key]: [],
+                    },
+                },
             };
         }
 
@@ -300,10 +466,11 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             }
 
             const {activeKey, draft} = state.editing;
-            const parsed = parseNumericDraft(draft ?? "");
+            const parsed = validateCommittedNumericDraft(draft ?? "");
             const validation = {...state.validation.byKey, [activeKey]: parsed.issues};
 
             if (isBodyCellKey(activeKey) && state.grid.bodyCells[activeKey]) {
+                const nextValue = parsed.issues.length === 0 ? parsed.value : state.grid.bodyCells[activeKey].value;
                 return {
                     ...state,
                     grid: {
@@ -312,7 +479,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                             ...state.grid.bodyCells,
                             [activeKey]: {
                                 ...state.grid.bodyCells[activeKey],
-                                value: parsed.value,
+                                value: nextValue,
                             },
                         },
                     },
@@ -333,6 +500,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             }
 
             if (isRowSummaryKey(activeKey) && state.grid.rowSummaryCells[activeKey]) {
+                const nextValue = parsed.issues.length === 0 ? parsed.value : state.grid.rowSummaryCells[activeKey].value;
                 return {
                     ...state,
                     grid: {
@@ -341,7 +509,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                             ...state.grid.rowSummaryCells,
                             [activeKey]: {
                                 ...state.grid.rowSummaryCells[activeKey],
-                                value: parsed.value,
+                                value: nextValue,
                             },
                         },
                     },
@@ -362,6 +530,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             }
 
             if (isColumnSummaryKey(activeKey) && state.grid.columnSummaryCells[activeKey]) {
+                const nextValue = parsed.issues.length === 0 ? parsed.value : state.grid.columnSummaryCells[activeKey].value;
                 return {
                     ...state,
                     grid: {
@@ -370,7 +539,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                             ...state.grid.columnSummaryCells,
                             [activeKey]: {
                                 ...state.grid.columnSummaryCells[activeKey],
-                                value: parsed.value,
+                                value: nextValue,
                             },
                         },
                     },
@@ -393,13 +562,6 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             if (activeKey === createExpectedValueKey()) {
                 return {
                     ...state,
-                    grid: {
-                        ...state.grid,
-                        expectedValueCell: {
-                            ...state.grid.expectedValueCell,
-                            value: parsed.value,
-                        },
-                    },
                     editing: {
                         mode: "view",
                         activeKey: null,
@@ -407,11 +569,10 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     },
                     validation: {
                         ...state.validation,
-                        byKey: validation,
-                    },
-                    derived: {
-                        ...state.derived,
-                        isDirty: true,
+                        byKey: {
+                            ...validation,
+                            [activeKey]: [{code: "readonly_cell", message: "This cell is read-only."}],
+                        },
                     },
                 };
             }

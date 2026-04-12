@@ -76,6 +76,32 @@ test("invalid draft does not crash and records validation issue", () => {
     assert.equal(state.grid.bodyCells[onlyCell.key].value, null);
 });
 
+test("temporary invalid draft is allowed while editing without immediate error", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const onlyCell = selectBodyCellByIndex(state, 0, 0);
+    assert.ok(onlyCell);
+
+    state = matrixEditorReducer(state, matrixActions.startEditing(onlyCell.key, ""));
+    state = matrixEditorReducer(state, matrixActions.updateDraft("-"));
+
+    assert.equal(state.editing.mode, "edit");
+    assert.equal(state.editing.draft, "-");
+    assert.deepEqual(state.validation.byKey[onlyCell.key], []);
+});
+
+test("invalid commit keeps previous value and marks issue", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const onlyCell = selectBodyCellByIndex(state, 0, 0);
+    assert.ok(onlyCell);
+
+    state = matrixEditorReducer(state, matrixActions.setCellValue(onlyCell.key, 9));
+    state = matrixEditorReducer(state, matrixActions.startEditing(onlyCell.key, "bad"));
+    state = matrixEditorReducer(state, matrixActions.commitEditing());
+
+    assert.equal(state.grid.bodyCells[onlyCell.key].value, 9);
+    assert.equal(selectHasValidationErrors(state), true);
+});
+
 test("selectors return stable simple reads for components", () => {
     let state = createInitialMatrixEditorState({rowCount: 2, columnCount: 2});
     const firstCell = selectBodyCellByIndex(state, 0, 0);
@@ -88,4 +114,39 @@ test("selectors return stable simple reads for components", () => {
         [7, null],
         [null, null],
     ]);
+});
+
+test("reference/computed cells are guarded from direct mutation", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const firstCell = selectBodyCellByIndex(state, 0, 0);
+    assert.ok(firstCell);
+
+    state.grid.bodyCells[firstCell.key] = {
+        ...state.grid.bodyCells[firstCell.key],
+        kind: "reference",
+        value: 11,
+        reference: {
+            kind: "computed",
+            scenarioId: "calc_1",
+            cachedValue: 11,
+        },
+    };
+
+    state = matrixEditorReducer(state, matrixActions.setCellValue(firstCell.key, 99));
+
+    assert.equal(state.grid.bodyCells[firstCell.key].value, 11);
+});
+
+test("linkReferenceCell converts static cell to reference metadata", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const firstCell = selectBodyCellByIndex(state, 0, 0);
+    assert.ok(firstCell);
+
+    state = matrixEditorReducer(state, matrixActions.setCellValue(firstCell.key, 4));
+    state = matrixEditorReducer(state, matrixActions.linkReferenceCell(firstCell.key, "42", "Corner Escape"));
+
+    assert.equal(state.grid.bodyCells[firstCell.key].kind, "reference");
+    assert.equal(state.grid.bodyCells[firstCell.key].reference?.scenarioId, "42");
+    assert.equal(state.grid.bodyCells[firstCell.key].reference?.scenarioLabel, "Corner Escape");
+    assert.equal(state.grid.bodyCells[firstCell.key].reference?.cachedValue, 4);
 });

@@ -15,6 +15,12 @@
 - `dataType`: `number | text | empty`.
 - `value`: `number | string | null`.
 - `metadata` and `extensions` are optional per-cell expansion points.
+- Runtime mapping hook: payload `cellType: reference|computed` maps to state `kind: reference` with `reference.kind` preserving `reference|computed` intent.
+- Reference metadata convention (body cells):
+  - `metadata.scenarioId`: linked reference source id
+  - `metadata.scenarioLabel`: human-readable linked scenario name
+  - `metadata.cachedValue`: last known resolved value
+  - `metadata.referenceKind`: `reference | computed`
 
 ## Validation + Recovery
 - Deserializer only accepts `kind: "matrix-editor"` and `schemaVersion: 1`.

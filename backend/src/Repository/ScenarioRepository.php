@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\Scenario;
@@ -14,6 +16,36 @@ class ScenarioRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Scenario::class);
+    }
+
+    /**
+     * @return list<Scenario>
+     */
+    public function searchByQuery(?string $query, int $limit = 50): array
+    {
+        $safeLimit = max(1, min($limit, 100));
+
+        $qb = $this->createQueryBuilder('scenario')
+            ->orderBy('scenario.updatedAt', 'DESC')
+            ->setMaxResults($safeLimit);
+
+        $normalizedQuery = null === $query ? '' : trim($query);
+        if ('' !== $normalizedQuery) {
+            $qb->andWhere('scenario.searchLabel LIKE :query')
+                ->setParameter('query', '%' . mb_strtolower($normalizedQuery) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findOneByPublicId(string $publicId): ?Scenario
+    {
+        return $this->createQueryBuilder('scenario')
+            ->andWhere('scenario.publicId = :publicId')
+            ->setParameter('publicId', $publicId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     //    /**

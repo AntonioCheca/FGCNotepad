@@ -3,6 +3,8 @@
 namespace App\Controller\api;
 
 use App\Entity\Post;
+use App\Entity\Scenario;
+use App\Entity\ScenarioType;
 use App\Entity\Tag;
 use App\Entity\User;
 use App\Repository\MoveRepository;
@@ -22,6 +24,7 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Optional;
 use Symfony\Component\Validator\Constraints\Type;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Uid\Uuid;
 
 #[Route('/api/posts', name: 'api_posts_')]
 class PostController extends AbstractController
@@ -57,10 +60,9 @@ class PostController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        $bodyAsString = json_encode($data['body']);
-
-        if (false === $bodyAsString) {
-            return new JsonResponse(['error' => 'Body should be JSON format, could not encode it'], JsonResponse::HTTP_BAD_REQUEST);
+        $decodedBody = $this->decodeBodyToArray($data['body']);
+        if (null === $decodedBody) {
+            return new JsonResponse(['error' => 'Body should be valid JSON format'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         /** @var User $internalUserEntity */
@@ -68,12 +70,19 @@ class PostController extends AbstractController
 
         $post = new Post();
         $post->setTitle($data['title']);
+        $decodedBody = $this->syncScenariosFromPostBody($decodedBody, $internalUserEntity, $data['title']);
+
+        $bodyAsString = json_encode($decodedBody);
+        if (false === $bodyAsString) {
+            return new JsonResponse(['error' => 'Body should be JSON format, could not encode it'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
         $post->setBody($bodyAsString);
         $post->setAuthor($internalUserEntity);
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTimeImmutable());
 
-        $moveUuids = $componentExtractor->extractComponentIds(json_decode($data['body'], true));
+        $moveUuids = $componentExtractor->extractComponentIds($decodedBody);
         if (!empty($moveUuids)) {
             $moves = $moveRepository->findBy(['id' => $moveUuids]);
             foreach ($moves as $move) {
@@ -174,7 +183,20 @@ class PostController extends AbstractController
             $post->setTitle($data['title']);
         }
         if (isset($data['body'])) {
-            $post->setBody($data['body']);
+            $decodedBody = $this->decodeBodyToArray($data['body']);
+            if (null === $decodedBody) {
+                return new JsonResponse(['error' => 'Body should be valid JSON format'], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $postTitle = is_string($post->getTitle()) && '' !== trim($post->getTitle()) ? $post->getTitle() : 'Untitled Post';
+            $decodedBody = $this->syncScenariosFromPostBody($decodedBody, $post->getAuthor(), $postTitle);
+
+            $encodedBody = json_encode($decodedBody);
+            if (false === $encodedBody) {
+                return new JsonResponse(['error' => 'Body should be JSON format, could not encode it'], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $post->setBody($encodedBody);
         }
 
         $post->setLastModified(new \DateTimeImmutable());
@@ -207,4 +229,135 @@ class PostController extends AbstractController
 
         return new JsonResponse(['message' => 'Post deleted']);
     }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeBodyToArray(mixed $body): ?array
+    {
+        if (is_array($body)) {
+            return $body;
+        }
+
+        if (!is_string($body)) {
+            return null;
+        }
+
+        $decoded = json_decode($body, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     *
+     * @return array<string, mixed>
+     */
+    private function syncScenariosFromPostBody(array $body, ?User $author, string $postTitle): array
+    {
+        $scenarioType = $this->resolveScenarioType();
+        $scenarioIndex = 0;
+
+        $this->syncScenarioNode($body, $scenarioType, $author, $postTitle, $scenarioIndex);
+
+        return $body;
+    }
+
+    private function resolveScenarioType(): ScenarioType
+    {
+        $scenarioTypeRepository = $this->entityManager->getRepository(ScenarioType::class);
+        $type = $scenarioTypeRepository->findOneBy(['name' => 'MatrixRef']);
+        if (null !== $type) {
+            return $type;
+        }
+
+        $type = (new ScenarioType())->setName('MatrixRef');
+        $this->entityManager->persist($type);
+
+        return $type;
+    }
+
+    /**
+     * @param array<string, mixed> $node
+     */
+    private function syncScenarioNode(array &$node, ScenarioType $scenarioType, ?User $author, string $postTitle, int &$scenarioIndex): void
+    {
+        $matrix = $this->normalizeMatrixPayload($node['matrix'] ?? null);
+        if (($node['type'] ?? null) === 'scenario-table' && null !== $matrix) {
+            $scenarioIndex++;
+            $node['matrix'] = $this->upsertScenario($matrix, $scenarioType, $author, $postTitle, $scenarioIndex);
+        }
+
+        foreach ($node as &$value) {
+            if (is_array($value)) {
+                $this->syncScenarioNode($value, $scenarioType, $author, $postTitle, $scenarioIndex);
+            }
+        }
+        unset($value);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function normalizeMatrixPayload(mixed $matrix): ?array
+    {
+        if (is_array($matrix)) {
+            return $matrix;
+        }
+
+        if (!is_string($matrix)) {
+            return null;
+        }
+
+        $decoded = json_decode($matrix, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $matrix
+     *
+     * @return array<string, mixed>
+     */
+    private function upsertScenario(array $matrix, ScenarioType $scenarioType, ?User $author, string $postTitle, int $scenarioIndex): array
+    {
+        $extensions = isset($matrix['extensions']) && is_array($matrix['extensions']) ? $matrix['extensions'] : [];
+        $embeddedScenarioId = isset($extensions['scenarioId']) && is_string($extensions['scenarioId'])
+            ? trim($extensions['scenarioId'])
+            : '';
+
+        $scenario = null;
+        if ('' !== $embeddedScenarioId && Uuid::isValid($embeddedScenarioId)) {
+            $scenarioRepository = $this->entityManager->getRepository(Scenario::class);
+            $scenario = $scenarioRepository->findOneBy(['publicId' => $embeddedScenarioId]);
+        }
+
+        if (null === $scenario) {
+            $scenario = new Scenario();
+        }
+
+        $metadata = isset($matrix['metadata']) && is_array($matrix['metadata']) ? $matrix['metadata'] : [];
+        $matrixTitle = isset($metadata['title']) && is_string($metadata['title']) ? trim($metadata['title']) : '';
+        $scenarioName = '' !== $matrixTitle ? $matrixTitle : sprintf('%s matrix %d', $postTitle, $scenarioIndex);
+
+        $scenario
+            ->setName($scenarioName)
+            ->setType($scenarioType)
+            ->setPayload($matrix)
+            ->setAuthor($author);
+
+        $this->entityManager->persist($scenario);
+
+        $extensions['scenarioId'] = $scenario->getPublicId()->toRfc4122();
+        $matrix['extensions'] = $extensions;
+
+        return $matrix;
+    }
+
 }

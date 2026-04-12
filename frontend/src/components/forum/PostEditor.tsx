@@ -19,6 +19,7 @@ import {
 import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
 import {MentionNode} from "@/src/components/lexical/MentionNode";
 import {ScenarioTableNode} from "@/src/components/lexical/ScenarioTableNode";
+import InsertScenarioTableButton from "@/src/components/lexical/InsertScenarioTableButton";
 import TagList from "@/src/components/forum/TagList";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
@@ -110,6 +111,9 @@ export default function PostEditor({
                 </AdvancedEditableWrapper>
 
                 <LexicalComposer initialConfig={initialConfig}>
+                    <AdvancedEditableWrapper condition={editable}>
+                        <InsertScenarioTableButton/>
+                    </AdvancedEditableWrapper>
                     <RichTextPlugin
                         contentEditable={
                             <ContentEditable

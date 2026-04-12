@@ -80,3 +80,18 @@ test("invalid payload fails gracefully with safe fallback", () => {
     assert.equal(editorState.rows.length > 0, true);
     assert.equal(editorState.columns.length > 0, true);
 });
+
+test("serialize + deserialize keeps explicit body cell types", () => {
+    const payload = serializeMatrixPayload({
+        rows: ["R1"],
+        columns: ["C1", "C2"],
+        values: [[1, 2]],
+        bodyCellTypes: [["reference", "computed"]],
+        metadata: {matrixId: "mx_cell_types"},
+    });
+
+    const deserialized = deserializeMatrixPayload(payload);
+
+    assert.equal(deserialized.payload.cells[0][0].cellType, "reference");
+    assert.equal(deserialized.payload.cells[0][1].cellType, "computed");
+});

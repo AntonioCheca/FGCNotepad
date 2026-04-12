@@ -5,6 +5,7 @@ namespace App\Controller\api;
 use App\Entity\Scenario;
 use App\Repository\ScenarioRepository;
 use App\Serializer\Denormalizer\ScenarioDenormalizer;
+use App\Service\ScenarioResponseBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,6 +15,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Uid\Uuid;
 
 #[Route('/api/scenarios', name: 'api_scenarios_')]
 class ScenarioController extends AbstractController
@@ -23,18 +25,27 @@ class ScenarioController extends AbstractController
         private SerializerInterface    $serializer,
         private ValidatorInterface     $validator,
         private ScenarioRepository     $scenarioRepository,
-        private ScenarioDenormalizer   $scenarioDenormalizer
+        private ScenarioDenormalizer   $scenarioDenormalizer,
+        private ScenarioResponseBuilder $scenarioResponseBuilder,
     )
     {
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
-    public function list(): JsonResponse
+    #[Route('/', name: 'list_trailing_slash', methods: ['GET'])]
+    public function list(Request $request): JsonResponse
     {
-        $scenarios = $this->scenarioRepository->findAll();
-        $json = $this->serializer->serialize($scenarios, 'json');
+        $query = $request->query->get('q', '');
+        $limit = $request->query->getInt('size', 50);
 
-        return new JsonResponse($json, JsonResponse::HTTP_OK, [], true);
+        if (!is_string($query)) {
+            return new JsonResponse(['error' => 'Query parameter q must be a string.'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $scenarios = $this->scenarioRepository->searchByQuery($query, $limit);
+        $data = $this->scenarioResponseBuilder->buildList($scenarios);
+
+        return new JsonResponse($data, JsonResponse::HTTP_OK);
     }
 
     #[Route('', name: 'create', methods: ['POST'])]
@@ -60,15 +71,18 @@ class ScenarioController extends AbstractController
     }
 
     #[Route('/{id}', name: 'read', methods: ['GET'])]
-    public function read(int $id): JsonResponse
+    public function read(string $id): JsonResponse
     {
-        $scenario = $this->scenarioRepository->find($id);
+        if (!Uuid::isValid($id)) {
+            throw new NotFoundHttpException(sprintf('Scenario with ID %s not found', $id));
+        }
+
+        $scenario = $this->scenarioRepository->findOneByPublicId($id);
         if (!$scenario) {
             throw new NotFoundHttpException("Scenario with ID $id not found");
         }
 
-        $json = $this->serializer->serialize($scenario, 'json');
-        return new JsonResponse($json, JsonResponse::HTTP_OK, [], true);
+        return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
     }
 
     #[Route('/{id}', name: 'update', methods: ['PATCH'])]

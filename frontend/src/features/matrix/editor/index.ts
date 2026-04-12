@@ -1,0 +1,1 @@
+export {MatrixEditorShell} from "./MatrixEditorShell";

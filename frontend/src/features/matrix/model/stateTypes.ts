@@ -1,4 +1,5 @@
-export type MatrixCellKind = "value" | "reference";
+export type MatrixCellKind = "static" | "reference";
+export type MatrixReferenceKind = "reference" | "computed";
 export type MatrixEditorMode = "view" | "edit";
 export type MatrixDensityMode = "standard" | "compact";
 export type MatrixFocusedRegion = "none" | "grid" | "toolbar";
@@ -9,7 +10,9 @@ export interface MatrixAxisItem {
 }
 
 export interface MatrixReferenceData {
+    kind: MatrixReferenceKind;
     scenarioId: string;
+    scenarioLabel?: string;
     cachedValue: number | null;
 }
 

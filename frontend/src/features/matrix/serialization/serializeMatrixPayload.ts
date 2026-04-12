@@ -22,12 +22,17 @@ function normalizeAxisLabel(value: unknown, fallback: string): string {
     return trimmed === "" ? fallback : trimmed;
 }
 
-function toCellPayload(value: number | string | null | undefined, cellType: MatrixCellPayload["cellType"]): MatrixCellPayload {
+function toCellPayload(
+    value: number | string | null | undefined,
+    cellType: MatrixCellPayload["cellType"],
+    metadata?: Record<string, unknown>
+): MatrixCellPayload {
     if (typeof value === "number" && Number.isFinite(value)) {
         return {
             cellType,
             dataType: "number",
             value,
+            metadata,
         };
     }
 
@@ -38,6 +43,7 @@ function toCellPayload(value: number | string | null | undefined, cellType: Matr
                 cellType,
                 dataType: "empty",
                 value: null,
+                metadata,
             };
         }
 
@@ -47,6 +53,7 @@ function toCellPayload(value: number | string | null | undefined, cellType: Matr
                 cellType,
                 dataType: "number",
                 value: numeric,
+                metadata,
             };
         }
 
@@ -54,6 +61,7 @@ function toCellPayload(value: number | string | null | undefined, cellType: Matr
             cellType,
             dataType: "text",
             value: trimmed,
+            metadata,
         };
     }
 
@@ -61,6 +69,7 @@ function toCellPayload(value: number | string | null | undefined, cellType: Matr
         cellType,
         dataType: "empty",
         value: null,
+        metadata,
     };
 }
 
@@ -112,7 +121,14 @@ export function createDefaultMatrixPayload(): MatrixPayload {
 export function serializeMatrixPayload(input: MatrixSerializationInput): MatrixPayload {
     const normalized = normalizeMatrixShape(input);
 
-    const cells = normalized.values.map((row) => row.map((value) => toCellPayload(value, "value")));
+    const cells = normalized.values.map((row, rowIndex) =>
+        row.map((value, columnIndex) => {
+            const requestedCellType = input.bodyCellTypes?.[rowIndex]?.[columnIndex];
+            const safeCellType =
+                requestedCellType === "reference" || requestedCellType === "computed" ? requestedCellType : "value";
+            return toCellPayload(value, safeCellType, input.bodyCellMetadata?.[rowIndex]?.[columnIndex]);
+        })
+    );
 
     const rowAxis = normalized.rows.map((_, index) =>
         toCellPayload(input.rowFrequencies?.[index], "summary")

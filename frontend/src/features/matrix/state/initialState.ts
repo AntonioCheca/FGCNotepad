@@ -30,7 +30,7 @@ export function createInitialMatrixEditorState(options: CreateMatrixStateOptions
                         key,
                         rowId: row.id,
                         columnId: column.id,
-                        kind: "value" as const,
+                        kind: "static" as const,
                         value: defaultCellValue,
                         reference: null,
                     },

@@ -5,6 +5,7 @@ namespace App\Tests\Controller\api;
 use App\Entity\Character;
 use App\Entity\Move;
 use App\Entity\Post;
+use App\Entity\Scenario;
 use App\Entity\Tag;
 use App\Entity\User;
 use App\Repository\UserRepository;
@@ -115,9 +116,6 @@ class PostControllerTest extends AuthenticatedWebTestCase
 
         $this->assertResponseStatusCodeSame(201);
 
-        /**
-         * @var $response Response
-         */
         $response = $this->client->getResponse();
         $content = json_decode($response->getContent(), true);
         $uuid = $content['id'];
@@ -129,7 +127,167 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertJson($response->getContent());
         $data = json_decode($response->getContent(), true);
         $this->assertEquals($uuid, $data['id']);
-        $this->assertEquals($jsonBody, json_decode($data['body'], true));
+        $this->assertEquals(json_decode($jsonBody, true), json_decode($data['body'], true));
+    }
+
+    public function testCreatePostPersistsScenarioTablesAndEmbedsScenarioId(): void
+    {
+        $matrixPayload = [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['Row A'],
+                'columns' => ['Col A'],
+            ],
+            'cells' => [
+                [[
+                    'cellType' => 'value',
+                    'dataType' => 'number',
+                    'value' => 25,
+                ]],
+            ],
+            'summary' => [
+                'rowAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'columnAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'expectedValue' => [
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 25,
+                ],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx_post_test',
+                'title' => 'Corner Escape Matrix',
+            ],
+        ];
+
+        $lexicalBody = [
+            'root' => [
+                'type' => 'root',
+                'version' => 1,
+                'children' => [[
+                    'type' => 'scenario-table',
+                    'version' => 1,
+                    'matrix' => $matrixPayload,
+                ]],
+            ],
+        ];
+
+        $client = $this->createAuthenticatedClient();
+        $client->request(
+            'POST',
+            '/api/posts',
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode([
+                'title' => 'Post With Scenario Table',
+                'body' => json_encode($lexicalBody),
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        $responsePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $post = $this->entityManager->getRepository(Post::class)->find($responsePayload['id']);
+        $this->assertNotNull($post);
+
+        $savedBody = json_decode($post->getBody(), true);
+        $scenarioId = $savedBody['root']['children'][0]['matrix']['extensions']['scenarioId'] ?? null;
+        $this->assertIsString($scenarioId);
+
+        $scenario = $this->entityManager->getRepository(Scenario::class)->findOneBy(['publicId' => $scenarioId]);
+        $this->assertNotNull($scenario);
+        $this->assertSame('Corner Escape Matrix', $scenario->getName());
+        $this->assertSame('mx_post_test', $scenario->getPayload()['metadata']['matrixId'] ?? null);
+    }
+
+    public function testCreatePostPersistsScenarioWhenMatrixIsSerializedString(): void
+    {
+        $matrixPayload = [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['Row A'],
+                'columns' => ['Col A'],
+            ],
+            'cells' => [
+                [[
+                    'cellType' => 'value',
+                    'dataType' => 'number',
+                    'value' => 10,
+                ]],
+            ],
+            'summary' => [
+                'rowAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'columnAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'expectedValue' => [
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 10,
+                ],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx_post_test_string',
+                'title' => 'Serialized Matrix',
+            ],
+        ];
+
+        $lexicalBody = [
+            'root' => [
+                'type' => 'root',
+                'version' => 1,
+                'children' => [[
+                    'type' => 'scenario-table',
+                    'version' => 1,
+                    'matrix' => json_encode($matrixPayload),
+                ]],
+            ],
+        ];
+
+        $client = $this->createAuthenticatedClient();
+        $client->request(
+            'POST',
+            '/api/posts',
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode([
+                'title' => 'Post With Serialized Matrix',
+                'body' => json_encode($lexicalBody),
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        $responsePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $post = $this->entityManager->getRepository(Post::class)->find($responsePayload['id']);
+        $this->assertNotNull($post);
+
+        $savedBody = json_decode($post->getBody(), true);
+        $this->assertIsArray($savedBody['root']['children'][0]['matrix'] ?? null);
+        $scenarioId = $savedBody['root']['children'][0]['matrix']['extensions']['scenarioId'] ?? null;
+        $this->assertIsString($scenarioId);
+
+        $scenario = $this->entityManager->getRepository(Scenario::class)->findOneBy(['publicId' => $scenarioId]);
+        $this->assertNotNull($scenario);
+        $this->assertSame('Serialized Matrix', $scenario->getName());
     }
 
     private function addMoveInBackend(): Move

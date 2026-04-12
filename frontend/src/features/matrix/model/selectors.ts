@@ -1,5 +1,6 @@
 import {createBodyCellKey} from "./keys";
 import {MatrixBodyCell, MatrixEditorState, MatrixSelectionTarget, MatrixValidationIssue} from "./stateTypes";
+import {isEditableBodyCell} from "./cellGuards";
 
 export function selectRows(state: MatrixEditorState) {
     return state.grid.rows;
@@ -76,4 +77,45 @@ export function selectIsDirty(state: MatrixEditorState): boolean {
 
 export function selectViewportDensity(state: MatrixEditorState): "standard" | "compact" {
     return state.viewport.density;
+}
+
+export function selectCellValueByKey(state: MatrixEditorState, key: string): number | null {
+    if (state.grid.bodyCells[key]) {
+        return state.grid.bodyCells[key].value;
+    }
+
+    if (state.grid.rowSummaryCells[key]) {
+        return state.grid.rowSummaryCells[key].value;
+    }
+
+    if (state.grid.columnSummaryCells[key]) {
+        return state.grid.columnSummaryCells[key].value;
+    }
+
+    if (state.grid.expectedValueCell.key === key) {
+        return state.grid.expectedValueCell.value;
+    }
+
+    return null;
+}
+
+export function selectIsCellEditableByKey(state: MatrixEditorState, key: string): boolean {
+    const bodyCell = state.grid.bodyCells[key];
+    if (bodyCell) {
+        return isEditableBodyCell(bodyCell);
+    }
+
+    if (state.grid.rowSummaryCells[key]) {
+        return true;
+    }
+
+    if (state.grid.columnSummaryCells[key]) {
+        return true;
+    }
+
+    if (state.grid.expectedValueCell.key === key) {
+        return false;
+    }
+
+    return false;
 }

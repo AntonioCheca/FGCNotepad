@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $createParagraphNode, $getNodeByKey } from 'lexical';
+import { MatrixPayload } from '@/src/types/matrixPayload';
 
 export function useScenarioTableEditor(nodeKey: string) {
     const [editor] = useLexicalComposerContext();
@@ -43,6 +44,15 @@ export function useScenarioTableEditor(nodeKey: string) {
         }
     }, [editor, nodeKey]);
 
+    const handleMatrixChange = useCallback((matrix: MatrixPayload) => {
+        editor.update(() => {
+            const node = $getNodeByKey(nodeKey) as { setMatrix?: (next: MatrixPayload) => void } | null;
+            if (node && typeof node.setMatrix === 'function') {
+                node.setMatrix(matrix);
+            }
+        });
+    }, [editor, nodeKey]);
+
     useEffect(() => {
         editor.update(() => {
             const node = $getNodeByKey(nodeKey);
@@ -58,6 +68,7 @@ export function useScenarioTableEditor(nodeKey: string) {
 
     return {
         handleDelete,
-        handleBottomAreaClick
+        handleBottomAreaClick,
+        handleMatrixChange
     };
 }

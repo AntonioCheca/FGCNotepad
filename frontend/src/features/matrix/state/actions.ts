@@ -2,6 +2,12 @@ import {MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from 
 
 export type MatrixAction =
     | { type: "grid/setCellValue"; payload: { key: string; value: number | null } }
+    | { type: "grid/updateReferenceCache"; payload: { key: string; cachedValue: number | null } }
+    | { type: "grid/batchUpdateReferenceCache"; payload: { updates: Array<{ key: string; cachedValue: number | null }> } }
+    | { type: "grid/linkReferenceCell"; payload: { key: string; scenarioId: string; scenarioLabel: string } }
+    | { type: "grid/setRowSummaryValue"; payload: { rowId: string; value: number | null } }
+    | { type: "grid/setColumnSummaryValue"; payload: { columnId: string; value: number | null } }
+    | { type: "grid/setExpectedValue"; payload: { value: number | null } }
     | { type: "grid/setAxisLabel"; payload: { axis: "rows" | "columns"; axisId: string; label: string } }
     | { type: "grid/addRow" }
     | { type: "grid/removeRow"; payload: { rowId: string } }
@@ -33,6 +39,30 @@ export const matrixActions = {
     setAxisLabel: (axis: "rows" | "columns", axisId: string, label: string): MatrixAction => ({
         type: "grid/setAxisLabel",
         payload: {axis, axisId, label},
+    }),
+    linkReferenceCell: (key: string, scenarioId: string, scenarioLabel: string): MatrixAction => ({
+        type: "grid/linkReferenceCell",
+        payload: {key, scenarioId, scenarioLabel},
+    }),
+    updateReferenceCache: (key: string, cachedValue: number | null): MatrixAction => ({
+        type: "grid/updateReferenceCache",
+        payload: {key, cachedValue},
+    }),
+    batchUpdateReferenceCache: (updates: Array<{ key: string; cachedValue: number | null }>): MatrixAction => ({
+        type: "grid/batchUpdateReferenceCache",
+        payload: {updates},
+    }),
+    setRowSummaryValue: (rowId: string, value: number | null): MatrixAction => ({
+        type: "grid/setRowSummaryValue",
+        payload: {rowId, value},
+    }),
+    setColumnSummaryValue: (columnId: string, value: number | null): MatrixAction => ({
+        type: "grid/setColumnSummaryValue",
+        payload: {columnId, value},
+    }),
+    setExpectedValue: (value: number | null): MatrixAction => ({
+        type: "grid/setExpectedValue",
+        payload: {value},
     }),
     addRow: (): MatrixAction => ({type: "grid/addRow"}),
     removeRow: (rowId: string): MatrixAction => ({type: "grid/removeRow", payload: {rowId}}),

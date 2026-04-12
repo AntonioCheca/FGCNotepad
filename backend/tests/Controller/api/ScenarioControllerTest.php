@@ -2,180 +2,98 @@
 
 namespace App\Tests\Controller\api;
 
-use App\Entity\Character;
 use App\Entity\Scenario;
 use App\Entity\ScenarioType;
-use App\Repository\ScenarioRepository;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
 class ScenarioControllerTest extends AuthenticatedWebTestCase
 {
     private EntityManagerInterface $em;
-    private ScenarioRepository $scenarioRepository;
-    private ?Character $character = null;
 
     public function setUp(): void
     {
         parent::setUp();
-
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
-        $this->scenarioRepository = $this->em->getRepository(Scenario::class);
-
-        // Ensure at least one Character exists
-        $this->character = $this->em->getRepository(Character::class)->findOneBy(['name' => 'Ryu']);
-        if (!$this->character) {
-            $this->character = new Character();
-            $this->character->setName('Ryu');
-            $this->em->persist($this->character);
-            $this->em->flush();
-        }
     }
 
-    public function testListScenarios(): void
+    public function testListScenariosReturnsLightweightContract(): void
     {
+        $scenario = $this->createScenario('Throw Bait');
+
         $this->client->request('GET', '/api/scenarios', [], [], $this->getHeaders());
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertJson($response->getContent());
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        self::assertIsArray($payload);
+        self::assertNotEmpty($payload);
+
+        $first = $payload[0];
+        self::assertArrayHasKey('id', $first);
+        self::assertArrayHasKey('name', $first);
+        self::assertArrayHasKey('label', $first);
+        self::assertArrayHasKey('type', $first);
+        self::assertSame($scenario->getPublicId()->toRfc4122(), $first['id']);
     }
 
-    public function testCreateScenario(): void
+    public function testListScenariosSupportsSearchQuery(): void
     {
-        $this->addExpectedTypeJsonToHeaders();
-        $this->addContentTypeJsonToHeaders();
-        $data = [
-            'name' => 'Test Scenario API',
-            'type' => 'Okizeme',
-            'layers' => [
-                [
-                    'index' => 0,
-                    'firstPlayerOptions' => [
-                        [
-                            'parts' => [
-                                [
-                                    'framesOfDuration' => 3,
-                                    'index' => 0,
-                                    'move' => [
-                                        'numpadNotation' => '5LP',
-                                        'character' => [
-                                            'id' => $this->character->getId(),
-                                            'name' => $this->character->getName(),
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                    'secondPlayerOptions' => [],
-                ],
-            ],
-        ];
+        $this->createScenario('Throw Loop');
+        $this->createScenario('Whiff Punish');
 
-        $this->client->request(
-            'POST',
-            '/api/scenarios',
-            [],
-            [],
-            $this->getHeaders(),
-            json_encode($data)
-        );
-
+        $this->client->request('GET', '/api/scenarios?q=throw', [], [], $this->getHeaders());
         $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-        $this->assertJson($response->getContent());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        self::assertCount(1, $payload);
+        self::assertSame('Throw Loop', $payload[0]['name']);
     }
 
-    public function testReadScenario(): void
+    public function testReadScenarioByPublicId(): void
     {
-        // Create a scenario first
-        $scenario = new Scenario();
-        $scenario->setName('Read Test Scenario');
-        $type = $this->em->getRepository(ScenarioType::class)->findOneBy(['name' => 'Okizeme']);
-        if (!$type) {
-            $type = new ScenarioType();
-            $type->setName('Okizeme');
-            $this->em->persist($type);
-            $this->em->flush();
-        }
-        $scenario->setType($type);
+        $scenario = $this->createScenario('Corner Trap', ['matrix' => ['value' => 1]]);
+
+        $this->client->request('GET', '/api/scenarios/' . $scenario->getPublicId()->toRfc4122(), [], [], $this->getHeaders());
+        $response = $this->client->getResponse();
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        self::assertSame($scenario->getPublicId()->toRfc4122(), $payload['id']);
+        self::assertSame('Corner Trap', $payload['name']);
+        self::assertSame(['matrix' => ['value' => 1]], $payload['payload']);
+    }
+
+    public function testReadScenarioReturns404ForUnknownId(): void
+    {
+        $this->client->request('GET', '/api/scenarios/' . Uuid::v7()->toRfc4122(), [], [], $this->getHeaders());
+
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testReadScenarioReturns404ForInvalidIdFormat(): void
+    {
+        $this->client->request('GET', '/api/scenarios/not-a-uuid', [], [], $this->getHeaders());
+
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    private function createScenario(string $name, array $payload = []): Scenario
+    {
+        $type = $this->em->getRepository(ScenarioType::class)->findOneBy(['name' => 'MatrixRef']) ?? (new ScenarioType())->setName('MatrixRef');
+        $this->em->persist($type);
+
+        $scenario = (new Scenario())
+            ->setName($name)
+            ->setType($type)
+            ->setPayload($payload);
+
         $this->em->persist($scenario);
         $this->em->flush();
 
-        $this->client->request(
-            'GET',
-            '/api/scenarios/' . $scenario->getId(),
-            [],
-            [],
-            $this->getHeaders()
-        );
-
-        $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-    }
-
-    public function testUpdateScenario(): void
-    {
-        // Create a scenario first
-        $scenario = new Scenario();
-        $scenario->setName('Update Test Scenario');
-        $type = $this->em->getRepository(ScenarioType::class)->findOneBy(['name' => 'Okizeme']);
-        if (!$type) {
-            $type = new ScenarioType();
-            $type->setName('Okizeme');
-            $this->em->persist($type);
-            $this->em->flush();
-        }
-        $scenario->setType($type);
-        $this->em->persist($scenario);
-        $this->em->flush();
-
-        $updateData = ['name' => 'Updated Scenario Name'];
-
-        $this->client->request(
-            'PATCH',
-            '/api/scenarios/' . $scenario->getId(),
-            [],
-            [],
-            $this->getHeaders(),
-            json_encode($updateData)
-        );
-
-        $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-
-        $this->em->refresh($scenario);
-        $this->assertEquals('Updated Scenario Name', $scenario->getName());
-    }
-
-    public function testDeleteScenario(): void
-    {
-        $scenario = new Scenario();
-        $scenario->setName('Delete Test Scenario');
-        $type = $this->em->getRepository(ScenarioType::class)->findOneBy(['name' => 'Okizeme']);
-        if (!$type) {
-            $type = new ScenarioType();
-            $type->setName('Okizeme');
-            $this->em->persist($type);
-            $this->em->flush();
-        }
-        $scenario->setType($type);
-        $this->em->persist($scenario);
-        $this->em->flush();
-
-        $this->client->request(
-            'DELETE',
-            '/api/scenarios/' . $scenario->getId(),
-            [],
-            [],
-            $this->getHeaders()
-        );
-
-        $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        return $scenario;
     }
 }
