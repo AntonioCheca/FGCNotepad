@@ -4,25 +4,22 @@ import {
 } from "lexical";
 import React from "react";
 import ScenarioTableComponent from "@/src/components/lexical/ScenarioTableComponent";
-import {array} from "yup";
+import {deserializeMatrixPayload, toEditorState} from "@/src/features/matrix/serialization/deserializeMatrixPayload";
+import {createDefaultMatrixPayload, serializeMatrixPayload} from "@/src/features/matrix/serialization/serializeMatrixPayload";
+import {MatrixPayload} from "@/src/types/matrixPayload";
 
+interface SerializedScenarioTableNode extends SerializedLexicalNode {
+    type: "scenario-table";
+    version: 1;
+    matrix: unknown;
+}
 
 export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
-    rows;
-    columns;
-    values;
-    rowFrequencies;
-    columnFrequencies;
-    expectedValue;
+    __matrix: MatrixPayload;
 
-    constructor(rows, columns, values, rowFrequencies, columnFrequencies, expectedValue, key?: NodeKey) {
+    constructor(matrix: MatrixPayload, key?: NodeKey) {
         super(key);
-        this.rows = rows;
-        this.columns = columns;
-        this.values = values;
-        this.rowFrequencies = rowFrequencies;
-        this.columnFrequencies = columnFrequencies;
-        this.expectedValue = expectedValue;
+        this.__matrix = matrix;
 
         this.setRows = this.setRows.bind(this);
         this.setColumns = this.setColumns.bind(this);
@@ -38,12 +35,7 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
 
     static clone(node) {
         return new ScenarioTableNode(
-            node.rows,
-            node.columns,
-            node.values,
-            node.rowFrequencies,
-            node.columnFrequencies,
-            node.expectedValue,
+            node.__matrix,
             node.__key);
     }
 
@@ -59,14 +51,16 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
     }
 
     decorate() {
+        const editorState = toEditorState(this.__matrix);
+
         return (
             <ScenarioTableComponent
-                initialRows={this.rows}
-                initialColumns={this.columns}
-                initialValues={this.values}
-                initialRowFrequencies={this.rowFrequencies}
-                initialColumnFrequencies={this.columnFrequencies}
-                initialExpectedValue={this.expectedValue}
+                initialRows={editorState.rows}
+                initialColumns={editorState.columns}
+                initialValues={editorState.values}
+                initialRowFrequencies={editorState.rowFrequencies}
+                initialColumnFrequencies={editorState.columnFrequencies}
+                initialExpectedValue={editorState.expectedValue}
                 updateRows={this.setRows}
                 updateColumns={this.setColumns}
                 updateValues={this.setValues}
@@ -78,80 +72,92 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         );
     }
 
-    exportJSON(): SerializedLexicalNode {
+    exportJSON(): SerializedScenarioTableNode {
         return {
             ...super.exportJSON(),
             version: 1,
-            rows: this.rows,
-            columns: this.columns,
-            values: this.values,
-            key: this.__key,
+            matrix: this.__matrix,
+            type: "scenario-table",
         };
     }
 
-    static importJSON(serializedNode: SerializedLexicalNode) {
-        return $createScenarioTableNode(
-            serializedNode.rows,
-            serializedNode.columns,
-            serializedNode.values,
-            serializedNode.rowFrequencies,
-            serializedNode.columnFrequencies,
-            serializedNode.expectedValue,
-        ).updateFromJSON(serializedNode);
+    static importJSON(serializedNode: SerializedScenarioTableNode) {
+        const result = deserializeMatrixPayload(serializedNode.matrix);
+        return $createScenarioTableNode(result.payload).updateFromJSON(serializedNode);
     }
 
-    setRows(rows: array) {
+    private updateMatrixFromEditorState(nextState: {
+        rows?: string[];
+        columns?: string[];
+        values?: Array<Array<number | string | null | undefined>>;
+        rowFrequencies?: Array<number | string | null | undefined>;
+        columnFrequencies?: Array<number | string | null | undefined>;
+        expectedValue?: number | string | null;
+    }): void {
+        const currentMatrix = this.getLatest().__matrix;
+        const currentEditorState = toEditorState(currentMatrix);
+
+        const nextPayload = serializeMatrixPayload({
+            rows: nextState.rows ?? currentEditorState.rows,
+            columns: nextState.columns ?? currentEditorState.columns,
+            values: nextState.values ?? currentEditorState.values,
+            rowFrequencies: nextState.rowFrequencies ?? currentEditorState.rowFrequencies,
+            columnFrequencies: nextState.columnFrequencies ?? currentEditorState.columnFrequencies,
+            expectedValue: nextState.expectedValue ?? currentEditorState.expectedValue,
+            metadata: currentMatrix.metadata,
+            extensions: currentMatrix.extensions,
+        });
+
         const self = this.getWritable();
-        self.rows = rows;
+        self.__matrix = nextPayload;
+    }
+
+    setRows(rows: string[]) {
+        this.updateMatrixFromEditorState({rows});
     }
 
     getRows() {
-        const self = this.getLatest();
-        return self.rows;
+        return this.getLatest().__matrix.axes.rows;
     }
 
-    setColumns(columns: array) {
-        const self = this.getWritable();
-        self.columns = columns;
+    setColumns(columns: string[]) {
+        this.updateMatrixFromEditorState({columns});
     }
 
     getColumns() {
-        const self = this.getLatest();
-        return self.columns;
+        return this.getLatest().__matrix.axes.columns;
     }
 
-    setValues(values: array) {
-        const self = this.getWritable();
-        self.values = values;
+    setValues(values: Array<Array<number | string | null | undefined>>) {
+        this.updateMatrixFromEditorState({values});
     }
 
     getValues() {
-        const self = this.getLatest();
-        return self.values;
+        return toEditorState(this.getLatest().__matrix).values;
     }
 
     getRowFrequencies() {
-        return this.getLatest().rowFrequencies;
+        return toEditorState(this.getLatest().__matrix).rowFrequencies;
     }
 
-    setRowFrequencies(frequencies) {
-        this.getWritable().rowFrequencies = frequencies;
+    setRowFrequencies(frequencies: Array<number | string | null | undefined>) {
+        this.updateMatrixFromEditorState({rowFrequencies: frequencies});
     }
 
     getColumnFrequencies() {
-        return this.getLatest().columnFrequencies;
+        return toEditorState(this.getLatest().__matrix).columnFrequencies;
     }
 
-    setColumnFrequencies(frequencies) {
-        this.getWritable().columnFrequencies = frequencies;
+    setColumnFrequencies(frequencies: Array<number | string | null | undefined>) {
+        this.updateMatrixFromEditorState({columnFrequencies: frequencies});
     }
 
     getExpectedValue() {
-        return this.getLatest().expectedValue;
+        return toEditorState(this.getLatest().__matrix).expectedValue;
     }
 
-    setExpectedValue(expectedValue) {
-        this.getWritable().expectedValue = expectedValue;
+    setExpectedValue(expectedValue: number | string | null) {
+        this.updateMatrixFromEditorState({expectedValue});
     }
 
     isInline() {
@@ -163,8 +169,8 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
     }
 }
 
-export function $createScenarioTableNode(rows, columns, values, rowFrequencies, columnFrequencies, expectedValue) {
-    const tableNode = new ScenarioTableNode(rows, columns, values, rowFrequencies, columnFrequencies, expectedValue);
+export function $createScenarioTableNode(matrix?: MatrixPayload) {
+    const tableNode = new ScenarioTableNode(matrix ?? createDefaultMatrixPayload());
     return $applyNodeReplacement(tableNode);
 }
 

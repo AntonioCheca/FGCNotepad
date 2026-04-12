@@ -1,0 +1,156 @@
+Matrix Density + Readability Strategy v0 (Editable Without Clutter)
+
+Goal
+- Increase visible matrix coverage while keeping fast numeric editing reliable.
+- Provide spreadsheet-like active-cell editing feel without turning UI into a full spreadsheet app.
+
+--------------------------------------------------
+1) Layout Rules: Compact vs Normal Modes
+--------------------------------------------------
+
+Mode intent
+
+- `Normal mode` (default)
+  - Best for mixed authoring/review and newer users.
+  - Prioritizes legibility and explicit controls.
+
+- `Compact mode`
+  - Best for power editing and larger matrices.
+  - Prioritizes columns-on-screen and navigation speed.
+
+Rules
+
+- Both modes MUST keep same interaction semantics (selection, keymap, paste).
+- Mode switch MUST be non-destructive and instant (no data transform).
+- Compact mode MUST hide non-critical chrome first (button padding, helper text, extra gutters), not core data.
+- Controls (add/remove/move) SHOULD collapse into contextual/row-hover affordances in compact mode.
+- Frequency row and EV column MUST remain visible in both modes.
+
+Concrete tradeoff decisions
+- Tradeoff #1: Always-visible row/column control buttons vs column density
+  - Decision: compact mode reduces always-visible controls; exposes on focus/hover/toolbar.
+- Tradeoff #2: Inline helper/error text vs row height stability
+  - Decision: keep inline row height stable; surface detailed error text in a single status strip or tooltip.
+
+--------------------------------------------------
+2) Cell Sizing Policy (Min / Default / Expanded)
+--------------------------------------------------
+
+Body payoff cells
+- Min width: 56px (compact), 68px (normal)
+- Default width: 64px (compact), 80px (normal)
+- Height: 32px (compact), 38px (normal)
+
+Frequency cells
+- Width: +8px over payoff default (to improve decimal readability)
+- Same row height as body cells.
+
+EV column cell
+- Min width: 96px
+- Default width: 120px
+- Keep fixed width for scan consistency.
+
+Headers/labels
+- Row label min width: 120px (compact), 150px (normal)
+- Column label min width: match payoff default + optional truncation/ellipsis.
+
+Expanded behavior (active cell)
+- Active editable cell SHOULD visually expand editor affordance without reflowing full column grid.
+- Use overlay/input expansion (absolute layer) rather than structural width change.
+
+Concrete tradeoff decisions
+- Tradeoff #3: Wider cells for readability vs visible columns
+  - Decision: default to narrow numeric cells; provide active-cell overlay editor for long/precise input.
+- Tradeoff #4: Auto-resize columns by content vs predictable scanning
+  - Decision: no auto-resize in v0; fixed policy for stable alignment and easier keyboard navigation.
+
+--------------------------------------------------
+3) Active-Cell Editor Behavior (Sheets-like Feel)
+--------------------------------------------------
+
+Recommendation
+- Use dual-layer editing:
+  - Grid cell shows compact value display.
+  - Active cell opens focused editor overlay (same coordinate anchor) with slightly larger input width and clearer caret/edit affordance.
+
+Behavior rules
+- In navigation mode, active cell is highlighted but not text-caret editing.
+- Enter/F2/printable key enters edit mode and opens active-cell editor overlay.
+- Overlay MAY extend over neighboring cells visually but MUST NOT mutate layout geometry.
+- Commit (Enter/Tab/blur commit path) writes back to cell display; Esc cancels.
+- Draft-invalid states remain editable in overlay (non-blocking).
+
+Concrete tradeoff decisions
+- Tradeoff #5: In-cell tiny input only vs separate formula bar
+  - Decision: v0 uses per-cell overlay editor, not global formula bar (lower complexity, preserves matrix context).
+
+--------------------------------------------------
+4) Sticky Readability Rules (Header / Frequency Row / EV Column)
+--------------------------------------------------
+
+Sticky layering
+- Header row, first column labels, frequency row, and EV/final column MUST remain sticky.
+- Z-index priority MUST prevent overlap ambiguity:
+  1) top-left corner intersection
+  2) active sticky header/first-column cells
+  3) sticky frequency/EV regions
+  4) body cells
+
+Readability constraints
+- Sticky zones MUST have solid background (no transparency over scrolling content).
+- Divider/shadow at sticky boundaries SHOULD be subtle but always present.
+- Text truncation in sticky labels SHOULD use ellipsis + tooltip/title on hover/focus.
+
+Frequency + EV clarity
+- Frequency row cells must show clear numeric formatting (fixed precision display).
+- EV column must remain visually distinct from editable body values (readonly/computed styling).
+- Selection highlight crossing sticky regions MUST stay coordinate-consistent.
+
+Concrete tradeoff decisions
+- Tradeoff #6: Rich sticky styling vs visual noise
+  - Decision: minimal, high-contrast separators only; avoid heavy borders on every sticky edge.
+
+--------------------------------------------------
+5) Mobile Adaptation Policy
+--------------------------------------------------
+
+Baseline policy
+- Mobile is functional-first, not full desktop parity for v0 advanced interactions.
+
+Touch targets
+- Minimum touch target: 40x40px for actionable controls.
+- Cell tap target SHOULD be >= 36px height even in compact mode.
+
+Navigation model
+- Primary mobile interaction: single active cell + directional nav controls (toolbar arrows).
+- Horizontal scroll remains enabled; sticky first column and EV column retained where feasible.
+- Multi-cell drag-range selection MAY be deferred; single-cell edit/paste must work.
+
+Fallback modes
+- If viewport is too narrow:
+  - Auto-switch to compact mode.
+  - Collapse row/column control icons into a contextual action sheet.
+  - Keep frequencies and EV accessible via pinned summary strip if full sticky layout becomes unreadable.
+
+Concrete tradeoff decisions
+- Tradeoff #7: Full spreadsheet gestures on mobile vs reliability
+  - Decision: prioritize robust single-cell workflows + toolbar navigation first; defer touch-range gestures post-MVP.
+- Tradeoff #8: Preserve all desktop controls vs usable screen space
+  - Decision: contextually collapse non-essential controls on mobile.
+
+--------------------------------------------------
+6) Practical Mode Defaults
+--------------------------------------------------
+
+- Default desktop mode: Normal.
+- Auto-suggest compact mode when columns > threshold (example: > 8 visible data columns).
+- Persist user density preference per session/editor instance.
+
+--------------------------------------------------
+7) Success Criteria for Density Strategy
+--------------------------------------------------
+
+- Users can view materially more columns in compact mode without losing edit precision.
+- Active-cell edit remains clear even with narrow cells.
+- Sticky regions remain readable and non-overlapping during horizontal/vertical scroll.
+- Mobile users can perform core correction workflow (tap, edit, commit, navigate) without accidental actions.

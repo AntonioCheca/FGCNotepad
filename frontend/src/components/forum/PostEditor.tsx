@@ -18,6 +18,7 @@ import {
 } from "@/src/components/lexical/RestoreFromLocalStoragePlugin";
 import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
 import {MentionNode} from "@/src/components/lexical/MentionNode";
+import {ScenarioTableNode} from "@/src/components/lexical/ScenarioTableNode";
 import TagList from "@/src/components/forum/TagList";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
@@ -64,6 +65,7 @@ export default function PostEditor({
             ListItemNode,
             HeadingNode,
             MentionNode,
+            ScenarioTableNode,
             QuoteNode
         ],
         editable: editable

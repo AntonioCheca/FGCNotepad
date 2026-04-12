@@ -1,0 +1,201 @@
+Matrix Interaction Spec v0 (Spreadsheet-like Editing)
+
+Version: v0 (minimal, phased)
+Audience: frontend implementation and QA for Scenario Table matrix widget
+
+--------------------------------------------------
+Normative Spec (MUST/SHOULD)
+--------------------------------------------------
+
+1) Grid Interaction Model
+
+- The matrix MUST track three distinct concepts:
+  - Active cell: coordinate used as operation anchor (paste, delete, range expansion).
+  - Focused cell: coordinate currently owning keyboard focus.
+  - Selected range: rectangular bounds (startRow/startCol/endRow/endCol).
+- Active and focused cell MUST be identical in single-cell selection state.
+- Selected range MUST always be rectangular, inclusive, and normalized (top-left to bottom-right).
+- If no range expansion exists, selected range MUST collapse to one cell.
+- The grid SHOULD expose read-only metadata per cell (editable, computed, header/frequency/action).
+
+2) Selection (Mouse)
+
+- Single click on an editable or read-only data cell MUST:
+  - set focused cell,
+  - set active cell,
+  - collapse selected range to that cell,
+  - switch to navigation mode.
+- Drag from a start cell MUST create/extend selected range rectangle from start to current hover cell.
+- Mouse-up MUST finalize selected range and keep active cell at drag origin.
+- Clicking outside the matrix SHOULD clear visual range highlight and keep last known active cell in memory.
+
+3) Modes: Navigation vs Edit
+
+- The grid MUST support exactly two interaction modes:
+  - Navigation mode: keys move selection/focus.
+  - Edit mode: text entry modifies current cell draft value.
+- Entering edit mode MUST occur via one of:
+  - Enter on focused editable cell,
+  - F2 on focused editable cell,
+  - Direct printable key input on focused editable cell (replaces current draft).
+- Exiting edit mode MUST occur via one of:
+  - Enter (commit),
+  - Tab / Shift+Tab (commit then move),
+  - Esc (cancel and restore pre-edit value),
+  - click another cell (commit if valid, otherwise keep edit with error indicator).
+- Read-only cells MUST NOT enter edit mode.
+
+4) Keyboard Behavior (Navigation Mode)
+
+- Arrow keys MUST move focus by one cell in corresponding direction.
+- Shift+Arrow MUST expand selected range from active cell to new focus coordinate.
+- Tab MUST move right one cell; Shift+Tab MUST move left one cell.
+- Enter MUST move down one cell; Shift+Enter MUST move up one cell.
+- Delete and Backspace MUST clear selected editable cells (set to empty draft/default value policy) and MUST skip read-only cells.
+- Esc MUST collapse multi-cell selection to the focused cell.
+
+5) Keyboard Behavior (Edit Mode)
+
+- While editing, character keys MUST update in-cell draft only.
+- Arrow keys SHOULD move caret inside the input; they MUST NOT navigate grid unless editing control cannot place caret further in that direction and implementation explicitly opts into boundary-leave behavior.
+- Enter MUST commit edit and return to navigation mode.
+- Esc MUST cancel edit and return to navigation mode.
+- Tab / Shift+Tab MUST commit and move to next focus target.
+
+6) Frozen Row/Column Interactions
+
+- Frozen headers/labels/actions (non-payoff controls) MUST remain visible during scroll.
+- Selection highlight MUST remain aligned with scrolled body coordinates.
+- Frozen non-data cells (headers, add/remove controls, move controls) MUST be read-only for spreadsheet operations (range fill, delete, paste).
+- Frequency row/column cells MAY be editable but MUST be treated as a distinct editable class with validation rules.
+- Range selection MAY include mixed editable/read-only cells; mutating actions MUST apply only to editable cells.
+
+7) Minimal Phasing Contract
+
+- Phase 1 MUST deliver: single-cell selection, nav/edit mode, keyboard movement, delete/clear, single-cell edit commit/cancel.
+- Phase 2 MUST deliver: drag range selection, Shift-range selection, multi-cell clear.
+- Phase 3 SHOULD deliver: multi-cell paste (TSV/CSV), mixed-selection mutation rules, stronger validation feedback.
+
+--------------------------------------------------
+Keyboard Shortcut Table
+--------------------------------------------------
+
+| Key / Combo | Navigation Mode | Edit Mode |
+|---|---|---|
+| Arrow Up/Down/Left/Right | Move focus 1 cell | Move caret in input (no grid move by default) |
+| Shift + Arrow | Expand/contract rectangular range from active cell | Select text in input (browser default) |
+| Tab | Move right 1 cell | Commit edit, move right 1 cell |
+| Shift + Tab | Move left 1 cell | Commit edit, move left 1 cell |
+| Enter | Move down 1 cell (or begin edit if configured per cell type) | Commit edit, return to nav mode |
+| Shift + Enter | Move up 1 cell | Commit edit, move up 1 cell |
+| F2 | Enter edit mode on focused editable cell | No-op |
+| Printable key (0-9, -, . etc.) | Enter edit mode and start/rewrite draft | Insert character |
+| Esc | Collapse range to focused cell | Cancel edit, restore pre-edit value |
+| Delete / Backspace | Clear selected editable cells | Delete char (input default) |
+
+--------------------------------------------------
+Acceptance Criteria (Given/When/Then)
+--------------------------------------------------
+
+1.
+Given the matrix is loaded and cell (2,3) is clicked
+When the click is processed
+Then active cell, focused cell, and selected range are all (2,3).
+
+2.
+Given active cell is (2,3) in navigation mode
+When ArrowRight is pressed
+Then focused cell becomes (2,4) and selected range collapses to (2,4).
+
+3.
+Given active cell is (2,3) in navigation mode
+When Shift+ArrowDown is pressed twice
+Then selected range is (2,3) through (4,3) and active cell remains (2,3).
+
+4.
+Given focused cell is (1,1)
+When Shift+Tab is pressed
+Then focus remains at (1,1) and no error is thrown.
+
+5.
+Given focused editable cell is (3,2) in navigation mode
+When Enter is pressed to begin editing and value is changed
+Then Enter commits the change and returns to navigation mode.
+
+6.
+Given focused editable cell contains value 10
+When edit mode changes draft to 15 and Esc is pressed
+Then cell value returns to 10 and mode returns to navigation.
+
+7.
+Given a selected range includes 6 cells where 2 are read-only
+When Delete is pressed
+Then only the 4 editable cells are cleared and read-only cells stay unchanged.
+
+8.
+Given user drags from cell (2,2) to (4,5)
+When mouse is released
+Then selected range is rectangular (2,2)-(4,5) and active cell is (2,2).
+
+9.
+Given focused cell is a read-only computed cell
+When F2 or Enter edit trigger is used
+Then edit mode does not start and focus remains on that cell.
+
+10.
+Given focused cell is at bottom row in navigation mode
+When Enter is pressed
+Then focus does not move out of bounds and remains in-grid per boundary policy.
+
+11.
+Given a horizontal scroll offset is active
+When a cell in frozen first column is selected
+Then that selected state stays visually aligned and visible while body scrolls.
+
+12.
+Given selection is multi-cell
+When Esc is pressed in navigation mode
+Then selection collapses to the focused cell with no data mutation.
+
+--------------------------------------------------
+Edge Behavior Policy (v0, one-page)
+--------------------------------------------------
+
+Purpose
+- Keep behavior predictable at boundaries, with read-only cells, and mixed selections.
+
+Out-of-Bounds Policy
+- Navigation MUST clamp at grid boundaries (no wrap in v0).
+- Shift-range expansion MUST clamp to nearest valid cell.
+- Drag selection beyond rendered bounds MUST clamp to last valid coordinate under pointer projection.
+- Mutating commands (delete/paste later phases) MUST ignore coordinates outside matrix.
+
+Read-Only Cell Policy
+- Read-only cells include computed cells, labels/headers, and action-control cells.
+- Read-only cells MAY receive focus and selection highlight.
+- Read-only cells MUST reject edit mode entry.
+- Any mutation command over read-only cells MUST skip them silently and preserve values.
+- If all selected cells are read-only, mutation command SHOULD no-op without error.
+
+Mixed Selection Policy
+- Mixed selection is a rectangle containing both editable and read-only cells.
+- Selection geometry MUST remain rectangular even when mutability differs.
+- Mutation applies only to editable subset; read-only subset remains unchanged.
+- Validation errors MUST be reported only for targeted editable cells.
+- Copy behavior (phase-later) SHOULD include displayed values for all cells, including read-only, to preserve review context.
+
+Mode Conflict Policy
+- If selection is multi-cell and user types printable input, implementation SHOULD either:
+  - reduce to focused cell and enter edit mode, or
+  - apply fill to editable selection if fill mode is explicitly enabled.
+- v0 default MUST be reduce-to-focused-cell for safety.
+
+Frozen Interaction Policy
+- Frozen row/column visibility is presentation only; logical coordinates remain in one grid space.
+- Keyboard movement MUST traverse logical coordinates, not DOM order.
+- Selection painting MUST be coordinate-driven so frozen and scrollable panes remain consistent.
+
+Error/Feedback Policy (v0 minimal)
+- Invalid edit commit SHOULD keep user in edit mode with a visible invalid state.
+- Esc MUST always provide safe exit by restoring pre-edit value.
+- No destructive fallback conversions (silent clamping/rewriting) are allowed without explicit user action.

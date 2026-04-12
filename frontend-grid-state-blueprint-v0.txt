@@ -1,0 +1,230 @@
+Frontend Grid-State Blueprint v0 (Raw Input vs Computed Display)
+
+Purpose
+- Provide an implementation-ready state structure for phased refactor of Scenario Table.
+- Cleanly separate draft input text from committed numeric/computed display values.
+
+--------------------------------------------------
+1) Proposed State Slices
+--------------------------------------------------
+
+A) `data` slice (source-of-truth payload)
+
+- `schemaVersion: number`
+  - Version for serialized matrix shape.
+- `matrixId: string`
+  - Stable id used for references/provenance.
+- `rows: string[]`
+  - Row labels (P1 options).
+- `columns: string[]`
+  - Column labels (P2 options).
+- `cells: MatrixCell[][]`
+  - Typed body cells; each stores draft + committed + type metadata.
+- `rowFrequencyCells: MatrixCell[]`
+  - Typed frequency cells per row.
+- `columnFrequencyCells: MatrixCell[]`
+  - Typed frequency cells per column.
+- `expectedValueCell: MatrixCell`
+  - Usually computed-readonly EV output.
+- `meta: MatrixMeta`
+  - Matrix-level metadata (title, notes, migration info).
+
+
+B) `interaction` slice (UI behavior)
+
+- `mode: 'navigation' | 'edit'`
+  - Global grid mode.
+- `activeCell: CellCoord | null`
+  - Operation anchor (paste/range expansion).
+- `focusedCell: CellCoord | null`
+  - Keyboard focus owner.
+- `selection: RangeSelection`
+  - Rectangular selected bounds.
+- `dragState: { isDragging: boolean; start: CellCoord | null; current: CellCoord | null }`
+  - Mouse drag-range lifecycle.
+- `pendingEdit: { coord: CellCoord; originalDraft: string | null } | null`
+  - Used for Esc cancel and commit boundaries.
+- `lastNavAction: 'keyboard' | 'mouse' | 'programmatic' | null`
+  - For consistent focus scroll behavior and diagnostics.
+
+
+C) `validation` slice (non-blocking errors/status)
+
+- `cellStatus: Record<CellKey, ValidationState>`
+  - Per-cell status (`draft-valid`, `draft-invalid`, etc.).
+- `cellMessages: Record<CellKey, ValidationMessageKey | null>`
+  - Short taxonomy message per cell.
+- `matrixWarnings: MatrixWarning[]`
+  - Aggregate warnings (e.g., partial paste skipped cells).
+- `lastValidationRunAt: number | null`
+  - Timestamp for debugging and stale detection.
+
+
+D) `clipboard` slice (paste/copy transaction state)
+
+- `lastPaste: {
+    anchor: CellCoord;
+    sourceFormat: 'tsv' | 'csv' | 'single';
+    parsedRows: number;
+    parsedCols: number;
+    appliedCount: number;
+    skippedReadonly: number;
+    skippedInvalid: number;
+    skippedOverflow: number;
+    failed: boolean;
+    message: string | null;
+  } | null`
+  - Last paste summary for UX and telemetry.
+- `isPasting: boolean`
+  - Prevents overlapping paste operations.
+- `undoBatchId: string | null`
+  - Ensures paste is one undo transaction.
+
+
+E) `derived` slice (computed display/cache)
+
+- `effectiveNumericGrid: (number | null)[][]`
+  - Numeric values consumed by solver/EV (no draft strings).
+- `effectiveRowFrequencies: (number | null)[]`
+  - Numeric frequency view.
+- `effectiveColumnFrequencies: (number | null)[]`
+  - Numeric frequency view.
+- `expectedValueDisplay: string`
+  - Formatted EV for UI.
+- `computeStatuses: Record<CellKey, ComputeStatus>`
+  - Status for computed/cyclic/reference cells.
+- `isDirtyFromSerialized: boolean`
+  - Unsaved-change indicator relative to last serialized snapshot.
+
+--------------------------------------------------
+2) Field-Level Definitions (Core Types)
+--------------------------------------------------
+
+`CellCoord`
+- `{ row: number; col: number; zone: 'body' | 'rowFreq' | 'colFreq' | 'ev' }`
+
+`RangeSelection`
+- `{ start: CellCoord | null; end: CellCoord | null; normalized: { top: number; left: number; bottom: number; right: number } | null }`
+
+`MatrixCell`
+- Discriminated cell union (value/computed/override/readonly-static) from typed-cell model spec.
+- Minimum universally required fields:
+  - `kind`
+  - `mode`
+  - `draft: string | null`
+  - `committed: number | null` (or computed equivalent)
+  - `provenance`
+
+`ValidationState`
+- `idle-empty | draft-editing-unknown | draft-valid | draft-invalid | committed-valid | committed-invalid-retained | readonly`
+
+`ValidationMessageKey`
+- `not-a-number | incomplete-number | out-of-range-frequency | readonly-target | paste-partial-skip | parse-failed`
+
+`MatrixWarning`
+- `{ code: ValidationMessageKey | 'overflow-clipped' | 'compute-unstable'; text: string; at: number }`
+
+`CellKey`
+- Stable string key, e.g., `${zone}:${row}:${col}`.
+
+--------------------------------------------------
+3) Invariants (Must Always Hold)
+--------------------------------------------------
+
+1. `rows.length === cells.length`.
+2. For each row `r`, `cells[r].length === columns.length`.
+3. `rowFrequencyCells.length === rows.length`.
+4. `columnFrequencyCells.length === columns.length`.
+5. `activeCell` and `focusedCell` are either null or valid in-bounds coordinates.
+6. `selection.normalized` is null only when selection is empty; otherwise rectangular and in-bounds.
+7. In navigation mode, no cell is in "editing session" except via `pendingEdit === null`.
+8. In edit mode, `pendingEdit.coord` MUST equal `focusedCell`.
+9. Readonly/computed cells MUST never be mutated by direct input/paste/delete actions.
+10. `effectiveNumericGrid` must be derived only from committed/effective values, never raw invalid draft strings.
+11. Serialization payload MUST contain complete data slice fields required for round-trip.
+12. Every validation entry key must map to an existing cell key or be pruned.
+
+--------------------------------------------------
+4) Event Flow Diagram
+--------------------------------------------------
+
+Single-cell typing flow
+
+1) Input
+   - User types in focused editable cell.
+2) Parse (draft-level)
+   - Token classified: unknown / valid / invalid.
+3) Validate
+   - Update `validation.cellStatus` + message key.
+4) Commit trigger (Enter/Tab/blur/click-away)
+   - If valid: convert to typed numeric committed value.
+   - If invalid: keep draft, mark invalid, continue non-blocking.
+5) Derived recompute
+   - Refresh `effectiveNumericGrid`, EV display, compute statuses.
+6) Serialize-ready snapshot
+   - Update `data` slice and dirty flag.
+
+Paste flow
+
+1) Input
+   - Clipboard text received at active anchor.
+2) Parse
+   - TSV first, CSV fallback; determine block dimensions.
+3) Placement map
+   - Anchor + offsets -> target coordinates, clip overflow.
+4) Per-cell validate/permission
+   - Skip readonly, reject invalid, apply valid writes.
+5) Commit batch
+   - Single transaction + single undo batch.
+6) Feedback
+   - Add compact paste summary warning if partial.
+7) Recompute + serialize-ready update
+
+ASCII sequence (high-level)
+
+`input event -> draft token update -> parse classify -> validate state -> (commit?) -> committed value update -> derived recompute -> serialization snapshot`
+
+--------------------------------------------------
+5) Mapping Strategy to Existing Structures
+--------------------------------------------------
+
+Current -> Target mapping
+
+- `rows: string[]` (existing) -> keep as-is in `data.rows`.
+- `columns: string[]` (existing) -> keep as-is in `data.columns`.
+- `values: number[][]` (existing mixed today) -> migrate to `data.cells`:
+  - numeric -> `kind:value`, `mode:editable`, `committed:number`, `draft:null`.
+  - temporary string placeholders (`""`, `"-"`) -> `draft:string`, `committed:null`, validation inferred.
+- `rowFrequencies: (number|string)[]` -> `rowFrequencyCells` typed with `valueType: frequency01`.
+- `columnFrequencies: (number|string)[]` -> `columnFrequencyCells` typed with `valueType: frequency01`.
+- `expectedValue: number` -> `expectedValueCell` as computed-readonly value.
+
+Phased refactor plan (implementation-ready)
+
+Phase 1: Introduce parallel typed adapter
+- Keep existing service API signatures, but adapt reads/writes through helper selectors.
+- Build `derived.effectiveNumericGrid` from both legacy and typed paths.
+
+Phase 2: Interaction/validation split
+- Move selection/edit mode/paste state out of `ScenarioTableService` into dedicated interaction state.
+- Keep existing UI rendering with compatibility props.
+
+Phase 3: Commit/serialize migration
+- Switch lexical node serialization to typed `cells` payload while supporting legacy import fallback.
+- Remove `number|string` ambiguity from core logic.
+
+Phase 4: Enable computed/reference/cyclic variants
+- Add compute statuses and reference metadata without changing interaction API shape.
+
+--------------------------------------------------
+6) Practical Integration Notes for Existing Files
+--------------------------------------------------
+
+- `frontend/hooks/useScenarioTableState.tsx`
+  - Should become orchestrator of slices (`data`, `interaction`, `validation`, `clipboard`, `derived`).
+- `frontend/services/ScenarioTableService.tsx`
+  - Should stop storing raw `any` in numeric arrays and instead dispatch typed cell transitions.
+- `frontend/src/components/lexical/ScenarioTable/ScenarioTable.tsx`
+  - Should render from typed display selectors and dispatch interaction events (not parse business rules inline).
+- `frontend/src/components/lexical/ScenarioTableNode.tsx`
+  - Must serialize full typed data shape and preserve version for backward compatibility.

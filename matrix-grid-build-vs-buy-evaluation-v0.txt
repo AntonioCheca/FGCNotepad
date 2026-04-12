@@ -1,0 +1,144 @@
+Matrix Grid Build-vs-Buy Evaluation v0
+
+Scope
+- Decide practical frontend path for spreadsheet-like matrix UX inside Lexical/forum post editor.
+- Compare three options: custom grid, lightweight grid lib, full spreadsheet lib.
+
+--------------------------------------------------
+1) Option Comparison
+--------------------------------------------------
+
+Path A: Custom Grid (in-house)
+
+Capability fit
+- Strong fit for product-specific needs (matrix body + frequencies + EV + computed/readonly variants).
+- Easier to encode custom semantics (cyclic approximation states, mixed mutability, forum-oriented display).
+- Requires building/maintaining keyboard map, range model, paste engine, and accessibility behavior.
+
+Integration complexity (Lexical/forum)
+- Best control in embedded Lexical node lifecycle.
+- Can align state/serialization exactly with ScenarioTableNode contract.
+- No 3rd-party assumptions about owning document focus or global shortcuts.
+
+Accessibility
+- Depends on team implementation quality.
+- Requires deliberate ARIA grid semantics, focus management, and screen-reader behavior.
+
+Bundle risk
+- Lowest incremental bundle risk if built on current wrappers/components.
+- No large dependency footprint.
+
+Lock-in risk
+- Low vendor lock-in; medium internal lock-in (knowledge concentrated in team).
+
+
+Path B: Lightweight Grid Library (headless or minimal UI grid)
+
+Capability fit
+- Good for baseline selection/navigation/paste scaffolding.
+- May still need custom layers for computed cells, cyclic status badges, frozen matrix-specific zones.
+- Better than full custom for time-to-prototype if library supports controlled state.
+
+Integration complexity (Lexical/forum)
+- Medium complexity: event/focus conflicts possible with Lexical editor container.
+- Must ensure library can run as controlled component and not hijack editor behavior.
+- Styling/theming may require wrapper adapters to stay wrapper-first.
+
+Accessibility
+- Usually better baseline than ad hoc custom, but quality varies by library.
+- Must validate keyboard + SR behavior within embedded editor context.
+
+Bundle risk
+- Medium risk (extra dependency and possible peer deps).
+- Usually acceptable if library is narrowly scoped and tree-shakeable.
+
+Lock-in risk
+- Medium: APIs and internal assumptions can shape state architecture.
+- Exit cost manageable if model/adapters are isolated.
+
+
+Path C: Full Spreadsheet Library
+
+Capability fit
+- High out-of-box feature depth (selection, formulas, copy/paste, maybe cycles).
+- Over-provisioned for forum matrix use case; many features irrelevant/noisy.
+- Product semantics (fighting-game-specific computed/override statuses) may fight library abstractions.
+
+Integration complexity (Lexical/forum)
+- High: ownership of keyboard shortcuts, focus model, and rendering can conflict with Lexical embedding.
+- Harder to blend with current sticky/frozen custom layout and wrapper-first UI constraints.
+
+Accessibility
+- Mixed; some libs strong, some weak, often difficult to customize accessibly once deeply integrated.
+
+Bundle risk
+- Highest risk; significant JS/CSS footprint.
+- Can impact forum editor load performance.
+
+Lock-in risk
+- High: data model/formula engine coupling can be costly to unwind.
+
+--------------------------------------------------
+2) Decision Scorecard
+--------------------------------------------------
+
+Scoring scale: 1 (poor) to 5 (strong)
+Weights: Capability Fit 30%, Integration 25%, Accessibility 15%, Bundle 15%, Lock-in 15%
+
+| Option | Capability Fit (30) | Integration (25) | Accessibility (15) | Bundle (15) | Lock-in (15) | Weighted Total / 100 |
+|---|---:|---:|---:|---:|---:|---:|
+| Custom Grid | 4.5 | 4.5 | 3.0 | 4.5 | 4.5 | 84 |
+| Lightweight Grid Lib | 3.8 | 3.5 | 3.8 | 3.2 | 3.2 | 70 |
+| Full Spreadsheet Lib | 3.2 | 2.0 | 3.2 | 1.8 | 1.8 | 49 |
+
+Interpretation
+- Custom grid scores highest because this product needs tight semantic control in an embedded editor context.
+- Lightweight library is viable as fallback accelerator if prototype velocity is too slow.
+- Full spreadsheet library is not pragmatic for current constraints.
+
+--------------------------------------------------
+3) Recommendation (Pragmatic)
+--------------------------------------------------
+
+Recommended path: Custom Grid with strict modular boundaries and a 2-week prototype gate.
+
+Why for this codebase
+- Existing code already has custom ScenarioTable render/control shape and Lexical node integration.
+- Core requirements (computed/readonly/cyclic/override semantics) are domain-specific and likely to outgrow generic grid abstractions.
+- Bundle and forum-editor responsiveness matter; heavy spreadsheet libs are risky.
+
+How to de-risk custom path
+- Build only MVP interaction surface first: active/focus/selection, keymap, paste TSV/CSV, validation states.
+- Keep architecture adapter-ready so a lightweight grid can be swapped for rendering/interaction if needed.
+- Add measurable prototype criteria (below) before full commitment.
+
+Prototype success gate (pass/fail)
+- Keyboard parity: arrows/tab/enter/shift variants + edit/nav mode.
+- Block paste reliability: >= 95% of defined vectors pass.
+- No Lexical focus regressions in post editor embedding.
+- No noticeable typing lag on representative matrix size.
+
+--------------------------------------------------
+4) Exit Strategy if Chosen Option Fails
+--------------------------------------------------
+
+If custom prototype fails gate (velocity or quality), pivot to lightweight grid lib.
+
+Exit strategy steps
+1. Preserve domain state model and serialization contract as source of truth (do not couple to renderer internals).
+2. Replace only interaction/render layer via adapter (`GridAdapter` interface).
+3. Map library events -> existing domain actions (selection, edit, paste, commit).
+4. Keep computed/cyclic engine and validation taxonomy unchanged.
+5. Run the same acceptance vectors/regression guards after swap.
+
+If lightweight lib later fails (lock-in/perf)
+- Fall back to custom renderer while reusing preserved domain model/services.
+- Avoid full spreadsheet lib unless explicit requirement expansion justifies bundle + lock-in tradeoff.
+
+--------------------------------------------------
+5) Practical Notes for Current Repo
+--------------------------------------------------
+
+- Keep wrapper-first UI intact; any third-party grid visuals must be wrapped or theme-bridged.
+- Avoid introducing formula engines that supersede planned domain-specific cyclic semantics unless explicitly scoped.
+- Ensure Lexical node load/save pipeline remains owner of matrix serialization, independent of grid UI choice.

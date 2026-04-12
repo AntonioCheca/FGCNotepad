@@ -1,0 +1,218 @@
+Matrix Typed Cell Model v0 (Current + Future Compatible)
+
+Scope
+- Define a TypeScript-friendly, serialization-safe cell model for payoff matrices.
+- Cover current editable numeric workflows and future computed/cyclic/reference needs.
+- Keep compatibility with Lexical node JSON export/import (plain JSON, versioned, no functions/classes).
+
+--------------------------------------------------
+1) Type Model Proposal (TypeScript-friendly shape, no implementation)
+--------------------------------------------------
+
+Design principles
+- Use discriminated unions by `kind` and `mode`.
+- Keep all fields JSON-serializable.
+- Separate `draft` (UI typing buffer) from `committed` (solver-truth numeric).
+- Preserve provenance/debug metadata in each cell.
+
+Core envelope
+- `schemaVersion`: number (required)
+- `matrixId`: string (stable id for cross-matrix references)
+- `rows`: string[]
+- `columns`: string[]
+- `cells`: MatrixCell[][] (same dimensions as rows x columns)
+- `rowFrequencies`: MatrixCell[] (typed frequency cells)
+- `columnFrequencies`: MatrixCell[] (typed frequency cells)
+- `expectedValueCell`: MatrixCell (usually computed-readonly)
+- `meta`: MatrixMeta
+
+MatrixCell union
+
+1) Editable static value cell
+- `kind`: `value`
+- `mode`: `editable`
+- `valueType`: `number` | `integer` | `frequency01`
+- `committed`: number | null
+- `draft`: string | null
+- `validation`: ValidationState
+- `provenance`: ProvenanceMeta
+
+2) Computed reference cell (other matrix)
+- `kind`: `computed`
+- `mode`: `readonly`
+- `computeType`: `external_ref`
+- `formula`: string (human/debug expression)
+- `dependencies`: DependencyRef[] (must include external matrix refs)
+- `computed`: number | null
+- `computeStatus`: ComputeStatus
+- `provenance`: ProvenanceMeta
+
+3) Computed self/cyclic reference cell
+- `kind`: `computed`
+- `mode`: `readonly` (or `overrideable` if policy allows)
+- `computeType`: `self_ref_cyclic`
+- `formula`: string
+- `dependencies`: DependencyRef[] (may include same matrix cell refs)
+- `computed`: number | null
+- `computeStatus`: `ok` | `stale` | `cycle_detected` | `error`
+- `cycleInfo`: { cycleId: string; members: CellCoordRef[] } | null
+- `provenance`: ProvenanceMeta
+
+4) Locked/manual override cell
+- `kind`: `override`
+- `mode`: `locked_manual`
+- `baseSource`: `value` | `computed`
+- `baseValue`: number | null
+- `overrideValue`: number | null
+- `effectiveValue`: number | null (render/solver uses this)
+- `lockReason`: string | null
+- `validation`: ValidationState
+- `provenance`: ProvenanceMeta
+
+Supporting shapes
+
+- `ValidationState`
+  - `status`: `idle-empty` | `draft-editing-unknown` | `draft-valid` | `draft-invalid` | `committed-valid` | `committed-invalid-retained`
+  - `messageKey`: `not-a-number` | `incomplete-number` | `out-of-range-frequency` | `readonly-target` | `paste-partial-skip` | `parse-failed` | null
+
+- `DependencyRef`
+  - `matrixId`: string
+  - `cell`: { row: number; col: number }
+  - `kind`: `value` | `computed` | `frequency` | `ev`
+
+- `CellCoordRef`
+  - `matrixId`: string
+  - `row`: number
+  - `col`: number
+
+- `ComputeStatus`
+  - `state`: `ok` | `stale` | `cycle_detected` | `error` | `pending`
+  - `lastEvalAt`: string | null (ISO)
+  - `errorCode`: string | null
+
+- `ProvenanceMeta`
+  - `createdBy`: string | null
+  - `updatedBy`: string | null
+  - `updatedAt`: string | null (ISO)
+  - `source`: `manual` | `paste` | `solver` | `import` | `formula`
+  - `sourceDetail`: string | null
+  - `revision`: number
+
+- `MatrixMeta`
+  - `title`: string | null
+  - `notes`: string | null
+  - `serializationVersion`: number
+  - `migrationFrom`: string | null
+
+Lexical compatibility constraints
+- All union members MUST serialize to plain JSON only.
+- Do not store runtime objects (`Map`, `Set`, class instances, Date objects).
+- Use explicit `schemaVersion` and forward-compatible unknown-field tolerance.
+- `exportJSON`/`importJSON` must round-trip every typed cell field (including frequencies/EV/provenance).
+
+--------------------------------------------------
+2) Read/Write Permissions Matrix by Cell Type
+--------------------------------------------------
+
+Legend
+- R = readable/displayable
+- W = user writable
+- C = computed engine writable
+- O = override writable
+
+| Cell Type | User Read | User Write | Paste Write | Solver/Compute Write | Formula Edit | Override Edit | Delete/Clear |
+|---|---|---|---|---|---|---|---|
+| Editable static value (`value/editable`) | R | W | W | C (optional normalize only) | No | No | W |
+| Computed external ref (`computed/external_ref`) | R | No | No | C | Yes (authorized contexts) | No | No |
+| Computed self/cyclic (`computed/self_ref_cyclic`) | R | No | No | C | Yes (authorized contexts) | Optional via override cell only | No |
+| Locked/manual override (`override/locked_manual`) | R | W (override only) | W (override only) | C updates baseValue only | No (unless base formula cell) | Yes | W (clears override, not base) |
+
+Policy notes
+- Paste into mixed selection MUST skip non-user-writable targets.
+- Readonly computed cells may still be focusable/selectable for review.
+
+--------------------------------------------------
+3) Rendering Affordance Recommendations per Type
+--------------------------------------------------
+
+- Editable static value
+  - Standard editable input style.
+  - Shows draft validation border states.
+  - Normal cursor + focus ring.
+
+- Computed reference (other matrix)
+  - Readonly visual fill distinct from editable cells.
+  - Small reference badge/icon (e.g., "ref").
+  - Tooltip/inline hint: source matrix + coordinate + formula summary.
+
+- Computed self/cyclic
+  - Readonly fill + compute-status badge.
+  - If `cycle_detected`, show warning glyph and short message key.
+  - Keep selectable for inspection/debug.
+
+- Locked/manual override
+  - Dual-layer cue: lock icon + "override" badge.
+  - Show effective value primarily; base value available in hover/details.
+  - Optional subtle stripe/border to distinguish from plain editable.
+
+- Provenance/debug affordance (all types)
+  - Lightweight inspector on focus (or side panel): source, updatedAt, updatedBy, revision.
+  - Do not overload dense grid with always-visible metadata text.
+
+--------------------------------------------------
+4) Migration Path: `number[][]` -> Typed Cells
+--------------------------------------------------
+
+Phase 0: Serialization parity prework
+- Ensure node export/import already includes rows, columns, values, rowFrequencies, columnFrequencies, expectedValue.
+- Add `schemaVersion` field at matrix root.
+
+Phase 1: Introduce envelope with backward compatibility
+- New payload supports `cells` while still accepting legacy `values`.
+- Import rule:
+  - If `cells` exists -> typed path.
+  - Else if `values` exists -> legacy adapter path.
+
+Phase 2: Legacy adapter mapping
+- Map each legacy `values[r][c]` to `value/editable` cell:
+  - numeric -> `committed` numeric, `draft` null, `committed-valid`.
+  - string placeholders (`""`, `"-"`) -> `draft` preserved, `committed` null, draft state inferred.
+- Map frequency arrays to typed frequency cells (`valueType: frequency01`).
+- Map EV scalar to computed-readonly cell.
+- Populate provenance with `source: import`, revision 1.
+
+Phase 3: Internal API transition
+- Services/hooks consume typed cell accessors (read effective numeric values for solver).
+- Keep compatibility shim that derives numeric matrix view for existing solver API.
+
+Phase 4: Enable computed/override variants
+- Add computed reference and cyclic variants behind feature flags.
+- Add override behavior after readonly semantics stabilize.
+
+Phase 5: Deprecate legacy `values`
+- Export typed-only payload after migration confidence window.
+- Maintain import support for older snapshots for a defined period.
+
+--------------------------------------------------
+5) Risk Assessment (Top 5 Type-System Pitfalls)
+--------------------------------------------------
+
+1) Draft vs committed value confusion
+- Risk: business logic accidentally reads `draft` strings.
+- Mitigation: expose one typed selector for "effective numeric value" only.
+
+2) Union narrowing failures in UI code
+- Risk: accessing computed fields on value cells (runtime undefined bugs).
+- Mitigation: strict discriminated unions + exhaustive switch checks.
+
+3) Serialization drift across versions
+- Risk: import/export loses new fields (already observed historically with frequencies/EV).
+- Mitigation: explicit schema version, round-trip tests, unknown-field preservation policy.
+
+4) Cyclic compute status not represented strongly enough
+- Risk: cycle detection stored as generic error; UX cannot distinguish stale vs cyclic.
+- Mitigation: dedicated `cycle_detected` status + structured `cycleInfo`.
+
+5) Permission leakage through generic edit pathways
+- Risk: paste/delete handlers mutate readonly/computed cells by mistake.
+- Mitigation: centralized mutability guard by cell `mode/kind`, not per-component ad hoc checks.

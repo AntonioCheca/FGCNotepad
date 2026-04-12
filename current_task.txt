@@ -1,0 +1,271 @@
+You are working in repo:  (Windows).
+Mode: READ-ONLY research/planning only. Do not edit files, do not propose code patches, do not run destructive commands.
+You can create new txts for this OR you can edit the txt file already created called
+
+Goal context:
+We are starting an epic to redesign the forum payoff matrix UX into a spreadsheet-like mini-widget (Google Sheets-like interactions, but scoped and practical).
+Current pain points:
+- Hard-to-maintain matrix code split across large files.
+- Clunky editing/viewing density.
+- Missing spreadsheet behavior (rectangular selection, robust navigation, paste blocks).
+- Future requirements include non-editable computed cells, cross-matrix references, and cyclical references (common in fighting-game risk/reward loops).
+- Matrix includes extra final rows/columns for usage frequencies and expected value.
+
+Known implementation snapshot (to avoid rediscovery):
+- Main UI: frontend/src/components/lexical/ScenarioTable/ScenarioTable.tsx
+- Wrapper: frontend/src/components/lexical/ScenarioTableComponent.tsx
+- Node/serialization: frontend/src/components/lexical/ScenarioTableNode.tsx
+- State hook: frontend/hooks/useScenarioTableState.tsx
+- Service logic: frontend/services/ScenarioTableService.tsx
+- Solver glue: frontend/services/GameSolverService.tsx
+- Editor helpers (currently likely unused): frontend/hooks/useScenarioTableEditor.tsx
+- Post editor config: frontend/src/components/forum/PostEditor.tsx
+
+Known issues:
+- Only basic arrow-key focus exists; no rectangular selection/paste engine.
+- Type inconsistencies (e.g., numeric matrix storing temporary strings).
+- Serialization mismatch (node export/import fields not aligned for full matrix state).
+- Potential integration drift (scenario table node/editor hook wiring concerns).
+
+Return format requirements:
+1) Findings (concise bullets, file paths + line hints where useful)
+2) Decisions/Recommendations
+3) Open Questions (only blockers)
+4) Output Artifact exactly requested by this task
+Keep answers practical and implementation-oriented.
+
+----------------------------------------------------
+Task: Produce a current-vs-target spreadsheet behavior gap audit for the matrix editor.
+
+Use repo context from generic prompt. Focus on:
+- Keyboard nav (arrows/tab/enter/shift variants)
+- Selection model (single cell, range selection, multi-cell)
+- Editing flow (in-cell edit vs navigation mode)
+- Clipboard behavior (single/multi-cell paste, CSV/TSV handling)
+- Validation feedback behavior
+- Mobile interaction constraints
+
+Required output artifact:
+- A table with columns: Behavior, Current State, Missing Capability, Severity (High/Med/Low), Suggested First Fix
+- Prioritized top 10 gaps
+- “Do first / do later” split (MVP vs post-MVP)
+
+Do not re-audit unrelated forum/editor systems.
+-----------------------------------------------------------
+
+Task: Define user intent model for matrix workflows in this product.
+
+Use this domain context:
+- Users enter risk/reward numbers for fighting-game situations.
+- Users review details for correctness and suggest corrections.
+- Some cells represent advanced scenarios (input fail rates, nested mindgames, dynamic computed values).
+
+Required output artifact:
+- 3 primary user jobs (Author, Reviewer, Corrector)
+- For each: Trigger, Core Actions, Friction Today, Success Criteria
+- “Critical-to-adoption” checklist (max 8 bullets)
+- 5 anti-goals (things UX must avoid)
+
+Keep this product-specific; avoid generic UX jargon.
+-----------------------------------------------------------
+Task: Draft a minimal interaction spec (v0) for spreadsheet-like matrix editing.
+
+Scope:
+- Active cell, focused cell, selected range
+- Mouse click/drag selection
+- Keyboard rules: arrows, tab/shift+tab, enter/shift+enter, esc, delete/backspace
+- Edit mode vs navigation mode transition rules
+- Frozen row/column behavior interactions
+
+Required output artifact:
+- “Normative spec” section using MUST/SHOULD language
+- Keyboard shortcut table
+- 12 acceptance criteria in Given/When/Then format
+- 1-page “edge behavior policy” (out-of-bounds, readonly cell, mixed selection)
+
+Must be minimal and implementable in phases.
+-----------------------------------------------------------
+Task: Define clipboard paste spec for TSV/CSV block input into matrix.
+
+Context:
+- Need multi-cell paste from spreadsheets.
+- Matrix may include readonly/computed cells.
+- Must not block normal editing flow.
+
+Required output artifact:
+- Parsing rules (TSV first, CSV fallback, newline handling, quoted fields policy)
+- Placement rules (anchor cell, clipping, overflow handling)
+- Conflict rules (readonly targets, partial overwrite)
+- Error handling UX (silent skip vs warning policy)
+- 10 concrete paste test vectors with expected outcomes
+
+Include recommendation for undo granularity (single action vs per cell).
+-----------------------------------------------------------
+Task: Define non-blocking validation UX for numeric matrix inputs.
+
+Context:
+- Invalid draft text should be allowed while typing.
+- Committed values should become typed numeric outputs when valid.
+- Must support subtle fighting-game numeric entry workflows.
+
+Required output artifact:
+- Validation states model (draft-invalid, draft-valid, committed-valid, computed-readonly, etc.)
+- Visual state mapping (color/icon/text, including accessibility-safe contrast guidance)
+- Trigger points (on change, on blur, on commit, on paste)
+- Error message taxonomy (max 6 categories)
+- “No interruption” guarantees (what editing must never block)
+
+Keep consistent with current app’s practical styling constraints.
+-----------------------------------------------------------
+Task: Design typed matrix cell model variants for current + future needs.
+
+Must include at least:
+- Editable static value cell
+- Computed reference cell (other matrix)
+- Computed self/cyclic reference cell
+- Locked/manual override cell
+- Metadata for provenance/debugging
+
+Required output artifact:
+- Type model proposal (TypeScript-friendly shape, no code implementation)
+- Read/write permissions matrix by cell type
+- Rendering affordance recommendations per type
+- Migration path from current `number[][]` model to typed cells
+- Risk assessment (top 5 type-system pitfalls)
+
+Keep it compatible with existing Lexical node serialization constraints.
+-----------------------------------------------------------
+Task: Define deterministic semantics for cyclical reference evaluation in matrix cells.
+
+Context:
+- Cycles are common and must be in MVP.
+- Product idea: fixed loop approximation (e.g., 4-5 iterations).
+
+Required output artifact:
+- Evaluation algorithm options (fixed iteration, convergence threshold, hybrid) with pros/cons
+- Recommended MVP policy and rationale
+- User-facing explanation strategy (how to communicate “approximate” result)
+- Failure/instability handling states
+- 6 scenario examples, including self-reference and cross-matrix loops
+
+Optimize for predictability + explainability over mathematical perfection.
+-----------------------------------------------------------
+Task: Produce frontend grid-state blueprint that separates raw input vs computed display.
+
+Context from existing files:
+- `useScenarioTableState` and `ScenarioTableService` currently mix number/string in value arrays.
+- Need robust state for selection, editing, validation, and paste.
+
+Required output artifact:
+- Proposed state slices (data, interaction, validation, clipboard, derived)
+- Field-level definitions (what each property stores)
+- Invariants list (must always hold true)
+- Event flow diagram (input -> parse -> validate -> commit -> serialize)
+- Mapping strategy to existing rows/columns/frequencies/EV structures
+
+Keep this implementation-ready for phased refactor.
+-----------------------------------------------------------
+Task: Define backward-compatible serialization contract for scenario table node data.
+
+Context:
+- Existing export/import mismatch likely drops some matrix metadata.
+- Need safe loading for old posts and new enhanced matrix features.
+
+Required output artifact:
+- Versioned JSON schema plan (v1/v2 strategy)
+- Backward compatibility rules
+- Forward compatibility fallback behavior
+- Migration policy during load (normalize old data)
+- “Never lose user data” checklist
+
+Include file-level impact map for:
+- ScenarioTableNode
+- state hook/service boundaries
+- editor load/save plugins
+-----------------------------------------------------------
+Task: Propose modular frontend architecture to replace monolithic matrix component logic.
+
+Context:
+- Current table component mixes rendering, sticky layout, navigation, and input behavior.
+- We need maintainability + future extension points.
+
+Required output artifact:
+- Target module breakdown (hook/service/component boundaries)
+- Responsibilities per module (single-purpose)
+- Dependency direction map (what can import what)
+- Incremental refactor sequence (small safe steps)
+- “Don’t break these behaviors” regression guard list
+
+Follow repo constraints: wrapper-first UI and strong typing direction.
+-----------------------------------------------------------
+Task: Evaluate whether to use a grid library vs custom implementation.
+
+Constraints:
+- Embedded in Lexical/forum context.
+- Spreadsheet-like keyboard + selection + paste needed.
+- Must handle custom readonly/computed cells and future dynamic references.
+- Bundle and maintenance impact matter.
+
+Required output artifact:
+- Compare 3 paths: custom grid, lightweight grid lib, full spreadsheet lib
+- For each: capability fit, integration complexity, accessibility, bundle risk, lock-in risk
+- Recommendation with decision scorecard
+- “Exit strategy” if chosen option fails after prototype
+
+Keep recommendation pragmatic for this specific codebase.
+-----------------------------------------------------------
+Task: Define matrix density/readability design strategy (editability without clutter).
+
+Context:
+- Current UI shows too few columns comfortably.
+- Need compact visibility + adequate text entry.
+- Sheets-like affordances desired (active cell overflow editing feel).
+
+Required output artifact:
+- Layout rules for compact vs normal modes
+- Cell sizing policy (min/default/expanded behavior)
+- Active-cell editor behavior recommendation
+- Sticky headers/frequency row/EV column readability rules
+- Mobile adaptation policy (touch targets, horizontal nav, fallback modes)
+
+Include concrete UX tradeoff decisions, not visual fluff.
+-----------------------------------------------------------
+Task: Define performance budget and scaling policy for matrix editor.
+
+Context:
+- Feature growth will add computed/dynamic cells and richer interactions.
+- Need smooth editing and navigation.
+
+Required output artifact:
+- Target performance budgets (latency goals for key interactions)
+- Size thresholds (rows x cols) for strategy switches
+- Re-render minimization strategy ideas
+- Virtualization decision rules
+- Instrumentation plan (what to measure during manual QA)
+
+Focus on actionable thresholds for engineering decisions.
+-----------------------------------------------------------
+Task: Build manual QA protocol for matrix editor MVP and near-future features.
+
+Required output artifact:
+- Test matrix grouped by: keyboard nav, selection, paste, validation, readonly/computed behavior, mobile
+- Must-pass smoke suite (max 20 checks)
+- Edge-case suite (at least 25 checks)
+- Known-issues log template (severity, repro, workaround, owner)
+- Release sign-off checklist
+
+Include realistic test data examples from fighting-game style use cases.
+-----------------------------------------------------------
+Task: Convert all prior outputs into a phased execution roadmap with risk controls.
+
+Assume inputs from tasks 1-14 are available, they are in the root folder, they are all txt
+
+Required output artifact:
+- 4 implementation phases with goals and deliverables
+- Dependency graph (what must land first)
+- Risk register (probability/impact/mitigation)
+- Rollback strategy per phase
+- Parallelization plan (which tasks can run concurrently by different agents)
+- “Definition of ready” and “definition of done” per phase
+
+Keep it execution-focused; no long essays.

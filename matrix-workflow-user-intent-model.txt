@@ -1,0 +1,82 @@
+Matrix Workflow User Intent Model (FGCNotepad)
+
+Primary Job 1: Author
+
+- Trigger:
+  - User is writing a matchup/scenario post and needs to capture payoff assumptions (risk/reward, frequency, EV) clearly.
+- Core Actions:
+  - Name row/column moves for P1 vs P2 options.
+  - Enter payoff values fast across many cells.
+  - Set usage frequencies and run solver-assisted baseline.
+  - Mark advanced cells (fail-rate adjusted values, nested mindgame branches, computed outputs).
+  - Keep matrix legible enough for forum readers.
+- Friction Today:
+  - Editing large matrices is slow (single-cell focus flow, no block operations).
+  - Temporary numeric input states are fragile and can feel inconsistent.
+  - Advanced computed/derived intent is not first-class in cell behavior.
+  - Serialization gaps can risk losing full matrix context.
+- Success Criteria:
+  - Can fill a medium matrix in one pass without fighting focus/navigation.
+  - Can paste full blocks from notes/spreadsheets with predictable placement.
+  - Can distinguish editable assumptions vs computed outputs at a glance.
+  - Posted matrix round-trips without dropping frequencies/EV/derived context.
+
+Primary Job 2: Reviewer
+
+- Trigger:
+  - User reads someone else’s matrix and wants to validate assumptions before agreeing/disagreeing.
+- Core Actions:
+  - Scan payoff structure quickly (rows, columns, outliers, EV/frequency coherence).
+  - Inspect advanced scenario cells (fail rates, conditional branches, dynamic values).
+  - Recompute mentally or with solver button to compare expected outcomes.
+  - Spot suspicious entries and identify exact cells to challenge.
+- Friction Today:
+  - Dense input-heavy presentation hurts read-only review flow.
+  - Weak selection/navigation model makes structured auditing slower.
+  - Limited visual distinction between raw entered values and derived numbers.
+  - Validation signals are subtle or missing when values are malformed.
+- Success Criteria:
+  - Can audit a matrix in under a few minutes and trust what is raw vs computed.
+  - Can move cell-by-cell with reliable keyboard flow during review.
+  - Can identify and reference exact problematic coordinates confidently.
+  - Can verify that EV/frequency relationships are internally consistent.
+
+Primary Job 3: Corrector
+
+- Trigger:
+  - User finds mistakes (wrong payoff, bad frequency, bad assumption) and wants to propose or apply corrections.
+- Core Actions:
+  - Jump directly to incorrect cells.
+  - Replace one cell or paste correction blocks for multiple related cells.
+  - Update frequencies and confirm EV impact.
+  - Preserve advanced scenario logic while correcting base assumptions.
+  - Prepare corrected matrix that others can re-check quickly.
+- Friction Today:
+  - No rectangular selection/paste workflow for multi-cell corrections.
+  - No strong edit-mode vs nav-mode separation, causing accidental moves/edits.
+  - Limited inline feedback on invalid corrections.
+  - Hard to perform repeatable correction passes without spreadsheet-like controls.
+- Success Criteria:
+  - Can apply a correction pass (single or multi-cell) without data-entry mistakes.
+  - Receives immediate, clear feedback when correction input is invalid.
+  - Can confirm updated EV/frequency outcomes right after corrections.
+  - Correction workflow is fast enough to encourage community iteration.
+
+Critical-to-Adoption Checklist
+
+- Block paste (TSV/CSV) must work reliably from Discord notes, Google Sheets, and local text files.
+- Keyboard workflow must feel spreadsheet-native (arrows/tab/enter/shift variants) for fast matrix authoring.
+- Clear visual distinction between editable assumption cells and computed/non-editable cells.
+- Full matrix persistence must be lossless (payoffs, frequencies, EV, and advanced cell metadata).
+- Validation must be immediate and understandable (especially frequency bounds and malformed numeric inputs).
+- Review mode must be readable, not just editable; dense data must remain scannable.
+- Mobile fallback must support practical single-cell correction and navigation (even if full range features are desktop-first).
+- Solver integration must not overwrite user intent silently; changes should be predictable and inspectable.
+
+Anti-Goals (Must Avoid)
+
+- Turning the widget into a full generic spreadsheet product unrelated to matchup analysis.
+- Hiding derived/computed logic so users cannot tell why a value appears.
+- Auto-correcting or clamping values silently in ways that mask user mistakes.
+- Forcing mouse-only workflows that block fast keyboard users.
+- Breaking round-trip consistency between authored matrix and what reviewers/correctors see later.

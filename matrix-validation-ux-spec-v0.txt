@@ -1,0 +1,180 @@
+Matrix Numeric Validation UX Spec v0 (Non-Blocking)
+
+Purpose
+- Allow fast fighting-game number entry without interrupting typing flow.
+- Keep draft input permissive, commit only typed numeric values when valid.
+
+--------------------------------------------------
+1) Validation States Model
+--------------------------------------------------
+
+Core states (cell-level)
+
+1. `idle-empty`
+- Cell has no value yet.
+- No error, neutral presentation.
+
+2. `draft-editing-unknown`
+- User is actively typing; token is incomplete but potentially valid later.
+- Examples: `-`, `.`, `0.`, `-0.`.
+
+3. `draft-valid`
+- User is typing and current token parses to a valid number for this cell type.
+- Not committed yet.
+
+4. `draft-invalid`
+- User is typing token that cannot be accepted as a valid commit for target cell type.
+- Examples: `--3`, `1..2`, `abc` for numeric-only cells.
+
+5. `committed-valid`
+- Cell stores committed typed numeric value.
+- This is the value used by solver/EV logic.
+
+6. `committed-invalid-retained` (optional safety state)
+- Existing committed value is stale/invalid due to rule change or paste mismatch.
+- Cell remains readable; flagged for correction.
+
+7. `computed-readonly`
+- Non-editable derived value.
+- Never enters editing states.
+
+8. `readonly-static`
+- Non-editable label/header/control cell.
+
+Notes for current matrix classes
+- Payoff cells: numeric (integer or decimal policy by product decision).
+- Frequency cells: numeric constrained to [0,1] on commit.
+- Computed cells (EV/derived): readonly.
+
+--------------------------------------------------
+2) Visual State Mapping (Practical + Accessible)
+--------------------------------------------------
+
+Guidance
+- Keep visuals subtle and compact to preserve dense matrix readability.
+- Do not rely on color only; include shape/text/icon cue for assistive clarity.
+- Maintain minimum 4.5:1 contrast for text/icons against cell background.
+
+State-to-UI mapping
+
+- `idle-empty`
+  - Border: neutral thin.
+  - Text: placeholder/empty style.
+  - Helper text: none.
+
+- `draft-editing-unknown`
+  - Border: focus color (existing app focus tone).
+  - Background: none or very light focus tint.
+  - Helper text: none.
+
+- `draft-valid`
+  - Border: focus color.
+  - Background: very light positive tint (optional).
+  - Icon: none by default (avoid icon noise).
+
+- `draft-invalid`
+  - Border: warning/error color with 2px emphasis.
+  - Background: light warning tint (not saturated).
+  - Inline cue: small warning dot/icon in cell corner OR concise helper below active cell.
+  - ARIA: `aria-invalid=true` for active input.
+
+- `committed-valid`
+  - Border/background: neutral.
+  - Value displayed as normalized numeric format.
+
+- `committed-invalid-retained`
+  - Border: warning dashed or distinct caution style.
+  - Background: subtle caution tint.
+  - Tooltip/helper: "Needs correction" reason.
+
+- `computed-readonly`
+  - Text: medium emphasis.
+  - Background: readonly fill distinct from editable cells.
+  - Cursor: default (not text caret).
+  - Icon: optional calculator/lock glyph for discoverability.
+
+- `readonly-static`
+  - Existing frozen/header style.
+  - No editable affordances.
+
+Accessibility-safe color constraints
+- Error text/icon contrast MUST be >= 4.5:1.
+- Readonly vs editable differentiation SHOULD combine background + cursor + focus behavior.
+- Focus indicator MUST remain visible in both light/dark themes.
+
+--------------------------------------------------
+3) Trigger Points and Behavior
+--------------------------------------------------
+
+On Change (typing)
+- MUST update draft token immediately.
+- MUST evaluate into `draft-editing-unknown`, `draft-valid`, or `draft-invalid`.
+- MUST NOT block keystrokes.
+- MUST NOT auto-clamp/auto-correct silently.
+
+On Blur
+- If draft is valid: commit to typed numeric value (`committed-valid`).
+- If draft is incomplete/invalid: keep draft visible and mark invalid; do not silently replace.
+- SHOULD show concise local hint for correction.
+
+On Commit action (Enter/Tab/click-away commit path)
+- Valid draft MUST commit to numeric typed value.
+- Invalid draft MUST remain uncommitted and flagged; navigation may proceed, but invalid state persists.
+
+On Paste
+- Validate per target cell.
+- Valid targets commit.
+- Invalid/readonly targets skip with summary warning.
+- MUST NOT cancel entire paste unless global parse fails.
+
+On Solver/Derived recomputation
+- MUST ignore draft-only invalid states in editable cells unless commit policy explicitly includes draft values.
+- Computed cells update from committed data only.
+
+--------------------------------------------------
+4) Error Message Taxonomy (max 6)
+--------------------------------------------------
+
+Use short, reusable messages; avoid verbose modal errors.
+
+1. `not-a-number`
+- "Enter a numeric value."
+
+2. `incomplete-number`
+- "Finish the number to commit."
+
+3. `out-of-range-frequency`
+- "Frequency must be between 0 and 1."
+
+4. `readonly-target`
+- "This cell is computed/read-only."
+
+5. `paste-partial-skip`
+- "Paste applied with some skipped cells."
+
+6. `parse-failed`
+- "Could not parse pasted data."
+
+--------------------------------------------------
+5) No-Interruption Guarantees
+--------------------------------------------------
+
+Editing must never block these actions:
+
+1. User MUST be able to type temporary invalid numeric text while composing a value.
+2. Arrow/Tab/Enter navigation MUST remain available; invalid draft should not lock focus in a trap.
+3. Paste MUST still apply valid subset when some cells are invalid/readonly.
+4. Undo MUST work for validation-related commits/rejections without requiring per-cell recovery.
+5. Invalid state display MUST be lightweight (inline/non-modal), never a blocking modal.
+6. Read-only cell encounters MUST not interrupt flow; they are skipped with concise feedback.
+7. Matrix rendering/performance MUST not degrade due to validation checks on every keystroke.
+8. Existing committed valid values MUST never be overwritten by silent coercion from invalid drafts.
+
+--------------------------------------------------
+Implementation Notes (v0)
+--------------------------------------------------
+
+- Keep validation state local to cell model (`draft`, `committed`, `status`, `messageKey`).
+- Reuse existing app theme tokens and wrapper components; avoid introducing heavy new visual primitives.
+- Prefer one compact status surface:
+  - per-cell border/tint + optional lightweight footer/status text for active cell.

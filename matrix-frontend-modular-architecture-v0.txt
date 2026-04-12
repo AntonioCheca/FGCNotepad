@@ -1,0 +1,187 @@
+Matrix Frontend Modular Architecture v0 (Monolith Split Plan)
+
+Goal
+- Replace monolithic Scenario Table logic with typed, single-purpose modules.
+- Keep wrapper-first UI usage and align with strong typing direction.
+
+--------------------------------------------------
+1) Target Module Breakdown
+--------------------------------------------------
+
+Feature root (suggested)
+- `frontend/src/features/scenario-table/`
+
+Modules
+
+1. `model/`
+- `types.ts`
+  - Matrix domain types (cell unions, coords, selections, validation states, serialization shapes).
+- `selectors.ts`
+  - Pure derived reads (effective numeric grid, EV display value, mutability checks).
+- `normalizers.ts`
+  - Legacy->typed conversion and shape repair utilities.
+
+2. `state/`
+- `useScenarioTableStore.ts`
+  - Main feature state hook with slices: data/interaction/validation/clipboard/derived.
+- `reducers/`
+  - Pure reducers per concern (`dataReducer`, `interactionReducer`, etc.).
+- `actions.ts`
+  - Typed action creators/events.
+
+3. `services/`
+- `MatrixEditService.ts`
+  - Cell edit commit/cancel behavior, draft transitions.
+- `MatrixNavigationService.ts`
+  - Keyboard traversal and range movement rules.
+- `MatrixClipboardService.ts`
+  - Paste parse/place/apply + summary result.
+- `MatrixComputationService.ts`
+  - EV + computed/cyclic evaluation orchestration (delegates pure math helpers).
+- `MatrixSerializationService.ts`
+  - Import/export versioned payload and compatibility handling.
+
+4. `hooks/`
+- `useMatrixKeyboard.ts`
+  - Keymap binding (nav/edit mode behavior).
+- `useMatrixSelection.ts`
+  - Mouse click/drag selection handling.
+- `useMatrixClipboard.ts`
+  - Clipboard event binding and dispatch to service.
+- `useMatrixFocusRegistry.ts`
+  - Coordinate->input ref tracking and focus moves.
+
+5. `components/` (wrapper-first UI)
+- `ScenarioTableWidget.tsx`
+  - Feature orchestrator; wires hooks/services into render components.
+- `ScenarioTableGrid.tsx`
+  - Body rendering only (rows, cells, frequency zones).
+- `ScenarioTableHeader.tsx`
+  - Header row labels + controls area.
+- `ScenarioTableFooter.tsx`
+  - Column controls and footer controls area.
+- `ScenarioTableCell.tsx`
+  - Single cell renderer by cell type (editable/computed/override/readonly).
+- `ScenarioTableOverlays.tsx`
+  - Selection highlight, status badges, transient paste feedback.
+- `ScenarioTableLayoutShell.tsx`
+  - Sticky/frozen layout + synced scroll containers only.
+
+6. `adapters/`
+- `solverAdapter.ts`
+  - Converts typed grid into existing solver input shape.
+- `lexicalNodeAdapter.ts`
+  - Bridges typed state with Lexical node props/update callbacks.
+
+--------------------------------------------------
+2) Responsibilities per Module (Single-Purpose)
+--------------------------------------------------
+
+- `types.ts`: define contracts only, no runtime logic.
+- `selectors.ts`: deterministic computed reads, no side effects.
+- `normalizers.ts`: repair/normalize serialized payloads.
+- `useScenarioTableStore.ts`: own feature state lifecycle and dispatch.
+- Reducers: pure state transitions, no DOM/event parsing.
+- `MatrixEditService`: parse/validate/commit rules for single and multi-cell edits.
+- `MatrixNavigationService`: coordinate math for arrows/tab/enter/shift variants.
+- `MatrixClipboardService`: TSV/CSV parsing, placement clipping, conflict accounting.
+- `MatrixComputationService`: EV/computed evaluation statuses.
+- `MatrixSerializationService`: versioning, migration, unknown-field preservation.
+- UI components: render only, minimal logic, call typed callbacks.
+- UI hooks: bind browser events and convert to typed actions.
+- Adapters: compatibility layer for solver/Lexical integration.
+
+--------------------------------------------------
+3) Dependency Direction Map
+--------------------------------------------------
+
+Allowed import direction (top -> can import downward only)
+
+1. `components/*`
+   -> `hooks/*`, `state/*`, `model/*`, UI wrappers (`src/components/ui/*`)
+
+2. `hooks/*`
+   -> `state/*`, `services/*`, `model/*`
+
+3. `state/*`
+   -> `model/*` (and optionally `services/*` only via injected handlers, not direct side effects)
+
+4. `services/*`
+   -> `model/*`
+
+5. `adapters/*`
+   -> `model/*`, `services/*` (if needed), external boundary contracts
+
+6. `model/*`
+   -> no feature-local dependencies
+
+Boundary rules
+- Services MUST NOT import React components.
+- Components MUST NOT contain parsing/version migration logic.
+- Keep MUI imports in wrapper files only; feature components use existing `App*` wrappers.
+
+--------------------------------------------------
+4) Incremental Refactor Sequence (Small Safe Steps)
+--------------------------------------------------
+
+Step 1: Extract types + selectors (no behavior change)
+- Introduce typed model files and selectors.
+- Keep current component/service behavior unchanged.
+
+Step 2: Extract layout shell
+- Move sticky/frozen/scroll sync code into `ScenarioTableLayoutShell`.
+- Keep same props and rendered output.
+
+Step 3: Extract keyboard/navigation hook
+- Move current arrow logic out of cell component into `useMatrixKeyboard` + `MatrixNavigationService`.
+- Preserve current arrow behavior exactly first.
+
+Step 4: Introduce central focus registry
+- Replace per-cell local ref matrix with parent-level registry hook.
+- Add active/focused cell state.
+
+Step 5: Introduce interaction slice
+- Add `mode`, `selection`, `dragState`, `pendingEdit`.
+- Keep selection default collapsed (single-cell) until range work lands.
+
+Step 6: Split edit/validation pipeline
+- Add `draft` vs `committed` semantics in store reducers/services.
+- Remove `any` writes into numeric arrays.
+
+Step 7: Add clipboard service (TSV/CSV)
+- Wire paste handling with summary feedback.
+- Single undo transaction per paste.
+
+Step 8: Add serialization service and dual-read path
+- Support legacy and typed payloads.
+- Ensure no metadata loss on round-trip.
+
+Step 9: Move component composition into feature root widget
+- Thin orchestration component replacing current monolith.
+
+Step 10: Decommission legacy pathways
+- Remove duplicated logic after parity checks pass.
+
+--------------------------------------------------
+5) Regression Guard List (Do Not Break)
+--------------------------------------------------
+
+1. Sticky header, frozen first column, frozen last row/column visual behavior.
+2. Add/remove/move row and column controls.
+3. Existing arrow-key single-cell navigation baseline.
+4. Frequency input editing and range constraints behavior (0..1 intent).
+5. EV display updates after value/frequency edits.
+6. Solver action wiring and result application to frequencies.
+7. Scenario table node persistence in Lexical (load/save round-trip).
+8. Scroll synchronization between top scroller and table container.
+9. Wrapper-first UI usage (no direct MUI imports outside wrapper locations).
+10. No hard-blocking modals/errors during normal typing and paste workflows.
+
+--------------------------------------------------
+6) Typing and Maintainability Notes
+--------------------------------------------------
+
+- Prefer discriminated unions for cell types and exhaustive switch handling.
+- Keep reducers/services side-effect free where possible; isolate side effects in hooks/adapters.
+- Add feature-level "contract tests" around selectors/services before moving behavior.
+- Keep files small and purpose-specific to avoid re-forming a new monolith.
