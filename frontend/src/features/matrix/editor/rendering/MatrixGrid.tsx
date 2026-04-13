@@ -1,6 +1,6 @@
 import React from "react";
 
-import {MatrixDensityMode, MatrixEditorState, MatrixValidationIssue} from "@/src/features/matrix/model";
+import {MatrixDensityMode, MatrixEditorState, MatrixSelectionTarget, MatrixValidationIssue} from "@/src/features/matrix/model";
 import {MatrixGridHeader} from "./MatrixGridHeader";
 import {MatrixGridBody} from "./MatrixGridBody";
 import {MatrixSummaryAxes} from "./MatrixSummaryAxes";
@@ -9,6 +9,7 @@ import {resolveDensityProfile} from "./gridDensity";
 interface MatrixGridProps {
     state: MatrixEditorState;
     expectedValue: number | null;
+    activeTarget: MatrixSelectionTarget | null;
     activeKey: string | null;
     activeRowId: string | null;
     activeColumnId: string | null;
@@ -17,8 +18,14 @@ interface MatrixGridProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
+    canEditStructure: boolean;
+    canEditAxisLabels: boolean;
+    canEditBodyValues: boolean;
+    canEditSummaries: boolean;
     onAddRow: () => void;
     onAddColumn: () => void;
+    onRemoveRow: (rowId: string) => void;
+    onRemoveColumn: (columnId: string) => void;
     onRowLabelChange: (rowId: string, label: string) => void;
     onColumnLabelChange: (columnId: string, label: string) => void;
     onSelectBodyCell: (rowId: string, columnId: string) => void;
@@ -27,6 +34,7 @@ interface MatrixGridProps {
     onSelectColumnSummary: (columnId: string) => void;
     onSelectExpectedValue: () => void;
     onStartEdit: (key: string) => void;
+    onStartOverwriteEdit: (key: string, firstCharacter: string) => void;
     onDraftChange: (draft: string) => void;
     onCommitEdit: () => void;
     onCancelEdit: () => void;
@@ -34,45 +42,116 @@ interface MatrixGridProps {
 }
 
 export function MatrixGrid({
-                               state,
-                               expectedValue,
-                               activeKey,
-                               activeRowId,
-                               activeColumnId,
+                                state,
+                                expectedValue,
+                                activeTarget,
+                                activeKey,
+                                activeRowId,
+                                activeColumnId,
                                editingKey,
                                draft,
-                               draftHasFormatError,
-                               validationByKey,
-                               displayedBodyValues,
-                               onAddRow,
-                               onAddColumn,
-                               onRowLabelChange,
-                               onColumnLabelChange,
+                                draftHasFormatError,
+                                validationByKey,
+                                displayedBodyValues,
+                                canEditStructure,
+                                canEditAxisLabels,
+                                canEditBodyValues,
+                                canEditSummaries,
+                                onAddRow,
+                                onAddColumn,
+                                onRemoveRow,
+                                onRemoveColumn,
+                                onRowLabelChange,
+                                onColumnLabelChange,
                                onSelectBodyCell,
                                onSelectRowSummary,
                                onOpenReferenceLink,
                                onSelectColumnSummary,
-                               onSelectExpectedValue,
-                               onStartEdit,
-                                onDraftChange,
-                                onCommitEdit,
-                                onCancelEdit,
+                                onSelectExpectedValue,
+                                onStartEdit,
+                                onStartOverwriteEdit,
+                                 onDraftChange,
+                                 onCommitEdit,
+                                 onCancelEdit,
                                 density,
-                            }: MatrixGridProps) {
+                             }: MatrixGridProps) {
+    const [structureSelection, setStructureSelection] = React.useState<{axis: "row" | "column"; id: string} | null>(null);
+
     const profile = React.useMemo(
         () => resolveDensityProfile(density, state.grid.rows.length, state.grid.columns.length),
         [density, state.grid.rows.length, state.grid.columns.length]
     );
+
+    React.useEffect(() => {
+        if (!activeTarget || activeTarget.zone === "body" || activeTarget.zone === "expectedValue") {
+            setStructureSelection(null);
+            return;
+        }
+
+        if (activeTarget.zone === "rowSummary") {
+            setStructureSelection((prev) => {
+                if (prev?.axis === "row" && prev.id === activeTarget.rowId) {
+                    return prev;
+                }
+                return {axis: "row", id: activeTarget.rowId};
+            });
+            return;
+        }
+
+        setStructureSelection((prev) => {
+            if (prev?.axis === "column" && prev.id === activeTarget.columnId) {
+                return prev;
+            }
+            return {axis: "column", id: activeTarget.columnId};
+        });
+    }, [activeTarget]);
+
+    const handleSelectColumnHeader = React.useCallback((columnId: string) => {
+        setStructureSelection({axis: "column", id: columnId});
+        onSelectColumnSummary(columnId);
+    }, [onSelectColumnSummary]);
+
+    const handleSelectRowHeader = React.useCallback((rowId: string) => {
+        setStructureSelection({axis: "row", id: rowId});
+        onSelectRowSummary(rowId);
+    }, [onSelectRowSummary]);
+
+    const handleSelectBodyCell = React.useCallback((rowId: string, columnId: string) => {
+        setStructureSelection(null);
+        onSelectBodyCell(rowId, columnId);
+    }, [onSelectBodyCell]);
+
+    const handleSelectRowSummary = React.useCallback((rowId: string) => {
+        setStructureSelection(null);
+        onSelectRowSummary(rowId);
+    }, [onSelectRowSummary]);
+
+    const handleSelectColumnSummary = React.useCallback((columnId: string) => {
+        setStructureSelection(null);
+        onSelectColumnSummary(columnId);
+    }, [onSelectColumnSummary]);
+
+    const handleSelectExpectedValue = React.useCallback(() => {
+        setStructureSelection(null);
+        onSelectExpectedValue();
+    }, [onSelectExpectedValue]);
+
+    const selectedColumnHeaderId = structureSelection?.axis === "column" ? structureSelection.id : null;
+    const selectedRowHeaderId = structureSelection?.axis === "row" ? structureSelection.id : null;
+    const showRemoveColumn = canEditStructure && selectedColumnHeaderId !== null;
+    const showRemoveRow = canEditStructure && selectedRowHeaderId !== null;
 
     return (
         <div
             style={{
                 overflow: "auto",
                 maxWidth: "100%",
-                maxHeight: "64vh",
+                minWidth: 0,
+                maxHeight: "62vh",
                 border: "1px solid #e8e8e8",
                 borderRadius: 8,
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.75)",
+                width: "100%",
             }}
         >
             <table
@@ -88,8 +167,9 @@ export function MatrixGrid({
                 <MatrixGridHeader
                     state={state}
                     activeColumnId={activeColumnId}
+                    canEditAxisLabels={canEditAxisLabels}
                     onColumnLabelChange={onColumnLabelChange}
-                    onAddColumn={onAddColumn}
+                    onSelectColumnHeader={handleSelectColumnHeader}
                     densityProfile={profile}
                 />
                 <MatrixGridBody
@@ -102,15 +182,19 @@ export function MatrixGrid({
                     draftHasFormatError={draftHasFormatError}
                     validationByKey={validationByKey}
                     displayedBodyValues={displayedBodyValues}
+                    canEditAxisLabels={canEditAxisLabels}
+                    canEditBodyValues={canEditBodyValues}
+                    canEditSummaries={canEditSummaries}
                     onRowLabelChange={onRowLabelChange}
-                    onSelectBodyCell={onSelectBodyCell}
-                    onSelectRowSummary={onSelectRowSummary}
+                    onSelectRowHeader={handleSelectRowHeader}
+                    onSelectBodyCell={handleSelectBodyCell}
+                    onSelectRowSummary={handleSelectRowSummary}
                     onOpenReferenceLink={onOpenReferenceLink}
                     onStartEdit={onStartEdit}
+                    onStartOverwriteEdit={onStartOverwriteEdit}
                     onDraftChange={onDraftChange}
                     onCommitEdit={onCommitEdit}
                     onCancelEdit={onCancelEdit}
-                    onAddRow={onAddRow}
                     densityProfile={profile}
                 />
                 <MatrixSummaryAxes
@@ -121,9 +205,11 @@ export function MatrixGrid({
                     draft={draft}
                     draftHasFormatError={draftHasFormatError}
                     validationByKey={validationByKey}
-                    onSelectColumnSummary={onSelectColumnSummary}
-                    onSelectExpectedValue={onSelectExpectedValue}
+                    canEditSummaries={canEditSummaries}
+                    onSelectColumnSummary={handleSelectColumnSummary}
+                    onSelectExpectedValue={handleSelectExpectedValue}
                     onStartEdit={onStartEdit}
+                    onStartOverwriteEdit={onStartOverwriteEdit}
                     onDraftChange={onDraftChange}
                     onCommitEdit={onCommitEdit}
                     onCancelEdit={onCancelEdit}
@@ -131,6 +217,45 @@ export function MatrixGrid({
                     densityProfile={profile}
                 />
             </table>
+            {canEditStructure ? (
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        padding: "10px 12px",
+                        borderTop: "1px solid #f0f0f0",
+                        background: "#fafafa",
+                        position: "sticky",
+                        bottom: 0,
+                    }}
+                >
+                    <button type="button" onClick={onAddRow} style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}>
+                        + Row
+                    </button>
+                    <button type="button" onClick={onAddColumn} style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}>
+                        + Col
+                    </button>
+                    {showRemoveColumn ? (
+                        <button
+                            type="button"
+                            onClick={() => onRemoveColumn(selectedColumnHeaderId!)}
+                            style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}
+                        >
+                            - Col
+                        </button>
+                    ) : null}
+                    {showRemoveRow ? (
+                        <button
+                            type="button"
+                            onClick={() => onRemoveRow(selectedRowHeaderId!)}
+                            style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}
+                        >
+                            - Row
+                        </button>
+                    ) : null}
+                </div>
+            ) : null}
         </div>
     );
 }

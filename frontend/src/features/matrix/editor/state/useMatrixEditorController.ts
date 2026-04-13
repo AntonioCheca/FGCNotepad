@@ -7,9 +7,10 @@ import {matrixEditorStateToPayload, matrixPayloadToEditorState} from "../modules
 interface UseMatrixEditorControllerOptions {
     matrix: MatrixPayload;
     onMatrixChange: (next: MatrixPayload) => void;
+    persistChanges?: boolean;
 }
 
-export function useMatrixEditorController({matrix, onMatrixChange}: UseMatrixEditorControllerOptions) {
+export function useMatrixEditorController({matrix, onMatrixChange, persistChanges = true}: UseMatrixEditorControllerOptions) {
     const [state, dispatch] = React.useReducer(matrixEditorReducer, matrix, matrixPayloadToEditorState);
     const isFirstSync = React.useRef(true);
     const previousPayloadRef = React.useRef<MatrixPayload>(matrix);
@@ -24,10 +25,14 @@ export function useMatrixEditorController({matrix, onMatrixChange}: UseMatrixEdi
             return;
         }
 
+        if (!persistChanges) {
+            return;
+        }
+
         const nextPayload = matrixEditorStateToPayload(state, previousPayloadRef.current);
         previousPayloadRef.current = nextPayload;
         onMatrixChange(nextPayload);
-    }, [state, onMatrixChange]);
+    }, [state, onMatrixChange, persistChanges]);
 
     return {
         state,

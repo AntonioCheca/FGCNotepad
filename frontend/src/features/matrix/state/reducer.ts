@@ -1,5 +1,5 @@
 import {createBodyCellKey, createColumnSummaryKey, createExpectedValueKey, createRowSummaryKey, isBodyCellKey, isColumnSummaryKey, isRowSummaryKey} from "../model/keys";
-import {MatrixAxisItem, MatrixEditorState} from "../model/stateTypes";
+import {MatrixAxisItem, MatrixEditorState, MatrixSelectionTarget} from "../model/stateTypes";
 import {validateCommittedNumericDraft} from "../model/numericValidation";
 import {isEditableBodyCell} from "../model/cellGuards";
 import {MatrixAction} from "./actions";
@@ -62,6 +62,14 @@ function clearSelectionForMissingKey(state: MatrixEditorState): MatrixEditorStat
             anchorTarget: null,
             selectedKeys: [],
         },
+    };
+}
+
+function createSelectionSlice(target: MatrixSelectionTarget | null): MatrixEditorState["selection"] {
+    return {
+        activeTarget: target,
+        anchorTarget: target,
+        selectedKeys: target ? [target.key] : [],
     };
 }
 
@@ -302,6 +310,11 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             });
 
             const rowSummaryKey = createRowSummaryKey(nextRow.id);
+            const nextTarget: MatrixSelectionTarget = {
+                zone: "rowSummary",
+                rowId: nextRow.id,
+                key: rowSummaryKey,
+            };
 
             return {
                 ...state,
@@ -314,6 +327,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         [rowSummaryKey]: {key: rowSummaryKey, value: null},
                     },
                 },
+                selection: createSelectionSlice(nextTarget),
                 derived: {
                     ...state.derived,
                     isDirty: true,
@@ -326,10 +340,24 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                 return state;
             }
 
+            const removedIndex = state.grid.rows.findIndex((row) => row.id === action.payload.rowId);
+            if (removedIndex < 0) {
+                return state;
+            }
+
             const rows = state.grid.rows.filter((row) => row.id !== action.payload.rowId);
             const bodyCells = Object.fromEntries(
                 Object.entries(state.grid.bodyCells).filter(([, cell]) => cell.rowId !== action.payload.rowId)
             );
+            const fallbackIndex = Math.min(removedIndex, rows.length - 1);
+            const fallbackRow = rows[fallbackIndex] ?? null;
+            const nextTarget: MatrixSelectionTarget | null = fallbackRow
+                ? {
+                    zone: "rowSummary",
+                    rowId: fallbackRow.id,
+                    key: createRowSummaryKey(fallbackRow.id),
+                }
+                : null;
 
             const nextState = {
                 ...state,
@@ -341,6 +369,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         Object.entries(state.grid.rowSummaryCells).filter(([key]) => key !== createRowSummaryKey(action.payload.rowId))
                     ),
                 },
+                selection: createSelectionSlice(nextTarget),
                 derived: {
                     ...state.derived,
                     isDirty: true,
@@ -367,6 +396,11 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             });
 
             const columnSummaryKey = createColumnSummaryKey(nextColumn.id);
+            const nextTarget: MatrixSelectionTarget = {
+                zone: "columnSummary",
+                columnId: nextColumn.id,
+                key: columnSummaryKey,
+            };
 
             return {
                 ...state,
@@ -379,6 +413,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         [columnSummaryKey]: {key: columnSummaryKey, value: null},
                     },
                 },
+                selection: createSelectionSlice(nextTarget),
                 derived: {
                     ...state.derived,
                     isDirty: true,
@@ -391,10 +426,24 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                 return state;
             }
 
+            const removedIndex = state.grid.columns.findIndex((column) => column.id === action.payload.columnId);
+            if (removedIndex < 0) {
+                return state;
+            }
+
             const columns = state.grid.columns.filter((column) => column.id !== action.payload.columnId);
             const bodyCells = Object.fromEntries(
                 Object.entries(state.grid.bodyCells).filter(([, cell]) => cell.columnId !== action.payload.columnId)
             );
+            const fallbackIndex = Math.min(removedIndex, columns.length - 1);
+            const fallbackColumn = columns[fallbackIndex] ?? null;
+            const nextTarget: MatrixSelectionTarget | null = fallbackColumn
+                ? {
+                    zone: "columnSummary",
+                    columnId: fallbackColumn.id,
+                    key: createColumnSummaryKey(fallbackColumn.id),
+                }
+                : null;
 
             const nextState = {
                 ...state,
@@ -408,6 +457,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         )
                     ),
                 },
+                selection: createSelectionSlice(nextTarget),
                 derived: {
                     ...state.derived,
                     isDirty: true,
@@ -420,11 +470,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
         case "selection/setActive": {
             return {
                 ...state,
-                selection: {
-                    activeTarget: action.payload.target,
-                    anchorTarget: action.payload.target,
-                    selectedKeys: action.payload.target ? [action.payload.target.key] : [],
-                },
+                selection: createSelectionSlice(action.payload.target),
             };
         }
 

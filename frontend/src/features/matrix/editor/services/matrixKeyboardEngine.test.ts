@@ -69,6 +69,23 @@ test("typing in view mode starts overwrite edit mode", () => {
     assert.equal(nextState.editing.draft, "9");
 });
 
+test("typing on selected populated cell replaces existing value in draft", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const key = createBodyCellKey("row_1", "column_1");
+
+    state = matrixEditorReducer(state, {type: "grid/setCellValue", payload: {key, value: 4}});
+    state = matrixEditorReducer(state, {
+        type: "selection/setActive",
+        payload: {target: toSelectionTarget("body", "row_1", "column_1")},
+    });
+
+    const {nextState} = applyKey(state, "3");
+
+    assert.equal(nextState.editing.mode, "edit");
+    assert.equal(nextState.editing.activeKey, key);
+    assert.equal(nextState.editing.draft, "3");
+});
+
 test("backspace clears selected editable cell", () => {
     let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
     const key = createBodyCellKey("row_1", "column_1");
@@ -94,20 +111,21 @@ test("escape cancels edit mode", () => {
     assert.equal(nextState.editing.activeKey, null);
 });
 
-test("arrow keys do not navigate while editing", () => {
+test("arrow keys commit and navigate while editing", () => {
     let state = createInitialMatrixEditorState({rowCount: 2, columnCount: 2});
     const key = createBodyCellKey("row_1", "column_1");
     state = matrixEditorReducer(state, {
         type: "selection/setActive",
         payload: {target: toSelectionTarget("body", "row_1", "column_1")},
     });
-    state = matrixEditorReducer(state, {type: "editing/start", payload: {key, draft: "1"}});
+    state = matrixEditorReducer(state, {type: "editing/start", payload: {key, draft: "12"}});
 
     const {outcome, nextState} = applyKey(state, "ArrowRight");
 
-    assert.equal(outcome.handled, false);
-    assert.equal(nextState.selection.activeTarget?.key, key);
-    assert.equal(nextState.editing.mode, "edit");
+    assert.equal(outcome.handled, true);
+    assert.equal(nextState.editing.mode, "view");
+    assert.equal(nextState.grid.bodyCells[key].value, 12);
+    assert.equal(nextState.selection.activeTarget?.key, createBodyCellKey("row_1", "column_2"));
 });
 
 test("readonly expected value cannot be mutated", () => {

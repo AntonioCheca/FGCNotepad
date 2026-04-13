@@ -37,6 +37,12 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         const div = document.createElement("div");
         div.className = "scenario-table";
         div.setAttribute('contenteditable', 'false');
+        div.style.display = "block";
+        div.style.width = "100%";
+        div.style.maxWidth = "100%";
+        div.style.minWidth = "0";
+        div.style.overflowX = "hidden";
+        div.style.boxSizing = "border-box";
         return div;
     }
 

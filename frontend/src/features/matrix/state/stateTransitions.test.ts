@@ -46,6 +46,56 @@ test("row and column actions resize grid without legacy coupling", () => {
     assert.equal(Object.keys(state.grid.bodyCells).length, 4);
 });
 
+test("add actions move selection to newly created row/column headers", () => {
+    let state = createInitialMatrixEditorState({rowCount: 2, columnCount: 2});
+
+    state = matrixEditorReducer(state, matrixActions.addRow());
+    const addedRow = state.grid.rows[state.grid.rows.length - 1];
+    assert.equal(state.selection.activeTarget?.zone, "rowSummary");
+    if (state.selection.activeTarget?.zone === "rowSummary") {
+        assert.equal(state.selection.activeTarget.rowId, addedRow.id);
+    }
+
+    state = matrixEditorReducer(state, matrixActions.addColumn());
+    const addedColumn = state.grid.columns[state.grid.columns.length - 1];
+    assert.equal(state.selection.activeTarget?.zone, "columnSummary");
+    if (state.selection.activeTarget?.zone === "columnSummary") {
+        assert.equal(state.selection.activeTarget.columnId, addedColumn.id);
+    }
+});
+
+test("remove actions keep structural selection at same index or fallback to last", () => {
+    let state = createInitialMatrixEditorState({rowCount: 3, columnCount: 3});
+
+    const middleRowId = state.grid.rows[1].id;
+    state = matrixEditorReducer(state, matrixActions.removeRow(middleRowId));
+    assert.equal(state.selection.activeTarget?.zone, "rowSummary");
+    if (state.selection.activeTarget?.zone === "rowSummary") {
+        assert.equal(state.selection.activeTarget.rowId, state.grid.rows[1].id);
+    }
+
+    const lastRowId = state.grid.rows[state.grid.rows.length - 1].id;
+    state = matrixEditorReducer(state, matrixActions.removeRow(lastRowId));
+    assert.equal(state.selection.activeTarget?.zone, "rowSummary");
+    if (state.selection.activeTarget?.zone === "rowSummary") {
+        assert.equal(state.selection.activeTarget.rowId, state.grid.rows[state.grid.rows.length - 1].id);
+    }
+
+    const middleColumnId = state.grid.columns[1].id;
+    state = matrixEditorReducer(state, matrixActions.removeColumn(middleColumnId));
+    assert.equal(state.selection.activeTarget?.zone, "columnSummary");
+    if (state.selection.activeTarget?.zone === "columnSummary") {
+        assert.equal(state.selection.activeTarget.columnId, state.grid.columns[1].id);
+    }
+
+    const lastColumnId = state.grid.columns[state.grid.columns.length - 1].id;
+    state = matrixEditorReducer(state, matrixActions.removeColumn(lastColumnId));
+    assert.equal(state.selection.activeTarget?.zone, "columnSummary");
+    if (state.selection.activeTarget?.zone === "columnSummary") {
+        assert.equal(state.selection.activeTarget.columnId, state.grid.columns[state.grid.columns.length - 1].id);
+    }
+});
+
 test("editing flow commits numeric draft into cell and marks dirty", () => {
     let state = createInitialMatrixEditorState({rowCount: 2, columnCount: 2});
     const firstCell = selectBodyCellByIndex(state, 0, 0);

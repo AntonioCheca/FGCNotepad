@@ -96,8 +96,8 @@ export default function PostEditor({
     };
 
     return (
-        <AppPaper elevation={3} sx={{p: 3}}>
-            <AppStack spacing={2}>
+        <AppPaper elevation={3} sx={{p: 3, width: "100%", maxWidth: "100%", overflowX: "hidden", boxSizing: "border-box"}}>
+            <AppStack spacing={2} sx={{width: "100%", maxWidth: "100%", minWidth: 0}}>
                 <AdvancedEditableWrapper condition={editable}>
                     <AppTextField
                         label="Post title"
@@ -110,30 +110,41 @@ export default function PostEditor({
                     />
                 </AdvancedEditableWrapper>
 
-                <LexicalComposer initialConfig={initialConfig}>
-                    <AdvancedEditableWrapper condition={editable}>
-                        <InsertScenarioTableButton/>
-                    </AdvancedEditableWrapper>
-                    <RichTextPlugin
-                        contentEditable={
-                            <ContentEditable
-                                className="outline-none p-2 w-full min-h-[150px]"
-                                style={{fontSize: "16px", lineHeight: "1.8", fontFamily: "Arial, sans-serif"}}
-                            />
-                        }
-                        ErrorBoundary={LexicalErrorBoundary}
-                    />
-                    <MarkdownShortcutPlugin transformers={TRANSFORMERS}/>
-                    <MentionMovePlugin/>
-                    <HistoryPlugin/>
-                    <AdvancedEditableWrapper condition={editable}>
-                        <RestoreFromLocalStoragePlugin/>
-                    </AdvancedEditableWrapper>
-                    <AdvancedEditableWrapper condition={!editable}>
-                        <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>
-                    </AdvancedEditableWrapper>
-                    <AutoFocusPlugin/>
-                </LexicalComposer>
+                <div style={{width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box"}}>
+                    <LexicalComposer initialConfig={initialConfig}>
+                        <AdvancedEditableWrapper condition={editable}>
+                            <InsertScenarioTableButton/>
+                        </AdvancedEditableWrapper>
+                        <RichTextPlugin
+                            contentEditable={
+                                <ContentEditable
+                                    className="outline-none p-2 w-full min-h-[150px]"
+                                    style={{
+                                        fontSize: "16px",
+                                        lineHeight: "1.8",
+                                        fontFamily: "Arial, sans-serif",
+                                        width: "100%",
+                                        maxWidth: "100%",
+                                        minWidth: 0,
+                                        overflowX: "hidden",
+                                        boxSizing: "border-box",
+                                    }}
+                                />
+                            }
+                            ErrorBoundary={LexicalErrorBoundary}
+                        />
+                        <MarkdownShortcutPlugin transformers={TRANSFORMERS}/>
+                        <MentionMovePlugin/>
+                        <HistoryPlugin/>
+                        <AdvancedEditableWrapper condition={editable}>
+                            <RestoreFromLocalStoragePlugin/>
+                        </AdvancedEditableWrapper>
+                        <AdvancedEditableWrapper condition={!editable}>
+                            <LoadFromJsonStringPlugin jsonString={initialBody ?? body}/>
+                        </AdvancedEditableWrapper>
+                        <AutoFocusPlugin/>
+                    </LexicalComposer>
+                </div>
 
 
                 {/* Render TagList separately */}

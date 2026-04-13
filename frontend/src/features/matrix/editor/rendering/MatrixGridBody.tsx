@@ -14,15 +14,19 @@ interface MatrixGridBodyProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
+    canEditAxisLabels: boolean;
+    canEditBodyValues: boolean;
+    canEditSummaries: boolean;
     onRowLabelChange: (rowId: string, label: string) => void;
+    onSelectRowHeader: (rowId: string) => void;
     onSelectBodyCell: (rowId: string, columnId: string) => void;
     onSelectRowSummary: (rowId: string) => void;
     onOpenReferenceLink: (key: string) => void;
     onStartEdit: (key: string) => void;
+    onStartOverwriteEdit: (key: string, firstCharacter: string) => void;
     onDraftChange: (value: string) => void;
     onCommitEdit: () => void;
     onCancelEdit: () => void;
-    onAddRow: () => void;
     densityProfile: MatrixDensityProfile;
 }
 
@@ -31,22 +35,26 @@ export function MatrixGridBody({
                                    activeKey,
                                    activeRowId,
                                    activeColumnId,
-                                   editingKey,
-                                   draft,
-                                   draftHasFormatError,
-                                   validationByKey,
-                                   displayedBodyValues,
-                                   onRowLabelChange,
-                                   onSelectBodyCell,
-                                   onSelectRowSummary,
-                                   onOpenReferenceLink,
-                                   onStartEdit,
-                                    onDraftChange,
-                                    onCommitEdit,
-                                    onCancelEdit,
-                                    onAddRow,
-                                    densityProfile,
-                                 }: MatrixGridBodyProps) {
+                                     editingKey,
+                                     draft,
+                                     draftHasFormatError,
+                                     validationByKey,
+                                     displayedBodyValues,
+                                     canEditAxisLabels,
+                                     canEditBodyValues,
+                                     canEditSummaries,
+                                     onRowLabelChange,
+                                     onSelectRowHeader,
+                                     onSelectBodyCell,
+                                    onSelectRowSummary,
+                                     onOpenReferenceLink,
+                                    onStartEdit,
+                                    onStartOverwriteEdit,
+                                      onDraftChange,
+                                      onCommitEdit,
+                                      onCancelEdit,
+                                      densityProfile,
+                                   }: MatrixGridBodyProps) {
     return (
         <tbody>
         {state.grid.rows.map((row) => {
@@ -68,6 +76,8 @@ export function MatrixGridBody({
                     <input
                         type="text"
                         value={row.label}
+                        readOnly={!canEditAxisLabels}
+                        onFocus={() => onSelectRowHeader(row.id)}
                         onChange={(event) => onRowLabelChange(row.id, event.target.value)}
                         style={{
                             width: `${densityProfile.rowLabelWidth - 12}px`,
@@ -98,10 +108,11 @@ export function MatrixGridBody({
                                 draftHasFormatError={editingKey === key ? draftHasFormatError : false}
                                 issues={validationByKey[key] ?? []}
                                 axisHighlighted={axisHighlighted}
-                                readOnly={!isEditableBodyCell(cell)}
+                                readOnly={!canEditBodyValues || !isEditableBodyCell(cell)}
                                 onOpenReferenceLink={() => onOpenReferenceLink(key)}
                                 onSelect={() => onSelectBodyCell(row.id, column.id)}
                                 onStartEdit={() => onStartEdit(key)}
+                                onStartOverwriteEdit={(firstCharacter) => onStartOverwriteEdit(key, firstCharacter)}
                                 onDraftChange={onDraftChange}
                                 onCommitEdit={onCommitEdit}
                                 onCancelEdit={onCancelEdit}
@@ -119,8 +130,10 @@ export function MatrixGridBody({
                         draftHasFormatError={editingKey === createRowSummaryKey(row.id) ? draftHasFormatError : false}
                         issues={validationByKey[createRowSummaryKey(row.id)] ?? []}
                         axisHighlighted={rowIsActive}
+                        readOnly={!canEditSummaries}
                         onSelect={() => onSelectRowSummary(row.id)}
                         onStartEdit={() => onStartEdit(createRowSummaryKey(row.id))}
+                        onStartOverwriteEdit={(firstCharacter) => onStartOverwriteEdit(createRowSummaryKey(row.id), firstCharacter)}
                         onDraftChange={onDraftChange}
                         onCommitEdit={onCommitEdit}
                         onCancelEdit={onCancelEdit}
@@ -131,20 +144,6 @@ export function MatrixGridBody({
             </tr>
             );
         })}
-        <tr>
-            <td
-                style={{
-                    padding: `${densityProfile.cellPadding}px`,
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 3,
-                    background: "#fafafa",
-                }}
-            >
-                <button type="button" onClick={onAddRow} style={{minHeight: densityProfile.cellHeight, fontSize: densityProfile.labelFontSize}}>+ Row</button>
-            </td>
-            <td colSpan={state.grid.columns.length + 2}/>
-        </tr>
         </tbody>
     );
 }

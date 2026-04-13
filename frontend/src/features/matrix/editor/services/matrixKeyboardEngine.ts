@@ -113,6 +113,46 @@ export function interpretMatrixKeyDown(state: MatrixEditorState, event: MatrixKe
             return {handled: true, actions: [matrixActions.cancelEditing()]};
         }
 
+        if (event.key === "ArrowUp") {
+            return {
+                handled: true,
+                actions: [
+                    matrixActions.commitEditing(),
+                    matrixActions.setActiveSelection(moveBodySelection(state, -1, 0)),
+                ],
+            };
+        }
+
+        if (event.key === "ArrowDown") {
+            return {
+                handled: true,
+                actions: [
+                    matrixActions.commitEditing(),
+                    matrixActions.setActiveSelection(moveBodySelection(state, 1, 0)),
+                ],
+            };
+        }
+
+        if (event.key === "ArrowLeft") {
+            return {
+                handled: true,
+                actions: [
+                    matrixActions.commitEditing(),
+                    matrixActions.setActiveSelection(moveBodySelection(state, 0, -1)),
+                ],
+            };
+        }
+
+        if (event.key === "ArrowRight") {
+            return {
+                handled: true,
+                actions: [
+                    matrixActions.commitEditing(),
+                    matrixActions.setActiveSelection(moveBodySelection(state, 0, 1)),
+                ],
+            };
+        }
+
         return {handled: false, actions: []};
     }
 

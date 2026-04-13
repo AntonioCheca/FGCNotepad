@@ -17,6 +17,11 @@ export function MatrixEditorLayout({title, onDelete, warnings = [], children}: M
                 padding: 10,
                 marginTop: 8,
                 background: "linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%)",
+                width: "100%",
+                maxWidth: "100%",
+                minWidth: 0,
+                overflow: "hidden",
+                boxSizing: "border-box",
             }}
         >
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>

@@ -14,10 +14,15 @@ interface MatrixValueCellProps {
     onOpenReferenceLink?: () => void;
     onSelect: () => void;
     onStartEdit: () => void;
+    onStartOverwriteEdit: (firstCharacter: string) => void;
     onDraftChange: (next: string) => void;
     onCommitEdit: () => void;
     onCancelEdit: () => void;
     densityProfile: MatrixDensityProfile;
+}
+
+function isPrintableKey(event: React.KeyboardEvent<HTMLButtonElement>): boolean {
+    return event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
 }
 
 function MatrixValueCellComponent({
@@ -30,13 +35,14 @@ function MatrixValueCellComponent({
                                     axisHighlighted = false,
                                     readOnly = false,
                                     onOpenReferenceLink,
-                                    onSelect,
-                                    onStartEdit,
-                                     onDraftChange,
-                                     onCommitEdit,
-                                     onCancelEdit,
-                                     densityProfile,
-                                 }: MatrixValueCellProps) {
+                                     onSelect,
+                                     onStartEdit,
+                                     onStartOverwriteEdit,
+                                      onDraftChange,
+                                      onCommitEdit,
+                                      onCancelEdit,
+                                      densityProfile,
+                                  }: MatrixValueCellProps) {
     const hasCommittedError = issues.length > 0;
 
     if (isEditing) {
@@ -75,6 +81,17 @@ function MatrixValueCellComponent({
         <button
             type="button"
             onClick={onSelect}
+            onKeyDown={(event) => {
+                if (readOnly) {
+                    return;
+                }
+
+                if (isPrintableKey(event)) {
+                    event.preventDefault();
+                    onSelect();
+                    onStartOverwriteEdit(event.key);
+                }
+            }}
             onDoubleClick={() => {
                 if (readOnly && onOpenReferenceLink) {
                     onOpenReferenceLink();

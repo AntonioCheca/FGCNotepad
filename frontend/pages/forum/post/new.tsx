@@ -14,7 +14,7 @@ export default function CreatePostPage() {
     };
 
     return (
-        <AppContainer maxWidth={false}>
+        <AppContainer maxWidth={false} sx={{width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box"}}>
             <AppTypography variant="h4" gutterBottom>
                 Create a New Post
             </AppTypography>

@@ -1,8 +1,10 @@
 import React from "react";
+import {useLexicalComposerContext} from "@lexical/react/LexicalComposerContext";
 
 import {MatrixPayload} from "@/src/types/matrixPayload";
-import {isTemporarilyValidNumericDraft, selectCellValueByKey, selectGridValues} from "@/src/features/matrix/model";
+import {isTemporarilyValidNumericDraft, selectCellValueByKey, selectGridValues, selectIsCellEditableByKey} from "@/src/features/matrix/model";
 import {useScenarioTableEditor} from "@/hooks/useScenarioTableEditor";
+import useSolverGames from "@/hooks/useSolverGame";
 import {computeExpectedValue} from "./services/matrixComputationService";
 import {useMatrixEditorController} from "./state/useMatrixEditorController";
 import {MatrixEditorLayout} from "./rendering/MatrixEditorLayout";
@@ -21,11 +23,32 @@ interface MatrixEditorShellProps {
 }
 
 export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
+    const [editor] = useLexicalComposerContext();
+    const {solveGame} = useSolverGames();
+    const [isEditorEditable, setIsEditorEditable] = React.useState<boolean>(() => editor.isEditable());
+    const [isSolving, setIsSolving] = React.useState(false);
     const {handleDelete, handleBottomAreaClick, handleMatrixChange} = useScenarioTableEditor(nodeKey);
-    const {state, dispatch, actions} = useMatrixEditorController({matrix, onMatrixChange: handleMatrixChange});
+    const {state, dispatch, actions} = useMatrixEditorController({
+        matrix,
+        onMatrixChange: handleMatrixChange,
+        persistChanges: isEditorEditable,
+    });
     const stateRef = React.useRef(state);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [linkTargetKey, setLinkTargetKey] = React.useState<string | null>(null);
+
+    const canEditStructure = isEditorEditable;
+    const canEditAxisLabels = isEditorEditable;
+    const canEditBodyValues = isEditorEditable;
+    const canEditReferences = isEditorEditable;
+    const canEditSummaries = true;
+
+    React.useEffect(() => {
+        setIsEditorEditable(editor.isEditable());
+        return editor.registerEditableListener((nextEditable) => {
+            setIsEditorEditable(nextEditable);
+        });
+    }, [editor]);
 
     React.useEffect(() => {
         stateRef.current = state;
@@ -56,10 +79,53 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
     }, [actions, dispatch, focusContainer]);
 
     const startEditForKey = React.useCallback((key: string) => {
+        const currentState = stateRef.current;
+        const active = currentState.selection.activeTarget;
+
+        if (!active || active.key !== key) {
+            return;
+        }
+
+        if (active.zone === "body" && !canEditBodyValues) {
+            dispatch(actions.setValidationForKey(key, [{code: "readonly_cell", message: "This cell is read-only."}]));
+            return;
+        }
+
+        if ((active.zone === "rowSummary" || active.zone === "columnSummary") && !canEditSummaries) {
+            dispatch(actions.setValidationForKey(key, [{code: "readonly_cell", message: "This cell is read-only."}]));
+            return;
+        }
+
         const currentValue = selectCellValueByKey(stateRef.current, key);
         const draft = currentValue === null ? "" : String(currentValue);
         dispatch(actions.startEditing(key, draft));
-    }, [actions, dispatch]);
+    }, [actions, canEditBodyValues, canEditSummaries, dispatch]);
+
+    const startOverwriteEditForKey = React.useCallback((key: string, firstCharacter: string) => {
+        const currentState = stateRef.current;
+        const active = currentState.selection.activeTarget;
+
+        if (!active || active.key !== key) {
+            return;
+        }
+
+        if (active.zone === "body" && !canEditBodyValues) {
+            dispatch(actions.setValidationForKey(key, [{code: "readonly_cell", message: "This cell is read-only."}]));
+            return;
+        }
+
+        if ((active.zone === "rowSummary" || active.zone === "columnSummary") && !canEditSummaries) {
+            dispatch(actions.setValidationForKey(key, [{code: "readonly_cell", message: "This cell is read-only."}]));
+            return;
+        }
+
+        if (!selectIsCellEditableByKey(currentState, key)) {
+            dispatch(actions.setValidationForKey(key, [{code: "readonly_cell", message: "This cell is read-only."}]));
+            return;
+        }
+
+        dispatch(actions.startEditing(key, firstCharacter));
+    }, [actions, canEditBodyValues, canEditSummaries, dispatch]);
 
     const commitEditAndRefocus = React.useCallback(() => {
         dispatch(actions.commitEditing());
@@ -170,15 +236,90 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
     }, [focusContainer]);
 
     const openLinkPanelForKey = React.useCallback((key: string) => {
+        if (!canEditReferences) {
+            return;
+        }
         setLinkTargetKey(key);
-    }, []);
+    }, [canEditReferences]);
+
+    const solveCurrentMatrix = React.useCallback(async () => {
+        const currentState = stateRef.current;
+
+        const payoffMatrix = currentState.grid.rows.reduce<Record<string, Record<string, number>>>((rowAcc, row) => {
+            const rowLabel = row.label.trim() || row.id;
+            const rowValues = currentState.grid.columns.reduce<Record<string, number>>((colAcc, column) => {
+                const key = `body::${row.id}::${column.id}`;
+                const displayed = referenceResolution.displayedBodyValues[key];
+                const sourceValue = typeof displayed === "number" ? displayed : currentState.grid.bodyCells[key]?.value;
+                colAcc[column.label.trim() || column.id] = typeof sourceValue === "number" && Number.isFinite(sourceValue) ? sourceValue : 0;
+                return colAcc;
+            }, {});
+            rowAcc[rowLabel] = rowValues;
+            return rowAcc;
+        }, {});
+
+        setIsSolving(true);
+
+        try {
+            const result = await solveGame(payoffMatrix);
+            const equilibrium = Array.isArray(result?.equilibria) ? result.equilibria[0] : null;
+            if (!equilibrium || typeof equilibrium !== "object") {
+                dispatch(actions.setGlobalValidation([{code: "unknown", message: "Solver returned no equilibria for this matrix."}]));
+                return;
+            }
+
+            const nextActions = currentState.grid.rows.flatMap((row) => {
+                const rowKey = row.label.trim() || row.id;
+                const p1Value = (equilibrium as Record<string, Record<string, unknown>>).P1?.[rowKey];
+                const numeric = typeof p1Value === "number" && Number.isFinite(p1Value) ? p1Value : 0;
+                return actions.setRowSummaryValue(row.id, numeric);
+            });
+
+            const nextColumnActions = currentState.grid.columns.flatMap((column) => {
+                const columnKey = column.label.trim() || column.id;
+                const p2Value = (equilibrium as Record<string, Record<string, unknown>>).P2?.[columnKey];
+                const numeric = typeof p2Value === "number" && Number.isFinite(p2Value) ? p2Value : 0;
+                return actions.setColumnSummaryValue(column.id, numeric);
+            });
+
+            [...nextActions, ...nextColumnActions].forEach((action) => dispatch(action));
+            dispatch(actions.setGlobalValidation([]));
+        } catch {
+            dispatch(actions.setGlobalValidation([{code: "unknown", message: "Unable to solve game right now. Please retry."}]));
+        } finally {
+            setIsSolving(false);
+        }
+    }, [actions, dispatch, referenceResolution.displayedBodyValues, solveGame]);
+
+    const canMutateActiveSelection = React.useMemo(() => {
+        const active = state.selection.activeTarget;
+        if (!active) {
+            return false;
+        }
+
+        if (active.zone === "body") {
+            return canEditBodyValues;
+        }
+
+        if (active.zone === "rowSummary" || active.zone === "columnSummary") {
+            return canEditSummaries;
+        }
+
+        return false;
+    }, [canEditBodyValues, canEditSummaries, state.selection.activeTarget]);
 
     return (
         <div
             ref={containerRef}
             tabIndex={0}
+            style={{width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box"}}
             onClick={handleBottomAreaClick}
             onPaste={(event) => {
+                if (!canEditBodyValues) {
+                    event.preventDefault();
+                    return;
+                }
+
                 if (state.editing.mode === "edit") {
                     return;
                 }
@@ -193,6 +334,11 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                 }
             }}
             onKeyDown={(event) => {
+                if (!canMutateActiveSelection && (event.key === "Enter" || event.key === "Backspace" || event.key === "Delete" || (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey))) {
+                    event.preventDefault();
+                    return;
+                }
+
                 const outcome = interpretMatrixKeyDown(state, {
                     key: event.key,
                     ctrlKey: event.ctrlKey,
@@ -203,47 +349,48 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                 if (outcome.handled) {
                     event.preventDefault();
                     outcome.actions.forEach((action) => dispatch(action));
+
+                    if (state.editing.mode === "edit" && event.key.startsWith("Arrow")) {
+                        requestAnimationFrame(() => {
+                            focusContainer();
+                        });
+                    }
                 }
             }}
         >
             <MatrixEditorLayout
                 title={state.grid.metadata.title}
-                onDelete={handleDelete}
+                onDelete={canEditStructure ? handleDelete : undefined}
                 warnings={displayWarnings}
             >
                 <div style={{display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap"}}>
-                    <button
-                        type="button"
-                        disabled={!selectedBodyCell}
-                        onClick={() => {
-                            if (selectedBodyCell) {
-                                openLinkPanelForKey(selectedBodyCell.key);
-                            }
-                        }}
-                    >
-                        {selectedBodyCell?.kind === "reference" ? "Relink Scenario" : "Link Scenario"}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() =>
-                            dispatch(
-                                actions.patchViewport({
-                                    density: state.viewport.density === "standard" ? "compact" : "standard",
-                                })
-                            )
-                        }
-                    >
-                        Density: {state.viewport.density === "compact" ? "Dense" : "Standard"}
+                    {canEditReferences ? (
+                        <button
+                            type="button"
+                            disabled={!selectedBodyCell}
+                            onClick={() => {
+                                if (selectedBodyCell) {
+                                    openLinkPanelForKey(selectedBodyCell.key);
+                                }
+                            }}
+                        >
+                            {selectedBodyCell?.kind === "reference" ? "Relink Scenario" : "Link Scenario"}
+                        </button>
+                    ) : null}
+                    <button type="button" onClick={solveCurrentMatrix} disabled={isSolving}>
+                        {isSolving ? "Solving..." : "Solve Game"}
                     </button>
                     <span style={{fontSize: 12, color: "#595959"}}>
                         {state.grid.rows.length}x{state.grid.columns.length}
                     </span>
+                    <span style={{fontSize: 12, color: "#8c8c8c"}}>{isEditorEditable ? "Mode: Edit" : "Mode: View"}</span>
                     {selectedReferenceLabel ? <span style={{fontSize: 12, color: "#8c8c8c"}}>Linked: {selectedReferenceLabel}</span> : null}
                 </div>
                 {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
                 <MatrixGrid
                     state={state}
                     expectedValue={expectedValue}
+                    activeTarget={state.selection.activeTarget}
                     activeKey={state.selection.activeTarget?.key ?? null}
                     activeRowId={axisContext.activeRowId}
                     activeColumnId={axisContext.activeColumnId}
@@ -252,8 +399,30 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                     draftHasFormatError={draftHasFormatError}
                     validationByKey={state.validation.byKey}
                     displayedBodyValues={referenceResolution.displayedBodyValues}
-                    onAddRow={() => dispatch(actions.addRow())}
-                    onAddColumn={() => dispatch(actions.addColumn())}
+                    canEditStructure={canEditStructure}
+                    canEditAxisLabels={canEditAxisLabels}
+                    canEditBodyValues={canEditBodyValues}
+                    canEditSummaries={canEditSummaries}
+                    onAddRow={() => {
+                        if (canEditStructure) {
+                            dispatch(actions.addRow());
+                        }
+                    }}
+                    onAddColumn={() => {
+                        if (canEditStructure) {
+                            dispatch(actions.addColumn());
+                        }
+                    }}
+                    onRemoveRow={(rowId) => {
+                        if (canEditStructure) {
+                            dispatch(actions.removeRow(rowId));
+                        }
+                    }}
+                    onRemoveColumn={(columnId) => {
+                        if (canEditStructure) {
+                            dispatch(actions.removeColumn(columnId));
+                        }
+                    }}
                     onRowLabelChange={(rowId, label) => dispatch(actions.setAxisLabel("rows", rowId, label))}
                     onColumnLabelChange={(columnId, label) => dispatch(actions.setAxisLabel("columns", columnId, label))}
                     onSelectBodyCell={(rowId, columnId) => selectTarget(toSelectionTarget("body", rowId, columnId))}
@@ -262,10 +431,11 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                     onSelectExpectedValue={() => selectTarget(toSelectionTarget("expectedValue"))}
                     onOpenReferenceLink={openLinkPanelForKey}
                     onStartEdit={(key) => startEditForKey(key)}
+                    onStartOverwriteEdit={(key, firstCharacter) => startOverwriteEditForKey(key, firstCharacter)}
                     onDraftChange={(draft) => dispatch(actions.updateDraft(draft))}
                     onCommitEdit={commitEditAndRefocus}
                     onCancelEdit={cancelEditAndRefocus}
-                    density={state.viewport.density}
+                    density="standard"
                 />
             </MatrixEditorLayout>
 

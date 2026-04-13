@@ -6,10 +6,7 @@ const useSolverGames = () => {
 
     const solveGame = async (payoffMatrix) => {
         try {
-            // Send a GET request with the JSON body (as the endpoint expects JSON in the body)
-
             const jsonPayload = payoffMatrix;
-            console.log("LOGGING JSON PAYLOAD", jsonPayload);
 
             const response = await request(() => api.post("/solve_game", {game: jsonPayload}));
 

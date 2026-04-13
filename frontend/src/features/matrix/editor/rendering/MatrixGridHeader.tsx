@@ -6,12 +6,20 @@ import {MatrixDensityProfile} from "./gridDensity";
 interface MatrixGridHeaderProps {
     state: MatrixEditorState;
     activeColumnId: string | null;
+    canEditAxisLabels: boolean;
     onColumnLabelChange: (columnId: string, label: string) => void;
-    onAddColumn: () => void;
+    onSelectColumnHeader: (columnId: string) => void;
     densityProfile: MatrixDensityProfile;
 }
 
-export function MatrixGridHeader({state, activeColumnId, onColumnLabelChange, onAddColumn, densityProfile}: MatrixGridHeaderProps) {
+export function MatrixGridHeader({
+    state,
+    activeColumnId,
+    canEditAxisLabels,
+    onColumnLabelChange,
+    onSelectColumnHeader,
+    densityProfile,
+}: MatrixGridHeaderProps) {
     return (
         <thead>
         <tr>
@@ -47,6 +55,8 @@ export function MatrixGridHeader({state, activeColumnId, onColumnLabelChange, on
                     <input
                         type="text"
                         value={column.label}
+                        readOnly={!canEditAxisLabels}
+                        onFocus={() => onSelectColumnHeader(column.id)}
                         onChange={(event) => onColumnLabelChange(column.id, event.target.value)}
                         style={{
                             width: `${densityProfile.columnLabelWidth - 12}px`,
@@ -81,9 +91,7 @@ export function MatrixGridHeader({state, activeColumnId, onColumnLabelChange, on
                     borderBottom: "1px solid #d9d9d9",
                     minWidth: 72,
                 }}
-            >
-                <button type="button" onClick={onAddColumn} style={{minHeight: densityProfile.cellHeight, fontSize: densityProfile.labelFontSize}}>+ Col</button>
-            </th>
+            />
         </tr>
         </thead>
     );

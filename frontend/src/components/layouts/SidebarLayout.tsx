@@ -20,10 +20,13 @@ export default function SidebarLayout({
             <Box
                 component="main"
                 sx={{
-                    flexGrow: 1,
                     marginLeft: `${sidebarWidth}px`,
+                    width: `calc(100% - ${sidebarWidth}px)`,
+                    maxWidth: `calc(100% - ${sidebarWidth}px)`,
+                    minWidth: 0,
                     transition: 'margin-left 0.3s',
                     padding: 4,
+                    boxSizing: 'border-box',
                 }}
             >
                 {children}

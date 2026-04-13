@@ -12,9 +12,11 @@ interface MatrixSummaryAxesProps {
     draft: string;
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
+    canEditSummaries: boolean;
     onSelectColumnSummary: (columnId: string) => void;
     onSelectExpectedValue: () => void;
     onStartEdit: (key: string) => void;
+    onStartOverwriteEdit: (key: string, firstCharacter: string) => void;
     onDraftChange: (value: string) => void;
     onCommitEdit: () => void;
     onCancelEdit: () => void;
@@ -27,15 +29,17 @@ export function MatrixSummaryAxes({
                                        activeKey,
                                        activeColumnId,
                                        editingKey,
-                                      draft,
-                                      draftHasFormatError,
-                                      validationByKey,
-                                      onSelectColumnSummary,
-                                      onSelectExpectedValue,
-                                      onStartEdit,
-                                       onDraftChange,
-                                       onCommitEdit,
-                                       onCancelEdit,
+                                       draft,
+                                       draftHasFormatError,
+                                       validationByKey,
+                                       canEditSummaries,
+                                        onSelectColumnSummary,
+                                       onSelectExpectedValue,
+                                       onStartEdit,
+                                       onStartOverwriteEdit,
+                                        onDraftChange,
+                                        onCommitEdit,
+                                        onCancelEdit,
                                        expectedValue,
                                        densityProfile,
                                    }: MatrixSummaryAxesProps) {
@@ -74,8 +78,10 @@ export function MatrixSummaryAxes({
                         draftHasFormatError={editingKey === createColumnSummaryKey(column.id) ? draftHasFormatError : false}
                         issues={validationByKey[createColumnSummaryKey(column.id)] ?? []}
                         axisHighlighted={activeColumnId === column.id}
+                        readOnly={!canEditSummaries}
                         onSelect={() => onSelectColumnSummary(column.id)}
                         onStartEdit={() => onStartEdit(createColumnSummaryKey(column.id))}
+                        onStartOverwriteEdit={(firstCharacter) => onStartOverwriteEdit(createColumnSummaryKey(column.id), firstCharacter)}
                         onDraftChange={onDraftChange}
                         onCommitEdit={onCommitEdit}
                         onCancelEdit={onCancelEdit}
@@ -93,6 +99,7 @@ export function MatrixSummaryAxes({
                     readOnly
                     onSelect={onSelectExpectedValue}
                     onStartEdit={() => onStartEdit(state.grid.expectedValueCell.key)}
+                    onStartOverwriteEdit={(firstCharacter) => onStartOverwriteEdit(state.grid.expectedValueCell.key, firstCharacter)}
                     onDraftChange={onDraftChange}
                     onCommitEdit={onCommitEdit}
                     onCancelEdit={onCancelEdit}
