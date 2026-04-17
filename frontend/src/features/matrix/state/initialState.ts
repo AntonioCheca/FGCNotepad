@@ -33,6 +33,7 @@ export function createInitialMatrixEditorState(options: CreateMatrixStateOptions
                         kind: "static" as const,
                         value: defaultCellValue,
                         reference: null,
+                        dynamicCombo: null,
                     },
                 ];
             })

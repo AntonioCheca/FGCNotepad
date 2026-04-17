@@ -18,6 +18,7 @@ test("reference resolver returns resolved display values and cache updates", () 
             scenarioId: "scn_1",
             cachedValue: null,
         },
+        dynamicCombo: null,
     };
 
     const result = resolveReferenceDisplayValues(state, createMapReferenceResolver({scn_1: 8}));
@@ -43,6 +44,7 @@ test("reference resolver gracefully falls back to cached value when missing", ()
             scenarioId: "scn_missing",
             cachedValue: 3,
         },
+        dynamicCombo: null,
     };
 
     const result = resolveReferenceDisplayValues(state, createMapReferenceResolver({}));

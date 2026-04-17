@@ -1,10 +1,11 @@
-import {MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
+import {MatrixDynamicComboData, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
 
 export type MatrixAction =
     | { type: "grid/setCellValue"; payload: { key: string; value: number | null } }
     | { type: "grid/updateReferenceCache"; payload: { key: string; cachedValue: number | null } }
     | { type: "grid/batchUpdateReferenceCache"; payload: { updates: Array<{ key: string; cachedValue: number | null }> } }
     | { type: "grid/linkReferenceCell"; payload: { key: string; scenarioId: string; scenarioLabel: string } }
+    | { type: "grid/setDynamicComboCell"; payload: { key: string; dynamicCombo: MatrixDynamicComboData } }
     | { type: "grid/setRowSummaryValue"; payload: { rowId: string; value: number | null } }
     | { type: "grid/setColumnSummaryValue"; payload: { columnId: string; value: number | null } }
     | { type: "grid/setExpectedValue"; payload: { value: number | null } }
@@ -43,6 +44,10 @@ export const matrixActions = {
     linkReferenceCell: (key: string, scenarioId: string, scenarioLabel: string): MatrixAction => ({
         type: "grid/linkReferenceCell",
         payload: {key, scenarioId, scenarioLabel},
+    }),
+    setDynamicComboCell: (key: string, dynamicCombo: MatrixDynamicComboData): MatrixAction => ({
+        type: "grid/setDynamicComboCell",
+        payload: {key, dynamicCombo},
     }),
     updateReferenceCache: (key: string, cachedValue: number | null): MatrixAction => ({
         type: "grid/updateReferenceCache",

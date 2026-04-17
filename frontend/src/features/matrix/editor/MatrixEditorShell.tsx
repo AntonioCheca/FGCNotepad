@@ -5,11 +5,13 @@ import {MatrixPayload} from "@/src/types/matrixPayload";
 import {isTemporarilyValidNumericDraft, selectCellValueByKey, selectGridValues, selectIsCellEditableByKey} from "@/src/features/matrix/model";
 import {useScenarioTableEditor} from "@/hooks/useScenarioTableEditor";
 import useSolverGames from "@/hooks/useSolverGame";
+import useMoves from "@/hooks/useMoves";
 import {computeExpectedValue} from "./services/matrixComputationService";
 import {useMatrixEditorController} from "./state/useMatrixEditorController";
 import {MatrixEditorLayout} from "./rendering/MatrixEditorLayout";
 import {MatrixGrid} from "./rendering/MatrixGrid";
 import {ScenarioLinkPanel} from "./rendering/ScenarioLinkPanel";
+import {DynamicComboPanel} from "./rendering/DynamicComboPanel";
 import {ReferenceInspector} from "./rendering/ReferenceInspector";
 import {interpretMatrixKeyDown, toSelectionTarget} from "./services/matrixKeyboardEngine";
 import {applyMatrixPaste} from "./services/matrixPasteEngine";
@@ -27,7 +29,10 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
     const {solveGame} = useSolverGames();
     const [isEditorEditable, setIsEditorEditable] = React.useState<boolean>(() => editor.isEditable());
     const [isSolving, setIsSolving] = React.useState(false);
+    const [moveLabelById, setMoveLabelById] = React.useState<Record<string, string>>({});
     const {handleDelete, handleBottomAreaClick, handleMatrixChange} = useScenarioTableEditor(nodeKey);
+    const {getSpecificMove} = useMoves();
+    const getSpecificMoveRef = React.useRef(getSpecificMove);
     const {state, dispatch, actions} = useMatrixEditorController({
         matrix,
         onMatrixChange: handleMatrixChange,
@@ -36,11 +41,14 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
     const stateRef = React.useRef(state);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [linkTargetKey, setLinkTargetKey] = React.useState<string | null>(null);
+    const [dynamicComboTargetKey, setDynamicComboTargetKey] = React.useState<string | null>(null);
+    const isAnyModalOpen = linkTargetKey !== null || dynamicComboTargetKey !== null;
 
     const canEditStructure = isEditorEditable;
     const canEditAxisLabels = isEditorEditable;
     const canEditBodyValues = isEditorEditable;
     const canEditReferences = isEditorEditable;
+    const canEditDynamicCombos = isEditorEditable;
     const canEditSummaries = true;
 
     React.useEffect(() => {
@@ -53,6 +61,10 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
     React.useEffect(() => {
         stateRef.current = state;
     }, [state]);
+
+    React.useEffect(() => {
+        getSpecificMoveRef.current = getSpecificMove;
+    }, [getSpecificMove]);
 
     const expectedValue = React.useMemo(() => {
         const values = selectGridValues(state);
@@ -219,6 +231,63 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
         return selectedBodyCell.reference?.scenarioLabel ?? selectedBodyCell.reference?.scenarioId ?? null;
     }, [selectedBodyCell]);
 
+    React.useEffect(() => {
+        const allMoveIds = new Set<string>();
+
+        Object.values(state.grid.bodyCells).forEach((cell) => {
+            if (cell.kind !== "dynamic_combo" || !cell.dynamicCombo) {
+                return;
+            }
+
+            cell.dynamicCombo.starterMoveIds.forEach((starterMoveId) => {
+                allMoveIds.add(starterMoveId);
+            });
+        });
+
+        const missingMoveIds = Array.from(allMoveIds).filter((moveId) => !moveLabelById[moveId]);
+        if (missingMoveIds.length === 0) {
+            return;
+        }
+
+        let canceled = false;
+
+        Promise.all(
+            missingMoveIds.map(async (moveId) => {
+                try {
+                    const move = await getSpecificMoveRef.current(moveId);
+                    if (!move || typeof move !== "object") {
+                        return [moveId, `Move #${moveId}`] as const;
+                    }
+
+                    const record = move as Record<string, unknown>;
+                    const notation = typeof record.numpad_notation === "string" ? record.numpad_notation : null;
+                    const character = typeof record.character === "string" ? record.character : null;
+                    const label = notation ? `${character ? `${character} ` : ""}${notation}` : `Move #${moveId}`;
+
+                    return [moveId, label] as const;
+                } catch {
+                    return [moveId, `Move #${moveId}`] as const;
+                }
+            })
+        ).then((pairs) => {
+            if (canceled) {
+                return;
+            }
+
+            setMoveLabelById((previous) => {
+                const next = {...previous};
+                pairs.forEach(([moveId, label]) => {
+                    next[moveId] = label;
+                });
+                return next;
+            });
+        });
+
+        return () => {
+            canceled = true;
+        };
+    }, [state.grid.bodyCells, moveLabelById]);
+
     const inspectorData = React.useMemo(() => {
         return buildReferenceInspectorData(
             state,
@@ -235,12 +304,30 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
         });
     }, [focusContainer]);
 
+    const closeDynamicComboPanel = React.useCallback(() => {
+        setDynamicComboTargetKey(null);
+        requestAnimationFrame(() => {
+            focusContainer();
+        });
+    }, [focusContainer]);
+
     const openLinkPanelForKey = React.useCallback((key: string) => {
         if (!canEditReferences) {
             return;
         }
+
+        setDynamicComboTargetKey(null);
         setLinkTargetKey(key);
     }, [canEditReferences]);
+
+    const openDynamicComboPanelForKey = React.useCallback((key: string) => {
+        if (!canEditDynamicCombos) {
+            return;
+        }
+
+        setLinkTargetKey(null);
+        setDynamicComboTargetKey(key);
+    }, [canEditDynamicCombos]);
 
     const solveCurrentMatrix = React.useCallback(async () => {
         const currentState = stateRef.current;
@@ -313,8 +400,19 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
             ref={containerRef}
             tabIndex={0}
             style={{width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box"}}
-            onClick={handleBottomAreaClick}
+            onClick={(event) => {
+                if (isAnyModalOpen) {
+                    event.stopPropagation();
+                    return;
+                }
+
+                handleBottomAreaClick(event);
+            }}
             onPaste={(event) => {
+                if (isAnyModalOpen) {
+                    return;
+                }
+
                 if (!canEditBodyValues) {
                     event.preventDefault();
                     return;
@@ -334,6 +432,10 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                 }
             }}
             onKeyDown={(event) => {
+                if (isAnyModalOpen) {
+                    return;
+                }
+
                 if (!canMutateActiveSelection && (event.key === "Enter" || event.key === "Backspace" || event.key === "Delete" || (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey))) {
                     event.preventDefault();
                     return;
@@ -377,6 +479,19 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                             {selectedBodyCell?.kind === "reference" ? "Relink Scenario" : "Link Scenario"}
                         </button>
                     ) : null}
+                    {canEditDynamicCombos ? (
+                        <button
+                            type="button"
+                            disabled={!selectedBodyCell}
+                            onClick={() => {
+                                if (selectedBodyCell) {
+                                    openDynamicComboPanelForKey(selectedBodyCell.key);
+                                }
+                            }}
+                        >
+                            {selectedBodyCell?.kind === "dynamic_combo" ? "Edit Dynamic Combo" : "Set Dynamic Combo"}
+                        </button>
+                    ) : null}
                     <button type="button" onClick={solveCurrentMatrix} disabled={isSolving}>
                         {isSolving ? "Solving..." : "Solve Game"}
                     </button>
@@ -399,6 +514,7 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                     draftHasFormatError={draftHasFormatError}
                     validationByKey={state.validation.byKey}
                     displayedBodyValues={referenceResolution.displayedBodyValues}
+                    moveLabelById={moveLabelById}
                     canEditStructure={canEditStructure}
                     canEditAxisLabels={canEditAxisLabels}
                     canEditBodyValues={canEditBodyValues}
@@ -430,6 +546,7 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
                     onSelectColumnSummary={(columnId) => selectTarget(toSelectionTarget("columnSummary", columnId))}
                     onSelectExpectedValue={() => selectTarget(toSelectionTarget("expectedValue"))}
                     onOpenReferenceLink={openLinkPanelForKey}
+                    onOpenDynamicCombo={openDynamicComboPanelForKey}
                     onStartEdit={(key) => startEditForKey(key)}
                     onStartOverwriteEdit={(key, firstCharacter) => startOverwriteEditForKey(key, firstCharacter)}
                     onDraftChange={(draft) => dispatch(actions.updateDraft(draft))}
@@ -454,6 +571,29 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
 
                     dispatch(actions.linkReferenceCell(linkTargetKey, item.id, item.label));
                     closeLinkPanel();
+                }}
+            />
+
+            <DynamicComboPanel
+                open={dynamicComboTargetKey !== null}
+                initialValue={
+                    dynamicComboTargetKey && state.grid.bodyCells[dynamicComboTargetKey]?.kind === "dynamic_combo"
+                        ? state.grid.bodyCells[dynamicComboTargetKey].dynamicCombo
+                        : null
+                }
+                moveLabelById={moveLabelById}
+                onClose={closeDynamicComboPanel}
+                onConfirm={(value, starterLabels) => {
+                    if (!dynamicComboTargetKey) {
+                        return;
+                    }
+
+                    setMoveLabelById((previous) => ({
+                        ...previous,
+                        ...starterLabels,
+                    }));
+                    dispatch(actions.setDynamicComboCell(dynamicComboTargetKey, value));
+                    closeDynamicComboPanel();
                 }}
             />
         </div>

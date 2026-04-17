@@ -2,8 +2,39 @@ import {serializeMatrixPayload} from "@/src/features/matrix/serialization/serial
 import {deserializeMatrixPayload} from "@/src/features/matrix/serialization/deserializeMatrixPayload";
 import {createColumnSummaryKey, createExpectedValueKey, createRowSummaryKey} from "@/src/features/matrix/model";
 import {createInitialMatrixEditorState} from "@/src/features/matrix/state";
-import {MatrixPayload} from "@/src/types/matrixPayload";
+import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
 import {MatrixEditorState} from "@/src/features/matrix/model";
+
+function toDynamicComboPayload(value: unknown): MatrixDynamicComboPayload | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const starterContext =
+        record.starterContext && typeof record.starterContext === "object" && !Array.isArray(record.starterContext)
+            ? (record.starterContext as Record<string, unknown>)
+            : null;
+
+    if (
+        typeof record.attackerCharacterId !== "string" ||
+        !Array.isArray(record.starterMoveIds) ||
+        !starterContext ||
+        typeof starterContext.isPunishCounter !== "boolean" ||
+        typeof starterContext.isCounterHit !== "boolean"
+    ) {
+        return null;
+    }
+
+    return {
+        attackerCharacterId: record.attackerCharacterId,
+        starterMoveIds: record.starterMoveIds.filter((moveId): moveId is string => typeof moveId === "string"),
+        starterContext: {
+            isPunishCounter: starterContext.isPunishCounter,
+            isCounterHit: starterContext.isCounterHit,
+        },
+    };
+}
 
 export function matrixPayloadToEditorState(matrix: MatrixPayload) {
     const safe = deserializeMatrixPayload(matrix).payload;
@@ -21,14 +52,21 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
         safe.axes.columns.forEach((__, columnIndex) => {
             const cell = safe.cells[rowIndex]?.[columnIndex];
             const key = `body::row_${rowIndex + 1}::column_${columnIndex + 1}`;
+            const dynamicCombo = toDynamicComboPayload(cell?.dynamicCombo);
+            const isDynamicCombo = cell?.cellType === "dynamic_combo";
             runtime.grid.bodyCells[key] = {
                 key,
                 rowId: `row_${rowIndex + 1}`,
                 columnId: `column_${columnIndex + 1}`,
-                kind: cell?.cellType === "reference" || cell?.cellType === "computed" ? "reference" : "static",
+                kind: isDynamicCombo
+                    ? "dynamic_combo"
+                    : cell?.cellType === "reference" || cell?.cellType === "computed"
+                        ? "reference"
+                        : "static",
                 value: typeof cell?.value === "number" ? cell.value : null,
+                dynamicCombo,
                 reference:
-                    cell?.cellType === "reference" || cell?.cellType === "computed"
+                    !isDynamicCombo && (cell?.cellType === "reference" || cell?.cellType === "computed")
                         ? {
                             kind:
                                 cell.cellType === "computed" || cell.metadata?.referenceKind === "computed"
@@ -93,6 +131,9 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
             if (cell?.kind === "reference") {
                 return cell.reference?.kind === "computed" ? "computed" : "reference";
             }
+            if (cell?.kind === "dynamic_combo") {
+                return "dynamic_combo";
+            }
             return "value";
         })
     );
@@ -111,6 +152,23 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
             };
         })
     );
+    const bodyCellDynamicCombos = state.grid.rows.map((row) =>
+        state.grid.columns.map((column) => {
+            const cell = state.grid.bodyCells[`body::${row.id}::${column.id}`];
+            if (cell?.kind !== "dynamic_combo" || !cell.dynamicCombo) {
+                return undefined;
+            }
+
+            return {
+                attackerCharacterId: cell.dynamicCombo.attackerCharacterId,
+                starterMoveIds: [...cell.dynamicCombo.starterMoveIds],
+                starterContext: {
+                    isPunishCounter: cell.dynamicCombo.starterContext.isPunishCounter,
+                    isCounterHit: cell.dynamicCombo.starterContext.isCounterHit,
+                },
+            };
+        })
+    );
     const rowFrequencies = state.grid.rows.map((row) => state.grid.rowSummaryCells[createRowSummaryKey(row.id)]?.value ?? null);
     const columnFrequencies = state.grid.columns.map(
         (column) => state.grid.columnSummaryCells[createColumnSummaryKey(column.id)]?.value ?? null
@@ -122,6 +180,7 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
         values,
         bodyCellTypes,
         bodyCellMetadata,
+        bodyCellDynamicCombos,
         rowFrequencies,
         columnFrequencies,
         expectedValue: state.grid.expectedValueCell.value,

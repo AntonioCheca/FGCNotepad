@@ -18,6 +18,7 @@ interface MatrixGridProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
+    moveLabelById: Record<string, string>;
     canEditStructure: boolean;
     canEditAxisLabels: boolean;
     canEditBodyValues: boolean;
@@ -31,6 +32,7 @@ interface MatrixGridProps {
     onSelectBodyCell: (rowId: string, columnId: string) => void;
     onSelectRowSummary: (rowId: string) => void;
     onOpenReferenceLink: (key: string) => void;
+    onOpenDynamicCombo: (key: string) => void;
     onSelectColumnSummary: (columnId: string) => void;
     onSelectExpectedValue: () => void;
     onStartEdit: (key: string) => void;
@@ -51,9 +53,10 @@ export function MatrixGrid({
                                editingKey,
                                draft,
                                 draftHasFormatError,
-                                validationByKey,
-                                displayedBodyValues,
-                                canEditStructure,
+                                 validationByKey,
+                                 displayedBodyValues,
+                                 moveLabelById,
+                                 canEditStructure,
                                 canEditAxisLabels,
                                 canEditBodyValues,
                                 canEditSummaries,
@@ -63,10 +66,11 @@ export function MatrixGrid({
                                 onRemoveColumn,
                                 onRowLabelChange,
                                 onColumnLabelChange,
-                               onSelectBodyCell,
-                               onSelectRowSummary,
-                               onOpenReferenceLink,
-                               onSelectColumnSummary,
+                                onSelectBodyCell,
+                                onSelectRowSummary,
+                                onOpenReferenceLink,
+                                onOpenDynamicCombo,
+                                onSelectColumnSummary,
                                 onSelectExpectedValue,
                                 onStartEdit,
                                 onStartOverwriteEdit,
@@ -182,6 +186,7 @@ export function MatrixGrid({
                     draftHasFormatError={draftHasFormatError}
                     validationByKey={validationByKey}
                     displayedBodyValues={displayedBodyValues}
+                    moveLabelById={moveLabelById}
                     canEditAxisLabels={canEditAxisLabels}
                     canEditBodyValues={canEditBodyValues}
                     canEditSummaries={canEditSummaries}
@@ -190,6 +195,7 @@ export function MatrixGrid({
                     onSelectBodyCell={handleSelectBodyCell}
                     onSelectRowSummary={handleSelectRowSummary}
                     onOpenReferenceLink={onOpenReferenceLink}
+                    onOpenDynamicCombo={onOpenDynamicCombo}
                     onStartEdit={onStartEdit}
                     onStartOverwriteEdit={onStartOverwriteEdit}
                     onDraftChange={onDraftChange}

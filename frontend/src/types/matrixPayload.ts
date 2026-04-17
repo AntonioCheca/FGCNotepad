@@ -1,13 +1,36 @@
 export const MATRIX_PAYLOAD_KIND = "matrix-editor" as const;
 export const MATRIX_PAYLOAD_SCHEMA_VERSION = 1 as const;
 
-export type MatrixCellType = "value" | "reference" | "computed" | "summary";
+/**
+ * Starter context mirrors combo requirement booleans:
+ * - normal hit: isPunishCounter=false, isCounterHit=false
+ * - punish counter: isPunishCounter=true, isCounterHit=false
+ * - counter hit: isPunishCounter=false, isCounterHit=true
+ * The pair true/true is invalid.
+ */
+export interface MatrixDynamicComboStarterContext {
+    isPunishCounter: boolean;
+    isCounterHit: boolean;
+}
+
+/**
+ * V1 dynamic combo definition for scenario matrix cells.
+ * It stores combo lookup inputs (not a fixed damage value).
+ */
+export interface MatrixDynamicComboPayload {
+    attackerCharacterId: string;
+    starterMoveIds: string[];
+    starterContext: MatrixDynamicComboStarterContext;
+}
+
+export type MatrixCellType = "value" | "reference" | "computed" | "dynamic_combo" | "summary";
 export type MatrixCellDataType = "number" | "text" | "empty";
 
 export interface MatrixCellPayload {
     cellType: MatrixCellType;
     dataType: MatrixCellDataType;
     value: number | string | null;
+    dynamicCombo?: MatrixDynamicComboPayload;
     metadata?: Record<string, unknown>;
     extensions?: Record<string, unknown>;
 }
@@ -46,8 +69,9 @@ export interface MatrixSerializationInput {
     rows: string[];
     columns: string[];
     values: Array<Array<number | string | null | undefined>>;
-    bodyCellTypes?: Array<Array<"value" | "reference" | "computed" | undefined>>;
+    bodyCellTypes?: Array<Array<"value" | "reference" | "computed" | "dynamic_combo" | undefined>>;
     bodyCellMetadata?: Array<Array<Record<string, unknown> | undefined>>;
+    bodyCellDynamicCombos?: Array<Array<MatrixDynamicComboPayload | undefined>>;
     rowFrequencies?: Array<number | string | null | undefined>;
     columnFrequencies?: Array<number | string | null | undefined>;
     expectedValue?: number | string | null;

@@ -4,6 +4,9 @@ import {MatrixDensityProfile} from "./gridDensity";
 
 interface MatrixValueCellProps {
     value: number | null;
+    dynamicChipLabels?: string[];
+    dynamicChipTone?: "normal" | "counter_hit" | "punish_counter";
+    bodyCellKind?: "static" | "reference" | "dynamic_combo";
     isActive: boolean;
     isEditing: boolean;
     draft: string;
@@ -12,6 +15,7 @@ interface MatrixValueCellProps {
     axisHighlighted?: boolean;
     readOnly?: boolean;
     onOpenReferenceLink?: () => void;
+    onOpenDynamicCombo?: () => void;
     onSelect: () => void;
     onStartEdit: () => void;
     onStartOverwriteEdit: (firstCharacter: string) => void;
@@ -26,23 +30,27 @@ function isPrintableKey(event: React.KeyboardEvent<HTMLButtonElement>): boolean 
 }
 
 function MatrixValueCellComponent({
-                                     value,
-                                     isActive,
+                                      value,
+                                      dynamicChipLabels = [],
+                                      dynamicChipTone = "normal",
+                                      bodyCellKind,
+                                      isActive,
                                      isEditing,
                                     draft,
                                     draftHasFormatError = false,
                                     issues = [],
-                                    axisHighlighted = false,
-                                    readOnly = false,
-                                    onOpenReferenceLink,
-                                     onSelect,
+                                     axisHighlighted = false,
+                                     readOnly = false,
+                                     onOpenReferenceLink,
+                                      onOpenDynamicCombo,
+                                      onSelect,
                                      onStartEdit,
                                      onStartOverwriteEdit,
                                       onDraftChange,
                                       onCommitEdit,
                                       onCancelEdit,
                                       densityProfile,
-                                  }: MatrixValueCellProps) {
+                                   }: MatrixValueCellProps) {
     const hasCommittedError = issues.length > 0;
 
     if (isEditing) {
@@ -77,6 +85,13 @@ function MatrixValueCellComponent({
         );
     }
 
+    const chipStyle =
+        dynamicChipTone === "punish_counter"
+            ? {background: "#ffe7ba", border: "1px solid #ffd591", color: "#ad4e00"}
+            : dynamicChipTone === "counter_hit"
+                ? {background: "#fffbe6", border: "1px solid #ffe58f", color: "#874d00"}
+                : {background: "#f5f5f5", border: "1px solid #d9d9d9", color: "#434343"};
+
     return (
         <button
             type="button"
@@ -93,7 +108,12 @@ function MatrixValueCellComponent({
                 }
             }}
             onDoubleClick={() => {
-                if (readOnly && onOpenReferenceLink) {
+                if (bodyCellKind === "dynamic_combo" && onOpenDynamicCombo) {
+                    onOpenDynamicCombo();
+                    return;
+                }
+
+                if (bodyCellKind === "reference" && onOpenReferenceLink) {
                     onOpenReferenceLink();
                     return;
                 }
@@ -121,11 +141,35 @@ function MatrixValueCellComponent({
                     cursor: "pointer",
                     borderRadius: 4,
                     fontVariantNumeric: "tabular-nums",
+                    padding: dynamicChipLabels.length > 0 ? "4px" : undefined,
+                    textAlign: "left",
                 }}
             aria-label={readOnly ? "Read-only cell" : "Editable cell"}
             title={issues[0]?.message}
         >
-            {value === null ? "" : value}
+            {dynamicChipLabels.length > 0 ? (
+                <span style={{display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center"}}>
+                    {dynamicChipLabels.map((label, index) => (
+                        <span
+                            key={`${label}-${index}`}
+                            style={{
+                                ...chipStyle,
+                                display: "inline-block",
+                                borderRadius: 999,
+                                padding: "1px 6px",
+                                fontSize: Math.max(10, densityProfile.valueFontSize - 1),
+                                lineHeight: 1.4,
+                                maxWidth: densityProfile.valueCellWidth - 12,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            {label}
+                        </span>
+                    ))}
+                </span>
+            ) : value === null ? "" : value}
         </button>
     );
 }
@@ -136,6 +180,9 @@ export const MatrixValueCell = React.memo(MatrixValueCellComponent, (previous, n
 
     return (
         previous.value === next.value &&
+        previous.bodyCellKind === next.bodyCellKind &&
+        (previous.dynamicChipLabels?.join("|") ?? "") === (next.dynamicChipLabels?.join("|") ?? "") &&
+        previous.dynamicChipTone === next.dynamicChipTone &&
         previous.isActive === next.isActive &&
         previous.isEditing === next.isEditing &&
         previous.draft === next.draft &&

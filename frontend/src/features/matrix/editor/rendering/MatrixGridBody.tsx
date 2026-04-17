@@ -14,6 +14,7 @@ interface MatrixGridBodyProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
+    moveLabelById: Record<string, string>;
     canEditAxisLabels: boolean;
     canEditBodyValues: boolean;
     canEditSummaries: boolean;
@@ -22,6 +23,7 @@ interface MatrixGridBodyProps {
     onSelectBodyCell: (rowId: string, columnId: string) => void;
     onSelectRowSummary: (rowId: string) => void;
     onOpenReferenceLink: (key: string) => void;
+    onOpenDynamicCombo: (key: string) => void;
     onStartEdit: (key: string) => void;
     onStartOverwriteEdit: (key: string, firstCharacter: string) => void;
     onDraftChange: (value: string) => void;
@@ -38,17 +40,19 @@ export function MatrixGridBody({
                                      editingKey,
                                      draft,
                                      draftHasFormatError,
-                                     validationByKey,
-                                     displayedBodyValues,
+                                      validationByKey,
+                                      displayedBodyValues,
+                                      moveLabelById,
                                      canEditAxisLabels,
                                      canEditBodyValues,
                                      canEditSummaries,
                                      onRowLabelChange,
                                      onSelectRowHeader,
                                      onSelectBodyCell,
-                                    onSelectRowSummary,
+                                     onSelectRowSummary,
                                      onOpenReferenceLink,
-                                    onStartEdit,
+                                     onOpenDynamicCombo,
+                                     onStartEdit,
                                     onStartOverwriteEdit,
                                       onDraftChange,
                                       onCommitEdit,
@@ -102,6 +106,21 @@ export function MatrixGridBody({
                         >
                             <MatrixValueCell
                                 value={displayedBodyValues[key] ?? cell?.value ?? null}
+                                bodyCellKind={cell?.kind}
+                                dynamicChipLabels={
+                                    cell?.kind === "dynamic_combo" && cell.dynamicCombo
+                                        ? cell.dynamicCombo.starterMoveIds.map((moveId) => moveLabelById[moveId] ?? `Move #${moveId}`)
+                                        : []
+                                }
+                                dynamicChipTone={
+                                    cell?.kind === "dynamic_combo" && cell.dynamicCombo
+                                        ? cell.dynamicCombo.starterContext.isPunishCounter
+                                            ? "punish_counter"
+                                            : cell.dynamicCombo.starterContext.isCounterHit
+                                                ? "counter_hit"
+                                                : "normal"
+                                        : "normal"
+                                }
                                 isActive={activeKey === key}
                                 isEditing={editingKey === key}
                                 draft={draft}
@@ -109,7 +128,8 @@ export function MatrixGridBody({
                                 issues={validationByKey[key] ?? []}
                                 axisHighlighted={axisHighlighted}
                                 readOnly={!canEditBodyValues || !isEditableBodyCell(cell)}
-                                onOpenReferenceLink={() => onOpenReferenceLink(key)}
+                                onOpenReferenceLink={cell?.kind === "reference" ? () => onOpenReferenceLink(key) : undefined}
+                                onOpenDynamicCombo={cell?.kind === "dynamic_combo" ? () => onOpenDynamicCombo(key) : undefined}
                                 onSelect={() => onSelectBodyCell(row.id, column.id)}
                                 onStartEdit={() => onStartEdit(key)}
                                 onStartOverwriteEdit={(firstCharacter) => onStartOverwriteEdit(key, firstCharacter)}

@@ -95,3 +95,35 @@ test("serialize + deserialize keeps explicit body cell types", () => {
     assert.equal(deserialized.payload.cells[0][0].cellType, "reference");
     assert.equal(deserialized.payload.cells[0][1].cellType, "computed");
 });
+
+test("serialize + deserialize preserves dynamic combo payload", () => {
+    const payload = serializeMatrixPayload({
+        rows: ["R1"],
+        columns: ["C1"],
+        values: [[null]],
+        bodyCellTypes: [["dynamic_combo"]],
+        bodyCellDynamicCombos: [[{
+            attackerCharacterId: "char_aki",
+            starterMoveIds: ["move_st_lp", "move_cr_lp"],
+            starterContext: {
+                isPunishCounter: false,
+                isCounterHit: true,
+            },
+        }]],
+        metadata: {matrixId: "mx_dynamic_combo"},
+    });
+
+    const deserialized = deserializeMatrixPayload(payload);
+    const cell = deserialized.payload.cells[0][0];
+
+    assert.equal(cell.cellType, "dynamic_combo");
+    assert.equal(cell.value, null);
+    assert.deepEqual(cell.dynamicCombo, {
+        attackerCharacterId: "char_aki",
+        starterMoveIds: ["move_st_lp", "move_cr_lp"],
+        starterContext: {
+            isPunishCounter: false,
+            isCounterHit: true,
+        },
+    });
+});

@@ -180,6 +180,7 @@ test("reference/computed cells are guarded from direct mutation", () => {
             scenarioId: "calc_1",
             cachedValue: 11,
         },
+        dynamicCombo: null,
     };
 
     state = matrixEditorReducer(state, matrixActions.setCellValue(firstCell.key, 99));
@@ -199,4 +200,35 @@ test("linkReferenceCell converts static cell to reference metadata", () => {
     assert.equal(state.grid.bodyCells[firstCell.key].reference?.scenarioId, "42");
     assert.equal(state.grid.bodyCells[firstCell.key].reference?.scenarioLabel, "Corner Escape");
     assert.equal(state.grid.bodyCells[firstCell.key].reference?.cachedValue, 4);
+});
+
+test("setDynamicComboCell converts body cell to dynamic combo metadata", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const firstCell = selectBodyCellByIndex(state, 0, 0);
+    assert.ok(firstCell);
+
+    state = matrixEditorReducer(state, matrixActions.setCellValue(firstCell.key, 6));
+    state = matrixEditorReducer(
+        state,
+        matrixActions.setDynamicComboCell(firstCell.key, {
+            attackerCharacterId: "char_aki",
+            starterMoveIds: ["move_st_lp", "move_cr_lp"],
+            starterContext: {
+                isPunishCounter: false,
+                isCounterHit: true,
+            },
+        })
+    );
+
+    assert.equal(state.grid.bodyCells[firstCell.key].kind, "dynamic_combo");
+    assert.equal(state.grid.bodyCells[firstCell.key].value, null);
+    assert.equal(state.grid.bodyCells[firstCell.key].reference, null);
+    assert.deepEqual(state.grid.bodyCells[firstCell.key].dynamicCombo, {
+        attackerCharacterId: "char_aki",
+        starterMoveIds: ["move_st_lp", "move_cr_lp"],
+        starterContext: {
+            isPunishCounter: false,
+            isCounterHit: true,
+        },
+    });
 });

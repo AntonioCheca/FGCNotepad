@@ -49,3 +49,45 @@ test("payload adapter preserves reference/computed cell types", () => {
     assert.equal(roundTrip.cells[0][0].cellType, "reference");
     assert.equal(roundTrip.cells[0][1].cellType, "computed");
 });
+
+test("payload adapter preserves dynamic combo cells", () => {
+    const payload = serializeMatrixPayload({
+        rows: ["R1"],
+        columns: ["C1"],
+        values: [[null]],
+        bodyCellTypes: [["dynamic_combo"]],
+        bodyCellDynamicCombos: [[{
+            attackerCharacterId: "char_juri",
+            starterMoveIds: ["st_lp", "cr_lp"],
+            starterContext: {
+                isPunishCounter: true,
+                isCounterHit: false,
+            },
+        }]],
+        metadata: {matrixId: "mx_dynamic_adapter"},
+    });
+
+    const state = matrixPayloadToEditorState(payload);
+    const cell = state.grid.bodyCells["body::row_1::column_1"];
+
+    assert.equal(cell.kind, "dynamic_combo");
+    assert.deepEqual(cell.dynamicCombo, {
+        attackerCharacterId: "char_juri",
+        starterMoveIds: ["st_lp", "cr_lp"],
+        starterContext: {
+            isPunishCounter: true,
+            isCounterHit: false,
+        },
+    });
+
+    const roundTrip = matrixEditorStateToPayload(state, payload);
+    assert.equal(roundTrip.cells[0][0].cellType, "dynamic_combo");
+    assert.deepEqual(roundTrip.cells[0][0].dynamicCombo, {
+        attackerCharacterId: "char_juri",
+        starterMoveIds: ["st_lp", "cr_lp"],
+        starterContext: {
+            isPunishCounter: true,
+            isCounterHit: false,
+        },
+    });
+});

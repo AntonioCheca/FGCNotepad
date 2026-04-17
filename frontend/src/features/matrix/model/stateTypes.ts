@@ -1,4 +1,4 @@
-export type MatrixCellKind = "static" | "reference";
+export type MatrixCellKind = "static" | "reference" | "dynamic_combo";
 export type MatrixReferenceKind = "reference" | "computed";
 export type MatrixEditorMode = "view" | "edit";
 export type MatrixDensityMode = "standard" | "compact";
@@ -16,6 +16,17 @@ export interface MatrixReferenceData {
     cachedValue: number | null;
 }
 
+export interface MatrixDynamicComboStarterContext {
+    isPunishCounter: boolean;
+    isCounterHit: boolean;
+}
+
+export interface MatrixDynamicComboData {
+    attackerCharacterId: string;
+    starterMoveIds: string[];
+    starterContext: MatrixDynamicComboStarterContext;
+}
+
 export interface MatrixBodyCell {
     key: string;
     rowId: string;
@@ -23,6 +34,7 @@ export interface MatrixBodyCell {
     kind: MatrixCellKind;
     value: number | null;
     reference: MatrixReferenceData | null;
+    dynamicCombo: MatrixDynamicComboData | null;
 }
 
 export interface MatrixSummaryCell {

@@ -31,6 +31,16 @@ class Scenario
     #[ORM\Column(name: 'search_label', type: Types::TEXT)]
     private string $searchLabel = '';
 
+    /**
+     * Opaque scenario-table matrix payload persisted from lexical post body.
+     *
+     * Body cell shapes currently include:
+     * - value/reference/computed cells
+     * - dynamic_combo cells carrying:
+     *   - dynamicCombo.attackerCharacterId
+     *   - dynamicCombo.starterMoveIds (non-empty)
+     *   - dynamicCombo.starterContext.isPunishCounter / isCounterHit
+     */
     #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
     private array $payload = [];
 

@@ -2,6 +2,7 @@ import {
     MATRIX_PAYLOAD_KIND,
     MATRIX_PAYLOAD_SCHEMA_VERSION,
     MatrixCellPayload,
+    MatrixDynamicComboPayload,
     MatrixDeserializationResult,
     MatrixEditorState,
     MatrixPayload,
@@ -27,6 +28,32 @@ function asNumberOrFallback(value: unknown, fallback: number): number {
     return fallback;
 }
 
+function coerceDynamicCombo(value: unknown): MatrixDynamicComboPayload | undefined {
+    if (!isRecord(value)) {
+        return undefined;
+    }
+
+    const starterContext = isRecord(value.starterContext) ? value.starterContext : null;
+    if (
+        typeof value.attackerCharacterId !== "string" ||
+        !Array.isArray(value.starterMoveIds) ||
+        !starterContext ||
+        typeof starterContext.isPunishCounter !== "boolean" ||
+        typeof starterContext.isCounterHit !== "boolean"
+    ) {
+        return undefined;
+    }
+
+    return {
+        attackerCharacterId: value.attackerCharacterId,
+        starterMoveIds: value.starterMoveIds.filter((moveId): moveId is string => typeof moveId === "string"),
+        starterContext: {
+            isPunishCounter: starterContext.isPunishCounter,
+            isCounterHit: starterContext.isCounterHit,
+        },
+    };
+}
+
 function coerceCell(cell: unknown, issues: string[], context: string): MatrixCellPayload {
     if (!isRecord(cell)) {
         issues.push(`${context}: cell is not an object; defaulted to empty.`);
@@ -38,7 +65,11 @@ function coerceCell(cell: unknown, issues: string[], context: string): MatrixCel
     const value = cell.value;
 
     const safeCellType =
-        cellType === "value" || cellType === "reference" || cellType === "computed" || cellType === "summary"
+        cellType === "value" ||
+        cellType === "reference" ||
+        cellType === "computed" ||
+        cellType === "dynamic_combo" ||
+        cellType === "summary"
             ? cellType
             : "value";
 
@@ -49,6 +80,7 @@ function coerceCell(cell: unknown, issues: string[], context: string): MatrixCel
             cellType: safeCellType,
             dataType: "number",
             value: asNumberOrFallback(value, 0),
+            dynamicCombo: coerceDynamicCombo(cell.dynamicCombo),
             metadata: isRecord(cell.metadata) ? cell.metadata : undefined,
             extensions: isRecord(cell.extensions) ? cell.extensions : undefined,
         };
@@ -59,6 +91,7 @@ function coerceCell(cell: unknown, issues: string[], context: string): MatrixCel
             cellType: safeCellType,
             dataType: "text",
             value: typeof value === "string" ? value : "",
+            dynamicCombo: coerceDynamicCombo(cell.dynamicCombo),
             metadata: isRecord(cell.metadata) ? cell.metadata : undefined,
             extensions: isRecord(cell.extensions) ? cell.extensions : undefined,
         };
@@ -68,6 +101,7 @@ function coerceCell(cell: unknown, issues: string[], context: string): MatrixCel
         cellType: safeCellType,
         dataType: "empty",
         value: null,
+        dynamicCombo: coerceDynamicCombo(cell.dynamicCombo),
         metadata: isRecord(cell.metadata) ? cell.metadata : undefined,
         extensions: isRecord(cell.extensions) ? cell.extensions : undefined,
     };
@@ -126,10 +160,21 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
         const rawRow = Array.isArray(rawCells[rowIndex]) ? rawCells[rowIndex] : [];
         return normalizedColumns.map((_, columnIndex) => {
             const cell = coerceCell(rawRow[columnIndex], issues, `cells[${rowIndex}][${columnIndex}]`);
-            if (cell.cellType === "reference" || cell.cellType === "computed") {
+            if (cell.cellType === "reference" || cell.cellType === "computed" || cell.cellType === "dynamic_combo") {
                 return cell.cellType;
             }
             return "value";
+        });
+    });
+
+    const normalizedBodyCellDynamicCombos = normalizedRows.map((_, rowIndex) => {
+        const rawRow = Array.isArray(rawCells[rowIndex]) ? rawCells[rowIndex] : [];
+        return normalizedColumns.map((_, columnIndex) => {
+            const cell = coerceCell(rawRow[columnIndex], issues, `cells[${rowIndex}][${columnIndex}]`);
+            if (cell.cellType === "dynamic_combo") {
+                return cell.dynamicCombo;
+            }
+            return undefined;
         });
     });
 
@@ -161,6 +206,7 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
         columns: normalizedColumns,
         values: normalizedValues,
         bodyCellTypes: normalizedBodyCellTypes,
+        bodyCellDynamicCombos: normalizedBodyCellDynamicCombos,
         rowFrequencies,
         columnFrequencies,
         expectedValue,

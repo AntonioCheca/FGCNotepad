@@ -290,6 +290,175 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('Serialized Matrix', $scenario->getName());
     }
 
+    public function testCreatePostRejectsDynamicComboCellWithEmptyStarterMoveIds(): void
+    {
+        $matrixPayload = [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['Row A'],
+                'columns' => ['Col A'],
+            ],
+            'cells' => [
+                [[
+                    'cellType' => 'dynamic_combo',
+                    'dataType' => 'empty',
+                    'value' => null,
+                    'dynamicCombo' => [
+                        'attackerCharacterId' => 'char_aki',
+                        'starterMoveIds' => [],
+                        'starterContext' => [
+                            'isPunishCounter' => false,
+                            'isCounterHit' => true,
+                        ],
+                    ],
+                ]],
+            ],
+            'summary' => [
+                'rowAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'columnAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'expectedValue' => [
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 0,
+                ],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx_dynamic_invalid',
+                'title' => 'Dynamic Invalid Matrix',
+            ],
+        ];
+
+        $lexicalBody = [
+            'root' => [
+                'type' => 'root',
+                'version' => 1,
+                'children' => [[
+                    'type' => 'scenario-table',
+                    'version' => 1,
+                    'matrix' => $matrixPayload,
+                ]],
+            ],
+        ];
+
+        $client = $this->createAuthenticatedClient();
+        $client->request(
+            'POST',
+            '/api/posts',
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode([
+                'title' => 'Post With Invalid Dynamic Combo Cell',
+                'body' => json_encode($lexicalBody),
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $responsePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame('Scenario table matrix payload is invalid.', $responsePayload['error'] ?? null);
+        $this->assertNotEmpty($responsePayload['errors'] ?? []);
+    }
+
+    public function testCreatePostPersistsDynamicComboCellWithMultipleStarterMoveIds(): void
+    {
+        $matrixPayload = [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['Row A'],
+                'columns' => ['Col A'],
+            ],
+            'cells' => [
+                [[
+                    'cellType' => 'dynamic_combo',
+                    'dataType' => 'empty',
+                    'value' => null,
+                    'dynamicCombo' => [
+                        'attackerCharacterId' => 'char_aki',
+                        'starterMoveIds' => ['move_st_lp', 'move_cr_lp'],
+                        'starterContext' => [
+                            'isPunishCounter' => true,
+                            'isCounterHit' => false,
+                        ],
+                    ],
+                ]],
+            ],
+            'summary' => [
+                'rowAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'columnAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 100,
+                ]],
+                'expectedValue' => [
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 0,
+                ],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx_dynamic_valid',
+                'title' => 'Dynamic Valid Matrix',
+            ],
+        ];
+
+        $lexicalBody = [
+            'root' => [
+                'type' => 'root',
+                'version' => 1,
+                'children' => [[
+                    'type' => 'scenario-table',
+                    'version' => 1,
+                    'matrix' => $matrixPayload,
+                ]],
+            ],
+        ];
+
+        $client = $this->createAuthenticatedClient();
+        $client->request(
+            'POST',
+            '/api/posts',
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode([
+                'title' => 'Post With Valid Dynamic Combo Cell',
+                'body' => json_encode($lexicalBody),
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        $responsePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $post = $this->entityManager->getRepository(Post::class)->find($responsePayload['id']);
+        $this->assertNotNull($post);
+
+        $savedBody = json_decode($post->getBody(), true);
+        $scenarioId = $savedBody['root']['children'][0]['matrix']['extensions']['scenarioId'] ?? null;
+        $this->assertIsString($scenarioId);
+
+        $scenario = $this->entityManager->getRepository(Scenario::class)->findOneBy(['publicId' => $scenarioId]);
+        $this->assertNotNull($scenario);
+
+        $savedCell = $scenario->getPayload()['cells'][0][0] ?? null;
+        $this->assertIsArray($savedCell);
+        $this->assertSame('dynamic_combo', $savedCell['cellType'] ?? null);
+        $this->assertSame(['move_st_lp', 'move_cr_lp'], $savedCell['dynamicCombo']['starterMoveIds'] ?? null);
+    }
+
     private function addMoveInBackend(): Move
     {
         $character = new Character();

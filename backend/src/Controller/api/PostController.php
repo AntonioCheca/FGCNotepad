@@ -11,6 +11,7 @@ use App\Repository\MoveRepository;
 use App\Repository\PostRepository;
 use App\Repository\TagRepository;
 use App\Service\PostComponentExtractor;
+use App\Service\ScenarioMatrixPayloadValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -31,7 +32,11 @@ class PostController extends AbstractController
 {
     public const SEPARATOR_FOR_TAGS_IN_FETCH_API = ',';
 
-    public function __construct(private EntityManagerInterface $entityManager, private Security $security)
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private Security $security,
+        private ScenarioMatrixPayloadValidator $scenarioMatrixPayloadValidator,
+    )
     {
     }
 
@@ -63,6 +68,14 @@ class PostController extends AbstractController
         $decodedBody = $this->decodeBodyToArray($data['body']);
         if (null === $decodedBody) {
             return new JsonResponse(['error' => 'Body should be valid JSON format'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $matrixValidationErrors = $this->scenarioMatrixPayloadValidator->validateScenarioTables($decodedBody);
+        if ([] !== $matrixValidationErrors) {
+            return new JsonResponse([
+                'error' => 'Scenario table matrix payload is invalid.',
+                'errors' => $matrixValidationErrors,
+            ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         /** @var User $internalUserEntity */
@@ -186,6 +199,14 @@ class PostController extends AbstractController
             $decodedBody = $this->decodeBodyToArray($data['body']);
             if (null === $decodedBody) {
                 return new JsonResponse(['error' => 'Body should be valid JSON format'], JsonResponse::HTTP_BAD_REQUEST);
+            }
+
+            $matrixValidationErrors = $this->scenarioMatrixPayloadValidator->validateScenarioTables($decodedBody);
+            if ([] !== $matrixValidationErrors) {
+                return new JsonResponse([
+                    'error' => 'Scenario table matrix payload is invalid.',
+                    'errors' => $matrixValidationErrors,
+                ], JsonResponse::HTTP_BAD_REQUEST);
             }
 
             $postTitle = is_string($post->getTitle()) && '' !== trim($post->getTitle()) ? $post->getTitle() : 'Untitled Post';

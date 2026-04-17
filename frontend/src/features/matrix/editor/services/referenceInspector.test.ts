@@ -19,6 +19,7 @@ test("inspector builds source info for selected reference cell", () => {
             scenarioLabel: "Corner Trap",
             cachedValue: 5,
         },
+        dynamicCombo: null,
     };
 
     const data = buildReferenceInspectorData(

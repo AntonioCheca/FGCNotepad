@@ -2,6 +2,7 @@ import {
     MATRIX_PAYLOAD_KIND,
     MATRIX_PAYLOAD_SCHEMA_VERSION,
     MatrixCellPayload,
+    MatrixDynamicComboPayload,
     MatrixMetadataPayload,
     MatrixPayload,
     MatrixSerializationInput,
@@ -25,8 +26,19 @@ function normalizeAxisLabel(value: unknown, fallback: string): string {
 function toCellPayload(
     value: number | string | null | undefined,
     cellType: MatrixCellPayload["cellType"],
+    dynamicCombo?: MatrixDynamicComboPayload,
     metadata?: Record<string, unknown>
 ): MatrixCellPayload {
+    if (cellType === "dynamic_combo") {
+        return {
+            cellType,
+            dataType: "empty",
+            value: null,
+            dynamicCombo,
+            metadata,
+        };
+    }
+
     if (typeof value === "number" && Number.isFinite(value)) {
         return {
             cellType,
@@ -125,8 +137,17 @@ export function serializeMatrixPayload(input: MatrixSerializationInput): MatrixP
         row.map((value, columnIndex) => {
             const requestedCellType = input.bodyCellTypes?.[rowIndex]?.[columnIndex];
             const safeCellType =
-                requestedCellType === "reference" || requestedCellType === "computed" ? requestedCellType : "value";
-            return toCellPayload(value, safeCellType, input.bodyCellMetadata?.[rowIndex]?.[columnIndex]);
+                requestedCellType === "reference" ||
+                requestedCellType === "computed" ||
+                requestedCellType === "dynamic_combo"
+                    ? requestedCellType
+                    : "value";
+            return toCellPayload(
+                value,
+                safeCellType,
+                input.bodyCellDynamicCombos?.[rowIndex]?.[columnIndex],
+                input.bodyCellMetadata?.[rowIndex]?.[columnIndex]
+            );
         })
     );
 

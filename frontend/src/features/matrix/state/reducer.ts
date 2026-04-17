@@ -182,11 +182,54 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         [action.payload.key]: {
                             ...cell,
                             kind: "reference",
+                            dynamicCombo: null,
                             reference: {
                                 kind: "reference",
                                 scenarioId: action.payload.scenarioId,
                                 scenarioLabel: action.payload.scenarioLabel,
                                 cachedValue: cell.value,
+                            },
+                        },
+                    },
+                },
+                validation: {
+                    ...state.validation,
+                    byKey: {
+                        ...state.validation.byKey,
+                        [action.payload.key]: [],
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setDynamicComboCell": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            if (!cell) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {
+                            ...cell,
+                            kind: "dynamic_combo",
+                            value: null,
+                            reference: null,
+                            dynamicCombo: {
+                                attackerCharacterId: action.payload.dynamicCombo.attackerCharacterId,
+                                starterMoveIds: [...action.payload.dynamicCombo.starterMoveIds],
+                                starterContext: {
+                                    isPunishCounter: action.payload.dynamicCombo.starterContext.isPunishCounter,
+                                    isCounterHit: action.payload.dynamicCombo.starterContext.isCounterHit,
+                                },
                             },
                         },
                     },
@@ -306,6 +349,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     kind: "static",
                     value: null,
                     reference: null,
+                    dynamicCombo: null,
                 };
             });
 
@@ -392,6 +436,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     kind: "static",
                     value: null,
                     reference: null,
+                    dynamicCombo: null,
                 };
             });
 
