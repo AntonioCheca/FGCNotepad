@@ -1,4 +1,4 @@
-import {useState, useEffect} from "react";
+import {ChangeEvent, useState, useEffect} from "react";
 import {LexicalComposer} from "@lexical/react/LexicalComposer";
 import {RichTextPlugin} from "@lexical/react/LexicalRichTextPlugin";
 import {ContentEditable} from "@lexical/react/LexicalContentEditable";
@@ -19,7 +19,6 @@ import {
 import MentionMovePlugin from "@/src/components/lexical/MentionMovePlugin";
 import {MentionNode} from "@/src/components/lexical/MentionNode";
 import {ScenarioTableNode} from "@/src/components/lexical/ScenarioTableNode";
-import InsertScenarioTableButton from "@/src/components/lexical/InsertScenarioTableButton";
 import TagList from "@/src/components/forum/TagList";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
@@ -102,7 +101,7 @@ export default function PostEditor({
                     <AppTextField
                         label="Post title"
                         value={title}
-                        onChange={(e: any) => {
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
                             setTitle(e.target.value);
                             localStorage.setItem("postDraftTitle", e.target.value);
                         }}
@@ -112,9 +111,6 @@ export default function PostEditor({
 
                 <div style={{width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box"}}>
                     <LexicalComposer initialConfig={initialConfig}>
-                        <AdvancedEditableWrapper condition={editable}>
-                            <InsertScenarioTableButton/>
-                        </AdvancedEditableWrapper>
                         <RichTextPlugin
                             contentEditable={
                                 <ContentEditable

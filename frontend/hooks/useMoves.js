@@ -8,9 +8,11 @@ const useMoves = () => {
     const searchMoves = (query) =>
         request(() => api.get(`/moves/search?query=${encodeURIComponent(query)}`));
 
+    const listMoves = () => request(() => api.get('/moves'));
+
     const getSpecificMove = (id) => request(() => api.get(`/moves/${id}`));
 
-    return {searchMoves, getSpecificMove};
+    return {searchMoves, listMoves, getSpecificMove};
 };
 
 export default useMoves;

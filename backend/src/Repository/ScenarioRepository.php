@@ -21,11 +21,21 @@ class ScenarioRepository extends ServiceEntityRepository
     /**
      * @return list<Scenario>
      */
-    public function searchByQuery(?string $query, int $limit = 50): array
+    public function searchByFilters(
+        ?string $query,
+        ?string $scenarioType,
+        ?string $defenderCharacterId,
+        ?string $attackerCharacterId,
+        ?string $triggerMoveId,
+        int $limit = 50
+    ): array
     {
         $safeLimit = max(1, min($limit, 100));
 
         $qb = $this->createQueryBuilder('scenario')
+            ->leftJoin('scenario.defenderCharacter', 'defender')
+            ->leftJoin('scenario.attackerCharacter', 'attacker')
+            ->leftJoin('scenario.triggerMove', 'triggerMove')
             ->orderBy('scenario.updatedAt', 'DESC')
             ->setMaxResults($safeLimit);
 
@@ -33,6 +43,27 @@ class ScenarioRepository extends ServiceEntityRepository
         if ('' !== $normalizedQuery) {
             $qb->andWhere('scenario.searchLabel LIKE :query')
                 ->setParameter('query', '%' . mb_strtolower($normalizedQuery) . '%');
+        }
+
+        $normalizedScenarioType = null === $scenarioType ? '' : trim(mb_strtolower($scenarioType));
+        if ('' !== $normalizedScenarioType) {
+            $qb->andWhere('scenario.scenarioType = :scenarioType')
+                ->setParameter('scenarioType', $normalizedScenarioType);
+        }
+
+        if (null !== $defenderCharacterId && '' !== trim($defenderCharacterId)) {
+            $qb->andWhere('defender.id = :defenderCharacterId')
+                ->setParameter('defenderCharacterId', trim($defenderCharacterId));
+        }
+
+        if (null !== $attackerCharacterId && '' !== trim($attackerCharacterId)) {
+            $qb->andWhere('attacker.id = :attackerCharacterId')
+                ->setParameter('attackerCharacterId', trim($attackerCharacterId));
+        }
+
+        if (null !== $triggerMoveId && '' !== trim($triggerMoveId)) {
+            $qb->andWhere('triggerMove.id = :triggerMoveId')
+                ->setParameter('triggerMoveId', trim($triggerMoveId));
         }
 
         return $qb->getQuery()->getResult();

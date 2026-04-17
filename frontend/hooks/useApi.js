@@ -1,13 +1,12 @@
 // hooks/useApi.js
-import {useState} from "react";
+import {useCallback, useState} from "react";
 import {useRouter} from "next/router";
-import api from "@/services/api";
 
 const useApi = () => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const request = async (axiosCall) => {
+    const request = useCallback(async (axiosCall) => {
         try {
             setLoading(true);
             const response = await axiosCall();
@@ -22,7 +21,7 @@ const useApi = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [router]);
 
     return {request, loading};
 };

@@ -1,9 +1,7 @@
 import React from "react";
-import {useLexicalComposerContext} from "@lexical/react/LexicalComposerContext";
 
 import {MatrixPayload} from "@/src/types/matrixPayload";
 import {isTemporarilyValidNumericDraft, selectCellValueByKey, selectGridValues, selectIsCellEditableByKey} from "@/src/features/matrix/model";
-import {useScenarioTableEditor} from "@/hooks/useScenarioTableEditor";
 import useSolverGames from "@/hooks/useSolverGame";
 import useMoves from "@/hooks/useMoves";
 import {computeExpectedValue} from "./services/matrixComputationService";
@@ -21,21 +19,21 @@ import {buildReferenceInspectorData} from "./services/referenceInspector";
 
 interface MatrixEditorShellProps {
     matrix: MatrixPayload;
-    nodeKey: string;
+    onMatrixChange: (next: MatrixPayload) => void;
+    editable?: boolean;
+    onDelete?: () => void;
 }
 
-export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
-    const [editor] = useLexicalComposerContext();
+export function MatrixEditorShell({matrix, onMatrixChange, editable = true, onDelete}: MatrixEditorShellProps) {
     const {solveGame} = useSolverGames();
-    const [isEditorEditable, setIsEditorEditable] = React.useState<boolean>(() => editor.isEditable());
+    const isEditorEditable = editable;
     const [isSolving, setIsSolving] = React.useState(false);
     const [moveLabelById, setMoveLabelById] = React.useState<Record<string, string>>({});
-    const {handleDelete, handleBottomAreaClick, handleMatrixChange} = useScenarioTableEditor(nodeKey);
     const {getSpecificMove} = useMoves();
     const getSpecificMoveRef = React.useRef(getSpecificMove);
     const {state, dispatch, actions} = useMatrixEditorController({
         matrix,
-        onMatrixChange: handleMatrixChange,
+        onMatrixChange,
         persistChanges: isEditorEditable,
     });
     const stateRef = React.useRef(state);
@@ -50,13 +48,6 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
     const canEditReferences = isEditorEditable;
     const canEditDynamicCombos = isEditorEditable;
     const canEditSummaries = true;
-
-    React.useEffect(() => {
-        setIsEditorEditable(editor.isEditable());
-        return editor.registerEditableListener((nextEditable) => {
-            setIsEditorEditable(nextEditable);
-        });
-    }, [editor]);
 
     React.useEffect(() => {
         stateRef.current = state;
@@ -403,10 +394,7 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
             onClick={(event) => {
                 if (isAnyModalOpen) {
                     event.stopPropagation();
-                    return;
                 }
-
-                handleBottomAreaClick(event);
             }}
             onPaste={(event) => {
                 if (isAnyModalOpen) {
@@ -462,7 +450,7 @@ export function MatrixEditorShell({matrix, nodeKey}: MatrixEditorShellProps) {
         >
             <MatrixEditorLayout
                 title={state.grid.metadata.title}
-                onDelete={canEditStructure ? handleDelete : undefined}
+                onDelete={canEditStructure ? onDelete : undefined}
                 warnings={displayWarnings}
             >
                 <div style={{display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap"}}>

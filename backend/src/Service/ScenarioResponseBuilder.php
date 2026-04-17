@@ -6,6 +6,11 @@ use App\Entity\Scenario;
 
 class ScenarioResponseBuilder
 {
+    public function __construct(
+        private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
+    ) {
+    }
+
     /**
      * @param list<Scenario> $scenarios
      *
@@ -25,9 +30,14 @@ class ScenarioResponseBuilder
             'id' => $scenario->getPublicId()->toRfc4122(),
             'name' => $scenario->getName(),
             'label' => $scenario->getName(),
-            'type' => [
-                'name' => $scenario->getType()?->getName(),
-            ],
+            'scenarioType' => $scenario->getScenarioType(),
+            'typeLabel' => ucfirst($scenario->getScenarioType()),
+            'defenderCharacterId' => $scenario->getDefenderCharacter()?->getId()?->toRfc4122(),
+            'defenderCharacterName' => $scenario->getDefenderCharacter()?->getName(),
+            'attackerCharacterId' => $scenario->getAttackerCharacter()?->getId()?->toRfc4122(),
+            'attackerCharacterName' => $scenario->getAttackerCharacter()?->getName(),
+            'triggerMoveId' => $scenario->getTriggerMove()?->getId()?->toRfc4122(),
+            'triggerMoveLabel' => $scenario->getTriggerMove()?->getName(),
             'updatedAt' => $scenario->getUpdatedAt()->format(DATE_ATOM),
         ];
     }
@@ -41,10 +51,15 @@ class ScenarioResponseBuilder
             'id' => $scenario->getPublicId()->toRfc4122(),
             'name' => $scenario->getName(),
             'searchLabel' => $scenario->getSearchLabel(),
-            'type' => [
-                'name' => $scenario->getType()?->getName(),
-            ],
-            'payload' => $scenario->getPayload(),
+            'scenarioType' => $scenario->getScenarioType(),
+            'typeLabel' => ucfirst($scenario->getScenarioType()),
+            'defenderCharacterId' => $scenario->getDefenderCharacter()?->getId()?->toRfc4122(),
+            'defenderCharacterName' => $scenario->getDefenderCharacter()?->getName(),
+            'attackerCharacterId' => $scenario->getAttackerCharacter()?->getId()?->toRfc4122(),
+            'attackerCharacterName' => $scenario->getAttackerCharacter()?->getName(),
+            'triggerMoveId' => $scenario->getTriggerMove()?->getId()?->toRfc4122(),
+            'triggerMoveLabel' => $scenario->getTriggerMove()?->getName(),
+            'matrix' => $this->scenarioMatrixMapper->buildMatrixPayload($scenario),
             'createdAt' => $scenario->getCreatedAt()->format(DATE_ATOM),
             'updatedAt' => $scenario->getUpdatedAt()->format(DATE_ATOM),
             'author' => $scenario->getAuthor()?->getUsername(),

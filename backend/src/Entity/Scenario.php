@@ -31,18 +31,20 @@ class Scenario
     #[ORM\Column(name: 'search_label', type: Types::TEXT)]
     private string $searchLabel = '';
 
-    /**
-     * Opaque scenario-table matrix payload persisted from lexical post body.
-     *
-     * Body cell shapes currently include:
-     * - value/reference/computed cells
-     * - dynamic_combo cells carrying:
-     *   - dynamicCombo.attackerCharacterId
-     *   - dynamicCombo.starterMoveIds (non-empty)
-     *   - dynamicCombo.starterContext.isPunishCounter / isCounterHit
-     */
-    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
-    private array $payload = [];
+    #[ORM\Column(name: 'scenario_type', type: Types::STRING, length: 32)]
+    private string $scenarioType = 'oki';
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'defender_character_id', referencedColumnName: 'id', nullable: false)]
+    private ?Character $defenderCharacter = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'attacker_character_id', referencedColumnName: 'id', nullable: false)]
+    private ?Character $attackerCharacter = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'trigger_move_id', referencedColumnName: 'id', nullable: false)]
+    private ?Move $triggerMove = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
@@ -55,7 +57,7 @@ class Scenario
     private ?User $author = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?ScenarioType $type = null;
 
     /**
@@ -64,9 +66,32 @@ class Scenario
     #[ORM\OneToMany(mappedBy: 'scenario', targetEntity: ScenarioLayer::class, cascade: ['persist'])]
     private Collection $layers;
 
+    /**
+     * @var Collection<int, ScenarioRow>
+     */
+    #[ORM\OneToMany(mappedBy: 'scenario', targetEntity: ScenarioRow::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['position' => 'ASC'])]
+    private Collection $rows;
+
+    /**
+     * @var Collection<int, ScenarioColumn>
+     */
+    #[ORM\OneToMany(mappedBy: 'scenario', targetEntity: ScenarioColumn::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['position' => 'ASC'])]
+    private Collection $columns;
+
+    /**
+     * @var Collection<int, ScenarioCell>
+     */
+    #[ORM\OneToMany(mappedBy: 'scenario', targetEntity: ScenarioCell::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $cells;
+
     public function __construct()
     {
         $this->layers = new ArrayCollection();
+        $this->rows = new ArrayCollection();
+        $this->columns = new ArrayCollection();
+        $this->cells = new ArrayCollection();
         $this->publicId = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
@@ -114,14 +139,51 @@ class Scenario
         return $this;
     }
 
-    public function getPayload(): array
+    public function getScenarioType(): string
     {
-        return $this->payload;
+        return $this->scenarioType;
     }
 
-    public function setPayload(array $payload): static
+    public function setScenarioType(string $scenarioType): static
     {
-        $this->payload = $payload;
+        $normalized = trim(mb_strtolower($scenarioType));
+        $this->scenarioType = in_array($normalized, ['oki', 'blockstun'], true) ? $normalized : 'oki';
+
+        return $this;
+    }
+
+    public function getDefenderCharacter(): ?Character
+    {
+        return $this->defenderCharacter;
+    }
+
+    public function setDefenderCharacter(?Character $defenderCharacter): static
+    {
+        $this->defenderCharacter = $defenderCharacter;
+
+        return $this;
+    }
+
+    public function getAttackerCharacter(): ?Character
+    {
+        return $this->attackerCharacter;
+    }
+
+    public function setAttackerCharacter(?Character $attackerCharacter): static
+    {
+        $this->attackerCharacter = $attackerCharacter;
+
+        return $this;
+    }
+
+    public function getTriggerMove(): ?Move
+    {
+        return $this->triggerMove;
+    }
+
+    public function setTriggerMove(?Move $triggerMove): static
+    {
+        $this->triggerMove = $triggerMove;
 
         return $this;
     }
@@ -199,6 +261,87 @@ class Scenario
             if ($layer->getScenario() === $this) {
                 $layer->setScenario(null);
             }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ScenarioRow>
+     */
+    public function getRows(): Collection
+    {
+        return $this->rows;
+    }
+
+    public function addRow(ScenarioRow $row): static
+    {
+        if (!$this->rows->contains($row)) {
+            $this->rows->add($row);
+            $row->setScenario($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRow(ScenarioRow $row): static
+    {
+        if ($this->rows->removeElement($row) && $row->getScenario() === $this) {
+            $row->setScenario(null);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ScenarioColumn>
+     */
+    public function getColumns(): Collection
+    {
+        return $this->columns;
+    }
+
+    public function addColumn(ScenarioColumn $column): static
+    {
+        if (!$this->columns->contains($column)) {
+            $this->columns->add($column);
+            $column->setScenario($this);
+        }
+
+        return $this;
+    }
+
+    public function removeColumn(ScenarioColumn $column): static
+    {
+        if ($this->columns->removeElement($column) && $column->getScenario() === $this) {
+            $column->setScenario(null);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ScenarioCell>
+     */
+    public function getCells(): Collection
+    {
+        return $this->cells;
+    }
+
+    public function addCell(ScenarioCell $cell): static
+    {
+        if (!$this->cells->contains($cell)) {
+            $this->cells->add($cell);
+            $cell->setScenario($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCell(ScenarioCell $cell): static
+    {
+        if ($this->cells->removeElement($cell) && $cell->getScenario() === $this) {
+            $cell->setScenario(null);
         }
 
         return $this;

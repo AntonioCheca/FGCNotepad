@@ -1,5 +1,4 @@
 import {NavigationSection} from "@/src/types/navigation";
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -37,6 +36,21 @@ export const navigationSections: NavigationSection[] = [
                 label: "Create Combo",
                 href: "/combos/new",
                 icon: <SportsMartialArtsOutlinedIcon/> // main combos icon
+            }
+        ]
+    },
+    {
+        title: "Scenarios",
+        items: [
+            {
+                label: "Search Scenarios",
+                href: "/scenarios",
+                icon: <SearchOutlinedIcon/>
+            },
+            {
+                label: "Create Scenario",
+                href: "/scenarios/new",
+                icon: <SportsKabaddiOutlinedIcon/>
             }
         ]
     },

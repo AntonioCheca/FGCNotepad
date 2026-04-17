@@ -33,7 +33,9 @@ class MoveRepository extends ServiceEntityRepository
             $queryDraft->andWhere(sprintf('(LOWER(c.name) LIKE %1$s) OR (LOWER(m.numpadNotation) LIKE %1$s)', $lowerItem));
         }
 
-        return $queryDraft->setMaxResults(10)
+        return $queryDraft
+            ->orderBy('m.numpadNotation', 'ASC')
+            ->setMaxResults(250)
             ->getQuery()
             ->getResult();
     }

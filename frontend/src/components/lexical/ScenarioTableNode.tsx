@@ -3,7 +3,7 @@ import {
     type NodeKey, $applyNodeReplacement, LexicalNode,
 } from "lexical";
 import React from "react";
-import {MatrixEditorShell} from "@/src/features/matrix/editor";
+import {LexicalMatrixEditorShell} from "@/src/features/matrix/editor";
 import {deserializeMatrixPayload} from "@/src/features/matrix/serialization/deserializeMatrixPayload";
 import {createDefaultMatrixPayload} from "@/src/features/matrix/serialization/serializeMatrixPayload";
 import {MatrixPayload} from "@/src/types/matrixPayload";
@@ -52,7 +52,7 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
 
     decorate() {
         return (
-            <MatrixEditorShell
+            <LexicalMatrixEditorShell
                 matrix={this.__matrix}
                 nodeKey={this.__key}
             />
