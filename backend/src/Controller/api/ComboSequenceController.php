@@ -6,14 +6,17 @@ use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
 use App\Entity\ConnectionType;
+use App\Entity\Move;
 use App\Entity\Season;
 use App\Entity\ComboSequenceType;
 use App\Entity\Step;
+use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
 use App\Repository\SeasonRepository;
 use App\Repository\ComboSequenceTypeRepository;
 use App\Repository\VisibilityRepository;
+use App\Service\ComboNotationTranslator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -223,7 +226,66 @@ class ComboSequenceController extends AbstractController
         );
     }
 
-    #[Route('/{id}', name: 'read', methods: ['GET'])]
+    #[Route('/translate', name: 'translate', methods: ['POST'])]
+    public function translate(
+        Request $request,
+        CharacterRepository $characterRepository,
+        ComboNotationTranslator $comboNotationTranslator
+    ): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
+
+        $characterId = $data['characterId'] ?? null;
+        if (!is_string($characterId) && !is_int($characterId)) {
+            throw new BadRequestHttpException('characterId must be a string or integer.');
+        }
+
+        $characterId = trim((string) $characterId);
+        if ('' === $characterId) {
+            throw new BadRequestHttpException('characterId must not be empty.');
+        }
+
+        $notation = $data['notation'] ?? null;
+        if (!is_string($notation) || '' === trim($notation)) {
+            throw new BadRequestHttpException('notation must be a non-empty string.');
+        }
+
+        $character = $characterRepository->find($characterId);
+        if (null === $character) {
+            throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
+        }
+
+        $leafOptions = [];
+        foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
+            $move = $leafSequence->getMove();
+            if (!$move instanceof Move) {
+                continue;
+            }
+
+            $leafOptions[] = [
+                'id' => (int) $leafSequence->getId(),
+                'notation' => $move->getNumpadNotation(),
+                'moveType' => $move->getFrameData()?->getMoveType(),
+            ];
+        }
+
+        $connectionTypes = array_map(
+            static fn (ConnectionType $connectionType): array => [
+                'id' => (int) $connectionType->getId(),
+                'name' => (string) $connectionType->getName(),
+            ],
+            $this->connectionTypeRepository->findAll()
+        );
+
+        $translated = $comboNotationTranslator->translateNotationToInternalSteps($notation, $leafOptions, $connectionTypes);
+
+        return new JsonResponse($translated, JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/{id}', name: 'read', requirements: ['id' => '\\d+'], methods: ['GET'])]
     public function read(ComboSequences $sequence): JsonResponse
     {
         if (!in_array($sequence->getType()?->getName(), ['combo', 'sequence'])) {
@@ -238,7 +300,7 @@ class ComboSequenceController extends AbstractController
         );
     }
 
-    #[Route('/{id}', name: 'update', methods: ['PATCH'])]
+    #[Route('/{id}', name: 'update', requirements: ['id' => '\\d+'], methods: ['PATCH'])]
     public function update(ComboSequences $sequence, Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -260,7 +322,7 @@ class ComboSequenceController extends AbstractController
         );
     }
 
-    #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    #[Route('/{id}', name: 'delete', requirements: ['id' => '\\d+'], methods: ['DELETE'])]
     public function delete(ComboSequences $sequence): JsonResponse
     {
         $this->entityManager->remove($sequence);

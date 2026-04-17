@@ -82,6 +82,17 @@ const useCombos = () => {
         }
     };
 
+    const translateComboNotation = async (payload) => {
+        try {
+            return await request(() =>
+                api.post("/combo-sequences/translate", payload)
+            );
+        } catch (error) {
+            console.error("Error translating combo notation", error);
+            throw error;
+        }
+    };
+
     /**
      * Get details for a specific combo
      * @param {number|string} id - Combo ID
@@ -138,6 +149,7 @@ const useCombos = () => {
         fetchLeafs,
         createCombo,
         createFullCombo,
+        translateComboNotation,
         getCombo,
         updateCombo,
         deleteCombo

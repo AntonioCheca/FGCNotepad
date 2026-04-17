@@ -6,7 +6,7 @@ export interface ConnectionType {
 }
 
 export interface CharacterOption {
-    id: ID;
+    id: string;
     name: string;
 }
 
@@ -29,7 +29,44 @@ export interface CreateFullComboPayload {
         child_sequence_id: ID;
         ordinal_in_combo: number;
         connection_type_id: ID | null;
-    }>;
+    }>; 
+}
+
+export interface TranslateComboNotationPayload {
+    characterId: string;
+    notation: string;
+}
+
+export interface TranslateParsedToken {
+    index: number;
+    token: string;
+    normalizedToken: string;
+    status: string;
+    child_sequence_id: number | null;
+    reason: string | null;
+}
+
+export interface TranslateErrorToken {
+    index: number;
+    token: string;
+    normalizedToken: string;
+    code: string;
+    message: string;
+}
+
+export interface TranslatedStep {
+    child_sequence_id: number;
+    ordinal_in_combo: number;
+    connection_type_id: number | null;
+    connection_type_name: string | null;
+    token: string;
+}
+
+export interface TranslateComboNotationResponse {
+    steps: TranslatedStep[];
+    parsedTokens: TranslateParsedToken[];
+    warnings: string[];
+    errors: TranslateErrorToken[];
 }
 
 // types/combo.ts
