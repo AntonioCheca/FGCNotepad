@@ -21,7 +21,12 @@ class ComboRequirementNormalizer implements NormalizerInterface
             'corner_required' => $object->isCornerRequired(),
             'airborne_required' => $object->isAirborneRequired(),
             'mid_screen_required' => $object->isMidScreenRequired(),
-            'requirement_specific_character' => $object->getRequirementSpecificCharacter()?->getId(), // or use a DTO/Normalizer
+            'not_crouching_required' => $object->isNotCrouchingRequired(),
+            'requirement_specific_character' => $object->getRequirementSpecificCharacter() ? [
+                'id' => $object->getRequirementSpecificCharacter()?->getId(),
+                'object_name' => $object->getRequirementSpecificCharacter()?->getObjectName(),
+                'status_required' => $object->getRequirementSpecificCharacter()?->getStatusRequired(),
+            ] : null,
         ];
     }
 

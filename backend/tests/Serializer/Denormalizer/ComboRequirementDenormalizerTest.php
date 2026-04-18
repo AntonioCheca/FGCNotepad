@@ -6,22 +6,24 @@ namespace App\Tests\Serializer\Denormalizer;
 
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
-use App\Serializer\Denormalizer\ComboRequirementDenormalizer;
 use App\Tests\TestEntityFactory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 class ComboRequirementDenormalizerTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private SerializerInterface $serializer;
+    private Serializer $serializer;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
-        $this->serializer = self::getContainer()->get(SerializerInterface::class);
+        $serializer = self::getContainer()->get(SerializerInterface::class);
+        $this->assertInstanceOf(Serializer::class, $serializer);
+        $this->serializer = $serializer;
     }
 
     public function testDenormalize(): void
@@ -37,9 +39,10 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
             'sequence' => $sequenceId,
             'counter_hit_required' => true,
             'corner_required' => false,
+            'not_crouching_required' => true,
             'requirement_specific_character' => [
-                'object_name' => 'Medals',  // Changed from 'character_name'
-                'status_required' => '5'  // Added this field
+                'object_name' => 'Medals',
+                'status_required' => '5'
             ]
         ];
 
@@ -51,9 +54,10 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
         $this->assertInstanceOf(ComboRequirement::class, $object);
         $this->assertTrue($object->isCounterHitRequired());
         $this->assertFalse($object->isCornerRequired());
+        $this->assertTrue($object->isNotCrouchingRequired());
         $this->assertSame($sequence->getId(), $object->getSequence()?->getId());
-        $this->assertSame('Medals', $object->getRequirementSpecificCharacter()?->getObjectName()); // Changed from getCharacterName()
-        $this->assertSame('5', $object->getRequirementSpecificCharacter()?->getStatusRequired()); // Added assertion for status_required
+        $this->assertSame('Medals', $object->getRequirementSpecificCharacter()?->getObjectName());
+        $this->assertSame('5', $object->getRequirementSpecificCharacter()?->getStatusRequired());
 
         // Cleanup
         $this->em->remove($sequence);

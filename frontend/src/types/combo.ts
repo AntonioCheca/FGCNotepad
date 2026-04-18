@@ -25,11 +25,33 @@ export interface CreateFullComboPayload {
     name: string;
     description?: string;
     metrics?: { damage?: number };
+    requirements?: ComboRequirementsPayload;
     steps: Array<{
         child_sequence_id: ID;
         ordinal_in_combo: number;
         connection_type_id: ID | null;
     }>; 
+}
+
+export interface RequirementSpecificCharacterPayload {
+    object_name: string;
+    status_required: string | number | boolean;
+}
+
+export interface RequirementObjectOption {
+    name: string;
+    status_type: "integer" | "boolean";
+    max_status: number | null;
+}
+
+export interface ComboRequirementsPayload {
+    counter_hit_required?: boolean;
+    punish_counter_required?: boolean;
+    corner_required?: boolean;
+    airborne_required?: boolean;
+    mid_screen_required?: boolean;
+    not_crouching_required?: boolean;
+    requirement_specific_character?: RequirementSpecificCharacterPayload;
 }
 
 export interface TranslateComboNotationPayload {
@@ -79,16 +101,33 @@ export interface ComboRow {
     season: string;         // human-readable
 }
 
+interface ComboMoveSummary {
+    name?: string;
+}
+
+interface ComboSeasonSummary {
+    name?: string;
+}
+
+interface ComboApiSummary {
+    id: number;
+    name?: string;
+    character?: { name?: string };
+    moves?: ComboMoveSummary[];
+    comboMetrics?: { damage?: number | string };
+    season?: ComboSeasonSummary[];
+}
+
 // utils/combos.ts
-export function mapComboToRow(combo: any): ComboRow {
+export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     return {
         id: combo.id,
         title: combo.name ?? "-",
         characterName: combo.character?.name ?? "-",
-        moves: combo.moves?.map((m: any) => m.name) ?? [],
+        moves: combo.moves?.map((move) => move.name ?? "-") ?? [],
         damage: combo.comboMetrics?.damage ?? "-",
         season: Array.isArray(combo.season)
-            ? combo.season.map((s: any) => s.name).join(", ")
+            ? combo.season.map((season) => season.name ?? "-").join(", ")
             : "-"
     };
 }

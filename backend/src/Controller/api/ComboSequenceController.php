@@ -17,7 +17,10 @@ use App\Repository\SeasonRepository;
 use App\Repository\ComboSequenceTypeRepository;
 use App\Repository\VisibilityRepository;
 use App\Service\ComboNotationTranslator;
+use App\Service\ComboRequirementFactory;
+use App\Service\RequirementSpecificCharacterCatalog;
 use Doctrine\ORM\EntityManagerInterface;
+use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,7 +41,8 @@ class ComboSequenceController extends AbstractController
         private VisibilityRepository        $visibilityRepository,
         private ComboSequenceTypeRepository $comboSequenceTypeRepository,
         private SeasonRepository            $seasonRepository,
-        private ConnectionTypeRepository    $connectionTypeRepository
+        private ConnectionTypeRepository    $connectionTypeRepository,
+        private ComboRequirementFactory     $comboRequirementFactory
     )
     {
     }
@@ -53,12 +57,33 @@ class ComboSequenceController extends AbstractController
     }
 
     #[Route('/leafs/list', name: 'leafs', methods: ['GET'])]
-    public function listLeafs(): JsonResponse
+    public function listLeafs(Request $request): JsonResponse
     {
-        $leafs = $this->comboSequencesRepository->findAllLeafs();
-        $json = $this->serializer->serialize($leafs, 'json');
+        $characterId = trim((string) $request->query->get('character_id', ''));
+        if ('' === $characterId) {
+            return new JsonResponse([], JsonResponse::HTTP_OK);
+        }
 
-        return new JsonResponse($json, 200, [], true);
+        $leafRows = $this->comboSequencesRepository->findLeafSummariesByCharacterId($characterId);
+        $payload = array_map(
+            static fn (array $leaf): array => [
+                'id' => (int) $leaf['id'],
+                'name' => $leaf['name'],
+                'character' => [
+                    'id' => $leaf['character_id'],
+                    'name' => $leaf['character_name'],
+                ],
+            ],
+            $leafRows
+        );
+
+        return new JsonResponse($payload, JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/requirements/objects', name: 'requirement_objects', methods: ['GET'])]
+    public function listRequirementObjects(RequirementSpecificCharacterCatalog $catalog): JsonResponse
+    {
+        return new JsonResponse($catalog->listForApi(), JsonResponse::HTTP_OK);
     }
 
 
@@ -111,14 +136,15 @@ class ComboSequenceController extends AbstractController
 
         // Requirements
         if (!empty($data['requirements'])) {
-            $req = new ComboRequirement();
-            $req->setSequence($sequence)
-                ->setCounterHitRequired($data['requirements']['counter_hit_required'] ?? false)
-                ->setPunishCounterRequired($data['requirements']['punish_counter_required'] ?? false)
-                ->setCornerRequired($data['requirements']['corner_required'] ?? false)
-                ->setAirborneRequired($data['requirements']['airborne_required'] ?? false)
-                ->setMidScreenRequired($data['requirements']['mid_screen_required'] ?? false);
-            $this->entityManager->persist($req);
+            try {
+                $requirement = $this->comboRequirementFactory->createFromPayload($sequence, (array) $data['requirements']);
+            } catch (InvalidArgumentException $exception) {
+                throw new BadRequestHttpException($exception->getMessage(), $exception);
+            }
+
+            if ($requirement instanceof ComboRequirement) {
+                $this->entityManager->persist($requirement);
+            }
         }
 
         $this->entityManager->flush();
@@ -178,14 +204,15 @@ class ComboSequenceController extends AbstractController
 
         // 5. Add requirements (optional)
         if (!empty($data['requirements'])) {
-            $req = new ComboRequirement();
-            $req->setSequence($sequence)
-                ->setCounterHitRequired($data['requirements']['counter_hit_required'] ?? false)
-                ->setPunishCounterRequired($data['requirements']['punish_counter_required'] ?? false)
-                ->setCornerRequired($data['requirements']['corner_required'] ?? false)
-                ->setAirborneRequired($data['requirements']['airborne_required'] ?? false)
-                ->setMidScreenRequired($data['requirements']['mid_screen_required'] ?? false);
-            $this->entityManager->persist($req);
+            try {
+                $requirement = $this->comboRequirementFactory->createFromPayload($sequence, (array) $data['requirements']);
+            } catch (InvalidArgumentException $exception) {
+                throw new BadRequestHttpException($exception->getMessage(), $exception);
+            }
+
+            if ($requirement instanceof ComboRequirement) {
+                $this->entityManager->persist($requirement);
+            }
         }
 
         // 6. Persist steps using repositories

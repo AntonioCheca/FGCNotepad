@@ -1,6 +1,8 @@
 "use client";
 
-import {Box, List, Divider} from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppList} from "@/src/components/ui/AppList";
+import {AppDivider} from "@/src/components/ui/AppDivider";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import NavigationItem from "./NavigationItem";
 import {NavigationSection as NavigationSectionType} from "@/src/types/navigation";
@@ -16,8 +18,8 @@ export default function NavigationSection({section, showDivider = false, collaps
     const pathname = usePathname();
 
     return (
-        <Box sx={{mb: 2}}>
-            <Box sx={{px: 2, mb: 1}}>
+        <AppBox sx={{mb: 2}}>
+            <AppBox sx={{px: 2, mb: 1}}>
                 <AppTypography
                     variant="overline"
                     sx={{
@@ -29,9 +31,9 @@ export default function NavigationSection({section, showDivider = false, collaps
                 >
                     {section.title}
                 </AppTypography>
-            </Box>
+            </AppBox>
 
-            <List disablePadding>
+            <AppList disablePadding>
                 {section.items.map((item) => (
                     <NavigationItem
                         key={item.href}
@@ -40,11 +42,11 @@ export default function NavigationSection({section, showDivider = false, collaps
                         collapsed={collapsed}
                     />
                 ))}
-            </List>
+            </AppList>
 
             {showDivider && (
-                <Divider sx={{mx: 2, mt: 2}}/>
+                <AppDivider sx={{mx: 2, mt: 2}}/>
             )}
-        </Box>
+        </AppBox>
     );
 }

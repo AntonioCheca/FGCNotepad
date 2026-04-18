@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box } from '@mui/material';
+import { AppBox } from '@/src/components/ui/AppBox';
 import Sidebar from '@/src/components/layouts/Sidebar';
 
 export default function SidebarLayout({
@@ -10,14 +10,16 @@ export default function SidebarLayout({
                                       }: {
     children: React.ReactNode;
 }) {
-    const [collapsed, setCollapsed] = useState(false);
+    const collapsedState = useState(false);
+    const collapsed = collapsedState[0];
+    const setCollapsed = collapsedState[1];
 
     const sidebarWidth = collapsed ? 80 : 280;
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        <AppBox sx={{ display: 'flex', minHeight: '100vh' }}>
             <Sidebar collapsed={collapsed} toggleCollapse={() => setCollapsed(!collapsed)} />
-            <Box
+            <AppBox
                 component="main"
                 sx={{
                     marginLeft: `${sidebarWidth}px`,
@@ -30,7 +32,7 @@ export default function SidebarLayout({
                 }}
             >
                 {children}
-            </Box>
-        </Box>
+            </AppBox>
+        </AppBox>
     );
 }

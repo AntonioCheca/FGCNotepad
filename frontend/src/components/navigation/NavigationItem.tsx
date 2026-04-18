@@ -1,11 +1,9 @@
-import {
-    ListItem,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText
-} from "@mui/material";
 import Link from "next/link";
 import {NavigationItem as NavigationItemType} from "@/src/types/navigation";
+import {AppListItem} from "@/src/components/ui/AppListItem";
+import {AppListItemButton} from "@/src/components/ui/AppListItemButton";
+import {AppListItemIcon} from "@/src/components/ui/AppListItemIcon";
+import {AppListItemText} from "@/src/components/ui/AppListItemText";
 
 interface NavigationItemProps {
     item: NavigationItemType;
@@ -15,13 +13,13 @@ interface NavigationItemProps {
 
 export default function NavigationItem({item, isActive = false, collapsed = false}: NavigationItemProps) {
     return (
-        <ListItem disablePadding>
+        <AppListItem disablePadding>
             <Link
                 href={item.href}
                 passHref
                 style={{width: '100%', textDecoration: 'none', color: 'inherit'}}
             >
-                <ListItemButton
+                <AppListItemButton
                     sx={{
                         px: collapsed ? 2 : 3, // tighter padding when collapsed
                         py: 1,
@@ -35,7 +33,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                     }}
                     selected={isActive}
                 >
-                    <ListItemIcon
+                    <AppListItemIcon
                         sx={{
                             minWidth: 0,
                             mr: collapsed ? 0 : 2,
@@ -45,10 +43,10 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                         }}
                     >
                         {item.icon}
-                    </ListItemIcon>
+                    </AppListItemIcon>
 
                     {!collapsed && (
-                        <ListItemText
+                        <AppListItemText
                             primary={item.label}
                             primaryTypographyProps={{
                                 variant: 'body2',
@@ -56,8 +54,8 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                             }}
                         />
                     )}
-                </ListItemButton>
+                </AppListItemButton>
             </Link>
-        </ListItem>
+        </AppListItem>
     );
 }

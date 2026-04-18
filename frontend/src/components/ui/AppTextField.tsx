@@ -1,8 +1,7 @@
 import React from 'react';
 import {TextField as MUITextField, TextFieldProps as MUITextFieldProps} from '@mui/material';
 
-interface AppTextFieldProps extends MUITextFieldProps {
-}
+type AppTextFieldProps = MUITextFieldProps;
 
 export const AppTextField: React.FC<AppTextFieldProps> = ({
                                                               margin = "normal",

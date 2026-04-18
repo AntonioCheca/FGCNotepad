@@ -17,7 +17,7 @@ import {AppTable} from "@/src/components/ui/AppTable";
 import {AppTableBody} from "@/src/components/ui/AppTableBody";
 import {ScenarioTableState} from '@/hooks/useScenarioTableState';
 import {ScenarioTableService} from '@/services/ScenarioTableService';
-import {styled} from '@mui/material/styles';
+import {styled} from '@/src/components/ui/AppStyled';
 import {useMode} from '@/src/context/ThemeContext';
 
 interface ScenarioTableProps {

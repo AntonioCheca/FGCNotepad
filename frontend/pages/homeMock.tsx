@@ -5,7 +5,7 @@ import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import HeroSection from "@/src/components/home/HeroSection";
 import MockSections from "@/src/components/home/MockSections";
-import {Box} from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
 import SidebarLayout from "@/src/components/layouts/SidebarLayout";
 
 export default function HomePage() {
@@ -22,12 +22,12 @@ export default function HomePage() {
     }
 
     return (
-        <Box sx={{display: 'flex', minHeight: '100vh'}}>
+        <AppBox sx={{display: 'flex', minHeight: '100vh'}}>
             {/* Sidebar */}
             <SidebarLayout/>
 
             {/* Main Content */}
-            <Box sx={{flexGrow: 1, marginLeft: '280px', padding: 0}}>
+            <AppBox sx={{flexGrow: 1, marginLeft: '280px', padding: 0}}>
                 <AppContainer maxWidth="xl" sx={{mt: 0, padding: 0}}>
                     {/* Hero Section with Large Logo */}
                     <HeroSection/>
@@ -35,7 +35,7 @@ export default function HomePage() {
                     {/* Mock Sections for Testing Buttons and Components */}
                     <MockSections/>
                 </AppContainer>
-            </Box>
-        </Box>
+            </AppBox>
+        </AppBox>
     );
 }

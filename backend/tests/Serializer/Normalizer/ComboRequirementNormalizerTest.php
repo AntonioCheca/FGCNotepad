@@ -2,19 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Serializer;
+namespace App\Tests\Serializer\Normalizer;
 
 use App\Entity\ComboRequirement;
 use App\Serializer\Normalizer\ComboRequirementNormalizer;
 use App\Tests\TestEntityFactory;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
-use Symfony\Component\Serializer\Serializer;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class ComboRequirementsNormalizerTest extends KernelTestCase
+class ComboRequirementNormalizerTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
     private TestEntityFactory $factory;
@@ -26,37 +22,32 @@ class ComboRequirementsNormalizerTest extends KernelTestCase
         $this->factory = new TestEntityFactory($this->em);
     }
 
-    public function testNormalize(): void
+    public function testNormalizeWithoutSpecificCharacterRequirement(): void
     {
         $sequence = $this->factory->createComboSequence();
 
         $requirement = new ComboRequirement();
-        $requirement->setSequence($sequence);
-        $requirement->setCounterHitRequired(true);
-        $requirement->setPunishCounterRequired(false);
-        $requirement->setCornerRequired(true);
-        $requirement->setAirborneRequired(false);
-        $requirement->setMidScreenRequired(true);
+        $requirement->setSequence($sequence)
+            ->setCounterHitRequired(true)
+            ->setPunishCounterRequired(false)
+            ->setCornerRequired(true)
+            ->setAirborneRequired(false)
+            ->setMidScreenRequired(true)
+            ->setNotCrouchingRequired(true);
 
         $this->em->persist($requirement);
         $this->em->flush();
 
-        $objectNormalizer = new ObjectNormalizer();
-        $normalizer = new ComboRequirementNormalizer($objectNormalizer);
-        $serializer = new Serializer([
-            new DateTimeNormalizer(),
-            $objectNormalizer,
-            $normalizer,
-        ], [new JsonEncoder()]);
-
-        $data = $serializer->normalize($requirement);
+        $normalizer = new ComboRequirementNormalizer();
+        $data = $normalizer->normalize($requirement);
 
         $this->assertIsArray($data);
-        $this->assertSame(true, $data['counterHitRequired']);
-        $this->assertSame(false, $data['punishCounterRequired']);;
-        $this->assertSame(true, $data['cornerRequired']);;
-        $this->assertSame(false, $data['airborneRequired']);
-        $this->assertSame(true, $data['midScreenRequired']);
-        $this->assertNull($data['requirementSpecificCharacter']); // None assigned
+        $this->assertTrue($data['counter_hit_required']);
+        $this->assertFalse($data['punish_counter_required']);
+        $this->assertTrue($data['corner_required']);
+        $this->assertFalse($data['airborne_required']);
+        $this->assertTrue($data['mid_screen_required']);
+        $this->assertTrue($data['not_crouching_required']);
+        $this->assertNull($data['requirement_specific_character']);
     }
 }

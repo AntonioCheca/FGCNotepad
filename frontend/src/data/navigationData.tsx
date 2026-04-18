@@ -1,12 +1,14 @@
 import {NavigationSection} from "@/src/types/navigation";
-import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
-import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import SportsMartialArtsOutlinedIcon from '@mui/icons-material/SportsMartialArtsOutlined';
-import SportsKabaddiOutlinedIcon from '@mui/icons-material/SportsKabaddiOutlined';
-import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import {SportsMma} from "@mui/icons-material";
+import {
+    AccountCircleOutlinedIcon,
+    ArticleOutlinedIcon,
+    HelpOutlineOutlinedIcon,
+    SearchOutlinedIcon,
+    SettingsOutlinedIcon,
+    SportsKabaddiOutlinedIcon,
+    SportsMartialArtsOutlinedIcon,
+    SportsMmaIcon,
+} from "@/src/components/ui/AppIcons";
 
 export const navigationSections: NavigationSection[] = [
     {
@@ -30,7 +32,7 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Search Combos",
                 href: "/combos",
-                icon: <SportsMma/> // related but distinct sports icon
+                icon: <SportsMmaIcon/> // related but distinct sports icon
             },
             {
                 label: "Create Combo",

@@ -2,15 +2,15 @@
 "use client";
 
 import {useMode} from "@/src/context/ThemeContext";
-import {CssBaseline, ThemeProvider} from "@mui/material";
+import {AppCssBaseline, AppThemeProvider} from "@/src/components/ui/AppTheme";
 import Sidebar from "@/src/components/layouts/Sidebar";
 
 export default function ThemeWrapper({children}: { children: React.ReactNode }) {
     const {theme} = useMode(); // ✅ safe here because this file runs on the client
 
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline/>
+        <AppThemeProvider theme={theme}>
+            <AppCssBaseline/>
             <div
                 style={{
                     display: "flex",
@@ -28,6 +28,6 @@ export default function ThemeWrapper({children}: { children: React.ReactNode }) 
                     {children}
                 </main>
             </div>
-        </ThemeProvider>
+        </AppThemeProvider>
     );
 }

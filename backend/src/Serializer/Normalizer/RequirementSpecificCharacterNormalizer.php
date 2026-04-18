@@ -12,10 +12,8 @@ class RequirementSpecificCharacterNormalizer implements NormalizerInterface
         /** @var RequirementSpecificCharacter $object */
         return [
             'id' => $object->getId(),
-            'character' => $object->getCharacter() ? [
-                'id' => $object->getCharacter()->getId(),
-                'name' => $object->getCharacter()->getName(),
-            ] : null,
+            'object_name' => $object->getObjectName(),
+            'status_required' => $object->getStatusRequired(),
         ];
     }
 

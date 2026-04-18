@@ -7,14 +7,12 @@ use App\Entity\ComboSequences;
 use App\Entity\RequirementSpecificCharacter;
 use App\Repository\ComboSequencesRepository;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
 class ComboRequirementDenormalizer implements DenormalizerInterface
 {
     public function __construct(
         private ComboSequencesRepository $sequencesRepository,
-        private EntityManagerInterface $em,
     ) {}
 
     public function supportsDenormalization(mixed $data, string $type, string $format = null, array $context = []): bool
@@ -43,6 +41,7 @@ class ComboRequirementDenormalizer implements DenormalizerInterface
         $requirement->setCornerRequired((bool) ($data['corner_required'] ?? false));
         $requirement->setAirborneRequired((bool) ($data['airborne_required'] ?? false));
         $requirement->setMidScreenRequired((bool) ($data['mid_screen_required'] ?? false));
+        $requirement->setNotCrouchingRequired((bool) ($data['not_crouching_required'] ?? false));
 
         // Handle nested character-specific requirement if present
         if (isset($data['requirement_specific_character'])) {

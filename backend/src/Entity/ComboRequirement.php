@@ -33,6 +33,9 @@ class ComboRequirement
     #[ORM\Column]
     private ?bool $mid_screen_required = null;
 
+    #[ORM\Column]
+    private ?bool $not_crouching_required = null;
+
     #[ORM\OneToOne(mappedBy: 'requirement', cascade: ['persist', 'remove'])]
     private ?RequirementSpecificCharacter $requirementSpecificCharacter = null;
 
@@ -109,6 +112,18 @@ class ComboRequirement
     public function setMidScreenRequired(bool $mid_screen_required): static
     {
         $this->mid_screen_required = $mid_screen_required;
+
+        return $this;
+    }
+
+    public function isNotCrouchingRequired(): ?bool
+    {
+        return $this->not_crouching_required;
+    }
+
+    public function setNotCrouchingRequired(bool $not_crouching_required): static
+    {
+        $this->not_crouching_required = $not_crouching_required;
 
         return $this;
     }

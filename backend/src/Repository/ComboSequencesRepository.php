@@ -41,6 +41,25 @@ class ComboSequencesRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return array<int, array{id: int, name: string, character_id: string, character_name: string}>
+     */
+    public function findLeafSummariesByCharacterId(string $characterId): array
+    {
+        $qb = $this->createQueryBuilder('cs')
+            ->select('cs.id AS id', 'cs.name AS name', 'c.id AS character_id', 'c.name AS character_name')
+            ->innerJoin('cs.type', 'cst')
+            ->innerJoin('cs.move', 'm')
+            ->innerJoin('m.character', 'c')
+            ->where('cst.name = :typeName')
+            ->andWhere('c.id = :characterId')
+            ->setParameter('typeName', 'leaf')
+            ->setParameter('characterId', $characterId)
+            ->orderBy('cs.id', 'ASC');
+
+        return $qb->getQuery()->getArrayResult();
+    }
+
+    /**
      * @return ComboSequences[]
      */
     public function findLeafsByCharacterId(string $characterId): array

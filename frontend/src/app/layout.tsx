@@ -3,7 +3,7 @@ import {Geist, Geist_Mono} from "next/font/google";
 import {AuthProvider} from "@/services/AuthContext";
 import {ThemeModeProvider} from "@/src/context/ThemeContext";
 import ThemeWrapper from "@/src/context/ThemeWrapper";
-import {AppRouterCacheProvider} from "@mui/material-nextjs/v15-appRouter";
+import {AppRouterCacheProvider} from "@/src/components/ui/AppRouterCacheProvider";
 import "./globals.css";
 
 const geistSans = Geist({

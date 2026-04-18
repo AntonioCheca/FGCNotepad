@@ -1,10 +1,10 @@
-import { Box } from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
 import { AppTypography } from "@/src/components/ui/AppTypography";
 import Image from "next/image";
 
 export default function HeroSection() {
     return (
-        <Box
+        <AppBox
             sx={{
                 minHeight: '60vh',
                 display: 'flex',
@@ -19,7 +19,7 @@ export default function HeroSection() {
             }}
         >
             {/* Background Pattern */}
-            <Box
+            <AppBox
                 sx={{
                     position: 'absolute',
                     top: 0,
@@ -32,8 +32,8 @@ export default function HeroSection() {
             />
 
             {/* Main Logo */}
-            <Box sx={{ mb: 4, zIndex: 1 }}>
-                <Box
+            <AppBox sx={{ mb: 4, zIndex: 1 }}>
+                <AppBox
                     sx={{
                         transition: 'transform 0.3s ease',
                         '&:hover': {
@@ -53,11 +53,11 @@ export default function HeroSection() {
                         }}
                         priority
                     />
-                </Box>
-            </Box>
+                </AppBox>
+            </AppBox>
 
             {/* Welcome Text */}
-            <Box sx={{ maxWidth: 600, px: 3, zIndex: 1 }}>
+            <AppBox sx={{ maxWidth: 600, px: 3, zIndex: 1 }}>
                 <AppTypography variant="h3" sx={{ mb: 3, fontWeight: 'bold' }}>
                     Master the Meta
                 </AppTypography>
@@ -67,9 +67,9 @@ export default function HeroSection() {
                     foundations behind competitive play.
                 </AppTypography>
 
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <AppBox sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                     {/* These will be replaced with your custom buttons */}
-                    <Box
+                    <AppBox
                         component="button"
                         sx={{
                             px: 4,
@@ -86,9 +86,9 @@ export default function HeroSection() {
                         }}
                     >
                         Get Started
-                    </Box>
+                    </AppBox>
 
-                    <Box
+                    <AppBox
                         component="button"
                         sx={{
                             px: 4,
@@ -105,9 +105,9 @@ export default function HeroSection() {
                         }}
                     >
                         Learn More
-                    </Box>
-                </Box>
-            </Box>
-        </Box>
+                    </AppBox>
+                </AppBox>
+            </AppBox>
+        </AppBox>
     );
 }

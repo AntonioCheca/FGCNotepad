@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
 import { AppTypography } from "@/src/components/ui/AppTypography";
 import MockCommentsSection from "@/src/components/home/mocks/MockCommentsSection";
 import MockCalculatorSection from "@/src/components/home/mocks/MockCalculatorSection";
@@ -7,9 +7,9 @@ import MockButtonsSection from "@/src/components/home/mocks/MockButtonsSection";
 
 export default function MockSections() {
     return (
-        <Box sx={{ py: 6 }}>
+        <AppBox sx={{ py: 6 }}>
             {/* Introduction Text */}
-            <Box sx={{ textAlign: 'center', mb: 6, px: 3 }}>
+            <AppBox sx={{ textAlign: 'center', mb: 6, px: 3 }}>
                 <AppTypography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
                     Fighting Game Theory Hub
                 </AppTypography>
@@ -19,10 +19,10 @@ export default function MockSections() {
                     of fighting games. Explore frame data, analyze matchups, and master the theory behind
                     competitive play.
                 </AppTypography>
-            </Box>
+            </AppBox>
 
             {/* Mock Sections Container */}
-            <Box sx={{ maxWidth: 1200, mx: 'auto', px: 3 }}>
+            <AppBox sx={{ maxWidth: 1200, mx: 'auto', px: 3 }}>
                 {/* Mock for Medium Logo */}
                 <MockLogoSection />
 
@@ -34,7 +34,7 @@ export default function MockSections() {
 
                 {/* Mock for Various Buttons */}
                 <MockButtonsSection />
-            </Box>
-        </Box>
+            </AppBox>
+        </AppBox>
     );
 }

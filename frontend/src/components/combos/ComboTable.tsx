@@ -1,5 +1,8 @@
 import {AppTable} from "@/src/components/ui/AppTable";
-import {TableBody, TableCell, TableHead, TableRow} from "@mui/material";
+import {AppTableBody} from "@/src/components/ui/AppTableBody";
+import {AppTableCell} from "@/src/components/ui/AppTableCell";
+import {AppTableHead} from "@/src/components/ui/AppTableHead";
+import {AppTableRow} from "@/src/components/ui/AppTableRow";
 
 interface ComboTableProps {
     combos: any[];
@@ -8,16 +11,16 @@ interface ComboTableProps {
 export default function ComboTable({combos}: ComboTableProps) {
     return (
         <AppTable>
-            <TableHead>
-                <TableRow>
-                    <TableCell>Title</TableCell>
-                    <TableCell>Character</TableCell>
-                    <TableCell>Moves</TableCell>
-                    <TableCell>Damage</TableCell>
-                    <TableCell>Season</TableCell>
-                </TableRow>
-            </TableHead>
-            <TableBody>
+            <AppTableHead>
+                <AppTableRow>
+                    <AppTableCell>Title</AppTableCell>
+                    <AppTableCell>Character</AppTableCell>
+                    <AppTableCell>Moves</AppTableCell>
+                    <AppTableCell>Damage</AppTableCell>
+                    <AppTableCell>Season</AppTableCell>
+                </AppTableRow>
+            </AppTableHead>
+            <AppTableBody>
                 {combos.map((combo) => {
                     const moves = combo.moves ?? [];
                     const season = combo.season
@@ -27,16 +30,16 @@ export default function ComboTable({combos}: ComboTableProps) {
                         : "-";
 
                     return (
-                        <TableRow key={combo.id}>
-                            <TableCell>{combo.title}</TableCell>
-                            <TableCell>{combo.characterName ?? "-"}</TableCell>
-                            <TableCell>{moves.map((m: any) => m.name).join(", ")}</TableCell>
-                            <TableCell>{combo.damage ?? "-"}</TableCell>
-                            <TableCell>{season}</TableCell>
-                        </TableRow>
+                        <AppTableRow key={combo.id}>
+                            <AppTableCell>{combo.title}</AppTableCell>
+                            <AppTableCell>{combo.characterName ?? "-"}</AppTableCell>
+                            <AppTableCell>{moves.map((m: any) => m.name).join(", ")}</AppTableCell>
+                            <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
+                            <AppTableCell>{season}</AppTableCell>
+                        </AppTableRow>
                     );
                 })}
-            </TableBody>
+            </AppTableBody>
         </AppTable>
     );
 }

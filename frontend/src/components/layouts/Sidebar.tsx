@@ -1,14 +1,12 @@
 // src/components/layouts/Sidebar.tsx
 'use client';
 
-import {Box, IconButton} from '@mui/material';
+import {AppBox} from '@/src/components/ui/AppBox';
+import {AppIconButton} from '@/src/components/ui/AppIconButton';
 import NavigationSection from '@/src/components/navigation/NavigationSection';
 import {navigationSections} from '@/src/data/navigationData';
 import Link from 'next/link';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
+import {Brightness4Icon, Brightness7Icon, ChevronLeftIcon, ChevronRightIcon} from '@/src/components/ui/AppIcons';
 import {useMode} from "@/src/context/ThemeContext";
 import ThemeLogo from "@/src/components/ui/ThemeLogo";
 
@@ -22,7 +20,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
     const {mode, toggleColorMode} = useMode();
 
     return (
-        <Box
+        <AppBox
             sx={{
                 width: collapsed ? 80 : 280,
                 height: '100vh',
@@ -39,7 +37,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                 transition: 'width 0.3s ease',
             }}
         >
-            <Box
+            <AppBox
                 sx={{
                     display: 'flex',
                     flexDirection: collapsed ? 'column' : 'row',
@@ -56,7 +54,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                 }}
             >
                 {/* Logo container */}
-                <Box
+                <AppBox
                     sx={{
                         width: collapsed ? '100%' : 'auto',
                         display: 'flex',
@@ -68,10 +66,10 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                     <Link href="/" style={{textDecoration: 'none'}}>
                         <ThemeLogo collapsed={collapsed}/>
                     </Link>
-                </Box>
+                </AppBox>
 
                 {/* Buttons container */}
-                <Box
+                <AppBox
                     sx={{
                         width: collapsed ? '100%' : 'auto',
                         display: 'flex',
@@ -79,23 +77,23 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                         gap: 1,
                     }}
                 >
-                    <IconButton onClick={toggleCollapse} size="small" aria-label="Toggle sidebar">
+                    <AppIconButton onClick={toggleCollapse} size="small" aria-label="Toggle sidebar">
                         {collapsed ? <ChevronRightIcon/> : <ChevronLeftIcon/>}
-                    </IconButton>
+                    </AppIconButton>
 
-                    <IconButton
+                    <AppIconButton
                         onClick={toggleColorMode}
                         size="small"
                         aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                     >
                         {mode === 'light' ? <Brightness4Icon/> : <Brightness7Icon/>}
-                    </IconButton>
-                </Box>
-            </Box>
+                    </AppIconButton>
+                </AppBox>
+            </AppBox>
 
 
             {/* Navigation Sections */}
-            <Box sx={{flexGrow: 1, pt: 2}}>
+            <AppBox sx={{flexGrow: 1, pt: 2}}>
                 {navigationSections.map((section, index) => (
                     <NavigationSection
                         key={section.title}
@@ -104,7 +102,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                         collapsed={collapsed}
                     />
                 ))}
-            </Box>
-        </Box>
+            </AppBox>
+        </AppBox>
     );
 }

@@ -1,7 +1,6 @@
 import sys
 import json
 import numpy as np
-import nashpy as nash
 
 # ---------- JSON encoder ----------
 class NumpyEncoder(json.JSONEncoder):
@@ -48,20 +47,8 @@ class GameMatrix:
         self.matrix = self.matrix[:, keep_cols]
         self.col_labels = [self.col_labels[j] for j in keep_cols]
 
-# ---------- Solver base ----------
-class EquilibriumSolver:
-    def solve(self, game_matrix: GameMatrix):
-        raise NotImplementedError
-
-# ---------- Nashpy exact ----------
-class NashpySolver(EquilibriumSolver):
-    def solve(self, game_matrix: GameMatrix):
-        game = nash.Game(game_matrix.matrix)
-        equilibria = list(game.lemke_howson_enumeration())
-        return equilibria
-
 # ---------- Multiplicative Weights approximate ----------
-class MWUSolver(EquilibriumSolver):
+class MWUSolver:
     def __init__(self, iterations=2000, eta=0.1):
         self.iterations = iterations
         self.eta = eta
@@ -122,9 +109,20 @@ class ResultFormatter:
         ]
 
 # ---------- Main ----------
+def load_matrix_payload():
+    if len(sys.argv) > 1:
+        return json.loads(sys.argv[1])
+
+    stdin_payload = sys.stdin.read().strip()
+    if not stdin_payload:
+        raise ValueError("Expected matrix JSON payload via stdin or first argument.")
+
+    return json.loads(stdin_payload)
+
+
 if __name__ == "__main__":
     try:
-        matrixAsDict = json.loads(sys.argv[1])
+        matrixAsDict = load_matrix_payload()
         row_labels = list(matrixAsDict.keys())
         col_labels = list(next(iter(matrixAsDict.values())).keys())
         matrix = [[matrixAsDict[r][c] for c in col_labels] for r in row_labels]

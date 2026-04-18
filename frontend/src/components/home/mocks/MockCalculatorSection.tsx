@@ -1,25 +1,29 @@
-import { Box, Card, CardContent, TextField, Grid } from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppCard} from "@/src/components/ui/AppCard";
+import {AppCardContent} from "@/src/components/ui/AppCardContent";
+import {AppTextField} from "@/src/components/ui/AppTextField";
+import {AppGrid} from "@/src/components/ui/AppGrid";
 import { AppTypography } from "@/src/components/ui/AppTypography";
 import CustomButton from "@/src/components/ui/CustomButton";
 
 export default function MockCalculatorSection() {
     return (
-        <Box sx={{ mb: 8 }}>
+        <AppBox sx={{ mb: 8 }}>
             {/* Section Title */}
             <AppTypography variant="h5" sx={{ mb: 4, fontWeight: 'bold', color: 'primary.main' }}>
                 Mock for Frame Data Calculator
             </AppTypography>
 
-            <Card sx={{ maxWidth: 600, mx: 'auto', boxShadow: 3 }}>
-                <CardContent sx={{ p: 4 }}>
+            <AppCard sx={{ maxWidth: 600, mx: 'auto', boxShadow: 3 }}>
+                <AppCardContent sx={{ p: 4 }}>
                     <AppTypography variant="h6" sx={{ mb: 3, textAlign: 'center', fontWeight: 'bold' }}>
                         Frame Advantage Calculator
                     </AppTypography>
 
-                    <Box sx={{ mb: 4 }}>
-                        <Grid container spacing={3}>
-                            <Grid item xs={6}>
-                                <TextField
+                    <AppBox sx={{ mb: 4 }}>
+                        <AppGrid container spacing={3}>
+                            <AppGrid item xs={6}>
+                                <AppTextField
                                     fullWidth
                                     label="Startup Frames"
                                     type="number"
@@ -27,9 +31,9 @@ export default function MockCalculatorSection() {
                                     placeholder="8"
                                     size="small"
                                 />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <TextField
+                            </AppGrid>
+                            <AppGrid item xs={6}>
+                                <AppTextField
                                     fullWidth
                                     label="Active Frames"
                                     type="number"
@@ -37,9 +41,9 @@ export default function MockCalculatorSection() {
                                     placeholder="3"
                                     size="small"
                                 />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <TextField
+                            </AppGrid>
+                            <AppGrid item xs={6}>
+                                <AppTextField
                                     fullWidth
                                     label="Recovery Frames"
                                     type="number"
@@ -47,9 +51,9 @@ export default function MockCalculatorSection() {
                                     placeholder="12"
                                     size="small"
                                 />
-                            </Grid>
-                            <Grid item xs={6}>
-                                <TextField
+                            </AppGrid>
+                            <AppGrid item xs={6}>
+                                <AppTextField
                                     fullWidth
                                     label="Block Stun"
                                     type="number"
@@ -57,17 +61,17 @@ export default function MockCalculatorSection() {
                                     placeholder="15"
                                     size="small"
                                 />
-                            </Grid>
-                        </Grid>
-                    </Box>
+                            </AppGrid>
+                        </AppGrid>
+                    </AppBox>
 
                     {/* Calculate Button */}
-                    <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    <AppBox sx={{ textAlign: 'center', mb: 3 }}>
                         <CustomButton variant="calculate" />
-                    </Box>
+                    </AppBox>
 
                     {/* Results Display */}
-                    <Box
+                    <AppBox
                         sx={{
                             backgroundColor: 'grey.50',
                             borderRadius: 2,
@@ -84,9 +88,9 @@ export default function MockCalculatorSection() {
                         <AppTypography variant="caption" sx={{ color: 'text.disabled' }}>
                             This move is safe and gives you advantage
                         </AppTypography>
-                    </Box>
-                </CardContent>
-            </Card>
-        </Box>
+                    </AppBox>
+                </AppCardContent>
+            </AppCard>
+        </AppBox>
     );
 }

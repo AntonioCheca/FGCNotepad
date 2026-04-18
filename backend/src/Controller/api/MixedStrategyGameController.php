@@ -5,7 +5,6 @@
 namespace App\Controller\api;
 
 use App\Service\MixedStrategyGameSolver;
-use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +21,7 @@ class MixedStrategyGameController extends AbstractController
     }
 
     #[Route('', name: 'solve_game', methods: ['POST'])]
-    public function solveGame(Request $request, LoggerInterface $logger): JsonResponse
+    public function solveGame(Request $request): JsonResponse
     {
         $data = $request->getContent();
 
@@ -36,7 +35,6 @@ class MixedStrategyGameController extends AbstractController
         }
 
         try {
-            $logger->debug("PAYOFF MATRIX: ", $payoffMatrix);
             $result = $this->solver->solveMixedStrategyGame($payoffMatrix);
 
             return new JsonResponse($result);

@@ -1,0 +1,13 @@
+export {default as HelpOutlineOutlinedIcon} from "@mui/icons-material/HelpOutlineOutlined";
+export {default as ArticleOutlinedIcon} from "@mui/icons-material/ArticleOutlined";
+export {default as SearchOutlinedIcon} from "@mui/icons-material/SearchOutlined";
+export {default as SportsMartialArtsOutlinedIcon} from "@mui/icons-material/SportsMartialArtsOutlined";
+export {default as SportsKabaddiOutlinedIcon} from "@mui/icons-material/SportsKabaddiOutlined";
+export {default as AccountCircleOutlinedIcon} from "@mui/icons-material/AccountCircleOutlined";
+export {default as SettingsOutlinedIcon} from "@mui/icons-material/SettingsOutlined";
+export {default as SportsMmaIcon} from "@mui/icons-material/SportsMma";
+export {default as ChevronLeftIcon} from "@mui/icons-material/ChevronLeft";
+export {default as ChevronRightIcon} from "@mui/icons-material/ChevronRight";
+export {default as Brightness4Icon} from "@mui/icons-material/Brightness4";
+export {default as Brightness7Icon} from "@mui/icons-material/Brightness7";
+export {default as DeleteIcon} from "@mui/icons-material/Delete";

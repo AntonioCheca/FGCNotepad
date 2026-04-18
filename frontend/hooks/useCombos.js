@@ -1,7 +1,6 @@
 // hooks/useCombos.js
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
-import {useState} from "react";
 
 /**
  * Hook for interacting with ComboSequences API
@@ -9,8 +8,6 @@ import {useState} from "react";
  */
 const useCombos = () => {
     const {request} = useApi();
-    const [combos, setCombos] = useState([]);
-    const [loading, setLoading] = useState(true);
 
     /**
      * Fetch a list of combos
@@ -31,11 +28,17 @@ const useCombos = () => {
         }
     };
 
-    const fetchLeafs = async () => {
+    const fetchLeafs = async (characterId) => {
         try {
+            if (!characterId) {
+                return [];
+            }
+
             console.log("[useCombos] Fetching leafs from API...");
             const response = await request(() =>
-                api.get("/combo-sequences/leafs/list")
+                api.get("/combo-sequences/leafs/list", {
+                    params: {character_id: characterId},
+                })
             );
             console.log("[useCombos] API response for leafs:", response);
 
@@ -89,6 +92,17 @@ const useCombos = () => {
             );
         } catch (error) {
             console.error("Error translating combo notation", error);
+            throw error;
+        }
+    };
+
+    const fetchRequirementObjects = async () => {
+        try {
+            return await request(() =>
+                api.get("/combo-sequences/requirements/objects")
+            );
+        } catch (error) {
+            console.error("Error fetching requirement objects", error);
             throw error;
         }
     };
@@ -150,6 +164,7 @@ const useCombos = () => {
         createCombo,
         createFullCombo,
         translateComboNotation,
+        fetchRequirementObjects,
         getCombo,
         updateCombo,
         deleteCombo

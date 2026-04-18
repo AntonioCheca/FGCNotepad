@@ -26,7 +26,7 @@ class MixedStrategyGameSolver
             throw new \RuntimeException('Failed to encode matrix to JSON.');
         }
 
-        $result = $this->runPythonScript($scriptPath, [$jsonMatrix]);
+        $result = $this->runPythonScript($scriptPath, $jsonMatrix);
 
         // Post-process derived metrics
         $result['derivedMetrics'] = $this->calculateAllMetrics($result, $payoffMatrix);
@@ -34,9 +34,10 @@ class MixedStrategyGameSolver
         return $result;
     }
 
-    private function runPythonScript(string $scriptPath, array $arguments): array
+    private function runPythonScript(string $scriptPath, string $inputJson): array
     {
-        $process = new Process(array_merge(['python', $scriptPath], $arguments));
+        $process = new Process(['python', $scriptPath]);
+        $process->setInput($inputJson);
         $process->run();
 
         if (!$process->isSuccessful()) {

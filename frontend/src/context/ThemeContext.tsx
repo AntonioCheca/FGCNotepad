@@ -9,11 +9,11 @@ import React, {
     useEffect,
 } from "react";
 import {
-    Theme,
-    ThemeProvider as MuiThemeProvider,
-    createTheme,
-    PaletteMode,
-} from "@mui/material";
+    AppThemeProvider,
+    createAppTheme,
+    type Theme,
+    type PaletteMode,
+} from "@/src/components/ui/AppTheme";
 import {getDesignTokens} from "@/styles/theme";
 
 interface ThemeContextType {
@@ -31,7 +31,7 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
         setMode((prev) => (prev === "light" ? "dark" : "light"));
     };
 
-    const theme = useMemo(() => createTheme(getDesignTokens(mode)), [mode]);
+    const theme = useMemo(() => createAppTheme(getDesignTokens(mode)), [mode]);
 
     // ✅ Update <body> background color when theme changes
     useEffect(() => {
@@ -41,7 +41,7 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
 
     return (
         <ThemeContext.Provider value={{mode, toggleColorMode, theme}}>
-            <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>
+            <AppThemeProvider theme={theme}>{children}</AppThemeProvider>
         </ThemeContext.Provider>
     );
 };

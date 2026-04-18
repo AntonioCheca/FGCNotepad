@@ -1,4 +1,4 @@
-import {Box} from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import StepItem from "@/src/components/combos/create/StepItem";
 import type {StepDraft, ConnectionType, LeafSequenceOption} from "@/src/types/combo";
@@ -24,7 +24,7 @@ export function StepList({
                              leafs,
                          }: StepListProps) {
     return (
-        <Box sx={{display: "flex", flexDirection: "column", gap: 1}}>
+        <AppBox sx={{display: "flex", flexDirection: "column", gap: 1}}>
             {steps.map((step, index) => (
                 <StepItem
                     key={index}
@@ -41,7 +41,7 @@ export function StepList({
             <AppButton onClick={onAddStep} type="button">
                 Add Step
             </AppButton>
-        </Box>
+        </AppBox>
     );
 }
 

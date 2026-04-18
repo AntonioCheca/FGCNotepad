@@ -1,5 +1,7 @@
 import {useState} from "react";
-import {Box, TextField, Autocomplete} from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppTextField} from "@/src/components/ui/AppTextField";
+import {AppAutocomplete} from "@/src/components/ui/AppAutocomplete";
 import {AppButton} from "@/src/components/ui/AppButton";
 import useMoves from "@/hooks/useMoves";
 
@@ -31,10 +33,10 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
     };
 
     return (
-        <Box sx={{display: "flex", gap: 2, flexWrap: "wrap", mb: 2}}>
-            <TextField label="Character ID" value={character?.name || ""} onChange={() => {
+        <AppBox sx={{display: "flex", gap: 2, flexWrap: "wrap", mb: 2}}>
+            <AppTextField label="Character ID" value={character?.name || ""} onChange={() => {
             }}/>
-            <Autocomplete
+            <AppAutocomplete
                 options={[]}
                 filterOptions={(x) => x}
                 onInputChange={async (_, value) => {
@@ -42,9 +44,9 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                     setFirstMove(results[0] || null);
                 }}
                 getOptionLabel={(option: any) => option.name}
-                renderInput={(params) => <TextField {...params} label="First Move"/>}
+                renderInput={(params) => <AppTextField {...params} label="First Move"/>}
             />
-            <Autocomplete
+            <AppAutocomplete
                 multiple
                 options={[]}
                 filterOptions={(x) => x}
@@ -53,10 +55,10 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                     setOtherMoves(results);
                 }}
                 getOptionLabel={(option: any) => option.name}
-                renderInput={(params) => <TextField {...params} label="Other Moves"/>}
+                renderInput={(params) => <AppTextField {...params} label="Other Moves"/>}
             />
-            <TextField label="Season" value={season} onChange={(e) => setSeason(e.target.value)}/>
+            <AppTextField label="Season" value={season} onChange={(e) => setSeason(e.target.value)}/>
             <AppButton onClick={applyFilters}>Search</AppButton>
-        </Box>
+        </AppBox>
     );
 }

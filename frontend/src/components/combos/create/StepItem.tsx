@@ -1,6 +1,7 @@
 import {useState} from "react";
-import {Box, IconButton} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppIconButton} from "@/src/components/ui/AppIconButton";
+import {DeleteIcon} from "@/src/components/ui/AppIcons";
 import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
 import type {StepDraft, ConnectionType, LeafSequenceOption} from "@/src/types/combo";
 
@@ -30,7 +31,7 @@ export default function StepItem({
     );
 
     return (
-        <Box sx={{display: "flex", gap: 1, alignItems: "center"}}>
+        <AppBox sx={{display: "flex", gap: 1, alignItems: "center"}}>
             <WrappedAutocomplete<ConnectionType>
                 label="Connection"
                 options={connections}
@@ -55,9 +56,9 @@ export default function StepItem({
                 sx={{flex: 1, minWidth: 200}}
             />
 
-            <IconButton aria-label="Remove step" onClick={onRemove}>
+            <AppIconButton aria-label="Remove step" onClick={onRemove}>
                 <DeleteIcon/>
-            </IconButton>
-        </Box>
+            </AppIconButton>
+        </AppBox>
     );
 }

@@ -1,5 +1,6 @@
 import {useEffect, useState} from "react";
-import {Box, TextField} from "@mui/material";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
 import useMoves from "@/hooks/useMoves";
@@ -11,11 +12,39 @@ import usePersistentState from "@/hooks/usePersistentState"; // ✅ import here
 import type {
     StepDraft,
     CreateFullComboPayload,
+    ComboRequirementsPayload,
+    RequirementObjectOption,
     LeafSequenceOption,
     ConnectionType,
     CharacterOption,
     TranslateComboNotationResponse,
 } from "@/src/types/combo";
+
+type RequirementToggleKey =
+    | "counter_hit_required"
+    | "punish_counter_required"
+    | "corner_required"
+    | "airborne_required"
+    | "mid_screen_required"
+    | "not_crouching_required";
+
+const requirementToggles: Array<{ key: RequirementToggleKey; label: string }> = [
+    {key: "counter_hit_required", label: "Counter Hit Required"},
+    {key: "punish_counter_required", label: "Punish Counter Required"},
+    {key: "corner_required", label: "Corner Required"},
+    {key: "airborne_required", label: "Airborne Required"},
+    {key: "mid_screen_required", label: "Mid Screen Required"},
+    {key: "not_crouching_required", label: "Opponent Not Crouching"},
+];
+
+const emptyRequirements: ComboRequirementsPayload = {
+    counter_hit_required: false,
+    punish_counter_required: false,
+    corner_required: false,
+    airborne_required: false,
+    mid_screen_required: false,
+    not_crouching_required: false,
+};
 
 interface ComboFormProps {
     onSuccess?: () => void;
@@ -29,10 +58,14 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     const [notes, setNotes] = usePersistentState<string>("comboForm.notes", "");
     const [notationInput, setNotationInput] = usePersistentState<string>("comboForm.notationInput", "");
     const [steps, setSteps] = usePersistentState<StepDraft[]>("comboForm.steps", [], true);
+    const [requirements, setRequirements] = usePersistentState<ComboRequirementsPayload>("comboForm.requirements", emptyRequirements);
+    const [specificRequirementObject, setSpecificRequirementObject] = usePersistentState<string>("comboForm.requirements.object_name", "");
+    const [specificRequirementStatus, setSpecificRequirementStatus] = usePersistentState<string>("comboForm.requirements.status_required", "");
     const [translateWarnings, setTranslateWarnings] = useState<string[]>([]);
     const [translateErrors, setTranslateErrors] = useState<string[]>([]);
+    const [requirementObjects, setRequirementObjects] = useState<RequirementObjectOption[]>([]);
 
-    const {fetchLeafs, createFullCombo, translateComboNotation} = useCombos();
+    const {fetchLeafs, createFullCombo, translateComboNotation, fetchRequirementObjects} = useCombos();
     const [leafs, setLeafs] = useState<LeafSequenceOption[]>([]);
 
     const {searchMoves} = useMoves();
@@ -40,10 +73,25 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     const {connections, loading: connectionsLoading, fetchConnections} = useConnections();
 
     useEffect(() => {
-        console.log("[ComboForm] fetching connections + leafs...");
+        console.log("[ComboForm] fetching connections...");
         fetchConnections();
 
-        fetchLeafs()
+        fetchRequirementObjects()
+            .then((res) => setRequirementObjects(res ?? []))
+            .catch((err) => {
+                console.error("[ComboForm] Failed to fetch requirement objects:", err);
+                setRequirementObjects([]);
+            });
+    }, []);
+
+    useEffect(() => {
+        const selectedCharacterId = character?.id;
+        if (!selectedCharacterId) {
+            setLeafs([]);
+            return;
+        }
+
+        fetchLeafs(String(selectedCharacterId))
             .then((res) => {
                 console.log("[ComboForm] fetchLeafs response:", res);
                 setLeafs(res ?? []);
@@ -52,16 +100,13 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 console.error("[ComboForm] Failed to fetch leafs:", err);
                 setLeafs([]);
             });
-    }, []);
+    }, [character?.id]);
 
     useEffect(() => {
         console.log("[ComboForm] connections updated:", connections);
     }, [connections]);
 
-    // Filter moves by selected character
-    const filteredLeafs = character
-        ? leafs.filter((l) => l.character?.id === character.id)
-        : leafs;
+    const filteredLeafs = leafs;
 
     useEffect(() => {
         if (leafs.length === 0) return; // wait for backend data
@@ -81,6 +126,26 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
 
     const handleChangeStep = (index: number, update: Partial<StepDraft>) =>
         setSteps((prev) => prev.map((s, i) => (i === index ? {...s, ...update} : s)));
+
+    const handleRequirementToggle = (key: RequirementToggleKey, checked: boolean) => {
+        setRequirements((prev) => {
+            const next = {...prev, [key]: checked};
+
+            if (key === "counter_hit_required" && checked) {
+                next.punish_counter_required = false;
+            }
+
+            if (key === "punish_counter_required" && checked) {
+                next.counter_hit_required = false;
+            }
+
+            return next;
+        });
+    };
+
+    const selectedRequirementObject = requirementObjects.find((option) => option.name === specificRequirementObject) ?? null;
+    const selectedObjectIsBoolean = selectedRequirementObject?.status_type === "boolean";
+    const selectedObjectIsInteger = selectedRequirementObject?.status_type === "integer";
 
     const handleFillDetails = async () => {
         const characterId = String(character?.id ?? "").trim();
@@ -162,10 +227,67 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             }
         }
 
+        const hasBooleanRequirement = requirementToggles.some(({key}) => Boolean(requirements[key]));
+        const objectName = specificRequirementObject.trim();
+        const statusRequiredRaw = specificRequirementStatus.trim();
+        const hasAnySpecificCharacterInput = objectName.length > 0 || statusRequiredRaw.length > 0;
+
+        if (statusRequiredRaw.length > 0 && !objectName) {
+            alert("Select a requirement object before entering a status.");
+            return;
+        }
+
+        if (objectName.length > 0 && !selectedRequirementObject) {
+            alert("Invalid requirement object selected.");
+            return;
+        }
+
+        let specificStatusPayload: string | number | boolean | undefined;
+
+        if (selectedObjectIsBoolean) {
+            specificStatusPayload = true;
+        }
+
+        if (selectedObjectIsInteger) {
+            if (!/^[0-9]+$/.test(statusRequiredRaw)) {
+                alert("This requirement needs a numeric status.");
+                return;
+            }
+
+            const numericStatus = parseInt(statusRequiredRaw, 10);
+            const maxStatus = selectedRequirementObject?.max_status ?? null;
+            if (numericStatus < 1 || (maxStatus !== null && numericStatus > maxStatus)) {
+                alert(`Status must be between 1 and ${maxStatus}.`);
+                return;
+            }
+
+            specificStatusPayload = numericStatus;
+        }
+
+        if (objectName.length > 0 && specificStatusPayload === undefined) {
+            alert("Requirement status is invalid.");
+            return;
+        }
+
+        const requirementsPayload: ComboRequirementsPayload | undefined =
+            hasBooleanRequirement || hasAnySpecificCharacterInput
+                ? {
+                    ...emptyRequirements,
+                    ...requirements,
+                    requirement_specific_character: objectName.length > 0
+                        ? {
+                            object_name: objectName,
+                            status_required: specificStatusPayload as string | number | boolean,
+                        }
+                        : undefined,
+                }
+                : undefined;
+
         const payload: CreateFullComboPayload = {
             name: title,
             description: description || undefined,
             metrics: damage ? {damage: parseInt(damage, 10)} : undefined,
+            requirements: requirementsPayload,
             steps: steps.map((s, idx) => ({
                 child_sequence_id: (s.move as LeafSequenceOption).id,
                 ordinal_in_combo: idx + 1,
@@ -185,6 +307,9 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             setNotes("");
             setNotationInput("");
             setSteps([]);
+            setRequirements(emptyRequirements);
+            setSpecificRequirementObject("");
+            setSpecificRequirementStatus("");
             setTranslateWarnings([]);
             setTranslateErrors([]);
             onSuccess?.();
@@ -195,12 +320,12 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     };
 
     return (
-        <Box
+        <AppBox
             component="form"
             onSubmit={handleSubmit}
             sx={{display: "flex", flexDirection: "column", gap: 2}}
         >
-            <TextField
+            <AppTextField
                 label="Combo Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -217,7 +342,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 disableClearable={false}
             />
 
-            <TextField
+            <AppTextField
                 label="Numpad Notation"
                 value={notationInput}
                 onChange={(e) => setNotationInput(e.target.value)}
@@ -235,19 +360,19 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             </AppButton>
 
             {translateWarnings.length > 0 && (
-                <Box sx={{color: "warning.main", fontSize: 14}}>
+                <AppBox sx={{color: "warning.main", fontSize: 14}}>
                     {translateWarnings.map((warning, index) => (
                         <div key={`warning-${index}`}>- {warning}</div>
                     ))}
-                </Box>
+                </AppBox>
             )}
 
             {translateErrors.length > 0 && (
-                <Box sx={{color: "error.main", fontSize: 14}}>
+                <AppBox sx={{color: "error.main", fontSize: 14}}>
                     {translateErrors.map((error, index) => (
                         <div key={`error-${index}`}>- {error}</div>
                     ))}
-                </Box>
+                </AppBox>
             )}
 
             <StepList
@@ -261,18 +386,65 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 leafs={filteredLeafs ?? []} // ✅ filtered by character
             />
 
-            <TextField
+            <AppTextField
                 label="Damage"
                 value={damage}
                 onChange={(e) => setDamage(e.target.value)}
                 inputMode="numeric"
             />
-            <TextField
+
+            <AppBox sx={{border: "1px solid", borderColor: "divider", borderRadius: 1, p: 2, display: "flex", flexDirection: "column", gap: 1}}>
+                <strong>Combo Requirements (optional)</strong>
+                {requirementToggles.map(({key, label}) => (
+                    <label key={key} style={{display: "flex", alignItems: "center", gap: 8}}>
+                        <input
+                            type="checkbox"
+                            checked={Boolean(requirements[key])}
+                            disabled={
+                                (key === "counter_hit_required" && Boolean(requirements.punish_counter_required))
+                                || (key === "punish_counter_required" && Boolean(requirements.counter_hit_required))
+                            }
+                            onChange={(event) => handleRequirementToggle(key, event.target.checked)}
+                        />
+                        {label}
+                    </label>
+                ))}
+
+                <WrappedAutocomplete<RequirementObjectOption>
+                    label="Specific Requirement Object"
+                    options={requirementObjects}
+                    value={selectedRequirementObject}
+                    onChange={(value) => {
+                        setSpecificRequirementObject(value?.name ?? "");
+                        setSpecificRequirementStatus("");
+                    }}
+                    getOptionLabel={(option) => option?.name ?? ""}
+                    disableClearable={false}
+                />
+
+                {selectedObjectIsInteger && (
+                    <AppTextField
+                        label="Specific Status Required"
+                        value={specificRequirementStatus}
+                        onChange={(e) => setSpecificRequirementStatus(e.target.value)}
+                        inputMode="numeric"
+                        helperText={`Value between 1 and ${selectedRequirementObject?.max_status}`}
+                    />
+                )}
+
+                {selectedObjectIsBoolean && (
+                    <AppBox sx={{fontSize: 14, color: "text.secondary"}}>
+                        This requirement is boolean and will be saved as required active state.
+                    </AppBox>
+                )}
+            </AppBox>
+
+            <AppTextField
                 label="Description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
             />
-            <TextField
+            <AppTextField
                 label="Notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -280,6 +452,6 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             />
 
             <AppButton type="submit">Create Combo</AppButton>
-        </Box>
+        </AppBox>
     );
 }
