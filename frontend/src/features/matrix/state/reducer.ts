@@ -75,6 +75,10 @@ function createSelectionSlice(target: MatrixSelectionTarget | null): MatrixEdito
 
 export function matrixEditorReducer(state: MatrixEditorState, action: MatrixAction): MatrixEditorState {
     switch (action.type) {
+        case "grid/replaceState": {
+            return action.payload.state;
+        }
+
         case "grid/setCellValue": {
             const cell = state.grid.bodyCells[action.payload.key];
             if (!isEditableBodyCell(cell)) {
@@ -221,7 +225,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         [action.payload.key]: {
                             ...cell,
                             kind: "dynamic_combo",
-                            value: null,
+                            value: cell.value,
                             reference: null,
                             dynamicCombo: {
                                 attackerCharacterId: action.payload.dynamicCombo.attackerCharacterId,
@@ -239,6 +243,31 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     byKey: {
                         ...state.validation.byKey,
                         [action.payload.key]: [],
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setDynamicComboResolvedValue": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            if (!cell || cell.kind !== "dynamic_combo") {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {
+                            ...cell,
+                            value: action.payload.value,
+                        },
                     },
                 },
                 derived: {

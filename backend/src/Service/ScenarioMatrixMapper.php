@@ -200,7 +200,8 @@ class ScenarioMatrixMapper
             $contextValue = $this->resolveStarterContext($starterContext);
 
             $cell->setKind(ScenarioCell::KIND_DYNAMIC_COMBO)
-                ->setStarterContext($contextValue);
+                ->setStarterContext($contextValue)
+                ->setCachedValue($this->extractNumericValue($sourceCell));
 
             foreach ($starterMoveIds as $moveId) {
                 if (!is_string($moveId) || '' === trim($moveId)) {
@@ -264,8 +265,8 @@ class ScenarioMatrixMapper
 
         return [
             'cellType' => 'dynamic_combo',
-            'dataType' => 'empty',
-            'value' => null,
+            'dataType' => null !== $cell->getCachedValue() ? 'number' : 'empty',
+            'value' => $cell->getCachedValue(),
             'dynamicCombo' => [
                 'attackerCharacterId' => $cell->getScenario()?->getAttackerCharacter()?->getId()?->toRfc4122() ?? '',
                 'starterMoveIds' => array_values(array_filter($starterMoves, static fn (?string $value): bool => null !== $value && '' !== $value)),

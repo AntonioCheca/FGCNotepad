@@ -1,7 +1,7 @@
 import React from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
-import {MatrixPayload} from "@/src/types/matrixPayload";
+import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
 
 export type ScenarioType = "oki" | "blockstun";
 
@@ -34,6 +34,21 @@ export interface ScenarioSavePayload {
     attackerCharacterId: string;
     triggerMoveId: string;
     matrix: MatrixPayload;
+}
+
+interface ResolveDynamicCellsResponse {
+    scenario: ScenarioDetail;
+    resolution: {
+        totalDynamicCells: number;
+        resolvedCells: number;
+        unresolvedCells: number;
+    };
+}
+
+interface ResolveDynamicCellPreviewResponse {
+    resolvedDamage: number | null;
+    resolvedComboId: number | null;
+    resolvedStarterMoveId: string | null;
 }
 
 export interface ScenarioSearchFilters {
@@ -77,11 +92,21 @@ export function useScenarios() {
         await request(() => api.delete(`/scenarios/${id}`));
     }, [request]);
 
+    const resolveDynamicCells = React.useCallback(async (id: string): Promise<ResolveDynamicCellsResponse> => {
+        return request(() => api.post(`/scenarios/${id}/resolve-dynamic-cells`));
+    }, [request]);
+
+    const resolveDynamicCellPreview = React.useCallback(async (dynamicCombo: MatrixDynamicComboPayload): Promise<ResolveDynamicCellPreviewResponse> => {
+        return request(() => api.post('/scenarios/resolve-dynamic-cell', dynamicCombo));
+    }, [request]);
+
     return {
         listScenarios,
         getScenario,
         createScenario,
         updateScenario,
         deleteScenario,
+        resolveDynamicCells,
+        resolveDynamicCellPreview,
     };
 }

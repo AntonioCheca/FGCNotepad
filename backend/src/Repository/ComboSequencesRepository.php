@@ -78,4 +78,60 @@ class ComboSequencesRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * @param list<string> $starterMoveIds
+     *
+     * @return array{combo_id:int,resolved_damage:int,starter_move_id:string}|null
+     */
+    public function findBestDynamicComboMatch(string $attackerCharacterId, array $starterMoveIds, string $hitType): ?array
+    {
+        if ([] === $starterMoveIds) {
+            return null;
+        }
+
+        $qb = $this->createQueryBuilder('combo')
+            ->select(
+                'combo.id AS combo_id',
+                'metrics.damage AS resolved_damage',
+                'starterMove.id AS starter_move_id'
+            )
+            ->innerJoin('combo.type', 'comboType')
+            ->innerJoin('combo.comboMetrics', 'metrics')
+            ->innerJoin('combo.steps', 'starterStep')
+            ->innerJoin('starterStep.child_sequence', 'starterSequence')
+            ->innerJoin('starterSequence.move', 'starterMove')
+            ->innerJoin('starterMove.character', 'attackerCharacter')
+            ->leftJoin('combo.comboRequirement', 'comboRequirement')
+            ->where('comboType.name = :comboTypeName')
+            ->andWhere('attackerCharacter.id = :attackerCharacterId')
+            ->andWhere('starterMove.id IN (:starterMoveIds)')
+            ->andWhere('starterStep.ordinal_in_combo = 1')
+            ->setParameter('comboTypeName', 'combo')
+            ->setParameter('attackerCharacterId', $attackerCharacterId)
+            ->setParameter('starterMoveIds', $starterMoveIds)
+            ->orderBy('metrics.damage', 'DESC')
+            ->addOrderBy('combo.id', 'ASC')
+            ->setMaxResults(1);
+
+        if ('normal' === $hitType) {
+            $qb->andWhere(
+                '(comboRequirement.id IS NULL) OR '
+                . '(comboRequirement.counter_hit_required = false AND comboRequirement.punish_counter_required = false)'
+            );
+        } elseif ('counter_hit' === $hitType) {
+            $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.punish_counter_required = false)');
+        }
+
+        $result = $qb->getQuery()->getOneOrNullResult();
+        if (!is_array($result)) {
+            return null;
+        }
+
+        return [
+            'combo_id' => (int) $result['combo_id'],
+            'resolved_damage' => (int) $result['resolved_damage'],
+            'starter_move_id' => (string) $result['starter_move_id'],
+        ];
+    }
 }

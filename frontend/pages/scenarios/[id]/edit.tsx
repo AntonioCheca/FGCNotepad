@@ -12,7 +12,7 @@ export default function EditScenarioPage() {
     const {id} = router.query;
     const scenarioId = typeof id === "string" ? id : null;
 
-    const {getScenario, updateScenario} = useScenarios();
+    const {getScenario, updateScenario, resolveDynamicCells, resolveDynamicCellPreview} = useScenarios();
     const [scenario, setScenario] = React.useState<ScenarioDetail | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
@@ -80,6 +80,15 @@ export default function EditScenarioPage() {
                 onSubmit={async (payload) => {
                     const updated = await updateScenario(scenarioId, payload);
                     setScenario(updated);
+                }}
+                onResolveDynamicCells={async () => {
+                    const response = await resolveDynamicCells(scenarioId);
+                    setScenario(response.scenario);
+                    return response.scenario.matrix;
+                }}
+                onResolveDynamicComboCell={async (dynamicCombo) => {
+                    const resolved = await resolveDynamicCellPreview(dynamicCombo);
+                    return resolved.resolvedDamage;
                 }}
             />
         </AppContainer>

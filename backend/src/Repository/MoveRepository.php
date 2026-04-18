@@ -39,4 +39,38 @@ class MoveRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * @param list<string> $moveIds
+     *
+     * @return list<array{move_id:string,damage:int}>
+     */
+    public function findMoveDamagesByCharacterAndIds(string $characterId, array $moveIds): array
+    {
+        if ([] === $moveIds) {
+            return [];
+        }
+
+        $rows = $this->createQueryBuilder('move')
+            ->select('move.id AS move_id', 'frameData.damage AS damage')
+            ->innerJoin('move.character', 'character')
+            ->innerJoin('move.frameData', 'frameData')
+            ->where('character.id = :characterId')
+            ->andWhere('move.id IN (:moveIds)')
+            ->andWhere('frameData.damage IS NOT NULL')
+            ->setParameter('characterId', $characterId)
+            ->setParameter('moveIds', $moveIds)
+            ->orderBy('frameData.damage', 'DESC')
+            ->addOrderBy('move.id', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(
+            static fn (array $row): array => [
+                'move_id' => (string) $row['move_id'],
+                'damage' => (int) $row['damage'],
+            ],
+            $rows
+        );
+    }
 }

@@ -7,7 +7,7 @@ import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
 import {useCharacters} from "@/hooks/useCharacters";
 import useMoves from "@/hooks/useMoves";
 import {ScenarioSavePayload, ScenarioType} from "@/hooks/useScenarios";
-import {MatrixPayload} from "@/src/types/matrixPayload";
+import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
 import {createDefaultMatrixPayload} from "@/src/features/matrix/serialization/serializeMatrixPayload";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
 
@@ -26,6 +26,8 @@ interface ScenarioEditorFormProps {
     initialValue?: Partial<ScenarioSavePayload>;
     submitLabel: string;
     onSubmit: (payload: ScenarioSavePayload) => Promise<void>;
+    onResolveDynamicCells?: () => Promise<MatrixPayload>;
+    onResolveDynamicComboCell?: (dynamicCombo: MatrixDynamicComboPayload) => Promise<number | null>;
 }
 
 function normalizeMoveListResults(value: unknown): MoveOption[] {
@@ -60,7 +62,13 @@ function normalizeMoveListResults(value: unknown): MoveOption[] {
         .filter((option): option is MoveOption => option !== null);
 }
 
-export function ScenarioEditorForm({initialValue, submitLabel, onSubmit}: ScenarioEditorFormProps) {
+export function ScenarioEditorForm({
+    initialValue,
+    submitLabel,
+    onSubmit,
+    onResolveDynamicCells,
+    onResolveDynamicComboCell,
+}: ScenarioEditorFormProps) {
     const {characters, loading: charactersLoading} = useCharacters();
     const {searchMoves, getSpecificMove} = useMoves();
     const searchMovesRef = React.useRef(searchMoves);
@@ -77,6 +85,7 @@ export function ScenarioEditorForm({initialValue, submitLabel, onSubmit}: Scenar
     const [matrix, setMatrix] = React.useState<MatrixPayload>(initialValue?.matrix ?? createDefaultMatrixPayload());
     const [error, setError] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
+    const [resolvingDynamicCells, setResolvingDynamicCells] = React.useState(false);
 
     React.useEffect(() => {
         searchMovesRef.current = searchMoves;
@@ -261,11 +270,39 @@ export function ScenarioEditorForm({initialValue, submitLabel, onSubmit}: Scenar
             />
 
             <div style={{display: "grid", gap: 8}}>
-                <AppTypography variant="h6">Matrix</AppTypography>
+                <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
+                    <AppTypography variant="h6">Matrix</AppTypography>
+                    <AppButton
+                        type="button"
+                        disabled={!onResolveDynamicCells || resolvingDynamicCells || submitting}
+                        onClick={async () => {
+                            if (!onResolveDynamicCells) {
+                                return;
+                            }
+
+                            setResolvingDynamicCells(true);
+                            setError(null);
+                            try {
+                                const resolvedMatrix = await onResolveDynamicCells();
+                                setMatrix(resolvedMatrix);
+                            } catch {
+                                setError("Unable to refresh dynamic combo values.");
+                            } finally {
+                                setResolvingDynamicCells(false);
+                            }
+                        }}
+                    >
+                        {onResolveDynamicCells
+                            ? (resolvingDynamicCells ? "Refreshing Dynamic Combos..." : "Refresh Dynamic Combos")
+                            : "Refresh Dynamic Combos (Save First)"}
+                    </AppButton>
+                </div>
                 <MatrixEditorShell
                     matrix={matrix}
                     onMatrixChange={setMatrix}
                     editable={true}
+                    onRefreshDynamicCells={onResolveDynamicCells}
+                    onResolveDynamicComboCell={onResolveDynamicComboCell}
                 />
             </div>
 

@@ -148,26 +148,31 @@ function MatrixValueCellComponent({
             title={issues[0]?.message}
         >
             {dynamicChipLabels.length > 0 ? (
-                <span style={{display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center"}}>
-                    {dynamicChipLabels.map((label, index) => (
-                        <span
-                            key={`${label}-${index}`}
-                            style={{
-                                ...chipStyle,
-                                display: "inline-block",
-                                borderRadius: 999,
-                                padding: "1px 6px",
-                                fontSize: Math.max(10, densityProfile.valueFontSize - 1),
-                                lineHeight: 1.4,
-                                maxWidth: densityProfile.valueCellWidth - 12,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                            }}
-                        >
-                            {label}
-                        </span>
-                    ))}
+                <span style={{display: "grid", gap: 4}}>
+                    <span style={{display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center"}}>
+                        {dynamicChipLabels.map((label, index) => (
+                            <span
+                                key={`${label}-${index}`}
+                                style={{
+                                    ...chipStyle,
+                                    display: "inline-block",
+                                    borderRadius: 999,
+                                    padding: "1px 6px",
+                                    fontSize: Math.max(10, densityProfile.valueFontSize - 1),
+                                    lineHeight: 1.4,
+                                    maxWidth: densityProfile.valueCellWidth - 12,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                {label}
+                            </span>
+                        ))}
+                    </span>
+                    <span style={{fontSize: Math.max(10, densityProfile.valueFontSize - 1), color: "#595959"}}>
+                        Current: {value === null ? "--" : value}
+                    </span>
                 </span>
             ) : value === null ? "" : value}
         </button>

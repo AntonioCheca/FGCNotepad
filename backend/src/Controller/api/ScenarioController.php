@@ -9,6 +9,8 @@ use App\Repository\MoveRepository;
 use App\Repository\ScenarioRepository;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioResponseBuilder;
+use App\Service\ResolveScenarioDynamicComboCellsService;
+use App\Service\ResolveDynamicComboCellService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -30,6 +32,8 @@ class ScenarioController extends AbstractController
         private readonly MoveRepository $moveRepository,
         private readonly ScenarioResponseBuilder $scenarioResponseBuilder,
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
+        private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
+        private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
     ) {
     }
 
@@ -67,6 +71,7 @@ class ScenarioController extends AbstractController
         $scenario = new Scenario();
 
         $this->hydrateScenario($scenario, $data, true);
+        $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario);
 
         $user = $this->security->getUser();
         if ($user instanceof User) {
@@ -79,7 +84,7 @@ class ScenarioController extends AbstractController
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_CREATED);
     }
 
-    #[Route('/{id}', name: 'read', methods: ['GET'])]
+    #[Route('/{id}', name: 'read', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['GET'])]
     public function read(string $id): JsonResponse
     {
         $scenario = $this->findByPublicId($id);
@@ -87,7 +92,7 @@ class ScenarioController extends AbstractController
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
     }
 
-    #[Route('/{id}', name: 'update', methods: ['PATCH'])]
+    #[Route('/{id}', name: 'update', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['PATCH'])]
     public function update(string $id, Request $request): JsonResponse
     {
         $scenario = $this->findByPublicId($id);
@@ -95,12 +100,16 @@ class ScenarioController extends AbstractController
 
         $this->hydrateScenario($scenario, $data, false);
 
+        if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data)) {
+            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario);
+        }
+
         $this->entityManager->flush();
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
     }
 
-    #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    #[Route('/{id}', name: 'delete', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['DELETE'])]
     public function delete(string $id): JsonResponse
     {
         $scenario = $this->findByPublicId($id);
@@ -109,6 +118,68 @@ class ScenarioController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/{id}/resolve-dynamic-cells', name: 'resolve_dynamic_cells', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
+    public function resolveDynamicCells(string $id): JsonResponse
+    {
+        $scenario = $this->findByPublicId($id);
+
+        $summary = $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario);
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'scenario' => $this->scenarioResponseBuilder->buildDetail($scenario),
+            'resolution' => $summary,
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/resolve-dynamic-cell', name: 'resolve_dynamic_cell', methods: ['POST'])]
+    public function resolveDynamicCell(Request $request): JsonResponse
+    {
+        $data = json_decode((string) $request->getContent(), true);
+        if (!is_array($data)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
+
+        $attackerCharacterId = isset($data['attackerCharacterId']) && is_string($data['attackerCharacterId'])
+            ? trim($data['attackerCharacterId'])
+            : '';
+        if ('' === $attackerCharacterId) {
+            throw new BadRequestHttpException('attackerCharacterId is required.');
+        }
+
+        $starterMoveIds = isset($data['starterMoveIds']) && is_array($data['starterMoveIds']) ? $data['starterMoveIds'] : [];
+        $normalizedStarterMoveIds = array_values(array_filter(
+            $starterMoveIds,
+            static fn (mixed $moveId): bool => is_string($moveId) && '' !== trim($moveId)
+        ));
+        if ([] === $normalizedStarterMoveIds) {
+            throw new BadRequestHttpException('starterMoveIds is required and must contain at least one id.');
+        }
+
+        $starterContext = isset($data['starterContext']) && is_array($data['starterContext']) ? $data['starterContext'] : null;
+        if (null === $starterContext) {
+            throw new BadRequestHttpException('starterContext is required.');
+        }
+
+        $isPunishCounter = true === ($starterContext['isPunishCounter'] ?? false);
+        $isCounterHit = true === ($starterContext['isCounterHit'] ?? false);
+        if ($isPunishCounter && $isCounterHit) {
+            throw new BadRequestHttpException('starterContext cannot set both isPunishCounter and isCounterHit to true.');
+        }
+
+        $hitType = $isPunishCounter
+            ? 'punish_counter'
+            : ($isCounterHit ? 'counter_hit' : 'normal');
+
+        $resolution = $this->resolveDynamicComboCellService->resolve($attackerCharacterId, $normalizedStarterMoveIds, $hitType);
+
+        return new JsonResponse([
+            'resolvedDamage' => $resolution['resolvedDamage'],
+            'resolvedComboId' => $resolution['resolvedComboId'],
+            'resolvedStarterMoveId' => $resolution['resolvedStarterMoveId'],
+        ], JsonResponse::HTTP_OK);
     }
 
     /**

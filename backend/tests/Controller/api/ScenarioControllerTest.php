@@ -3,8 +3,16 @@
 namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
+use App\Entity\ComboMetrics;
+use App\Entity\ComboRequirement;
+use App\Entity\ComboSequences;
+use App\Entity\ComboSequenceType;
+use App\Entity\ConnectionType;
+use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Entity\Scenario;
+use App\Entity\Step;
+use App\Entity\Visibility;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -75,6 +83,96 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testCreateScenarioResolvesDynamicComboValue(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2LK', 280);
+        $this->createComboForStarter($attacker, $starterMove, 1450, false, false);
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Dynamic Combo Resolve',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildDynamicMatrixPayload($attacker, $starterMove, 'normal'),
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame('dynamic_combo', $created['matrix']['cells'][0][0]['cellType']);
+        self::assertSame('number', $created['matrix']['cells'][0][0]['dataType']);
+        self::assertSame(1450, $created['matrix']['cells'][0][0]['value']);
+    }
+
+    public function testResolveDynamicCellsEndpointRefreshesScenarioValues(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2LK', 260);
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Dynamic Combo Refresh',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildDynamicMatrixPayload($attacker, $starterMove, 'normal'),
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(260, $created['matrix']['cells'][0][0]['value']);
+
+        $this->createComboForStarter($attacker, $starterMove, 1700, false, false);
+
+        $this->client->request(
+            'POST',
+            sprintf('/api/scenarios/%s/resolve-dynamic-cells', $created['id']),
+            [],
+            [],
+            $this->getHeaders()
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame(1, $payload['resolution']['totalDynamicCells']);
+        self::assertSame(1, $payload['resolution']['resolvedCells']);
+        self::assertSame(0, $payload['resolution']['unresolvedCells']);
+        self::assertSame(1700, $payload['scenario']['matrix']['cells'][0][0]['value']);
+    }
+
+    public function testResolveDynamicCellPreviewEndpointReturnsBestComboDamage(): void
+    {
+        [, $attacker, ] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2LP', 240);
+        $this->createComboForStarter($attacker, $starterMove, 2000, false, false);
+
+        $this->client->request(
+            'POST',
+            '/api/scenarios/resolve-dynamic-cell',
+            [],
+            [],
+            array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']),
+            json_encode([
+                'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+                'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
+                'starterContext' => [
+                    'isPunishCounter' => false,
+                    'isCounterHit' => false,
+                ],
+            ])
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame(2000, $payload['resolvedDamage']);
+        self::assertNotNull($payload['resolvedComboId']);
+        self::assertSame($starterMove->getId()?->toRfc4122(), $payload['resolvedStarterMoveId']);
+    }
+
     /**
      * @return array{Character, Character, Move}
      */
@@ -135,6 +233,80 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         return $scenario;
     }
 
+    private function createMoveWithDamage(Character $character, string $notation, int $damage): Move
+    {
+        $move = (new Move())
+            ->setCharacter($character)
+            ->setNumpadNotation($notation);
+        $this->em->persist($move);
+
+        $frameData = (new FrameData())
+            ->setMoveType('normal')
+            ->setDamage($damage);
+        $move->setFrameData($frameData);
+        $this->em->persist($frameData);
+
+        $this->em->flush();
+
+        return $move;
+    }
+
+    private function createComboForStarter(Character $character, Move $starterMove, int $damage, bool $counterHit, bool $punishCounter): void
+    {
+        $leafType = $this->em->getRepository(ComboSequenceType::class)->findOneBy(['name' => 'leaf'])
+            ?? (new ComboSequenceType())->setName('leaf');
+        $comboType = $this->em->getRepository(ComboSequenceType::class)->findOneBy(['name' => 'combo'])
+            ?? (new ComboSequenceType())->setName('combo');
+        $visibility = $this->em->getRepository(Visibility::class)->findOneBy(['name' => 'public'])
+            ?? (new Visibility())->setName('public');
+        $connectionType = $this->em->getRepository(ConnectionType::class)->findOneBy(['name' => 'Initial Move'])
+            ?? (new ConnectionType())->setName('Initial Move');
+
+        $this->em->persist($leafType);
+        $this->em->persist($comboType);
+        $this->em->persist($visibility);
+        $this->em->persist($connectionType);
+
+        $leaf = new ComboSequences();
+        $leaf->setName(sprintf('%s %s', $character->getName(), $starterMove->getNumpadNotation()))
+            ->setDescription('leaf')
+            ->setType($leafType)
+            ->setVisibility($visibility)
+            ->setMove($starterMove);
+        $this->em->persist($leaf);
+
+        $combo = new ComboSequences();
+        $combo->setName(sprintf('Combo %d', $damage))
+            ->setDescription('combo')
+            ->setType($comboType)
+            ->setVisibility($visibility);
+        $this->em->persist($combo);
+
+        $metrics = (new ComboMetrics())
+            ->setSequence($combo)
+            ->setDamage($damage);
+        $this->em->persist($metrics);
+
+        $step = (new Step())
+            ->setParentSequence($combo)
+            ->setChildSequence($leaf)
+            ->setOrdinalInCombo(1)
+            ->setConnectionType($connectionType);
+        $this->em->persist($step);
+
+        $requirement = (new ComboRequirement())
+            ->setSequence($combo)
+            ->setCounterHitRequired($counterHit)
+            ->setPunishCounterRequired($punishCounter)
+            ->setCornerRequired(false)
+            ->setAirborneRequired(false)
+            ->setMidScreenRequired(false)
+            ->setNotCrouchingRequired(false);
+        $this->em->persist($requirement);
+
+        $this->em->flush();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -172,6 +344,55 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
             'metadata' => [
                 'matrixId' => 'mx_controller_test',
                 'title' => 'Corner Oki Test',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildDynamicMatrixPayload(Character $attacker, Move $starterMove, string $starterContext): array
+    {
+        return [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['Defend'],
+                'columns' => ['Meaty'],
+            ],
+            'cells' => [[[
+                'cellType' => 'dynamic_combo',
+                'dataType' => 'empty',
+                'value' => null,
+                'dynamicCombo' => [
+                    'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+                    'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
+                    'starterContext' => [
+                        'isPunishCounter' => 'punish_counter' === $starterContext,
+                        'isCounterHit' => 'counter_hit' === $starterContext,
+                    ],
+                ],
+            ]]],
+            'summary' => [
+                'rowAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 0.5,
+                ]],
+                'columnAxis' => [[
+                    'cellType' => 'summary',
+                    'dataType' => 'number',
+                    'value' => 0.5,
+                ]],
+                'expectedValue' => [
+                    'cellType' => 'summary',
+                    'dataType' => 'empty',
+                    'value' => null,
+                ],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx_dynamic_controller_test',
+                'title' => 'Dynamic Matrix Test',
             ],
         ];
     }

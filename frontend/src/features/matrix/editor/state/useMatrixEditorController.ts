@@ -16,6 +16,16 @@ export function useMatrixEditorController({matrix, onMatrixChange, persistChange
     const previousPayloadRef = React.useRef<MatrixPayload>(matrix);
 
     React.useEffect(() => {
+        if (matrix === previousPayloadRef.current) {
+            return;
+        }
+
+        const nextState = matrixPayloadToEditorState(matrix);
+        previousPayloadRef.current = matrix;
+        dispatch(matrixActions.replaceState(nextState));
+    }, [matrix]);
+
+    React.useEffect(() => {
         if (isFirstSync.current) {
             isFirstSync.current = false;
             return;

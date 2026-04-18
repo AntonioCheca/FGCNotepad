@@ -16,15 +16,29 @@ import {applyMatrixPaste} from "./services/matrixPasteEngine";
 import {deriveActiveAxisContext} from "./services/matrixContextVisibility";
 import {createMapReferenceResolver, resolveReferenceDisplayValues} from "./services/referenceResolutionService";
 import {buildReferenceInspectorData} from "./services/referenceInspector";
+import {matrixPayloadToEditorState} from "./modules/payloadAdapter";
 
 interface MatrixEditorShellProps {
     matrix: MatrixPayload;
     onMatrixChange: (next: MatrixPayload) => void;
     editable?: boolean;
     onDelete?: () => void;
+    onRefreshDynamicCells?: () => Promise<MatrixPayload>;
+    onResolveDynamicComboCell?: (dynamicCombo: {
+        attackerCharacterId: string;
+        starterMoveIds: string[];
+        starterContext: {isPunishCounter: boolean; isCounterHit: boolean};
+    }) => Promise<number | null>;
 }
 
-export function MatrixEditorShell({matrix, onMatrixChange, editable = true, onDelete}: MatrixEditorShellProps) {
+export function MatrixEditorShell({
+    matrix,
+    onMatrixChange,
+    editable = true,
+    onDelete,
+    onRefreshDynamicCells,
+    onResolveDynamicComboCell,
+}: MatrixEditorShellProps) {
     const {solveGame} = useSolverGames();
     const isEditorEditable = editable;
     const [isSolving, setIsSolving] = React.useState(false);
@@ -56,6 +70,120 @@ export function MatrixEditorShell({matrix, onMatrixChange, editable = true, onDe
     React.useEffect(() => {
         getSpecificMoveRef.current = getSpecificMove;
     }, [getSpecificMove]);
+
+    const extractMoveDamage = React.useCallback((move: unknown): number | null => {
+        if (!move || typeof move !== "object") {
+            return null;
+        }
+
+        const record = move as Record<string, unknown>;
+        const summary = record.summary_frame_data;
+        if (summary && typeof summary === "object" && !Array.isArray(summary)) {
+            const damage = (summary as Record<string, unknown>).damage;
+            if (typeof damage === "number" && Number.isFinite(damage)) {
+                return damage;
+            }
+            if (typeof damage === "string") {
+                const parsed = Number(damage.trim());
+                if (Number.isFinite(parsed)) {
+                    return parsed;
+                }
+            }
+        }
+
+        const full = record.full_frame_data;
+        if (full && typeof full === "object" && !Array.isArray(full)) {
+            const damage = (full as Record<string, unknown>).damage;
+            if (typeof damage === "number" && Number.isFinite(damage)) {
+                return damage;
+            }
+            if (typeof damage === "string") {
+                const parsed = Number(damage.trim());
+                if (Number.isFinite(parsed)) {
+                    return parsed;
+                }
+            }
+        }
+
+        return null;
+    }, []);
+
+    const resolveDynamicComboFallbackDamage = React.useCallback(async (starterMoveIds: string[]): Promise<number | null> => {
+        if (starterMoveIds.length === 0) {
+            return null;
+        }
+
+        const damages = await Promise.all(
+            starterMoveIds.map(async (starterMoveId) => {
+                try {
+                    const move = await getSpecificMoveRef.current(starterMoveId);
+                    return extractMoveDamage(move);
+                } catch {
+                    return null;
+                }
+            })
+        );
+
+        const numericDamages = damages.filter((damage): damage is number => typeof damage === "number" && Number.isFinite(damage));
+        if (numericDamages.length === 0) {
+            return null;
+        }
+
+        return Math.max(...numericDamages);
+    }, [extractMoveDamage]);
+
+    const resolveDynamicCellsForSolve = React.useCallback(async (): Promise<Record<string, number | null>> => {
+        if (onRefreshDynamicCells) {
+            try {
+                const refreshedMatrix = await onRefreshDynamicCells();
+                const refreshedState = matrixPayloadToEditorState(refreshedMatrix);
+                dispatch(actions.replaceState(refreshedState));
+
+                const overrides: Record<string, number | null> = {};
+                Object.values(refreshedState.grid.bodyCells).forEach((cell) => {
+                    if (cell.kind === "dynamic_combo") {
+                        overrides[cell.key] = cell.value;
+                    }
+                });
+
+                return overrides;
+            } catch {
+            }
+        }
+
+        const currentState = stateRef.current;
+        const dynamicCells = Object.values(currentState.grid.bodyCells).filter(
+            (cell) => cell.kind === "dynamic_combo" && Array.isArray(cell.dynamicCombo?.starterMoveIds)
+        );
+
+        const updates = await Promise.all(
+            dynamicCells.map(async (cell) => {
+                let value: number | null = null;
+
+                if (cell.dynamicCombo && onResolveDynamicComboCell) {
+                    try {
+                        value = await onResolveDynamicComboCell(cell.dynamicCombo);
+                    } catch {
+                        value = null;
+                    }
+                }
+
+                if (value === null) {
+                    value = await resolveDynamicComboFallbackDamage(cell.dynamicCombo?.starterMoveIds ?? []);
+                }
+
+                return {key: cell.key, value};
+            })
+        );
+
+        const overrides: Record<string, number | null> = {};
+        updates.forEach((update) => {
+            overrides[update.key] = update.value;
+            dispatch(actions.setDynamicComboResolvedValue(update.key, update.value));
+        });
+
+        return overrides;
+    }, [actions, dispatch, onRefreshDynamicCells, onResolveDynamicComboCell, resolveDynamicComboFallbackDamage]);
 
     const expectedValue = React.useMemo(() => {
         const values = selectGridValues(state);
@@ -321,24 +449,31 @@ export function MatrixEditorShell({matrix, onMatrixChange, editable = true, onDe
     }, [canEditDynamicCombos]);
 
     const solveCurrentMatrix = React.useCallback(async () => {
-        const currentState = stateRef.current;
-
-        const payoffMatrix = currentState.grid.rows.reduce<Record<string, Record<string, number>>>((rowAcc, row) => {
-            const rowLabel = row.label.trim() || row.id;
-            const rowValues = currentState.grid.columns.reduce<Record<string, number>>((colAcc, column) => {
-                const key = `body::${row.id}::${column.id}`;
-                const displayed = referenceResolution.displayedBodyValues[key];
-                const sourceValue = typeof displayed === "number" ? displayed : currentState.grid.bodyCells[key]?.value;
-                colAcc[column.label.trim() || column.id] = typeof sourceValue === "number" && Number.isFinite(sourceValue) ? sourceValue : 0;
-                return colAcc;
-            }, {});
-            rowAcc[rowLabel] = rowValues;
-            return rowAcc;
-        }, {});
-
         setIsSolving(true);
 
         try {
+            const dynamicOverrides = await resolveDynamicCellsForSolve();
+            const currentState = stateRef.current;
+
+            const payoffMatrix = currentState.grid.rows.reduce<Record<string, Record<string, number>>>((rowAcc, row) => {
+                const rowLabel = row.label.trim() || row.id;
+                const rowValues = currentState.grid.columns.reduce<Record<string, number>>((colAcc, column) => {
+                    const key = `body::${row.id}::${column.id}`;
+                    const displayed = referenceResolution.displayedBodyValues[key];
+                    const overriddenDynamicValue = dynamicOverrides[key];
+                    const sourceValue =
+                        currentState.grid.bodyCells[key]?.kind === "dynamic_combo"
+                            ? overriddenDynamicValue
+                            : typeof displayed === "number"
+                                ? displayed
+                                : currentState.grid.bodyCells[key]?.value;
+                    colAcc[column.label.trim() || column.id] = typeof sourceValue === "number" && Number.isFinite(sourceValue) ? sourceValue : 0;
+                    return colAcc;
+                }, {});
+                rowAcc[rowLabel] = rowValues;
+                return rowAcc;
+            }, {});
+
             const result = await solveGame(payoffMatrix);
             const equilibrium = Array.isArray(result?.equilibria) ? result.equilibria[0] : null;
             if (!equilibrium || typeof equilibrium !== "object") {
@@ -367,7 +502,7 @@ export function MatrixEditorShell({matrix, onMatrixChange, editable = true, onDe
         } finally {
             setIsSolving(false);
         }
-    }, [actions, dispatch, referenceResolution.displayedBodyValues, solveGame]);
+    }, [actions, dispatch, referenceResolution.displayedBodyValues, resolveDynamicCellsForSolve, solveGame]);
 
     const canMutateActiveSelection = React.useMemo(() => {
         const active = state.selection.activeTarget;
@@ -576,12 +711,31 @@ export function MatrixEditorShell({matrix, onMatrixChange, editable = true, onDe
                         return;
                     }
 
-                    setMoveLabelById((previous) => ({
-                        ...previous,
-                        ...starterLabels,
-                    }));
-                    dispatch(actions.setDynamicComboCell(dynamicComboTargetKey, value));
-                    closeDynamicComboPanel();
+                    (async () => {
+                        setMoveLabelById((previous) => ({
+                            ...previous,
+                            ...starterLabels,
+                        }));
+
+                        dispatch(actions.setDynamicComboCell(dynamicComboTargetKey, value));
+
+                        let resolvedValue: number | null = null;
+                        if (onResolveDynamicComboCell) {
+                            try {
+                                resolvedValue = await onResolveDynamicComboCell(value);
+                            } catch {
+                                resolvedValue = null;
+                            }
+                        }
+
+                        if (resolvedValue === null) {
+                            resolvedValue = await resolveDynamicComboFallbackDamage(value.starterMoveIds);
+                        }
+
+                        dispatch(actions.setDynamicComboResolvedValue(dynamicComboTargetKey, resolvedValue));
+
+                        closeDynamicComboPanel();
+                    })();
                 }}
             />
         </div>

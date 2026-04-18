@@ -1,0 +1,79 @@
+<?php declare(strict_types=1);
+
+namespace App\Service;
+
+use App\Entity\Scenario;
+use App\Entity\ScenarioCell;
+
+class ResolveScenarioDynamicComboCellsService
+{
+    public function __construct(
+        private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
+    ) {
+    }
+
+    /**
+     * @return array{totalDynamicCells:int,resolvedCells:int,unresolvedCells:int}
+     */
+    public function resolveForScenario(Scenario $scenario): array
+    {
+        $attackerCharacterId = $scenario->getAttackerCharacter()?->getId()?->toRfc4122();
+        if (null === $attackerCharacterId || '' === $attackerCharacterId) {
+            return [
+                'totalDynamicCells' => 0,
+                'resolvedCells' => 0,
+                'unresolvedCells' => 0,
+            ];
+        }
+
+        $totalDynamicCells = 0;
+        $resolvedCells = 0;
+        $unresolvedCells = 0;
+
+        foreach ($scenario->getCells() as $cell) {
+            if (ScenarioCell::KIND_DYNAMIC_COMBO !== $cell->getKind()) {
+                continue;
+            }
+
+            ++$totalDynamicCells;
+
+            $starterMoveIds = [];
+            foreach ($cell->getStarterMoves() as $starterMove) {
+                $starterMoveId = $starterMove->getId()?->toRfc4122();
+                if (null !== $starterMoveId && '' !== $starterMoveId) {
+                    $starterMoveIds[] = $starterMoveId;
+                }
+            }
+
+            $hitType = $this->toHitType($cell->getStarterContext());
+            $resolution = $this->resolveDynamicComboCellService->resolve($attackerCharacterId, $starterMoveIds, $hitType);
+
+            $cell->setCachedValue($resolution['resolvedDamage']);
+
+            if (null === $resolution['resolvedDamage']) {
+                ++$unresolvedCells;
+            } else {
+                ++$resolvedCells;
+            }
+        }
+
+        return [
+            'totalDynamicCells' => $totalDynamicCells,
+            'resolvedCells' => $resolvedCells,
+            'unresolvedCells' => $unresolvedCells,
+        ];
+    }
+
+    private function toHitType(?string $starterContext): string
+    {
+        if ('punish_counter' === $starterContext) {
+            return 'punish_counter';
+        }
+
+        if ('counter_hit' === $starterContext) {
+            return 'counter_hit';
+        }
+
+        return 'normal';
+    }
+}

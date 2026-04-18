@@ -30,10 +30,12 @@ function toCellPayload(
     metadata?: Record<string, unknown>
 ): MatrixCellPayload {
     if (cellType === "dynamic_combo") {
+        const numericValue = typeof value === "number" && Number.isFinite(value) ? value : null;
+
         return {
             cellType,
-            dataType: "empty",
-            value: null,
+            dataType: numericValue === null ? "empty" : "number",
+            value: numericValue,
             dynamicCombo,
             metadata,
         };

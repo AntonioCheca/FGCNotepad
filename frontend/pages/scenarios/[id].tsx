@@ -14,10 +14,11 @@ export default function ScenarioDetailPage() {
     const {id} = router.query;
     const scenarioId = typeof id === "string" ? id : null;
 
-    const {getScenario} = useScenarios();
+    const {getScenario, resolveDynamicCells} = useScenarios();
     const [scenario, setScenario] = React.useState<ScenarioDetail | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
+    const [refreshingDynamicCombos, setRefreshingDynamicCombos] = React.useState(false);
 
     React.useEffect(() => {
         if (!scenarioId) {
@@ -70,9 +71,27 @@ export default function ScenarioDetailPage() {
         <AppContainer maxWidth={false}>
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12}}>
                 <AppTypography variant="h4">View Scenario</AppTypography>
-                <Link href={`/scenarios/${scenarioId}/edit`} style={{textDecoration: "none"}}>
-                    <AppButton type="button">Edit Scenario</AppButton>
-                </Link>
+                <div style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end"}}>
+                    <AppButton
+                        type="button"
+                        disabled={refreshingDynamicCombos}
+                        onClick={async () => {
+                            setRefreshingDynamicCombos(true);
+                            try {
+                                const response = await resolveDynamicCells(scenarioId);
+                                setScenario(response.scenario);
+                            } catch {
+                            } finally {
+                                setRefreshingDynamicCombos(false);
+                            }
+                        }}
+                    >
+                        {refreshingDynamicCombos ? "Refreshing..." : "Refresh Dynamic Combos"}
+                    </AppButton>
+                    <Link href={`/scenarios/${scenarioId}/edit`} style={{textDecoration: "none"}}>
+                        <AppButton type="button">Edit Scenario</AppButton>
+                    </Link>
+                </div>
             </div>
 
             <div style={{display: "grid", gap: 6, marginBottom: 16}}>
@@ -87,6 +106,11 @@ export default function ScenarioDetailPage() {
                 matrix={scenario.matrix}
                 editable={false}
                 onMatrixChange={() => {
+                }}
+                onRefreshDynamicCells={async () => {
+                    const response = await resolveDynamicCells(scenarioId);
+                    setScenario(response.scenario);
+                    return response.scenario.matrix;
                 }}
             />
         </AppContainer>

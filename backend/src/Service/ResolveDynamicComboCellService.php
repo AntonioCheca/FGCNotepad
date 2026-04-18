@@ -1,0 +1,102 @@
+<?php declare(strict_types=1);
+
+namespace App\Service;
+
+use App\Repository\ComboSequencesRepository;
+use App\Repository\MoveRepository;
+
+class ResolveDynamicComboCellService
+{
+    public function __construct(
+        private readonly ComboSequencesRepository $comboSequencesRepository,
+        private readonly MoveRepository $moveRepository,
+    ) {
+    }
+
+    /**
+     * @param list<string> $starterMoveIds
+     *
+     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
+     */
+    public function resolve(string $attackerCharacterId, array $starterMoveIds, string $hitType): array
+    {
+        $normalizedStarterMoveIds = array_values(array_filter(
+            $starterMoveIds,
+            static fn (mixed $starterMoveId): bool => is_string($starterMoveId) && '' !== trim($starterMoveId)
+        ));
+
+        if ([] === $normalizedStarterMoveIds || '' === trim($attackerCharacterId)) {
+            return [
+                'resolvedDamage' => null,
+                'resolvedComboId' => null,
+                'resolvedStarterMoveId' => null,
+            ];
+        }
+
+        $normalizedHitType = $this->normalizeHitType($hitType);
+
+        $comboMatch = $this->comboSequencesRepository->findBestDynamicComboMatch(
+            trim($attackerCharacterId),
+            $normalizedStarterMoveIds,
+            $normalizedHitType
+        );
+        if (null !== $comboMatch) {
+            return [
+                'resolvedDamage' => (float) $comboMatch['resolved_damage'],
+                'resolvedComboId' => $comboMatch['combo_id'],
+                'resolvedStarterMoveId' => $comboMatch['starter_move_id'],
+            ];
+        }
+
+        $starterMoveFallback = $this->findStarterMoveFallbackDamage(trim($attackerCharacterId), $normalizedStarterMoveIds);
+        if (null === $starterMoveFallback) {
+            return [
+                'resolvedDamage' => null,
+                'resolvedComboId' => null,
+                'resolvedStarterMoveId' => null,
+            ];
+        }
+
+        return [
+            'resolvedDamage' => (float) $starterMoveFallback['damage'],
+            'resolvedComboId' => null,
+            'resolvedStarterMoveId' => $starterMoveFallback['move_id'],
+        ];
+    }
+
+    private function normalizeHitType(string $hitType): string
+    {
+        $normalized = trim(mb_strtolower($hitType));
+
+        return in_array($normalized, ['normal', 'counter_hit', 'punish_counter'], true)
+            ? $normalized
+            : 'normal';
+    }
+
+    /**
+     * @param list<string> $starterMoveIds
+     *
+     * @return array{move_id:string,damage:int}|null
+     */
+    private function findStarterMoveFallbackDamage(string $attackerCharacterId, array $starterMoveIds): ?array
+    {
+        $damages = $this->moveRepository->findMoveDamagesByCharacterAndIds($attackerCharacterId, $starterMoveIds);
+        if ([] === $damages) {
+            return null;
+        }
+
+        usort(
+            $damages,
+            static function (array $left, array $right): int {
+                $damageSort = $right['damage'] <=> $left['damage'];
+                if (0 !== $damageSort) {
+                    return $damageSort;
+                }
+
+                return strcmp($left['move_id'], $right['move_id']);
+            }
+        );
+
+        return $damages[0];
+    }
+}
