@@ -3,6 +3,7 @@ import {AppTableBody} from "@/src/components/ui/AppTableBody";
 import {AppTableCell} from "@/src/components/ui/AppTableCell";
 import {AppTableHead} from "@/src/components/ui/AppTableHead";
 import {AppTableRow} from "@/src/components/ui/AppTableRow";
+import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 
 interface ComboTableProps {
     combos: any[];
@@ -18,6 +19,7 @@ export default function ComboTable({combos}: ComboTableProps) {
                     <AppTableCell>Moves</AppTableCell>
                     <AppTableCell>Damage</AppTableCell>
                     <AppTableCell>Season</AppTableCell>
+                    <AppTableCell>Flag</AppTableCell>
                 </AppTableRow>
             </AppTableHead>
             <AppTableBody>
@@ -36,6 +38,7 @@ export default function ComboTable({combos}: ComboTableProps) {
                             <AppTableCell>{moves.map((m: any) => m.name).join(", ")}</AppTableCell>
                             <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
                             <AppTableCell>{season}</AppTableCell>
+                            <AppTableCell><ContentFlagButton targetType="combo" targetId={combo.id}/></AppTableCell>
                         </AppTableRow>
                     );
                 })}

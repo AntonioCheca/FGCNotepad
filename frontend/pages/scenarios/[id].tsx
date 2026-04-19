@@ -8,6 +8,7 @@ import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
 import {useScenarios, ScenarioDetail} from "@/hooks/useScenarios";
+import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 
 export default function ScenarioDetailPage() {
     const router = useRouter();
@@ -72,6 +73,7 @@ export default function ScenarioDetailPage() {
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12}}>
                 <AppTypography variant="h4">View Scenario</AppTypography>
                 <div style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end"}}>
+                    <ContentFlagButton targetType="scenario" targetId={scenarioId}/>
                     <AppButton
                         type="button"
                         disabled={refreshingDynamicCombos}
