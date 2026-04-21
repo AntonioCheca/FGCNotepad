@@ -60,7 +60,7 @@ class CreateMinimumFixtures extends Command
         $connectionRepo = $this->em->getRepository(ConnectionType::class);
         $existing = $connectionRepo->findAll();
         $existingNames = array_map(fn($c) => $c->getName(), $existing);
-        $needed = ['Special', 'Chain', 'Link', 'Target Combo', 'Initial Move'];
+        $needed = ['Special', 'Chain', 'Link', 'Target Combo', 'Initial Move', 'Delay'];
 
         foreach ($needed as $name) {
             if (!in_array($name, $existingNames)) {

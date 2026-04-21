@@ -9,7 +9,6 @@ use App\Entity\ConnectionType;
 use App\Entity\Move;
 use App\Entity\Season;
 use App\Entity\ComboSequenceType;
-use App\Entity\Step;
 use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
@@ -18,6 +17,7 @@ use App\Repository\ComboSequenceTypeRepository;
 use App\Repository\VisibilityRepository;
 use App\Service\ComboNotationTranslator;
 use App\Service\ComboRequirementFactory;
+use App\Service\ComboStepFactory;
 use App\Service\RequirementSpecificCharacterCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
@@ -42,7 +42,7 @@ class ComboSequenceController extends AbstractController
         private ComboSequenceTypeRepository $comboSequenceTypeRepository,
         private SeasonRepository            $seasonRepository,
         private ConnectionTypeRepository    $connectionTypeRepository,
-        private ComboRequirementFactory     $comboRequirementFactory
+        private ComboRequirementFactory     $comboRequirementFactory,
     )
     {
     }
@@ -215,30 +215,14 @@ class ComboSequenceController extends AbstractController
             }
         }
 
-        // 6. Persist steps using repositories
-        foreach ($data['steps'] as $stepData) {
-            if (empty($stepData['child_sequence_id']) || empty($stepData['ordinal_in_combo'])) {
-                throw new BadRequestHttpException('Each step must have child_sequence_id and ordinal_in_combo.');
-            }
+        // 6. Persist steps
+        $comboStepFactory = new ComboStepFactory(
+            $this->comboSequencesRepository,
+            $this->connectionTypeRepository,
+        );
 
-            $childSeq = $this->comboSequencesRepository->findOneBy(['id' => $stepData['child_sequence_id']]);
-            if (!$childSeq) {
-                throw new NotFoundHttpException("Child sequence ID {$stepData['child_sequence_id']} not found.");
-            }
-
-            $step = new Step();
-            $step->setParentSequence($sequence)
-                ->setChildSequence($childSeq)
-                ->setOrdinalInCombo((int)$stepData['ordinal_in_combo']);
-
-            if (!empty($stepData['connection_type_id'])) {
-                $connectionType = $this->connectionTypeRepository->findOneBy(['id' => $stepData['connection_type_id']]);
-                if (!$connectionType) {
-                    throw new NotFoundHttpException("Connection type ID {$stepData['connection_type_id']} not found.");
-                }
-                $step->setConnectionType($connectionType);
-            }
-
+        $steps = $comboStepFactory->createFromPayload($sequence, $data['steps']);
+        foreach ($steps as $step) {
             $this->entityManager->persist($step);
         }
 

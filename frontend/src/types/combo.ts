@@ -19,6 +19,10 @@ export interface LeafSequenceOption {
 export interface StepDraft {
     move: LeafSequenceOption | null;
     connection: ConnectionType | null;
+    delay_type?: "fixed" | "window";
+    delay_frames?: string;
+    delay_min_frames?: string;
+    delay_max_frames?: string;
 }
 
 export interface CreateFullComboPayload {
@@ -30,6 +34,9 @@ export interface CreateFullComboPayload {
         child_sequence_id: ID;
         ordinal_in_combo: number;
         connection_type_id: ID | null;
+        delay_frames?: number;
+        delay_min_frames?: number;
+        delay_max_frames?: number;
     }>; 
 }
 
@@ -81,7 +88,19 @@ export interface TranslatedStep {
     ordinal_in_combo: number;
     connection_type_id: number | null;
     connection_type_name: string | null;
+    delay_min_frames?: number | null;
+    delay_max_frames?: number | null;
     token: string;
+}
+
+export function isDelayConnection(connection: ConnectionType | null): boolean {
+    if (!connection?.name) {
+        return false;
+    }
+
+    const normalized = connection.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    return normalized === "delay";
 }
 
 export interface TranslateComboNotationResponse {

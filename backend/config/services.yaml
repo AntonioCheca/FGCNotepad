@@ -22,6 +22,12 @@ services:
     App\Command\ImportFrameDataFromFatJsonCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
+    App\Command\ImportSupercomboCombosCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+    App\Command\ImportNewChallengerCombosCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
     App\Serializer\Normalizer\:
         resource: '../src/Serializer/Normalizer'
         tags:

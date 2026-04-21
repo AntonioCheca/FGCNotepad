@@ -34,6 +34,7 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
             'comboRequirement' => $object->getComboRequirement() ? $this->normalizer->normalize($object->getComboRequirement(), $format, $context) : null,
             'visibility' => $object->getVisibility() ? $this->normalizer->normalize($object->getVisibility(), $format, $context) : null,
             'season' => $this->normalizer->normalize($object->getSeason()->toArray(), $format, $context),
+            'steps' => $this->normalizer->normalize($this->sortStepsByOrdinal($object), $format, $context),
             'character' => $object->getCharacter() ? [
                 'id' => $object->getCharacter()->getId(),
                 'name' => $object->getCharacter()->getName(),
@@ -75,5 +76,20 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
         return [
             ComboSequences::class => true,
         ];
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function sortStepsByOrdinal(ComboSequences $comboSequences): array
+    {
+        $steps = $comboSequences->getSteps()->toArray();
+
+        usort(
+            $steps,
+            static fn ($a, $b): int => ($a?->getOrdinalInCombo() ?? 0) <=> ($b?->getOrdinalInCombo() ?? 0)
+        );
+
+        return $steps;
     }
 }

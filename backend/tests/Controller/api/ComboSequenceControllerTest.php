@@ -11,6 +11,7 @@ use App\Entity\ConnectionType;
 use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Entity\Season;
+use App\Entity\Step;
 use App\Entity\Visibility;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -206,6 +207,166 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
 
+    public function testCreateFullComboPersistsFixedDelayFrames(): void
+    {
+        [$leafSequence, $initialConnectionType] = $this->seedCreateFullComboData();
+        $delayConnectionType = $this->persistConnectionType('Delay');
+        $this->entityManager->flush();
+
+        $payload = [
+            'name' => 'Fixed Delay Combo',
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $initialConnectionType->getId(),
+                ],
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 2,
+                    'connection_type_id' => $delayConnectionType->getId(),
+                    'delay_frames' => 120,
+                ],
+            ],
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/full',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode($payload)
+        );
+
+        $response = $this->client->getResponse();
+        $responsePayload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        $createdSequence = $this->entityManager->getRepository(ComboSequences::class)->find($responsePayload['id']);
+        $this->assertInstanceOf(ComboSequences::class, $createdSequence);
+
+        $step = $this->findStepByOrdinal($createdSequence, 2);
+        $this->assertSame(120, $step->getDelayMinFrames());
+        $this->assertSame(120, $step->getDelayMaxFrames());
+        $this->assertSame('Delay', $step->getConnectionType()?->getName());
+    }
+
+    public function testCreateFullComboPersistsDelayWindowFrames(): void
+    {
+        [$leafSequence, $initialConnectionType] = $this->seedCreateFullComboData();
+        $delayConnectionType = $this->persistConnectionType('Delay');
+        $this->entityManager->flush();
+
+        $payload = [
+            'name' => 'Window Delay Combo',
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $initialConnectionType->getId(),
+                ],
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 2,
+                    'connection_type_id' => $delayConnectionType->getId(),
+                    'delay_min_frames' => 3,
+                    'delay_max_frames' => 7,
+                ],
+            ],
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/full',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode($payload)
+        );
+
+        $response = $this->client->getResponse();
+        $responsePayload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        $createdSequence = $this->entityManager->getRepository(ComboSequences::class)->find($responsePayload['id']);
+        $this->assertInstanceOf(ComboSequences::class, $createdSequence);
+
+        $step = $this->findStepByOrdinal($createdSequence, 2);
+        $this->assertSame(3, $step->getDelayMinFrames());
+        $this->assertSame(7, $step->getDelayMaxFrames());
+    }
+
+    public function testCreateFullComboRejectsDelayFramesWhenConnectionIsNotDelay(): void
+    {
+        [$leafSequence, $initialConnectionType] = $this->seedCreateFullComboData();
+
+        $payload = [
+            'name' => 'Invalid Delay Connection Combo',
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $initialConnectionType->getId(),
+                    'delay_frames' => 5,
+                ],
+            ],
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/full',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode($payload)
+        );
+
+        $response = $this->client->getResponse();
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
+    public function testCreateFullComboRejectsInvalidDelayWindow(): void
+    {
+        [$leafSequence, $initialConnectionType] = $this->seedCreateFullComboData();
+        $delayConnectionType = $this->persistConnectionType('Delay');
+        $this->entityManager->flush();
+
+        $payload = [
+            'name' => 'Invalid Delay Window Combo',
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $initialConnectionType->getId(),
+                ],
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 2,
+                    'connection_type_id' => $delayConnectionType->getId(),
+                    'delay_min_frames' => 10,
+                    'delay_max_frames' => 2,
+                ],
+            ],
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/full',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode($payload)
+        );
+
+        $response = $this->client->getResponse();
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
     public function testListRequirementObjectsReturnsCatalog(): void
     {
         $this->client->request(
@@ -266,11 +427,13 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         return $character;
     }
 
-    private function persistConnectionType(string $name): void
+    private function persistConnectionType(string $name): ConnectionType
     {
         $connectionType = new ConnectionType();
         $connectionType->setName($name);
         $this->entityManager->persist($connectionType);
+
+        return $connectionType;
     }
 
     private function persistLeafSequence(
@@ -353,5 +516,17 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->entityManager->flush();
 
         return [$leafSequence, $connectionType];
+    }
+
+    private function findStepByOrdinal(ComboSequences $sequence, int $ordinal): Step
+    {
+        foreach ($sequence->getSteps() as $step) {
+            if ($step->getOrdinalInCombo() === $ordinal) {
+                return $step;
+            }
+        }
+
+        $this->fail(sprintf('Could not find step with ordinal %d.', $ordinal));
+        throw new \RuntimeException('Unreachable');
     }
 }

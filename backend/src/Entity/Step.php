@@ -29,6 +29,12 @@ class Step
     #[ORM\JoinColumn(nullable: false)]
     private ?ConnectionType $connection_type = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $delay_min_frames = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $delay_max_frames = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -78,6 +84,30 @@ class Step
     public function setConnectionType(?ConnectionType $connection_type): static
     {
         $this->connection_type = $connection_type;
+
+        return $this;
+    }
+
+    public function getDelayMinFrames(): ?int
+    {
+        return $this->delay_min_frames;
+    }
+
+    public function setDelayMinFrames(?int $delay_min_frames): static
+    {
+        $this->delay_min_frames = $delay_min_frames;
+
+        return $this;
+    }
+
+    public function getDelayMaxFrames(): ?int
+    {
+        return $this->delay_max_frames;
+    }
+
+    public function setDelayMaxFrames(?int $delay_max_frames): static
+    {
+        $this->delay_max_frames = $delay_max_frames;
 
         return $this;
     }

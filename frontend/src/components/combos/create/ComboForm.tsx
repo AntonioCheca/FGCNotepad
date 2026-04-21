@@ -16,6 +16,7 @@ import type {
     RequirementObjectOption,
     LeafSequenceOption,
     ConnectionType,
+    isDelayConnection,
     CharacterOption,
     TranslateComboNotationResponse,
 } from "@/src/types/combo";
@@ -51,6 +52,15 @@ interface ComboFormProps {
 }
 
 export default function ComboForm({onSuccess}: ComboFormProps) {
+    const createEmptyStep = (): StepDraft => ({
+        move: null,
+        connection: null,
+        delay_type: "fixed",
+        delay_frames: "",
+        delay_min_frames: "",
+        delay_max_frames: "",
+    });
+
     const [title, setTitle] = usePersistentState<string>("comboForm.title", "");
     const [character, setCharacter] = usePersistentState<CharacterOption | null>("comboForm.character", null, true);
     const [damage, setDamage] = usePersistentState<string>("comboForm.damage", "");
@@ -119,13 +129,42 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     }, [leafs]);
 
     const handleAddStep = () =>
-        setSteps((prev) => [...prev, {move: null, connection: null}]);
+        setSteps((prev) => [...prev, createEmptyStep()]);
 
     const handleRemoveStep = (index: number) =>
         setSteps((prev) => prev.filter((_, i) => i !== index));
 
     const handleChangeStep = (index: number, update: Partial<StepDraft>) =>
-        setSteps((prev) => prev.map((s, i) => (i === index ? {...s, ...update} : s)));
+        setSteps((prev) => prev.map((currentStep, i) => {
+            if (i !== index) {
+                return currentStep;
+            }
+
+            const nextStep: StepDraft = {
+                ...createEmptyStep(),
+                ...currentStep,
+                ...update,
+            };
+
+            if (Object.prototype.hasOwnProperty.call(update, "connection") && !isDelayConnection(nextStep.connection)) {
+                return {
+                    ...nextStep,
+                    delay_type: "fixed",
+                    delay_frames: "",
+                    delay_min_frames: "",
+                    delay_max_frames: "",
+                };
+            }
+
+            if (isDelayConnection(nextStep.connection) && !nextStep.delay_type) {
+                return {
+                    ...nextStep,
+                    delay_type: "fixed",
+                };
+            }
+
+            return nextStep;
+        }));
 
     const handleRequirementToggle = (key: RequirementToggleKey, checked: boolean) => {
         setRequirements((prev) => {
@@ -179,6 +218,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
 
             const translatedSteps: StepDraft[] = translated.steps
                 .map((step) => ({
+                    ...createEmptyStep(),
                     move: leafById.get(String(step.child_sequence_id)) ?? null,
                     connection: step.connection_type_id
                         ? connectionById.get(String(step.connection_type_id)) ?? null
@@ -224,6 +264,31 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             if (i > 0 && !s.connection?.id) {
                 alert(`Step ${i + 1}: select a connection type.`);
                 return;
+            }
+
+            if (isDelayConnection(s.connection)) {
+                const delayType = s.delay_type ?? "fixed";
+
+                if (delayType === "fixed") {
+                    const delayFrames = (s.delay_frames ?? "").trim();
+                    if (!/^[0-9]+$/.test(delayFrames)) {
+                        alert(`Step ${i + 1}: delay frames must be a non-negative integer.`);
+                        return;
+                    }
+                } else {
+                    const delayMin = (s.delay_min_frames ?? "").trim();
+                    const delayMax = (s.delay_max_frames ?? "").trim();
+
+                    if (!/^[0-9]+$/.test(delayMin) || !/^[0-9]+$/.test(delayMax)) {
+                        alert(`Step ${i + 1}: delay min/max must be non-negative integers.`);
+                        return;
+                    }
+
+                    if (parseInt(delayMin, 10) > parseInt(delayMax, 10)) {
+                        alert(`Step ${i + 1}: delay min cannot be greater than delay max.`);
+                        return;
+                    }
+                }
             }
         }
 
@@ -288,12 +353,30 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             description: description || undefined,
             metrics: damage ? {damage: parseInt(damage, 10)} : undefined,
             requirements: requirementsPayload,
-            steps: steps.map((s, idx) => ({
-                child_sequence_id: (s.move as LeafSequenceOption).id,
-                ordinal_in_combo: idx + 1,
-                connection_type_id:
-                    (s.connection as ConnectionType | null)?.id ?? null,
-            })),
+            steps: steps.map((s, idx) => {
+                const baseStep = {
+                    child_sequence_id: (s.move as LeafSequenceOption).id,
+                    ordinal_in_combo: idx + 1,
+                    connection_type_id: (s.connection as ConnectionType | null)?.id ?? null,
+                };
+
+                if (!isDelayConnection(s.connection)) {
+                    return baseStep;
+                }
+
+                if ((s.delay_type ?? "fixed") === "window") {
+                    return {
+                        ...baseStep,
+                        delay_min_frames: parseInt((s.delay_min_frames ?? "0").trim(), 10),
+                        delay_max_frames: parseInt((s.delay_max_frames ?? "0").trim(), 10),
+                    };
+                }
+
+                return {
+                    ...baseStep,
+                    delay_frames: parseInt((s.delay_frames ?? "0").trim(), 10),
+                };
+            }),
         };
 
         console.log("[ComboForm] payload:", payload);
