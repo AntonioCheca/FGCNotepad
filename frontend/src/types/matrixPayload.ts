@@ -38,6 +38,8 @@ export interface MatrixCellPayload {
 export interface MatrixAxesPayload {
     rows: string[];
     columns: string[];
+    rowLayers?: number[];
+    columnLayers?: number[];
 }
 
 export interface MatrixSummaryPayload {
@@ -68,6 +70,8 @@ export interface MatrixPayload {
 export interface MatrixSerializationInput {
     rows: string[];
     columns: string[];
+    rowLayers?: Array<number | string | null | undefined>;
+    columnLayers?: Array<number | string | null | undefined>;
     values: Array<Array<number | string | null | undefined>>;
     bodyCellTypes?: Array<Array<"value" | "reference" | "computed" | "dynamic_combo" | undefined>>;
     bodyCellMetadata?: Array<Array<Record<string, unknown> | undefined>>;

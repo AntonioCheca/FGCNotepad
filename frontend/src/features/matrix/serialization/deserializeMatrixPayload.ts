@@ -154,6 +154,12 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
     const normalizedColumns = columns.map((value, index) =>
         typeof value === "string" && value.trim() !== "" ? value : `Column ${index + 1}`
     );
+    const rowLayers = Array.isArray(axes.rowLayers)
+        ? axes.rowLayers.map((value) => asNumberOrFallback(value, 1))
+        : [];
+    const columnLayers = Array.isArray(axes.columnLayers)
+        ? axes.columnLayers.map((value) => asNumberOrFallback(value, 1))
+        : [];
 
     const rawCells = Array.isArray(raw.cells) ? raw.cells : [];
     const normalizedBodyCellTypes = normalizedRows.map((_, rowIndex) => {
@@ -204,6 +210,8 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
     const payload = serializeMatrixPayload({
         rows: normalizedRows,
         columns: normalizedColumns,
+        rowLayers,
+        columnLayers,
         values: normalizedValues,
         bodyCellTypes: normalizedBodyCellTypes,
         bodyCellDynamicCombos: normalizedBodyCellDynamicCombos,

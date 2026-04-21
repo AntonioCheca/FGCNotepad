@@ -8,6 +8,7 @@ function createAxis(prefix: "row" | "column", count: number): MatrixAxisItem[] {
     return Array.from({length: Math.max(1, count)}, (_, index) => ({
         id: `${prefix}_${index + 1}`,
         label: `${prefix === "row" ? "Row" : "Column"} ${index + 1}`,
+        layer: 1,
     }));
 }
 

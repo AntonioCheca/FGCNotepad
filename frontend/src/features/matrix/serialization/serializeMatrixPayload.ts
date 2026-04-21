@@ -23,6 +23,21 @@ function normalizeAxisLabel(value: unknown, fallback: string): string {
     return trimmed === "" ? fallback : trimmed;
 }
 
+function normalizeLayerValue(value: unknown): number {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return Math.trunc(value);
+    }
+
+    if (typeof value === "string") {
+        const parsed = Number(value.trim());
+        if (Number.isFinite(parsed)) {
+            return Math.trunc(parsed);
+        }
+    }
+
+    return 1;
+}
+
 function toCellPayload(
     value: number | string | null | undefined,
     cellType: MatrixCellPayload["cellType"],
@@ -101,6 +116,8 @@ function sanitizeMetadata(metadata?: Partial<MatrixMetadataPayload>): MatrixMeta
 function normalizeMatrixShape(input: MatrixSerializationInput): {
     rows: string[];
     columns: string[];
+    rowLayers: number[];
+    columnLayers: number[];
     values: Array<Array<number | string | null | undefined>>;
 } {
     const rowCount = Math.max(input.rows.length, 1);
@@ -112,13 +129,15 @@ function normalizeMatrixShape(input: MatrixSerializationInput): {
     const columns = Array.from({length: columnCount}, (_, index) =>
         normalizeAxisLabel(input.columns[index], `Column ${index + 1}`)
     );
+    const rowLayers = Array.from({length: rowCount}, (_, index) => normalizeLayerValue(input.rowLayers?.[index]));
+    const columnLayers = Array.from({length: columnCount}, (_, index) => normalizeLayerValue(input.columnLayers?.[index]));
 
     const values = Array.from({length: rowCount}, (_, rowIndex) => {
         const sourceRow = input.values[rowIndex] ?? [];
         return Array.from({length: columnCount}, (_, columnIndex) => sourceRow[columnIndex] ?? null);
     });
 
-    return {rows, columns, values};
+    return {rows, columns, rowLayers, columnLayers, values};
 }
 
 export function createDefaultMatrixPayload(): MatrixPayload {
@@ -167,6 +186,8 @@ export function serializeMatrixPayload(input: MatrixSerializationInput): MatrixP
         axes: {
             rows: normalized.rows,
             columns: normalized.columns,
+            rowLayers: normalized.rowLayers,
+            columnLayers: normalized.columnLayers,
         },
         cells,
         summary: {

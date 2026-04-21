@@ -24,6 +24,9 @@ class ScenarioColumn
     #[ORM\Column(type: Types::TEXT)]
     private string $label = '';
 
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $layer = 1;
+
     #[ORM\Column(name: 'summary_value', type: Types::FLOAT, nullable: true)]
     private ?float $summaryValue = null;
 
@@ -64,6 +67,18 @@ class ScenarioColumn
     public function setLabel(string $label): static
     {
         $this->label = $label;
+
+        return $this;
+    }
+
+    public function getLayer(): int
+    {
+        return $this->layer;
+    }
+
+    public function setLayer(int $layer): static
+    {
+        $this->layer = $layer;
 
         return $this;
     }

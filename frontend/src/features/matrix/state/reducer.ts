@@ -9,6 +9,7 @@ function createNextAxisItem(axis: MatrixAxisItem[], prefix: "row" | "column"): M
     return {
         id: `${prefix}_${nextIndex}`,
         label: `${prefix === "row" ? "Row" : "Column"} ${nextIndex}`,
+        layer: 1,
     };
 }
 
@@ -350,6 +351,25 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             const target = action.payload.axis === "rows" ? state.grid.rows : state.grid.columns;
             const updated = target.map((axis) =>
                 axis.id === action.payload.axisId ? {...axis, label: action.payload.label.trim() || axis.label} : axis
+            );
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    [action.payload.axis]: updated,
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setAxisLayer": {
+            const target = action.payload.axis === "rows" ? state.grid.rows : state.grid.columns;
+            const updated = target.map((axis) =>
+                axis.id === action.payload.axisId ? {...axis, layer: Math.trunc(action.payload.layer)} : axis
             );
 
             return {

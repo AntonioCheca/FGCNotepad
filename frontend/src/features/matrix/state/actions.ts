@@ -12,6 +12,7 @@ export type MatrixAction =
     | { type: "grid/setColumnSummaryValue"; payload: { columnId: string; value: number | null } }
     | { type: "grid/setExpectedValue"; payload: { value: number | null } }
     | { type: "grid/setAxisLabel"; payload: { axis: "rows" | "columns"; axisId: string; label: string } }
+    | { type: "grid/setAxisLayer"; payload: { axis: "rows" | "columns"; axisId: string; layer: number } }
     | { type: "grid/addRow" }
     | { type: "grid/removeRow"; payload: { rowId: string } }
     | { type: "grid/addColumn" }
@@ -46,6 +47,10 @@ export const matrixActions = {
     setAxisLabel: (axis: "rows" | "columns", axisId: string, label: string): MatrixAction => ({
         type: "grid/setAxisLabel",
         payload: {axis, axisId, label},
+    }),
+    setAxisLayer: (axis: "rows" | "columns", axisId: string, layer: number): MatrixAction => ({
+        type: "grid/setAxisLayer",
+        payload: {axis, axisId, layer},
     }),
     linkReferenceCell: (key: string, scenarioId: string, scenarioLabel: string): MatrixAction => ({
         type: "grid/linkReferenceCell",

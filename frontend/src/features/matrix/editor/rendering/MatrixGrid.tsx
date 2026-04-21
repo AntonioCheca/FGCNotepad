@@ -29,6 +29,8 @@ interface MatrixGridProps {
     onRemoveColumn: (columnId: string) => void;
     onRowLabelChange: (rowId: string, label: string) => void;
     onColumnLabelChange: (columnId: string, label: string) => void;
+    onRowLayerChange: (rowId: string, layer: number) => void;
+    onColumnLayerChange: (columnId: string, layer: number) => void;
     onSelectBodyCell: (rowId: string, columnId: string) => void;
     onSelectRowSummary: (rowId: string) => void;
     onOpenReferenceLink: (key: string) => void;
@@ -63,10 +65,12 @@ export function MatrixGrid({
                                 onAddRow,
                                 onAddColumn,
                                 onRemoveRow,
-                                onRemoveColumn,
-                                onRowLabelChange,
-                                onColumnLabelChange,
-                                onSelectBodyCell,
+                                 onRemoveColumn,
+                                 onRowLabelChange,
+                                 onColumnLabelChange,
+                                 onRowLayerChange,
+                                 onColumnLayerChange,
+                                 onSelectBodyCell,
                                 onSelectRowSummary,
                                 onOpenReferenceLink,
                                 onOpenDynamicCombo,
@@ -173,6 +177,7 @@ export function MatrixGrid({
                     activeColumnId={activeColumnId}
                     canEditAxisLabels={canEditAxisLabels}
                     onColumnLabelChange={onColumnLabelChange}
+                    onColumnLayerChange={onColumnLayerChange}
                     onSelectColumnHeader={handleSelectColumnHeader}
                     densityProfile={profile}
                 />
@@ -191,6 +196,7 @@ export function MatrixGrid({
                     canEditBodyValues={canEditBodyValues}
                     canEditSummaries={canEditSummaries}
                     onRowLabelChange={onRowLabelChange}
+                    onRowLayerChange={onRowLayerChange}
                     onSelectRowHeader={handleSelectRowHeader}
                     onSelectBodyCell={handleSelectBodyCell}
                     onSelectRowSummary={handleSelectRowSummary}

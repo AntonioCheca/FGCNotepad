@@ -8,6 +8,8 @@ test("serialize + deserialize preserves matrix data", () => {
     const payload = serializeMatrixPayload({
         rows: ["2MK", "Throw"],
         columns: ["Backdash", "Mash"],
+        rowLayers: [1, 3],
+        columnLayers: [2, 4],
         values: [
             [2, -1],
             [3, 0],
@@ -24,6 +26,8 @@ test("serialize + deserialize preserves matrix data", () => {
     const editorState = toEditorState(deserialized.payload);
 
     assert.equal(deserialized.isValid, true);
+    assert.deepEqual(deserialized.payload.axes.rowLayers, [1, 3]);
+    assert.deepEqual(deserialized.payload.axes.columnLayers, [2, 4]);
     assert.deepEqual(editorState.rows, ["2MK", "Throw"]);
     assert.deepEqual(editorState.columns, ["Backdash", "Mash"]);
     assert.deepEqual(editorState.values, [

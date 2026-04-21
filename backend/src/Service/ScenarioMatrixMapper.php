@@ -29,6 +29,8 @@ class ScenarioMatrixMapper
         $axes = $matrix['axes'] ?? null;
         $rows = is_array($axes['rows'] ?? null) ? $axes['rows'] : null;
         $columns = is_array($axes['columns'] ?? null) ? $axes['columns'] : null;
+        $rowLayers = is_array($axes['rowLayers'] ?? null) ? $axes['rowLayers'] : [];
+        $columnLayers = is_array($axes['columnLayers'] ?? null) ? $axes['columnLayers'] : [];
 
         if (null === $rows || null === $columns || [] === $rows || [] === $columns) {
             throw new BadRequestHttpException('Matrix payload must include non-empty axes.rows and axes.columns.');
@@ -62,6 +64,7 @@ class ScenarioMatrixMapper
                 ->setScenario($scenario)
                 ->setPosition($index)
                 ->setLabel($this->normalizeLabel($rowLabel, sprintf('Row %d', $index + 1)))
+                ->setLayer($this->extractLayerValue($rowLayers[$index] ?? null))
                 ->setSummaryValue($this->extractNumericValue($rowAxis[$index] ?? null));
 
             $scenario->addRow($row);
@@ -74,6 +77,7 @@ class ScenarioMatrixMapper
                 ->setScenario($scenario)
                 ->setPosition($index)
                 ->setLabel($this->normalizeLabel($columnLabel, sprintf('Column %d', $index + 1)))
+                ->setLayer($this->extractLayerValue($columnLayers[$index] ?? null))
                 ->setSummaryValue($this->extractNumericValue($columnAxis[$index] ?? null));
 
             $scenario->addColumn($column);
@@ -128,6 +132,8 @@ class ScenarioMatrixMapper
             'axes' => [
                 'rows' => array_map(static fn (ScenarioRow $row): string => $row->getLabel(), $rows),
                 'columns' => array_map(static fn (ScenarioColumn $column): string => $column->getLabel(), $columns),
+                'rowLayers' => array_map(static fn (ScenarioRow $row): int => $row->getLayer(), $rows),
+                'columnLayers' => array_map(static fn (ScenarioColumn $column): int => $column->getLayer(), $columns),
             ],
             'cells' => $matrixCells,
             'summary' => [
@@ -344,5 +350,18 @@ class ScenarioMatrixMapper
         }
 
         return null;
+    }
+
+    private function extractLayerValue(mixed $value): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        return 1;
     }
 }

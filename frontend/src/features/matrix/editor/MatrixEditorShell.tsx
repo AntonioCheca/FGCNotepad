@@ -55,6 +55,8 @@ export function MatrixEditorShell({
     const [linkTargetKey, setLinkTargetKey] = React.useState<string | null>(null);
     const [dynamicComboTargetKey, setDynamicComboTargetKey] = React.useState<string | null>(null);
     const isAnyModalOpen = linkTargetKey !== null || dynamicComboTargetKey !== null;
+    const [selectedLayer, setSelectedLayer] = React.useState(1);
+    const [showAllLayers, setShowAllLayers] = React.useState<boolean>(isEditorEditable);
 
     const canEditStructure = isEditorEditable;
     const canEditAxisLabels = isEditorEditable;
@@ -62,6 +64,27 @@ export function MatrixEditorShell({
     const canEditReferences = isEditorEditable;
     const canEditDynamicCombos = isEditorEditable;
     const canEditSummaries = true;
+
+    const highestLayer = React.useMemo(() => {
+        const layers = [
+            ...state.grid.rows.map((row) => row.layer),
+            ...state.grid.columns.map((column) => column.layer),
+        ].filter((value) => Number.isFinite(value));
+
+        if (layers.length === 0) {
+            return 1;
+        }
+
+        return Math.max(1, ...layers);
+    }, [state.grid.columns, state.grid.rows]);
+
+    React.useEffect(() => {
+        if (selectedLayer > highestLayer) {
+            setSelectedLayer(highestLayer);
+        }
+    }, [highestLayer, selectedLayer]);
+
+    const effectiveLayerLimit = showAllLayers ? null : selectedLayer;
 
     React.useEffect(() => {
         stateRef.current = state;
@@ -193,6 +216,55 @@ export function MatrixEditorShell({
         );
         return computeExpectedValue(values, rowWeights, columnWeights);
     }, [state]);
+
+    const visibleState = React.useMemo(() => {
+        if (effectiveLayerLimit === null) {
+            return state;
+        }
+
+        const visibleRows = state.grid.rows.filter((row) => row.layer <= effectiveLayerLimit);
+        const visibleColumns = state.grid.columns.filter((column) => column.layer <= effectiveLayerLimit);
+        const visibleRowIds = new Set(visibleRows.map((row) => row.id));
+        const visibleColumnIds = new Set(visibleColumns.map((column) => column.id));
+
+        const visibleBodyCells = Object.fromEntries(
+            Object.entries(state.grid.bodyCells).filter(([, cell]) => visibleRowIds.has(cell.rowId) && visibleColumnIds.has(cell.columnId))
+        );
+        const visibleRowSummaryCells = Object.fromEntries(
+            Object.entries(state.grid.rowSummaryCells).filter(([, summary]) => {
+                const rowId = summary.key.replace("row-summary::", "");
+                return visibleRowIds.has(rowId);
+            })
+        );
+        const visibleColumnSummaryCells = Object.fromEntries(
+            Object.entries(state.grid.columnSummaryCells).filter(([, summary]) => {
+                const columnId = summary.key.replace("column-summary::", "");
+                return visibleColumnIds.has(columnId);
+            })
+        );
+
+        return {
+            ...state,
+            grid: {
+                ...state.grid,
+                rows: visibleRows,
+                columns: visibleColumns,
+                bodyCells: visibleBodyCells,
+                rowSummaryCells: visibleRowSummaryCells,
+                columnSummaryCells: visibleColumnSummaryCells,
+            },
+        };
+    }, [effectiveLayerLimit, state]);
+
+    const displayedExpectedValue = React.useMemo(() => {
+        const values = selectGridValues(visibleState);
+        const rowWeights = visibleState.grid.rows.map((row) => visibleState.grid.rowSummaryCells[`row-summary::${row.id}`]?.value ?? null);
+        const columnWeights = visibleState.grid.columns.map(
+            (column) => visibleState.grid.columnSummaryCells[`column-summary::${column.id}`]?.value ?? null
+        );
+
+        return computeExpectedValue(values, rowWeights, columnWeights);
+    }, [visibleState]);
 
     React.useEffect(() => {
         if (state.grid.expectedValueCell.value !== expectedValue) {
@@ -454,10 +526,16 @@ export function MatrixEditorShell({
         try {
             const dynamicOverrides = await resolveDynamicCellsForSolve();
             const currentState = stateRef.current;
+            const solveRows = effectiveLayerLimit === null
+                ? currentState.grid.rows
+                : currentState.grid.rows.filter((row) => row.layer <= effectiveLayerLimit);
+            const solveColumns = effectiveLayerLimit === null
+                ? currentState.grid.columns
+                : currentState.grid.columns.filter((column) => column.layer <= effectiveLayerLimit);
 
-            const payoffMatrix = currentState.grid.rows.reduce<Record<string, Record<string, number>>>((rowAcc, row) => {
+            const payoffMatrix = solveRows.reduce<Record<string, Record<string, number>>>((rowAcc, row) => {
                 const rowLabel = row.label.trim() || row.id;
-                const rowValues = currentState.grid.columns.reduce<Record<string, number>>((colAcc, column) => {
+                const rowValues = solveColumns.reduce<Record<string, number>>((colAcc, column) => {
                     const key = `body::${row.id}::${column.id}`;
                     const displayed = referenceResolution.displayedBodyValues[key];
                     const overriddenDynamicValue = dynamicOverrides[key];
@@ -481,14 +559,14 @@ export function MatrixEditorShell({
                 return;
             }
 
-            const nextActions = currentState.grid.rows.flatMap((row) => {
+            const nextActions = solveRows.flatMap((row) => {
                 const rowKey = row.label.trim() || row.id;
                 const p1Value = (equilibrium as Record<string, Record<string, unknown>>).P1?.[rowKey];
                 const numeric = typeof p1Value === "number" && Number.isFinite(p1Value) ? p1Value : 0;
                 return actions.setRowSummaryValue(row.id, numeric);
             });
 
-            const nextColumnActions = currentState.grid.columns.flatMap((column) => {
+            const nextColumnActions = solveColumns.flatMap((column) => {
                 const columnKey = column.label.trim() || column.id;
                 const p2Value = (equilibrium as Record<string, Record<string, unknown>>).P2?.[columnKey];
                 const numeric = typeof p2Value === "number" && Number.isFinite(p2Value) ? p2Value : 0;
@@ -502,7 +580,7 @@ export function MatrixEditorShell({
         } finally {
             setIsSolving(false);
         }
-    }, [actions, dispatch, referenceResolution.displayedBodyValues, resolveDynamicCellsForSolve, solveGame]);
+    }, [actions, dispatch, effectiveLayerLimit, referenceResolution.displayedBodyValues, resolveDynamicCellsForSolve, solveGame]);
 
     const canMutateActiveSelection = React.useMemo(() => {
         const active = state.selection.activeTarget;
@@ -589,6 +667,33 @@ export function MatrixEditorShell({
                 warnings={displayWarnings}
             >
                 <div style={{display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap"}}>
+                    <label style={{display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12}}>
+                        View
+                        <select
+                            value={showAllLayers ? "all" : "layer"}
+                            onChange={(event) => setShowAllLayers(event.target.value === "all")}
+                            style={{height: 28}}
+                        >
+                            <option value="layer">Up To Layer</option>
+                            <option value="all">All Layers</option>
+                        </select>
+                    </label>
+                    {!showAllLayers ? (
+                        <label style={{display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12}}>
+                            Layer
+                            <input
+                                type="number"
+                                min={1}
+                                step={1}
+                                value={selectedLayer}
+                                onChange={(event) => {
+                                    const next = Number(event.target.value);
+                                    setSelectedLayer(Number.isFinite(next) ? Math.max(1, Math.trunc(next)) : 1);
+                                }}
+                                style={{width: 72, height: 28}}
+                            />
+                        </label>
+                    ) : null}
                     {canEditReferences ? (
                         <button
                             type="button"
@@ -619,15 +724,15 @@ export function MatrixEditorShell({
                         {isSolving ? "Solving..." : "Solve Game"}
                     </button>
                     <span style={{fontSize: 12, color: "#595959"}}>
-                        {state.grid.rows.length}x{state.grid.columns.length}
+                        {visibleState.grid.rows.length}x{visibleState.grid.columns.length}
                     </span>
                     <span style={{fontSize: 12, color: "#8c8c8c"}}>{isEditorEditable ? "Mode: Edit" : "Mode: View"}</span>
                     {selectedReferenceLabel ? <span style={{fontSize: 12, color: "#8c8c8c"}}>Linked: {selectedReferenceLabel}</span> : null}
                 </div>
                 {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
                 <MatrixGrid
-                    state={state}
-                    expectedValue={expectedValue}
+                    state={visibleState}
+                    expectedValue={displayedExpectedValue}
                     activeTarget={state.selection.activeTarget}
                     activeKey={state.selection.activeTarget?.key ?? null}
                     activeRowId={axisContext.activeRowId}
@@ -664,6 +769,8 @@ export function MatrixEditorShell({
                     }}
                     onRowLabelChange={(rowId, label) => dispatch(actions.setAxisLabel("rows", rowId, label))}
                     onColumnLabelChange={(columnId, label) => dispatch(actions.setAxisLabel("columns", columnId, label))}
+                    onRowLayerChange={(rowId, layer) => dispatch(actions.setAxisLayer("rows", rowId, layer))}
+                    onColumnLayerChange={(columnId, layer) => dispatch(actions.setAxisLayer("columns", columnId, layer))}
                     onSelectBodyCell={(rowId, columnId) => selectTarget(toSelectionTarget("body", rowId, columnId))}
                     onSelectRowSummary={(rowId) => selectTarget(toSelectionTarget("rowSummary", rowId))}
                     onSelectColumnSummary={(columnId) => selectTarget(toSelectionTarget("columnSummary", columnId))}

@@ -7,6 +7,7 @@ export type MatrixFocusedRegion = "none" | "grid" | "toolbar";
 export interface MatrixAxisItem {
     id: string;
     label: string;
+    layer: number;
 }
 
 export interface MatrixReferenceData {

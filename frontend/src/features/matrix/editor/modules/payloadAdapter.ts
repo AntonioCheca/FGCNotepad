@@ -45,8 +45,16 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
         columnCount: safe.axes.columns.length,
     });
 
-    runtime.grid.rows = safe.axes.rows.map((label, index) => ({id: `row_${index + 1}`, label}));
-    runtime.grid.columns = safe.axes.columns.map((label, index) => ({id: `column_${index + 1}`, label}));
+    runtime.grid.rows = safe.axes.rows.map((label, index) => ({
+        id: `row_${index + 1}`,
+        label,
+        layer: typeof safe.axes.rowLayers?.[index] === "number" ? safe.axes.rowLayers[index] : 1,
+    }));
+    runtime.grid.columns = safe.axes.columns.map((label, index) => ({
+        id: `column_${index + 1}`,
+        label,
+        layer: typeof safe.axes.columnLayers?.[index] === "number" ? safe.axes.columnLayers[index] : 1,
+    }));
 
     safe.axes.rows.forEach((_, rowIndex) => {
         safe.axes.columns.forEach((__, columnIndex) => {
@@ -122,6 +130,8 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
 export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: MatrixPayload): MatrixPayload {
     const rows = state.grid.rows.map((row) => row.label);
     const columns = state.grid.columns.map((column) => column.label);
+    const rowLayers = state.grid.rows.map((row) => row.layer);
+    const columnLayers = state.grid.columns.map((column) => column.layer);
     const values = state.grid.rows.map((row) =>
         state.grid.columns.map((column) => state.grid.bodyCells[`body::${row.id}::${column.id}`]?.value ?? null)
     );
@@ -177,6 +187,8 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
     return serializeMatrixPayload({
         rows,
         columns,
+        rowLayers,
+        columnLayers,
         values,
         bodyCellTypes,
         bodyCellMetadata,

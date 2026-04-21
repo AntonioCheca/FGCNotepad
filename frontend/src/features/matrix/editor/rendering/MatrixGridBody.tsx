@@ -19,6 +19,7 @@ interface MatrixGridBodyProps {
     canEditBodyValues: boolean;
     canEditSummaries: boolean;
     onRowLabelChange: (rowId: string, label: string) => void;
+    onRowLayerChange: (rowId: string, layer: number) => void;
     onSelectRowHeader: (rowId: string) => void;
     onSelectBodyCell: (rowId: string, columnId: string) => void;
     onSelectRowSummary: (rowId: string) => void;
@@ -44,10 +45,11 @@ export function MatrixGridBody({
                                       displayedBodyValues,
                                       moveLabelById,
                                      canEditAxisLabels,
-                                     canEditBodyValues,
-                                     canEditSummaries,
-                                     onRowLabelChange,
-                                     onSelectRowHeader,
+                                      canEditBodyValues,
+                                      canEditSummaries,
+                                      onRowLabelChange,
+                                      onRowLayerChange,
+                                      onSelectRowHeader,
                                      onSelectBodyCell,
                                      onSelectRowSummary,
                                      onOpenReferenceLink,
@@ -88,6 +90,25 @@ export function MatrixGridBody({
                             minHeight: densityProfile.cellHeight,
                             fontSize: densityProfile.labelFontSize,
                             padding: "2px 6px",
+                        }}
+                    />
+                    <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={row.layer}
+                        readOnly={!canEditAxisLabels}
+                        onFocus={() => onSelectRowHeader(row.id)}
+                        onChange={(event) => {
+                            const next = Number(event.target.value);
+                            onRowLayerChange(row.id, Number.isFinite(next) ? Math.max(1, Math.trunc(next)) : 1);
+                        }}
+                        style={{
+                            width: 58,
+                            minHeight: densityProfile.cellHeight,
+                            fontSize: densityProfile.labelFontSize,
+                            padding: "2px 6px",
+                            marginTop: 4,
                         }}
                     />
                 </th>

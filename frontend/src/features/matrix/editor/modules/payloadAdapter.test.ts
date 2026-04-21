@@ -8,6 +8,8 @@ test("payload adapter keeps matrix dimensions and core values", () => {
     const payload = serializeMatrixPayload({
         rows: ["A", "B"],
         columns: ["X", "Y"],
+        rowLayers: [1, 4],
+        columnLayers: [2, 5],
         values: [
             [1, 2],
             [3, 4],
@@ -23,6 +25,8 @@ test("payload adapter keeps matrix dimensions and core values", () => {
 
     assert.deepEqual(roundTrip.axes.rows, ["A", "B"]);
     assert.deepEqual(roundTrip.axes.columns, ["X", "Y"]);
+    assert.deepEqual(roundTrip.axes.rowLayers, [1, 4]);
+    assert.deepEqual(roundTrip.axes.columnLayers, [2, 5]);
     assert.equal(roundTrip.cells[0][0].value, 1);
     assert.equal(roundTrip.cells[1][1].value, 4);
     assert.equal(roundTrip.summary.rowAxis[0].value, 0.7);

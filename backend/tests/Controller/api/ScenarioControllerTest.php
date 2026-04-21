@@ -54,6 +54,28 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame($attacker->getId()?->toRfc4122(), $payload['attackerCharacterId']);
         self::assertSame($triggerMove->getId()?->toRfc4122(), $payload['triggerMoveId']);
         self::assertSame('matrix-editor', $payload['matrix']['kind']);
+        self::assertSame([1], $payload['matrix']['axes']['rowLayers']);
+        self::assertSame([1], $payload['matrix']['axes']['columnLayers']);
+    }
+
+    public function testCreateScenarioPersistsAxisLayers(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Layered Oki Test',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildMatrixPayload([3], [5]),
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame([3], $created['matrix']['axes']['rowLayers']);
+        self::assertSame([5], $created['matrix']['axes']['columnLayers']);
     }
 
     public function testListScenariosSupportsFilters(): void
@@ -310,7 +332,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
     /**
      * @return array<string, mixed>
      */
-    private function buildMatrixPayload(): array
+    private function buildMatrixPayload(array $rowLayers = [1], array $columnLayers = [1]): array
     {
         return [
             'kind' => 'matrix-editor',
@@ -318,6 +340,8 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
             'axes' => [
                 'rows' => ['Defend'],
                 'columns' => ['Meaty'],
+                'rowLayers' => $rowLayers,
+                'columnLayers' => $columnLayers,
             ],
             'cells' => [[[
                 'cellType' => 'value',
