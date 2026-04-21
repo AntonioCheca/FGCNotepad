@@ -27,13 +27,6 @@
    Soportar varias fuentes con formatos diferentes, por ejemplo hojas, CSVs o estructuras copiadas de comunidades.
    Aceptar que parte de los datos importados puede venir incompleta, anticuada o imperfecta, y manejarlo con tolerancia.
    Hacer que añadir un personaje nuevo en el futuro sea repetir el proceso de carga, no rehacer el trabajo desde cero.
-5. Validación comunitaria / flagging de datos incorrectos
-   Permitir que usuarios marquen contenido como potencialmente incorrecto.
-   Soportar al menos combos y escenarios como tipos de contenido flagueable.
-   Guardar junto al flag un texto libre donde el usuario explique qué cree que está mal.
-   Diseñar el flujo pensando en precisión y confianza: la comunidad tiene que poder señalar fallos rápido.
-   Hacer una versión básica primero, suficiente para detectar errores de daño, enlaces o datos mal modelados.
-   Preparar esto como una capa de calidad antes del alfa, aunque todavía no exista una moderación compleja.
 6. Soporte de delays en las secuencias de combo
    Ampliar el modelo de links entre movimientos para soportar delays, no solo link, cancel o chain.
    Permitir que un delay tenga valor numérico asociado en frames.
@@ -108,3 +101,4 @@
     mantenible.
     Dejar el repositorio en buen estado para open source y contribuciones futuras, de forma que tú mismo puedas orientar
     mejor a quien quiera ayudar.
+15. Bugs para Dark Mode
