@@ -16,6 +16,15 @@ export class ScenarioSearchError extends Error {
     }
 }
 
+interface ApiDataResponse<T> {
+    data: T;
+}
+
+async function requestData<T>(apiCall: () => Promise<ApiDataResponse<T>>): Promise<T> {
+    const response = await apiCall();
+    return response.data;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
     return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
@@ -75,8 +84,8 @@ export function filterScenarioItems(items: ScenarioSearchItem[], query: string):
 
 export async function fetchScenarioItems(): Promise<ScenarioSearchItem[]> {
     try {
-        const response = await api.get("/scenarios");
-        return normalizeScenarioItems(response.data);
+        const payload = await requestData(() => api.get<unknown>("/scenarios"));
+        return normalizeScenarioItems(payload);
     } catch (error) {
         const statusCode =
             typeof error === "object" &&

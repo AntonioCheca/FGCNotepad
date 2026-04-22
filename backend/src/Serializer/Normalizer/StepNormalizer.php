@@ -23,6 +23,8 @@ class StepNormalizer implements NormalizerInterface
             'connection_type_name' => $connectionType?->getName(),
             'delay_min_frames' => $object->getDelayMinFrames(),
             'delay_max_frames' => $object->getDelayMaxFrames(),
+            'delay_min_unverified' => $object->isDelayMinUnverified(),
+            'delay_max_unverified' => $object->isDelayMaxUnverified(),
         ];
     }
 

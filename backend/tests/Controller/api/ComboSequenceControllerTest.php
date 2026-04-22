@@ -250,6 +250,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $step = $this->findStepByOrdinal($createdSequence, 2);
         $this->assertSame(120, $step->getDelayMinFrames());
         $this->assertSame(120, $step->getDelayMaxFrames());
+        $this->assertFalse($step->isDelayMinUnverified());
+        $this->assertFalse($step->isDelayMaxUnverified());
         $this->assertSame('Delay', $step->getConnectionType()?->getName());
     }
 
@@ -297,6 +299,63 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $step = $this->findStepByOrdinal($createdSequence, 2);
         $this->assertSame(3, $step->getDelayMinFrames());
         $this->assertSame(7, $step->getDelayMaxFrames());
+        $this->assertFalse($step->isDelayMinUnverified());
+        $this->assertFalse($step->isDelayMaxUnverified());
+    }
+
+    public function testCreateFullComboPersistsPartiallyVerifiedDelayWindowFrames(): void
+    {
+        [$leafSequence, $initialConnectionType] = $this->seedCreateFullComboData();
+        $delayConnectionType = $this->persistConnectionType('Delay');
+        $this->entityManager->flush();
+
+        $payload = [
+            'name' => 'Partially Verified Delay Combo',
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $initialConnectionType->getId(),
+                ],
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 2,
+                    'connection_type_id' => $delayConnectionType->getId(),
+                    'delay_min_frames' => 4,
+                    'delay_max_frames' => 4,
+                    'delay_min_unverified' => true,
+                    'delay_max_unverified' => true,
+                ],
+            ],
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/full',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode($payload)
+        );
+
+        $response = $this->client->getResponse();
+        $responsePayload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+        $this->assertFalse($responsePayload['is_fully_audited']);
+        $this->assertTrue($responsePayload['needs_technical_review']);
+        $this->assertTrue($responsePayload['is_usable']);
+        $this->assertTrue($responsePayload['steps'][1]['delay_min_unverified']);
+        $this->assertTrue($responsePayload['steps'][1]['delay_max_unverified']);
+
+        $createdSequence = $this->entityManager->getRepository(ComboSequences::class)->find($responsePayload['id']);
+        $this->assertInstanceOf(ComboSequences::class, $createdSequence);
+
+        $step = $this->findStepByOrdinal($createdSequence, 2);
+        $this->assertSame(4, $step->getDelayMinFrames());
+        $this->assertSame(4, $step->getDelayMaxFrames());
+        $this->assertTrue($step->isDelayMinUnverified());
+        $this->assertTrue($step->isDelayMaxUnverified());
     }
 
     public function testCreateFullComboRejectsDelayFramesWhenConnectionIsNotDelay(): void
@@ -311,6 +370,44 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
                     'ordinal_in_combo' => 1,
                     'connection_type_id' => $initialConnectionType->getId(),
                     'delay_frames' => 5,
+                ],
+            ],
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/full',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode($payload)
+        );
+
+        $response = $this->client->getResponse();
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
+    public function testCreateFullComboRejectsUnverifiedDelayFlagsWhenUsingDelayFrames(): void
+    {
+        [$leafSequence, $initialConnectionType] = $this->seedCreateFullComboData();
+        $delayConnectionType = $this->persistConnectionType('Delay');
+        $this->entityManager->flush();
+
+        $payload = [
+            'name' => 'Invalid Delay Flags Combo',
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $initialConnectionType->getId(),
+                ],
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 2,
+                    'connection_type_id' => $delayConnectionType->getId(),
+                    'delay_frames' => 4,
+                    'delay_min_unverified' => true,
                 ],
             ],
         ];

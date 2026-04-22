@@ -6,12 +6,20 @@ const useApi = () => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
+    /**
+     * Executes an API call and always returns the normalized payload.
+     * Never returns a raw Axios response to callers.
+     */
     const request = useCallback(async (axiosCall) => {
+        setLoading(true);
         try {
-            setLoading(true);
             const response = await axiosCall();
-            setLoading(false);
-            return response.data;
+
+            if (response && typeof response === "object" && "data" in response) {
+                return response.data;
+            }
+
+            return response;
         } catch (error) {
             if (error.response?.status === 401) {
                 localStorage.removeItem("jwt"); // Clear token if unauthorized

@@ -3,12 +3,13 @@
 namespace App\Serializer\Normalizer;
 
 use App\Entity\ComboSequences;
-use App\Entity\Move;
-use App\Entity\ComboSequenceType;
 use App\Entity\ComboMetrics;
+use App\Entity\ComboSequenceType;
 use App\Entity\ComboRequirement;
-use App\Entity\Visibility;
+use App\Entity\Move;
 use App\Entity\Season;
+use App\Entity\Step;
+use App\Entity\Visibility;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 use Symfony\Component\Serializer\Normalizer\DenormalizerAwareInterface;
@@ -24,6 +25,9 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
     public function normalize(mixed $object, ?string $format = null, array $context = []): array
     {
         /** @var ComboSequences $object */
+        $sortedSteps = $this->sortStepsByOrdinal($object);
+        $needsDelayAuditReview = $this->needsDelayAuditReview($sortedSteps);
+
         return [
             'id' => $object->getId(),
             'name' => $object->getName(),
@@ -34,7 +38,10 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
             'comboRequirement' => $object->getComboRequirement() ? $this->normalizer->normalize($object->getComboRequirement(), $format, $context) : null,
             'visibility' => $object->getVisibility() ? $this->normalizer->normalize($object->getVisibility(), $format, $context) : null,
             'season' => $this->normalizer->normalize($object->getSeason()->toArray(), $format, $context),
-            'steps' => $this->normalizer->normalize($this->sortStepsByOrdinal($object), $format, $context),
+            'steps' => $this->normalizer->normalize($sortedSteps, $format, $context),
+            'is_usable' => true,
+            'is_fully_audited' => !$needsDelayAuditReview,
+            'needs_technical_review' => $needsDelayAuditReview,
             'character' => $object->getCharacter() ? [
                 'id' => $object->getCharacter()->getId(),
                 'name' => $object->getCharacter()->getName(),
@@ -91,5 +98,44 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
         );
 
         return $steps;
+    }
+
+    /**
+     * @param array<int, mixed> $steps
+     */
+    private function needsDelayAuditReview(array $steps): bool
+    {
+        foreach ($steps as $step) {
+            if (!$step instanceof Step) {
+                continue;
+            }
+
+            if (!$this->isDelayConnection($step)) {
+                continue;
+            }
+
+            if (null === $step->getDelayMinFrames() || null === $step->getDelayMaxFrames()) {
+                return true;
+            }
+
+            if ($step->isDelayMinUnverified() || $step->isDelayMaxUnverified()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isDelayConnection(Step $step): bool
+    {
+        $connectionTypeName = $step->getConnectionType()?->getName();
+        if (!is_string($connectionTypeName) || '' === $connectionTypeName) {
+            return false;
+        }
+
+        $normalized = strtolower($connectionTypeName);
+        $normalized = preg_replace('/[^a-z0-9]/', '', $normalized) ?? $normalized;
+
+        return 'delay' === $normalized;
     }
 }

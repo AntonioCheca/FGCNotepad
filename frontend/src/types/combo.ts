@@ -23,6 +23,8 @@ export interface StepDraft {
     delay_frames?: string;
     delay_min_frames?: string;
     delay_max_frames?: string;
+    delay_min_unverified?: boolean;
+    delay_max_unverified?: boolean;
 }
 
 export interface CreateFullComboPayload {
@@ -37,6 +39,8 @@ export interface CreateFullComboPayload {
         delay_frames?: number;
         delay_min_frames?: number;
         delay_max_frames?: number;
+        delay_min_unverified?: boolean;
+        delay_max_unverified?: boolean;
     }>; 
 }
 
@@ -90,6 +94,8 @@ export interface TranslatedStep {
     connection_type_name: string | null;
     delay_min_frames?: number | null;
     delay_max_frames?: number | null;
+    delay_min_unverified?: boolean;
+    delay_max_unverified?: boolean;
     token: string;
 }
 
@@ -118,6 +124,9 @@ export interface ComboRow {
     moves: string[];        // just move names
     damage: number | string;
     season: string;         // human-readable
+    isUsable: boolean;
+    isFullyAudited: boolean;
+    needsTechnicalReview: boolean;
 }
 
 interface ComboMoveSummary {
@@ -135,6 +144,9 @@ interface ComboApiSummary {
     moves?: ComboMoveSummary[];
     comboMetrics?: { damage?: number | string };
     season?: ComboSeasonSummary[];
+    is_usable?: boolean;
+    is_fully_audited?: boolean;
+    needs_technical_review?: boolean;
 }
 
 // utils/combos.ts
@@ -147,7 +159,10 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         damage: combo.comboMetrics?.damage ?? "-",
         season: Array.isArray(combo.season)
             ? combo.season.map((season) => season.name ?? "-").join(", ")
-            : "-"
+            : "-",
+        isUsable: combo.is_usable ?? true,
+        isFullyAudited: combo.is_fully_audited ?? true,
+        needsTechnicalReview: combo.needs_technical_review ?? false,
     };
 }
 

@@ -18,10 +18,10 @@ const useCombos = () => {
      */
     const fetchCombos = async (options = {}) => {
         try {
-            const response = await request(() =>
+            const data = await request(() =>
                 api.get("/combo-sequences", {params: {...options}})
             );
-            return response;
+            return data;
         } catch (error) {
             console.error("Error fetching combos", error);
             throw error;
@@ -34,21 +34,13 @@ const useCombos = () => {
                 return [];
             }
 
-            console.log("[useCombos] Fetching leafs from API...");
-            const response = await request(() =>
+            const data = await request(() =>
                 api.get("/combo-sequences/leafs/list", {
                     params: {character_id: characterId},
                 })
             );
-            console.log("[useCombos] API response for leafs:", response);
 
-            // if response has .data, unwrap it for clarity
-            if (response?.data) {
-                console.log("[useCombos] response.data:", response.data);
-                return response.data;
-            }
-
-            return response;
+            return data;
         } catch (error) {
             console.error("[useCombos] Error fetching leafs:", error);
             throw error;
@@ -63,10 +55,10 @@ const useCombos = () => {
      */
     const createCombo = async (comboData) => {
         try {
-            const response = await request(() =>
+            const data = await request(() =>
                 api.post("/combo-sequences", comboData)
             );
-            return response.data;
+            return data;
         } catch (error) {
             console.error("Error creating combo", error);
             throw error;
@@ -75,10 +67,10 @@ const useCombos = () => {
 
     const createFullCombo = async (payload) => {
         try {
-            const response = await request(() =>
+            const data = await request(() =>
                 api.post("/combo-sequences/full", payload)
             );
-            return response.data;
+            return data;
         } catch (error) {
             console.error("Error creating full combo", error);
             throw error;
@@ -114,10 +106,10 @@ const useCombos = () => {
      */
     const getCombo = async (id) => {
         try {
-            const response = await request(() =>
+            const data = await request(() =>
                 api.get(`/combo-sequences/${id}`)
             );
-            return response.data;
+            return data;
         } catch (error) {
             console.error(`Error fetching combo with ID ${id}`, error);
             throw error;
@@ -132,10 +124,10 @@ const useCombos = () => {
      */
     const updateCombo = async (id, updateData) => {
         try {
-            const response = await request(() =>
+            const data = await request(() =>
                 api.patch(`/combo-sequences/${id}`, updateData)
             );
-            return response.data;
+            return data;
         } catch (error) {
             console.error(`Error updating combo with ID ${id}`, error);
             throw error;

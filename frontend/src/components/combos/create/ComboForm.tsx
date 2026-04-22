@@ -59,6 +59,8 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
         delay_frames: "",
         delay_min_frames: "",
         delay_max_frames: "",
+        delay_min_unverified: false,
+        delay_max_unverified: false,
     });
 
     const [title, setTitle] = usePersistentState<string>("comboForm.title", "");
@@ -153,6 +155,8 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                     delay_frames: "",
                     delay_min_frames: "",
                     delay_max_frames: "",
+                    delay_min_unverified: false,
+                    delay_max_unverified: false,
                 };
             }
 
@@ -365,10 +369,15 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 }
 
                 if ((s.delay_type ?? "fixed") === "window") {
+                    const delayMinUnverified = Boolean(s.delay_min_unverified);
+                    const delayMaxUnverified = Boolean(s.delay_max_unverified);
+
                     return {
                         ...baseStep,
                         delay_min_frames: parseInt((s.delay_min_frames ?? "0").trim(), 10),
                         delay_max_frames: parseInt((s.delay_max_frames ?? "0").trim(), 10),
+                        ...(delayMinUnverified ? {delay_min_unverified: true} : {}),
+                        ...(delayMaxUnverified ? {delay_max_unverified: true} : {}),
                     };
                 }
 

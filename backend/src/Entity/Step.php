@@ -35,6 +35,12 @@ class Step
     #[ORM\Column(nullable: true)]
     private ?int $delay_max_frames = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $delay_min_unverified = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $delay_max_unverified = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -108,6 +114,30 @@ class Step
     public function setDelayMaxFrames(?int $delay_max_frames): static
     {
         $this->delay_max_frames = $delay_max_frames;
+
+        return $this;
+    }
+
+    public function isDelayMinUnverified(): bool
+    {
+        return $this->delay_min_unverified;
+    }
+
+    public function setDelayMinUnverified(bool $delay_min_unverified): static
+    {
+        $this->delay_min_unverified = $delay_min_unverified;
+
+        return $this;
+    }
+
+    public function isDelayMaxUnverified(): bool
+    {
+        return $this->delay_max_unverified;
+    }
+
+    public function setDelayMaxUnverified(bool $delay_max_unverified): static
+    {
+        $this->delay_max_unverified = $delay_max_unverified;
 
         return $this;
     }

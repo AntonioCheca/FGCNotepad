@@ -7,17 +7,16 @@ const usePosts = () => {
 
     const createPost = async (title, body, tags = []) => {
         try {
-            // Assuming response.data contains the post object
-            return await request(() => api.post("/posts", {title, body, tags}));  // Return the data so the caller can handle it
+            return await request(() => api.post("/posts", {title, body, tags}));
         } catch (error) {
             console.error("Error creating post", error);
-            throw error;  // Re-throw the error to be handled elsewhere
+            throw error;
         }
     };
 
     const fetchPosts = async (page = 1, size = 10, textQuery = "", includedTags = [], excludedTags = []) => {
         try {
-            const response = await request(() =>
+            const data = await request(() =>
                 api.get("/posts", {
                     params: {
                         page: Number(page),
@@ -29,10 +28,10 @@ const usePosts = () => {
                 })
             );
 
-            return response.data;
+            return data;
         } catch (error) {
-            console.error("Error creating post", error);
-            throw error;  // Re-throw the error to be handled elsewhere
+            console.error("Error fetching posts", error);
+            throw error;
         }
     }
 
@@ -40,8 +39,8 @@ const usePosts = () => {
         try {
             return await request(() => api.get(`/posts/${id}`));
         } catch (error) {
-            console.error("Error creating post", error);
-            throw error;  // Re-throw the error to be handled elsewhere
+            console.error(`Error fetching post with ID ${id}`, error);
+            throw error;
         }
     }
 

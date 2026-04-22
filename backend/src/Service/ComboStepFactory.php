@@ -41,7 +41,7 @@ final class ComboStepFactory
             }
 
             $connectionType = $this->resolveConnectionType($stepData, $index);
-            [$delayMinFrames, $delayMaxFrames] = $this->resolveDelayWindow($stepData, $connectionType, $index);
+            [$delayMinFrames, $delayMaxFrames, $delayMinUnverified, $delayMaxUnverified] = $this->resolveDelayWindow($stepData, $connectionType, $index);
 
             $step = new Step();
             $step
@@ -49,7 +49,9 @@ final class ComboStepFactory
                 ->setChildSequence($childSequence)
                 ->setOrdinalInCombo($ordinalInCombo)
                 ->setDelayMinFrames($delayMinFrames)
-                ->setDelayMaxFrames($delayMaxFrames);
+                ->setDelayMaxFrames($delayMaxFrames)
+                ->setDelayMinUnverified($delayMinUnverified)
+                ->setDelayMaxUnverified($delayMaxUnverified);
 
             if ($connectionType instanceof ConnectionType) {
                 $step->setConnectionType($connectionType);
@@ -83,30 +85,39 @@ final class ComboStepFactory
     /**
      * @param array<string, mixed> $stepData
      *
-     * @return array{0:int|null,1:int|null}
+     * @return array{0:int|null,1:int|null,2:bool,3:bool}
      */
     private function resolveDelayWindow(array $stepData, ?ConnectionType $connectionType, int $index): array
     {
         $hasDelayFrames = array_key_exists('delay_frames', $stepData) && null !== $stepData['delay_frames'] && '' !== $stepData['delay_frames'];
         $hasDelayMin = array_key_exists('delay_min_frames', $stepData) && null !== $stepData['delay_min_frames'] && '' !== $stepData['delay_min_frames'];
         $hasDelayMax = array_key_exists('delay_max_frames', $stepData) && null !== $stepData['delay_max_frames'] && '' !== $stepData['delay_max_frames'];
+        $hasDelayMinUnverified = array_key_exists('delay_min_unverified', $stepData);
+        $hasDelayMaxUnverified = array_key_exists('delay_max_unverified', $stepData);
 
-        if (!$hasDelayFrames && !$hasDelayMin && !$hasDelayMax) {
-            return [null, null];
+        if (!$hasDelayFrames && !$hasDelayMin && !$hasDelayMax && !$hasDelayMinUnverified && !$hasDelayMaxUnverified) {
+            return [null, null, false, false];
         }
 
         if (!$this->isDelayConnection($connectionType)) {
             throw new BadRequestHttpException(sprintf('Step %d cannot define delay frames unless connection type is Delay.', $index + 1));
         }
 
+        $delayMinUnverified = $this->readOptionalBoolean($stepData, 'delay_min_unverified', $index);
+        $delayMaxUnverified = $this->readOptionalBoolean($stepData, 'delay_max_unverified', $index);
+
         if ($hasDelayFrames && ($hasDelayMin || $hasDelayMax)) {
             throw new BadRequestHttpException(sprintf('Step %d must use delay_frames or delay_min_frames/delay_max_frames, but not both.', $index + 1));
         }
 
         if ($hasDelayFrames) {
+            if ($hasDelayMinUnverified || $hasDelayMaxUnverified) {
+                throw new BadRequestHttpException(sprintf('Step %d cannot define delay_min_unverified or delay_max_unverified when using delay_frames.', $index + 1));
+            }
+
             $delayFrames = $this->readNonNegativeInteger($stepData['delay_frames'], 'delay_frames', $index);
 
-            return [$delayFrames, $delayFrames];
+            return [$delayFrames, $delayFrames, false, false];
         }
 
         if (!$hasDelayMin || !$hasDelayMax) {
@@ -120,7 +131,7 @@ final class ComboStepFactory
             throw new BadRequestHttpException(sprintf('Step %d has invalid delay window: min cannot be greater than max.', $index + 1));
         }
 
-        return [$delayMin, $delayMax];
+        return [$delayMin, $delayMax, $delayMinUnverified, $delayMaxUnverified];
     }
 
     private function isDelayConnection(?ConnectionType $connectionType): bool
@@ -181,5 +192,21 @@ final class ComboStepFactory
         }
 
         throw new BadRequestHttpException(sprintf('Step %d field %s must be a non-negative integer.', $index + 1, $field));
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function readOptionalBoolean(array $payload, string $field, int $index): bool
+    {
+        if (!array_key_exists($field, $payload)) {
+            return false;
+        }
+
+        if (!is_bool($payload[$field])) {
+            throw new BadRequestHttpException(sprintf('Step %d field %s must be a boolean.', $index + 1, $field));
+        }
+
+        return $payload[$field];
     }
 }

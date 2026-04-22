@@ -19,6 +19,7 @@ export default function ComboTable({combos}: ComboTableProps) {
                     <AppTableCell>Moves</AppTableCell>
                     <AppTableCell>Damage</AppTableCell>
                     <AppTableCell>Season</AppTableCell>
+                    <AppTableCell>Audit Status</AppTableCell>
                     <AppTableCell>Flag</AppTableCell>
                 </AppTableRow>
             </AppTableHead>
@@ -35,9 +36,14 @@ export default function ComboTable({combos}: ComboTableProps) {
                         <AppTableRow key={combo.id}>
                             <AppTableCell>{combo.title}</AppTableCell>
                             <AppTableCell>{combo.characterName ?? "-"}</AppTableCell>
-                            <AppTableCell>{moves.map((m: any) => m.name).join(", ")}</AppTableCell>
+                            <AppTableCell>{moves.join(", ")}</AppTableCell>
                             <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
                             <AppTableCell>{season}</AppTableCell>
+                            <AppTableCell>
+                                {combo.needsTechnicalReview
+                                    ? "Usable - pending technical review"
+                                    : "Fully audited"}
+                            </AppTableCell>
                             <AppTableCell><ContentFlagButton targetType="combo" targetId={combo.id}/></AppTableCell>
                         </AppTableRow>
                     );

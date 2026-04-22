@@ -98,6 +98,14 @@ export default function StepItem({
                                 inputMode="numeric"
                                 sx={{width: 120}}
                             />
+                            <label style={{display: "flex", alignItems: "center", gap: 6}}>
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(step.delay_min_unverified)}
+                                    onChange={(event) => onChange({delay_min_unverified: event.target.checked})}
+                                />
+                                Min uncertain
+                            </label>
                             <AppTextField
                                 label="Delay Max"
                                 value={step.delay_max_frames ?? ""}
@@ -105,6 +113,14 @@ export default function StepItem({
                                 inputMode="numeric"
                                 sx={{width: 120}}
                             />
+                            <label style={{display: "flex", alignItems: "center", gap: 6}}>
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(step.delay_max_unverified)}
+                                    onChange={(event) => onChange({delay_max_unverified: event.target.checked})}
+                                />
+                                Max uncertain
+                            </label>
                         </>
                     )}
                 </>

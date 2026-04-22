@@ -15,8 +15,8 @@ const useConnections = () => {
     const fetchConnections = useCallback(async (): Promise<ConnectionType[]> => {
         setLoading(true);
         try {
-            const res = await request(() => api.get("/connection-types"));
-            const data = (res ?? []) as ConnectionType[];
+            const payload = await request(() => api.get("/connection-types"));
+            const data = Array.isArray(payload) ? (payload as ConnectionType[]) : [];
             setConnections(data);
             return data;
         } finally {
