@@ -137,7 +137,7 @@ interface ComboSeasonSummary {
     name?: string;
 }
 
-interface ComboApiSummary {
+export interface ComboApiSummary {
     id: number;
     name?: string;
     character?: { name?: string };
@@ -149,7 +149,6 @@ interface ComboApiSummary {
     needs_technical_review?: boolean;
 }
 
-// utils/combos.ts
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     return {
         id: combo.id,
@@ -163,6 +162,73 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         isUsable: combo.is_usable ?? true,
         isFullyAudited: combo.is_fully_audited ?? true,
         needsTechnicalReview: combo.needs_technical_review ?? false,
+    };
+}
+
+export interface ComboRequirement {
+    counter_hit_required?: boolean;
+    punish_counter_required?: boolean;
+    corner_required?: boolean;
+    airborne_required?: boolean;
+    mid_screen_required?: boolean;
+    not_crouching_required?: boolean;
+    requirement_specific_character?: {
+        object_name?: string;
+        status_required?: string | number | boolean;
+    } | null;
+}
+
+export interface ComboStep {
+    id: number;
+    child_sequence_id: number | null;
+    child_sequence_name: string | null;
+    ordinal_in_combo: number;
+    connection_type_name: string | null;
+    delay_min_frames: number | null;
+    delay_max_frames: number | null;
+    delay_min_unverified: boolean;
+    delay_max_unverified: boolean;
+}
+
+export interface ComboDetailApi {
+    id: number;
+    name?: string;
+    description?: string | null;
+    character?: { id?: string | number; name?: string } | null;
+    comboMetrics?: { damage?: number | string } | null;
+    comboRequirement?: ComboRequirement | null;
+    season?: ComboSeasonSummary[];
+    steps?: ComboStep[];
+    needs_technical_review?: boolean;
+}
+
+export interface ComboDetailView {
+    id: number;
+    title: string;
+    description: string;
+    characterName: string;
+    damage: number | string;
+    seasonLabels: string[];
+    needsTechnicalReview: boolean;
+    requirements: ComboRequirement | null;
+    steps: ComboStep[];
+}
+
+export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
+    return {
+        id: combo.id,
+        title: combo.name ?? "-",
+        description: combo.description ?? "",
+        characterName: combo.character?.name ?? "-",
+        damage: combo.comboMetrics?.damage ?? "-",
+        seasonLabels: Array.isArray(combo.season)
+            ? combo.season.map((season) => season.name ?? "-")
+            : [],
+        needsTechnicalReview: combo.needs_technical_review ?? false,
+        requirements: combo.comboRequirement ?? null,
+        steps: Array.isArray(combo.steps)
+            ? [...combo.steps].sort((left, right) => left.ordinal_in_combo - right.ordinal_in_combo)
+            : [],
     };
 }
 

@@ -1,19 +1,19 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import ComboFilters from "@/src/components/combos/ComboFilters";
 import ComboTable from "@/src/components/combos/ComboTable";
 import useCombos from "@/hooks/useCombos";
-import {mapComboToRow} from "@/src/types/combo";
+import {ComboRow, mapComboToRow} from "@/src/types/combo";
 
 export default function SearchCombosPage() {
     const {fetchCombos} = useCombos();
-    const [filters, setFilters] = useState<any>({});
-    const [combos, setCombos] = useState<any[]>([]);
+    const [filters, setFilters] = useState<Record<string, unknown>>({});
+    const [combos, setCombos] = useState<ComboRow[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const loadCombos = async () => {
+    const loadCombos = useCallback(async () => {
         setLoading(true);
         try {
             const data = await fetchCombos(filters);
@@ -27,11 +27,11 @@ export default function SearchCombosPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [fetchCombos, filters]);
 
     useEffect(() => {
         loadCombos();
-    }, [filters]);
+    }, [loadCombos]);
 
     console.log("[SearchCombosPage] Rendering with combos:", combos);
 

@@ -1,12 +1,14 @@
+import Link from "next/link";
 import {AppTable} from "@/src/components/ui/AppTable";
 import {AppTableBody} from "@/src/components/ui/AppTableBody";
 import {AppTableCell} from "@/src/components/ui/AppTableCell";
 import {AppTableHead} from "@/src/components/ui/AppTableHead";
 import {AppTableRow} from "@/src/components/ui/AppTableRow";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
+import {ComboRow} from "@/src/types/combo";
 
 interface ComboTableProps {
-    combos: any[];
+    combos: ComboRow[];
 }
 
 export default function ComboTable({combos}: ComboTableProps) {
@@ -34,7 +36,11 @@ export default function ComboTable({combos}: ComboTableProps) {
 
                     return (
                         <AppTableRow key={combo.id}>
-                            <AppTableCell>{combo.title}</AppTableCell>
+                            <AppTableCell>
+                                <Link href={`/combos/${combo.id}`} style={{color: "inherit"}}>
+                                    {combo.title}
+                                </Link>
+                            </AppTableCell>
                             <AppTableCell>{combo.characterName ?? "-"}</AppTableCell>
                             <AppTableCell>{moves.join(", ")}</AppTableCell>
                             <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
