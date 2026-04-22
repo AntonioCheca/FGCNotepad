@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\User;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\MoveRepository;
 
@@ -10,6 +11,7 @@ class ResolveDynamicComboCellService
     public function __construct(
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly MoveRepository $moveRepository,
+        private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
     ) {
     }
 
@@ -18,7 +20,14 @@ class ResolveDynamicComboCellService
      *
      * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
      */
-    public function resolve(string $attackerCharacterId, array $starterMoveIds, string $hitType): array
+    public function resolve(
+        string $attackerCharacterId,
+        array $starterMoveIds,
+        string $hitType,
+        ?User $user = null,
+        ?string $executionMode = null,
+        ?int $difficultyCap = null,
+    ): array
     {
         $normalizedStarterMoveIds = array_values(array_filter(
             $starterMoveIds,
@@ -33,12 +42,22 @@ class ResolveDynamicComboCellService
             ];
         }
 
+        $filter = $this->scenarioExecutionModeService->resolveComboFilter(
+            $user,
+            trim($attackerCharacterId),
+            $executionMode,
+            $difficultyCap
+        );
+
         $normalizedHitType = $this->normalizeHitType($hitType);
 
-        $comboMatch = $this->comboSequencesRepository->findBestDynamicComboMatch(
+        $comboMatch = $this->comboSequencesRepository->findBestDynamicComboMatchWithExecutionFilter(
             trim($attackerCharacterId),
             $normalizedStarterMoveIds,
-            $normalizedHitType
+            $normalizedHitType,
+            $filter['allowedComboIds'],
+            $filter['maxDifficulty'],
+            $filter['includeUnratedDifficulty']
         );
         if (null !== $comboMatch) {
             return [

@@ -17,6 +17,7 @@ class ComboMetricsNormalizer implements NormalizerInterface
         return [
             'id' => $object->getId(),
             'damage' => $object->getDamage(),
+            'difficultyLevel' => $object->getDifficultyLevel(),
             'sequence_id' => $object->getSequence()?->getId(),
         ];
     }

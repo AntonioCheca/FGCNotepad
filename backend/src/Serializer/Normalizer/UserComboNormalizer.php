@@ -13,13 +13,18 @@ class UserComboNormalizer implements NormalizerInterface
         return [
             'id' => $object->getId(),
             'user' => $object->getUser() ? [
-                'id' => $object->getUser()->getId(),
+                'id' => $object->getUser()->getId()?->toRfc4122(),
                 'username' => $object->getUser()->getUsername(),
             ] : null,
-            'comboSequence' => $object->getComboSequence() ? [
-                'id' => $object->getComboSequence()->getId(),
-                'name' => $object->getComboSequence()->getName(),
+            'comboSequence' => $object->getCombo() ? [
+                'id' => $object->getCombo()->getId(),
+                'name' => $object->getCombo()->getName(),
             ] : null,
+            'character' => $object->getCharacter() ? [
+                'id' => $object->getCharacter()->getId()?->toRfc4122(),
+                'name' => $object->getCharacter()->getName(),
+            ] : null,
+            'known' => $object->isKnown(),
         ];
     }
 

@@ -21,6 +21,9 @@ class ComboMetrics
     #[ORM\Column]
     private ?int $damage = null;
 
+    #[ORM\Column(name: 'difficulty_level', nullable: true)]
+    private ?int $difficultyLevel = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -46,6 +49,18 @@ class ComboMetrics
     public function setDamage(int $damage): static
     {
         $this->damage = $damage;
+
+        return $this;
+    }
+
+    public function getDifficultyLevel(): ?int
+    {
+        return $this->difficultyLevel;
+    }
+
+    public function setDifficultyLevel(?int $difficultyLevel): static
+    {
+        $this->difficultyLevel = $difficultyLevel;
 
         return $this;
     }

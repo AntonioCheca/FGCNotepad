@@ -11,6 +11,8 @@ use App\Entity\ConnectionType;
 use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Entity\Step;
+use App\Entity\User;
+use App\Entity\UserCombo;
 use App\Entity\Visibility;
 use App\Service\ResolveDynamicComboCellService;
 use App\Tests\DatabaseTestCase;
@@ -54,7 +56,7 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
 
         $result = $this->service->resolve((string) $character->getId(), [(string) $starterMove->getId()], 'punish_counter');
 
-        self::assertSame(1800.0, $result['resolvedDamage']);
+        self::assertSame(1500.0, $result['resolvedDamage']);
         self::assertNotNull($result['resolvedComboId']);
         self::assertSame((string) $starterMove->getId(), $result['resolvedStarterMoveId']);
     }
@@ -70,8 +72,56 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
         self::assertSame((string) $fallbackStarterMove->getId(), $result['resolvedStarterMoveId']);
     }
 
+    public function testDifficultyCapModeFiltersOutHarderCombos(): void
+    {
+        [$character, $starterMove] = $this->seedComboGraph();
+
+        $result = $this->service->resolve(
+            (string) $character->getId(),
+            [(string) $starterMove->getId()],
+            'normal',
+            null,
+            'difficulty_cap',
+            3
+        );
+
+        self::assertSame(1200.0, $result['resolvedDamage']);
+    }
+
+    public function testMyKnowledgeModeUsesKnownCombosOnly(): void
+    {
+        [$character, $starterMove, , $comboIdsByDamage] = $this->seedComboGraph();
+
+        $user = (new User())
+            ->setUsername('knowledge_user')
+            ->setPassword(password_hash('knowledge_pass', PASSWORD_BCRYPT));
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        $knownCombo = $this->entityManager->getRepository(ComboSequences::class)->find($comboIdsByDamage[1500]);
+        self::assertNotNull($knownCombo);
+
+        $userCombo = (new UserCombo())
+            ->setUser($user)
+            ->setCharacter($character)
+            ->setCombo($knownCombo)
+            ->setKnown(true);
+        $this->entityManager->persist($userCombo);
+        $this->entityManager->flush();
+
+        $result = $this->service->resolve(
+            (string) $character->getId(),
+            [(string) $starterMove->getId()],
+            'counter_hit',
+            $user,
+            'my_knowledge'
+        );
+
+        self::assertSame(1500.0, $result['resolvedDamage']);
+    }
+
     /**
-     * @return array{0: Character, 1: Move, 2: Move}
+     * @return array{0: Character, 1: Move, 2: Move, 3: array<int, int>}
      */
     private function seedComboGraph(): array
     {
@@ -107,13 +157,22 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
             ->setMove($fallbackStarterMove);
         $this->entityManager->persist($fallbackLeaf);
 
-        $this->createCombo($comboType, $visibility, $connectionType, $starterLeaf, 1200, false, false);
-        $this->createCombo($comboType, $visibility, $connectionType, $starterLeaf, 1500, true, false);
-        $this->createCombo($comboType, $visibility, $connectionType, $starterLeaf, 1800, false, true);
+        $comboBy1200 = $this->createCombo($comboType, $visibility, $connectionType, $starterLeaf, 1200, false, false, 2);
+        $comboBy1500 = $this->createCombo($comboType, $visibility, $connectionType, $starterLeaf, 1500, true, false, 4);
+        $comboBy1800 = $this->createCombo($comboType, $visibility, $connectionType, $starterLeaf, 1800, false, true, 7);
 
         $this->entityManager->flush();
 
-        return [$character, $starterMove, $fallbackStarterMove];
+        return [
+            $character,
+            $starterMove,
+            $fallbackStarterMove,
+            [
+                1200 => $comboBy1200->getId(),
+                1500 => $comboBy1500->getId(),
+                1800 => $comboBy1800->getId(),
+            ],
+        ];
     }
 
     private function createMoveWithDamage(Character $character, string $notation, int $damage): Move
@@ -142,7 +201,8 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
         int $damage,
         bool $counterHitRequired,
         bool $punishCounterRequired,
-    ): void {
+        ?int $difficultyLevel,
+    ): ComboSequences {
         $combo = (new ComboSequences())
             ->setName(sprintf('Combo %d', $damage))
             ->setDescription('combo')
@@ -152,7 +212,8 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
 
         $metrics = (new ComboMetrics())
             ->setSequence($combo)
-            ->setDamage($damage);
+            ->setDamage($damage)
+            ->setDifficultyLevel($difficultyLevel);
         $this->entityManager->persist($metrics);
 
         $step = (new Step())
@@ -171,5 +232,7 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
             ->setMidScreenRequired(false)
             ->setNotCrouchingRequired(false);
         $this->entityManager->persist($requirement);
+
+        return $combo;
     }
 }

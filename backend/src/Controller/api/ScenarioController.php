@@ -8,6 +8,7 @@ use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
 use App\Repository\ScenarioRepository;
 use App\Service\ScenarioMatrixMapper;
+use App\Service\ScenarioExecutionModeService;
 use App\Service\ScenarioResponseBuilder;
 use App\Service\ResolveScenarioDynamicComboCellsService;
 use App\Service\ResolveDynamicComboCellService;
@@ -34,6 +35,7 @@ class ScenarioController extends AbstractController
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
+        private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
     ) {
     }
 
@@ -71,7 +73,7 @@ class ScenarioController extends AbstractController
         $scenario = new Scenario();
 
         $this->hydrateScenario($scenario, $data, true);
-        $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario);
+        $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $this->extractCurrentUser());
 
         $user = $this->security->getUser();
         if ($user instanceof User) {
@@ -101,7 +103,7 @@ class ScenarioController extends AbstractController
         $this->hydrateScenario($scenario, $data, false);
 
         if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data)) {
-            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario);
+            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $this->extractCurrentUser());
         }
 
         $this->entityManager->flush();
@@ -121,16 +123,27 @@ class ScenarioController extends AbstractController
     }
 
     #[Route('/{id}/resolve-dynamic-cells', name: 'resolve_dynamic_cells', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
-    public function resolveDynamicCells(string $id): JsonResponse
+    public function resolveDynamicCells(string $id, Request $request): JsonResponse
     {
         $scenario = $this->findByPublicId($id);
 
-        $summary = $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario);
+        $execution = $this->parseExecutionModePayload($request);
+
+        $summary = $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
+            $scenario,
+            $this->extractCurrentUser(),
+            $execution['mode'],
+            $execution['difficultyCap']
+        );
         $this->entityManager->flush();
 
         return new JsonResponse([
             'scenario' => $this->scenarioResponseBuilder->buildDetail($scenario),
             'resolution' => $summary,
+            'executionMode' => [
+                'mode' => $execution['mode'],
+                'difficultyCap' => $execution['difficultyCap'],
+            ],
         ], JsonResponse::HTTP_OK);
     }
 
@@ -173,12 +186,30 @@ class ScenarioController extends AbstractController
             ? 'punish_counter'
             : ($isCounterHit ? 'counter_hit' : 'normal');
 
-        $resolution = $this->resolveDynamicComboCellService->resolve($attackerCharacterId, $normalizedStarterMoveIds, $hitType);
+        $executionPayload = is_array($data['executionMode'] ?? null) ? $data['executionMode'] : [];
+        $requestedMode = isset($executionPayload['mode']) && is_string($executionPayload['mode'])
+            ? $executionPayload['mode']
+            : null;
+        $requestedDifficultyCap = $this->scenarioExecutionModeService->normalizeDifficultyCap($executionPayload['difficultyCap'] ?? null);
+        $normalizedMode = $this->scenarioExecutionModeService->normalizeMode($requestedMode, null !== $this->extractCurrentUser());
+
+        $resolution = $this->resolveDynamicComboCellService->resolve(
+            $attackerCharacterId,
+            $normalizedStarterMoveIds,
+            $hitType,
+            $this->extractCurrentUser(),
+            $normalizedMode,
+            $requestedDifficultyCap
+        );
 
         return new JsonResponse([
             'resolvedDamage' => $resolution['resolvedDamage'],
             'resolvedComboId' => $resolution['resolvedComboId'],
             'resolvedStarterMoveId' => $resolution['resolvedStarterMoveId'],
+            'executionMode' => [
+                'mode' => $normalizedMode,
+                'difficultyCap' => $requestedDifficultyCap,
+            ],
         ], JsonResponse::HTTP_OK);
     }
 
@@ -289,5 +320,39 @@ class ScenarioController extends AbstractController
         }
 
         return $move;
+    }
+
+    /**
+     * @return array{mode:string,difficultyCap:int|null}
+     */
+    private function parseExecutionModePayload(Request $request): array
+    {
+        $content = trim((string) $request->getContent());
+        $decoded = [];
+
+        if ('' !== $content) {
+            $decodedBody = json_decode($content, true);
+            if (!is_array($decodedBody)) {
+                throw new BadRequestHttpException('Invalid JSON payload.');
+            }
+            $decoded = $decodedBody;
+        }
+
+        $executionPayload = is_array($decoded['executionMode'] ?? null) ? $decoded['executionMode'] : [];
+        $requestedMode = isset($executionPayload['mode']) && is_string($executionPayload['mode'])
+            ? $executionPayload['mode']
+            : null;
+
+        return [
+            'mode' => $this->scenarioExecutionModeService->normalizeMode($requestedMode, null !== $this->extractCurrentUser()),
+            'difficultyCap' => $this->scenarioExecutionModeService->normalizeDifficultyCap($executionPayload['difficultyCap'] ?? null),
+        ];
+    }
+
+    private function extractCurrentUser(): ?User
+    {
+        $user = $this->security->getUser();
+
+        return $user instanceof User ? $user : null;
     }
 }

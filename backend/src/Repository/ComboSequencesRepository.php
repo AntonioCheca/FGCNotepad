@@ -114,6 +114,158 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->addOrderBy('combo.id', 'ASC')
             ->setMaxResults(1);
 
+        return $this->finalizeBestDynamicComboQuery($qb, $hitType, null, null, false);
+    }
+
+    /**
+     * @param list<string> $starterMoveIds
+     * @param list<int>|null $allowedComboIds
+     *
+     * @return array{combo_id:int,resolved_damage:int,starter_move_id:string}|null
+     */
+    public function findBestDynamicComboMatchWithExecutionFilter(
+        string $attackerCharacterId,
+        array $starterMoveIds,
+        string $hitType,
+        ?array $allowedComboIds,
+        ?int $maxDifficulty,
+        bool $includeUnratedDifficulty
+    ): ?array {
+        if ([] === $starterMoveIds) {
+            return null;
+        }
+
+        if (is_array($allowedComboIds) && [] === $allowedComboIds) {
+            return null;
+        }
+
+        $qb = $this->createQueryBuilder('combo')
+            ->select(
+                'combo.id AS combo_id',
+                'metrics.damage AS resolved_damage',
+                'starterMove.id AS starter_move_id'
+            )
+            ->innerJoin('combo.type', 'comboType')
+            ->innerJoin('combo.comboMetrics', 'metrics')
+            ->innerJoin('combo.steps', 'starterStep')
+            ->innerJoin('starterStep.child_sequence', 'starterSequence')
+            ->innerJoin('starterSequence.move', 'starterMove')
+            ->innerJoin('starterMove.character', 'attackerCharacter')
+            ->leftJoin('combo.comboRequirement', 'comboRequirement')
+            ->where('comboType.name = :comboTypeName')
+            ->andWhere('attackerCharacter.id = :attackerCharacterId')
+            ->andWhere('starterMove.id IN (:starterMoveIds)')
+            ->andWhere('starterStep.ordinal_in_combo = 1')
+            ->setParameter('comboTypeName', 'combo')
+            ->setParameter('attackerCharacterId', $attackerCharacterId)
+            ->setParameter('starterMoveIds', $starterMoveIds)
+            ->orderBy('metrics.damage', 'DESC')
+            ->addOrderBy('combo.id', 'ASC')
+            ->setMaxResults(1);
+
+        return $this->finalizeBestDynamicComboQuery(
+            $qb,
+            $hitType,
+            $allowedComboIds,
+            $maxDifficulty,
+            $includeUnratedDifficulty
+        );
+    }
+
+    /**
+     * @return list<array{id:int,name:string,difficultyLevel:int|null,damage:int|null}>
+     */
+    public function findComboKnowledgeRowsByCharacterId(string $characterId): array
+    {
+        $rows = $this->createQueryBuilder('combo')
+            ->select(
+                'combo.id AS id',
+                'combo.name AS name',
+                'metrics.difficultyLevel AS difficulty_level',
+                'metrics.damage AS damage'
+            )
+            ->innerJoin('combo.type', 'comboType')
+            ->innerJoin('combo.steps', 'starterStep')
+            ->innerJoin('starterStep.child_sequence', 'starterSequence')
+            ->innerJoin('starterSequence.move', 'starterMove')
+            ->innerJoin('starterMove.character', 'character')
+            ->leftJoin('combo.comboMetrics', 'metrics')
+            ->andWhere('comboType.name = :comboTypeName')
+            ->andWhere('starterStep.ordinal_in_combo = 1')
+            ->andWhere('character.id = :characterId')
+            ->setParameter('comboTypeName', 'combo')
+            ->setParameter('characterId', $characterId)
+            ->orderBy('metrics.difficultyLevel', 'ASC')
+            ->addOrderBy('combo.name', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_values(array_map(
+            static fn (array $row): array => [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+                'difficultyLevel' => null !== $row['difficulty_level'] ? (int) $row['difficulty_level'] : null,
+                'damage' => null !== $row['damage'] ? (int) $row['damage'] : null,
+            ],
+            $rows
+        ));
+    }
+
+    /**
+     * @return list<array{id:string,name:string}>
+     */
+    public function findCharacterSummariesWithCombos(): array
+    {
+        $rows = $this->createQueryBuilder('combo')
+            ->select('DISTINCT character.id AS id', 'character.name AS name')
+            ->innerJoin('combo.type', 'comboType')
+            ->innerJoin('combo.steps', 'starterStep')
+            ->innerJoin('starterStep.child_sequence', 'starterSequence')
+            ->innerJoin('starterSequence.move', 'starterMove')
+            ->innerJoin('starterMove.character', 'character')
+            ->andWhere('comboType.name = :comboTypeName')
+            ->andWhere('starterStep.ordinal_in_combo = 1')
+            ->setParameter('comboTypeName', 'combo')
+            ->orderBy('character.name', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_values(array_map(
+            static fn (array $row): array => [
+                'id' => (string) $row['id'],
+                'name' => (string) $row['name'],
+            ],
+            $rows
+        ));
+    }
+
+    /**
+     * @param list<int>|null $allowedComboIds
+     *
+     * @return array{combo_id:int,resolved_damage:int,starter_move_id:string}|null
+     */
+    private function finalizeBestDynamicComboQuery(
+        \Doctrine\ORM\QueryBuilder $qb,
+        string $hitType,
+        ?array $allowedComboIds,
+        ?int $maxDifficulty,
+        bool $includeUnratedDifficulty
+    ): ?array {
+        if (null !== $allowedComboIds) {
+            $qb->andWhere('combo.id IN (:allowedComboIds)')
+                ->setParameter('allowedComboIds', $allowedComboIds);
+        }
+
+        if (null !== $maxDifficulty) {
+            if ($includeUnratedDifficulty) {
+                $qb->andWhere('(metrics.difficultyLevel <= :maxDifficulty OR metrics.difficultyLevel IS NULL)');
+            } else {
+                $qb->andWhere('metrics.difficultyLevel <= :maxDifficulty');
+            }
+
+            $qb->setParameter('maxDifficulty', $maxDifficulty);
+        }
+
         if ('normal' === $hitType) {
             $qb->andWhere(
                 '(comboRequirement.id IS NULL) OR '

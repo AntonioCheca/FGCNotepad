@@ -2,6 +2,7 @@ import React from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
+import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 
 export type ScenarioType = "oki" | "blockstun";
 
@@ -51,6 +52,24 @@ interface ResolveDynamicCellPreviewResponse {
     resolvedStarterMoveId: string | null;
 }
 
+interface ScenarioExecutionModePayload {
+    mode: ScenarioExecutionSelection["mode"];
+    difficultyCap: number | null;
+}
+
+function buildExecutionPayload(selection?: ScenarioExecutionSelection): {executionMode: ScenarioExecutionModePayload} | {} {
+    if (!selection) {
+        return {};
+    }
+
+    return {
+        executionMode: {
+            mode: selection.mode,
+            difficultyCap: selection.mode === "difficulty_cap" ? selection.difficultyCap : null,
+        },
+    };
+}
+
 export interface ScenarioSearchFilters {
     q?: string;
     scenarioType?: ScenarioType | "";
@@ -92,12 +111,21 @@ export function useScenarios() {
         await request(() => api.delete(`/scenarios/${id}`));
     }, [request]);
 
-    const resolveDynamicCells = React.useCallback(async (id: string): Promise<ResolveDynamicCellsResponse> => {
-        return request(() => api.post(`/scenarios/${id}/resolve-dynamic-cells`));
+    const resolveDynamicCells = React.useCallback(async (
+        id: string,
+        executionSelection?: ScenarioExecutionSelection
+    ): Promise<ResolveDynamicCellsResponse> => {
+        return request(() => api.post(`/scenarios/${id}/resolve-dynamic-cells`, buildExecutionPayload(executionSelection)));
     }, [request]);
 
-    const resolveDynamicCellPreview = React.useCallback(async (dynamicCombo: MatrixDynamicComboPayload): Promise<ResolveDynamicCellPreviewResponse> => {
-        return request(() => api.post('/scenarios/resolve-dynamic-cell', dynamicCombo));
+    const resolveDynamicCellPreview = React.useCallback(async (
+        dynamicCombo: MatrixDynamicComboPayload,
+        executionSelection?: ScenarioExecutionSelection
+    ): Promise<ResolveDynamicCellPreviewResponse> => {
+        return request(() => api.post('/scenarios/resolve-dynamic-cell', {
+            ...dynamicCombo,
+            ...buildExecutionPayload(executionSelection),
+        }));
     }, [request]);
 
     return {

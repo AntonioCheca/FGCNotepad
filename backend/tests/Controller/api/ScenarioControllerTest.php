@@ -12,6 +12,8 @@ use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Entity\Scenario;
 use App\Entity\Step;
+use App\Entity\User;
+use App\Entity\UserCombo;
 use App\Entity\Visibility;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,7 +34,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
 
-        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+        $this->client->request('POST', '/api/scenarios', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'name' => 'Corner Oki Test',
             'scenarioType' => 'oki',
             'defenderCharacterId' => $defender->getId()?->toRfc4122(),
@@ -44,7 +46,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
         $created = json_decode((string) $this->client->getResponse()->getContent(), true);
 
-        $this->client->request('GET', '/api/scenarios/' . $created['id'], [], [], $this->getHeaders());
+        $this->client->request('GET', '/api/scenarios/' . $created['id']);
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
 
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
@@ -62,7 +64,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
 
-        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+        $this->client->request('POST', '/api/scenarios', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'name' => 'Layered Oki Test',
             'scenarioType' => 'oki',
             'defenderCharacterId' => $defender->getId()?->toRfc4122(),
@@ -83,7 +85,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
         $scenario = $this->createScenario('Throw Loop Oki', 'oki', $defender, $attacker, $triggerMove);
 
-        $this->client->request('GET', sprintf('/api/scenarios?q=throw&scenarioType=oki&defenderCharacterId=%s', $defender->getId()?->toRfc4122()), [], [], $this->getHeaders());
+        $this->client->request('GET', sprintf('/api/scenarios?q=throw&scenarioType=oki&defenderCharacterId=%s', $defender->getId()?->toRfc4122()));
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
 
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
@@ -195,6 +197,75 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame($starterMove->getId()?->toRfc4122(), $payload['resolvedStarterMoveId']);
     }
 
+    public function testResolveDynamicCellPreviewSupportsExecutionModes(): void
+    {
+        [, $attacker, ] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2MK', 300);
+
+        $easyCombo = $this->createComboForStarter($attacker, $starterMove, 1400, false, false, 2);
+        $hardCombo = $this->createComboForStarter($attacker, $starterMove, 2100, false, false, 7);
+
+        $this->client->request(
+            'POST',
+            '/api/scenarios/resolve-dynamic-cell',
+            [],
+            [],
+            array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']),
+            json_encode([
+                'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+                'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
+                'starterContext' => [
+                    'isPunishCounter' => false,
+                    'isCounterHit' => false,
+                ],
+                'executionMode' => [
+                    'mode' => 'difficulty_cap',
+                    'difficultyCap' => 3,
+                ],
+            ])
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $difficultyPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(1400, $difficultyPayload['resolvedDamage']);
+
+        $user = $this->em->getRepository(User::class)->findOneBy(['username' => 'testuser']);
+        self::assertNotNull($user);
+
+        $this->em->persist((new UserCombo())
+            ->setUser($user)
+            ->setCharacter($attacker)
+            ->setCombo($hardCombo)
+            ->setKnown(true));
+        $this->em->flush();
+
+        $this->client->request(
+            'POST',
+            '/api/scenarios/resolve-dynamic-cell',
+            [],
+            [],
+            array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']),
+            json_encode([
+                'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+                'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
+                'starterContext' => [
+                    'isPunishCounter' => false,
+                    'isCounterHit' => false,
+                ],
+                'executionMode' => [
+                    'mode' => 'my_knowledge',
+                ],
+            ])
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $knowledgePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(2100, $knowledgePayload['resolvedDamage']);
+        self::assertSame($hardCombo->getId(), $knowledgePayload['resolvedComboId']);
+
+        self::assertNotNull($easyCombo->getId());
+    }
+
     /**
      * @return array{Character, Character, Move}
      */
@@ -273,7 +344,14 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         return $move;
     }
 
-    private function createComboForStarter(Character $character, Move $starterMove, int $damage, bool $counterHit, bool $punishCounter): void
+    private function createComboForStarter(
+        Character $character,
+        Move $starterMove,
+        int $damage,
+        bool $counterHit,
+        bool $punishCounter,
+        ?int $difficultyLevel = null,
+    ): ComboSequences
     {
         $leafType = $this->em->getRepository(ComboSequenceType::class)->findOneBy(['name' => 'leaf'])
             ?? (new ComboSequenceType())->setName('leaf');
@@ -289,13 +367,19 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         $this->em->persist($visibility);
         $this->em->persist($connectionType);
 
-        $leaf = new ComboSequences();
-        $leaf->setName(sprintf('%s %s', $character->getName(), $starterMove->getNumpadNotation()))
-            ->setDescription('leaf')
-            ->setType($leafType)
-            ->setVisibility($visibility)
-            ->setMove($starterMove);
-        $this->em->persist($leaf);
+        $leaf = $this->em->getRepository(ComboSequences::class)->findOneBy([
+            'move' => $starterMove,
+            'type' => $leafType,
+        ]);
+        if (!$leaf instanceof ComboSequences) {
+            $leaf = new ComboSequences();
+            $leaf->setName(sprintf('%s %s', $character->getName(), $starterMove->getNumpadNotation()))
+                ->setDescription('leaf')
+                ->setType($leafType)
+                ->setVisibility($visibility)
+                ->setMove($starterMove);
+            $this->em->persist($leaf);
+        }
 
         $combo = new ComboSequences();
         $combo->setName(sprintf('Combo %d', $damage))
@@ -306,7 +390,8 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
 
         $metrics = (new ComboMetrics())
             ->setSequence($combo)
-            ->setDamage($damage);
+            ->setDamage($damage)
+            ->setDifficultyLevel($difficultyLevel);
         $this->em->persist($metrics);
 
         $step = (new Step())
@@ -327,6 +412,8 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         $this->em->persist($requirement);
 
         $this->em->flush();
+
+        return $combo;
     }
 
     /**

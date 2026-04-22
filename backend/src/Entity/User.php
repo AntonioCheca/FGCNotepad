@@ -50,8 +50,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, UserCombo>
      */
-    #[ORM\OneToMany(targetEntity: UserCombo::class, mappedBy: 'user_name', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: UserCombo::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $userCombos;
+
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    private ?UserScenarioPreference $scenarioPreference = null;
 
     public function __construct()
     {
@@ -182,7 +185,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if (!$this->userCombos->contains($userCombo)) {
             $this->userCombos->add($userCombo);
-            $userCombo->setUserName($this);
+            $userCombo->setUser($this);
         }
 
         return $this;
@@ -192,10 +195,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->userCombos->removeElement($userCombo)) {
             // set the owning side to null (unless already changed)
-            if ($userCombo->getUserName() === $this) {
-                $userCombo->setUserName(null);
+            if ($userCombo->getUser() === $this) {
+                $userCombo->setUser(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getScenarioPreference(): ?UserScenarioPreference
+    {
+        return $this->scenarioPreference;
+    }
+
+    public function setScenarioPreference(?UserScenarioPreference $scenarioPreference): static
+    {
+        if (null !== $scenarioPreference && $scenarioPreference->getUser() !== $this) {
+            $scenarioPreference->setUser($this);
+        }
+
+        $this->scenarioPreference = $scenarioPreference;
 
         return $this;
     }

@@ -46,7 +46,7 @@ abstract class AuthenticatedWebTestCase extends DatabaseTestCase
     protected function addAuthorizationToHeaders(): void
     {
         if ('' !== $this->jwtToken) {
-            $this->headers['HTTP_Authorization'] = sprintf('Bearer %s', $this->jwtToken);
+            $this->headers['HTTP_AUTHORIZATION'] = sprintf('Bearer %s', $this->jwtToken);
         }
     }
 

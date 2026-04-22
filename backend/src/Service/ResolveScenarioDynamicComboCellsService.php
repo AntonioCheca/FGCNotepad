@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Scenario;
 use App\Entity\ScenarioCell;
+use App\Entity\User;
 
 class ResolveScenarioDynamicComboCellsService
 {
@@ -15,7 +16,12 @@ class ResolveScenarioDynamicComboCellsService
     /**
      * @return array{totalDynamicCells:int,resolvedCells:int,unresolvedCells:int}
      */
-    public function resolveForScenario(Scenario $scenario): array
+    public function resolveForScenario(
+        Scenario $scenario,
+        ?User $user = null,
+        ?string $executionMode = null,
+        ?int $difficultyCap = null,
+    ): array
     {
         $attackerCharacterId = $scenario->getAttackerCharacter()?->getId()?->toRfc4122();
         if (null === $attackerCharacterId || '' === $attackerCharacterId) {
@@ -46,7 +52,14 @@ class ResolveScenarioDynamicComboCellsService
             }
 
             $hitType = $this->toHitType($cell->getStarterContext());
-            $resolution = $this->resolveDynamicComboCellService->resolve($attackerCharacterId, $starterMoveIds, $hitType);
+            $resolution = $this->resolveDynamicComboCellService->resolve(
+                $attackerCharacterId,
+                $starterMoveIds,
+                $hitType,
+                $user,
+                $executionMode,
+                $difficultyCap
+            );
 
             $cell->setCachedValue($resolution['resolvedDamage']);
 
