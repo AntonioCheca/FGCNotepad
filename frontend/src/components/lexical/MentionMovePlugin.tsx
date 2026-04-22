@@ -41,7 +41,7 @@ function useMoveLookupService(query) {
         return () => {
             isActive = false;
         };
-    }, [query]);
+    }, [query, searchMoves]);
 
     return results;
 }

@@ -6,6 +6,11 @@ export interface ScenarioSearchItem {
     typeLabel: string;
 }
 
+export interface ScenarioSearchRequest {
+    q?: string;
+    size?: number;
+}
+
 export class ScenarioSearchError extends Error {
     statusCode: number | null;
 
@@ -82,9 +87,16 @@ export function filterScenarioItems(items: ScenarioSearchItem[], query: string):
     });
 }
 
-export async function fetchScenarioItems(): Promise<ScenarioSearchItem[]> {
+export async function fetchScenarioItems(request: ScenarioSearchRequest = {}): Promise<ScenarioSearchItem[]> {
     try {
-        const payload = await requestData(() => api.get<unknown>("/scenarios"));
+        const payload = await requestData(() =>
+            api.get<unknown>("/scenarios", {
+                params: {
+                    q: request.q?.trim() || undefined,
+                    size: typeof request.size === "number" ? request.size : undefined,
+                },
+            }),
+        );
         return normalizeScenarioItems(payload);
     } catch (error) {
         const statusCode =

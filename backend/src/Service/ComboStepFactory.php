@@ -45,7 +45,6 @@ final class ComboStepFactory
 
             $step = new Step();
             $step
-                ->setParentSequence($parentSequence)
                 ->setChildSequence($childSequence)
                 ->setOrdinalInCombo($ordinalInCombo)
                 ->setDelayMinFrames($delayMinFrames)
@@ -56,6 +55,8 @@ final class ComboStepFactory
             if ($connectionType instanceof ConnectionType) {
                 $step->setConnectionType($connectionType);
             }
+
+            $parentSequence->addStep($step);
 
             $steps[] = $step;
         }

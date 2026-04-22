@@ -110,7 +110,12 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
                 continue;
             }
 
-            if (!$this->isDelayConnection($step)) {
+            $hasDelayMetadata = null !== $step->getDelayMinFrames()
+                || null !== $step->getDelayMaxFrames()
+                || $step->isDelayMinUnverified()
+                || $step->isDelayMaxUnverified();
+
+            if (!$hasDelayMetadata) {
                 continue;
             }
 
@@ -119,6 +124,10 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
             }
 
             if ($step->isDelayMinUnverified() || $step->isDelayMaxUnverified()) {
+                return true;
+            }
+
+            if (!$this->isDelayConnection($step)) {
                 return true;
             }
         }

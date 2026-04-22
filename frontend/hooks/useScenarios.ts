@@ -57,7 +57,7 @@ interface ScenarioExecutionModePayload {
     difficultyCap: number | null;
 }
 
-function buildExecutionPayload(selection?: ScenarioExecutionSelection): {executionMode: ScenarioExecutionModePayload} | {} {
+function buildExecutionPayload(selection?: ScenarioExecutionSelection): {executionMode?: ScenarioExecutionModePayload} {
     if (!selection) {
         return {};
     }
@@ -76,6 +76,7 @@ export interface ScenarioSearchFilters {
     defenderCharacterId?: string;
     attackerCharacterId?: string;
     triggerMoveId?: string;
+    size?: number;
 }
 
 export function useScenarios() {
@@ -90,6 +91,7 @@ export function useScenarios() {
                     defenderCharacterId: filters.defenderCharacterId || undefined,
                     attackerCharacterId: filters.attackerCharacterId || undefined,
                     triggerMoveId: filters.triggerMoveId || undefined,
+                    size: typeof filters.size === "number" ? filters.size : undefined,
                 },
             })
         );

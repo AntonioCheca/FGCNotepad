@@ -3,6 +3,7 @@
 namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
+use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\RequirementSpecificCharacter;
 use App\Entity\ComboSequences;
@@ -55,6 +56,221 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertIsArray($payload);
         $this->assertNotEmpty($payload);
         $this->assertSame($characterId, $payload[0]['character']['id']);
+    }
+
+    public function testListSupportsComboFilters(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $connectionType = new ConnectionType();
+        $connectionType->setName('Initial Move');
+        $this->entityManager->persist($connectionType);
+
+        $character = new Character();
+        $character->setName('Ryu');
+        $this->entityManager->persist($character);
+
+        $firstMove = $this->createLeafForFilters($character, $leafType, $visibility, '2MK', 'normal');
+        $driveMove = $this->createLeafForFilters($character, $leafType, $visibility, 'Drive Rush', 'drive');
+
+        $matching = $this->createComboForFilters(
+            'Ryu Punish Starter',
+            $comboType,
+            $visibility,
+            $firstMove,
+            $driveMove,
+            $connectionType,
+            2400,
+            6,
+            true,
+            true
+        );
+
+        $this->createComboForFilters(
+            'Ryu Meterless',
+            $comboType,
+            $visibility,
+            $firstMove,
+            null,
+            $connectionType,
+            1200,
+            2,
+            false,
+            false
+        );
+
+        $this->entityManager->flush();
+
+        $this->client->request(
+            'GET',
+            sprintf(
+                '/api/combo-sequences?q=punish&characterId=%s&firstMoveId=%s&minDamage=2000&maxDifficulty=7&counterHitRequired=true&isEssential=true&moveTypes[]=drive',
+                urlencode((string) $character->getId()),
+                urlencode((string) $firstMove->getMove()?->getId())
+            ),
+            [],
+            [],
+            $this->getHeaders(),
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(1, $payload);
+        $this->assertSame($matching->getName(), $payload[0]['name']);
+    }
+
+    public function testListSupportsCombinedMoveTypeRequirementAndDifficultyFilters(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $connectionType = new ConnectionType();
+        $connectionType->setName('Initial Move');
+        $this->entityManager->persist($connectionType);
+
+        $character = new Character();
+        $character->setName('Ken');
+        $this->entityManager->persist($character);
+
+        $firstMoveLeaf = $this->createLeafForFilters($character, $leafType, $visibility, '2MP', 'normal');
+        $superLeaf = $this->createLeafForFilters($character, $leafType, $visibility, 'SA1', 'super');
+        $driveLeaf = $this->createLeafForFilters($character, $leafType, $visibility, 'Drive Rush', 'drive');
+
+        $expectedCombo = $this->createComboForFilters(
+            'Ken Confirm Super',
+            $comboType,
+            $visibility,
+            $firstMoveLeaf,
+            $superLeaf,
+            $connectionType,
+            2100,
+            5,
+            true,
+            true
+        );
+
+        $missingMetrics = new ComboSequences();
+        $missingMetrics->setName('Ken Missing Metrics');
+        $missingMetrics->setDescription('missing metrics');
+        $missingMetrics->setType($comboType);
+        $missingMetrics->setVisibility($visibility);
+        $missingMetrics->setIsEssential(true);
+
+        $missingMetricsRequirement = new ComboRequirement();
+        $missingMetricsRequirement->setSequence($missingMetrics);
+        $missingMetricsRequirement->setCounterHitRequired(true);
+        $missingMetricsRequirement->setPunishCounterRequired(false);
+        $missingMetricsRequirement->setCornerRequired(false);
+        $missingMetricsRequirement->setAirborneRequired(false);
+        $missingMetricsRequirement->setMidScreenRequired(false);
+        $missingMetricsRequirement->setNotCrouchingRequired(false);
+        $missingMetrics->setComboRequirement($missingMetricsRequirement);
+
+        $missingMetricsStarter = new Step();
+        $missingMetricsStarter->setParentSequence($missingMetrics);
+        $missingMetricsStarter->setChildSequence($firstMoveLeaf);
+        $missingMetricsStarter->setConnectionType($connectionType);
+        $missingMetricsStarter->setOrdinalInCombo(1);
+        $missingMetrics->addStep($missingMetricsStarter);
+
+        $missingMetricsSecond = new Step();
+        $missingMetricsSecond->setParentSequence($missingMetrics);
+        $missingMetricsSecond->setChildSequence($superLeaf);
+        $missingMetricsSecond->setConnectionType($connectionType);
+        $missingMetricsSecond->setOrdinalInCombo(2);
+        $missingMetrics->addStep($missingMetricsSecond);
+
+        $this->entityManager->persist($missingMetricsRequirement);
+        $this->entityManager->persist($missingMetrics);
+        $this->entityManager->persist($missingMetricsStarter);
+        $this->entityManager->persist($missingMetricsSecond);
+
+        $tooHardCombo = $this->createComboForFilters(
+            'Ken Too Hard',
+            $comboType,
+            $visibility,
+            $firstMoveLeaf,
+            $superLeaf,
+            $connectionType,
+            2500,
+            8,
+            true,
+            true
+        );
+
+        $wrongRequirementCombo = $this->createComboForFilters(
+            'Ken Wrong Requirement',
+            $comboType,
+            $visibility,
+            $firstMoveLeaf,
+            $superLeaf,
+            $connectionType,
+            2000,
+            4,
+            false,
+            true
+        );
+
+        $wrongMoveTypeCombo = $this->createComboForFilters(
+            'Ken Drive Route',
+            $comboType,
+            $visibility,
+            $firstMoveLeaf,
+            $driveLeaf,
+            $connectionType,
+            2200,
+            5,
+            true,
+            true
+        );
+
+        $this->entityManager->flush();
+
+        $this->client->request(
+            'GET',
+            sprintf(
+                '/api/combo-sequences?characterId=%s&firstMoveId=%s&minDifficulty=3&maxDifficulty=6&counterHitRequired=true&moveTypes[]=super',
+                urlencode((string) $character->getId()),
+                urlencode((string) $firstMoveLeaf->getMove()?->getId())
+            ),
+            [],
+            [],
+            $this->getHeaders(),
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(1, $payload);
+        $this->assertSame($expectedCombo->getName(), $payload[0]['name']);
+
+        $returnedNames = array_map(static fn (array $row): string => (string) ($row['name'] ?? ''), $payload);
+        $this->assertNotContains($missingMetrics->getName(), $returnedNames);
+        $this->assertNotContains($tooHardCombo->getName(), $returnedNames);
+        $this->assertNotContains($wrongRequirementCombo->getName(), $returnedNames);
+        $this->assertNotContains($wrongMoveTypeCombo->getName(), $returnedNames);
     }
 
     public function testTranslateNotationReturnsSteps(): void
@@ -559,6 +775,95 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->entityManager->persist($move);
         $this->entityManager->persist($frameData);
         $this->entityManager->persist($sequence);
+    }
+
+    private function createLeafForFilters(
+        Character $character,
+        ComboSequenceType $leafType,
+        Visibility $visibility,
+        string $notation,
+        string $moveType
+    ): ComboSequences {
+        $move = new Move();
+        $move->setCharacter($character);
+        $move->setNumpadNotation($notation);
+
+        $frameData = new FrameData();
+        $frameData->setMoveType($moveType);
+        $move->setFrameData($frameData);
+
+        $leafSequence = new ComboSequences();
+        $leafSequence->setName(sprintf('%s %s', $character->getName(), $notation));
+        $leafSequence->setDescription('leaf');
+        $leafSequence->setMove($move);
+        $leafSequence->setType($leafType);
+        $leafSequence->setVisibility($visibility);
+
+        $this->entityManager->persist($move);
+        $this->entityManager->persist($frameData);
+        $this->entityManager->persist($leafSequence);
+
+        return $leafSequence;
+    }
+
+    private function createComboForFilters(
+        string $name,
+        ComboSequenceType $comboType,
+        Visibility $visibility,
+        ComboSequences $firstMove,
+        ?ComboSequences $secondMove,
+        ConnectionType $connectionType,
+        int $damage,
+        int $difficulty,
+        bool $counterHitRequired,
+        bool $isEssential
+    ): ComboSequences {
+        $combo = new ComboSequences();
+        $combo->setName($name);
+        $combo->setDescription('test combo');
+        $combo->setType($comboType);
+        $combo->setVisibility($visibility);
+        $combo->setIsEssential($isEssential);
+
+        $metrics = new ComboMetrics();
+        $metrics->setSequence($combo);
+        $metrics->setDamage($damage);
+        $metrics->setDifficultyLevel($difficulty);
+        $combo->setComboMetrics($metrics);
+
+        $requirement = new ComboRequirement();
+        $requirement->setSequence($combo);
+        $requirement->setCounterHitRequired($counterHitRequired);
+        $requirement->setPunishCounterRequired(false);
+        $requirement->setCornerRequired(false);
+        $requirement->setAirborneRequired(false);
+        $requirement->setMidScreenRequired(false);
+        $requirement->setNotCrouchingRequired(false);
+        $combo->setComboRequirement($requirement);
+
+        $starterStep = new Step();
+        $starterStep->setParentSequence($combo);
+        $starterStep->setChildSequence($firstMove);
+        $starterStep->setConnectionType($connectionType);
+        $starterStep->setOrdinalInCombo(1);
+        $combo->addStep($starterStep);
+
+        if (null !== $secondMove) {
+            $secondStep = new Step();
+            $secondStep->setParentSequence($combo);
+            $secondStep->setChildSequence($secondMove);
+            $secondStep->setConnectionType($connectionType);
+            $secondStep->setOrdinalInCombo(2);
+            $combo->addStep($secondStep);
+            $this->entityManager->persist($secondStep);
+        }
+
+        $this->entityManager->persist($metrics);
+        $this->entityManager->persist($requirement);
+        $this->entityManager->persist($combo);
+        $this->entityManager->persist($starterStep);
+
+        return $combo;
     }
 
     /**

@@ -133,6 +133,10 @@ interface ComboMoveSummary {
     name?: string;
 }
 
+interface ComboStepSummary {
+    child_sequence_name?: string | null;
+}
+
 interface ComboSeasonSummary {
     name?: string;
 }
@@ -142,6 +146,7 @@ export interface ComboApiSummary {
     name?: string;
     character?: { name?: string };
     moves?: ComboMoveSummary[];
+    steps?: ComboStepSummary[];
     comboMetrics?: { damage?: number | string };
     season?: ComboSeasonSummary[];
     is_usable?: boolean;
@@ -150,11 +155,16 @@ export interface ComboApiSummary {
 }
 
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
+    const moveNamesFromLegacyField = combo.moves?.map((move) => move.name ?? "-") ?? [];
+    const moveNamesFromSteps = combo.steps
+        ?.map((step) => step.child_sequence_name ?? "")
+        .filter((name) => name.trim() !== "") ?? [];
+
     return {
         id: combo.id,
         title: combo.name ?? "-",
         characterName: combo.character?.name ?? "-",
-        moves: combo.moves?.map((move) => move.name ?? "-") ?? [],
+        moves: moveNamesFromLegacyField.length > 0 ? moveNamesFromLegacyField : moveNamesFromSteps,
         damage: combo.comboMetrics?.damage ?? "-",
         season: Array.isArray(combo.season)
             ? combo.season.map((season) => season.name ?? "-").join(", ")

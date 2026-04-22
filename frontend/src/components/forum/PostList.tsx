@@ -9,12 +9,14 @@ type Props = {
 };
 
 export const PostList = ({posts, loading}: Props) => {
+    const safePosts = Array.isArray(posts) ? posts : [];
+
     if (loading) return <AppCircularProgress sx={{display: "block", mx: "auto", my: 4}}/>;
-    if (posts.length === 0) return <p>No posts found.</p>;
+    if (safePosts.length === 0) return <p>No posts found.</p>;
 
     return (
         <AppList>
-            {posts.map((post) => (
+            {safePosts.map((post) => (
                 <PostItem key={post.id} post={post}/>
             ))}
         </AppList>

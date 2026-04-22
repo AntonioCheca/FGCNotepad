@@ -3,6 +3,7 @@
 namespace App\Controller\api;
 
 use App\Entity\ComboSequences;
+use App\Util\Enum\MoveType;
 use App\Entity\ConnectionType;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
@@ -34,9 +35,46 @@ class ComboSequenceController extends AbstractController
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
-        $sequences = $this->comboSequencesRepository->findAllNonLeafs();
+        $rawMoveTypesValue = $request->query->all()['moveTypes'] ?? [];
+        $rawMoveTypes = is_array($rawMoveTypesValue) ? $rawMoveTypesValue : [$rawMoveTypesValue];
+        $normalizedMoveTypes = [];
+        foreach ($rawMoveTypes as $moveType) {
+            if (!is_string($moveType)) {
+                continue;
+            }
+
+            $trimmed = trim(mb_strtolower($moveType));
+            if ('' === $trimmed || !MoveType::isValid($trimmed)) {
+                continue;
+            }
+
+            $normalizedMoveTypes[$trimmed] = $trimmed;
+        }
+
+        $filters = [
+            'q' => $this->normalizeStringFilter($request->query->get('q')),
+            'characterId' => $this->normalizeStringFilter($request->query->get('characterId')),
+            'firstMoveId' => $this->normalizeStringFilter($request->query->get('firstMoveId')),
+            'seasonId' => $this->normalizeIntegerFilter($request->query->get('seasonId')),
+            'minDamage' => $this->normalizeIntegerFilter($request->query->get('minDamage')),
+            'maxDamage' => $this->normalizeIntegerFilter($request->query->get('maxDamage')),
+            'minDifficulty' => $this->normalizeIntegerFilter($request->query->get('minDifficulty')),
+            'maxDifficulty' => $this->normalizeIntegerFilter($request->query->get('maxDifficulty')),
+            'counterHitRequired' => $this->normalizeBooleanFilter($request->query->get('counterHitRequired')),
+            'punishCounterRequired' => $this->normalizeBooleanFilter($request->query->get('punishCounterRequired')),
+            'cornerRequired' => $this->normalizeBooleanFilter($request->query->get('cornerRequired')),
+            'airborneRequired' => $this->normalizeBooleanFilter($request->query->get('airborneRequired')),
+            'midScreenRequired' => $this->normalizeBooleanFilter($request->query->get('midScreenRequired')),
+            'notCrouchingRequired' => $this->normalizeBooleanFilter($request->query->get('notCrouchingRequired')),
+            'isEssential' => $this->normalizeBooleanFilter($request->query->get('isEssential')),
+            'moveTypes' => array_values($normalizedMoveTypes),
+        ];
+
+        $limit = $request->query->getInt('size', 100);
+
+        $sequences = $this->comboSequencesRepository->searchNonLeafsByFilters($filters, $limit);
         $json = $this->serializer->serialize($sequences, 'json');
 
         return new JsonResponse($json, 200, [], true);
@@ -70,6 +108,54 @@ class ComboSequenceController extends AbstractController
     public function listRequirementObjects(RequirementSpecificCharacterCatalog $catalog): JsonResponse
     {
         return new JsonResponse($catalog->listForApi(), JsonResponse::HTTP_OK);
+    }
+
+    private function normalizeStringFilter(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return '' === $trimmed ? null : $trimmed;
+    }
+
+    private function normalizeIntegerFilter(mixed $value): ?int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ('' === $trimmed || !preg_match('/^-?\d+$/', $trimmed)) {
+            return null;
+        }
+
+        return (int) $trimmed;
+    }
+
+    private function normalizeBooleanFilter(mixed $value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $normalized = mb_strtolower(trim($value));
+            if ('true' === $normalized || '1' === $normalized) {
+                return true;
+            }
+            if ('false' === $normalized || '0' === $normalized) {
+                return false;
+            }
+        }
+
+        return null;
     }
 
 

@@ -17,9 +17,7 @@ export default function SearchCombosPage() {
         setLoading(true);
         try {
             const data = await fetchCombos(filters);
-            console.log("[SearchCombosPage] raw combos:", data);
             const mapped = (data ?? []).map(mapComboToRow);
-            console.log("[SearchCombosPage] mapped combos:", mapped);
             setCombos(mapped);
         } catch (err) {
             console.error(err);
@@ -33,15 +31,12 @@ export default function SearchCombosPage() {
         loadCombos();
     }, [loadCombos]);
 
-    console.log("[SearchCombosPage] Rendering with combos:", combos);
-
     return (
         <AppContainer maxWidth={false}>
             <AppTypography variant="h4" gutterBottom>
                 Search Combos
             </AppTypography>
             <ComboFilters onChange={(newFilters) => {
-                console.log("[SearchCombosPage] Filters changed:", newFilters);
                 setFilters(newFilters);
             }}/>
             {loading ? (

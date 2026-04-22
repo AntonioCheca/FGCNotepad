@@ -28,7 +28,15 @@ const usePosts = () => {
                 })
             );
 
-            return data;
+            if (Array.isArray(data)) {
+                return data;
+            }
+
+            if (Array.isArray(data?.data)) {
+                return data.data;
+            }
+
+            return [];
         } catch (error) {
             console.error("Error fetching posts", error);
             throw error;

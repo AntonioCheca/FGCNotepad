@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\ComboSequences;
+use App\Entity\Step;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -36,6 +37,143 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->where('cst.name != :typeName')
             ->setParameter('typeName', 'leaf')
             ->orderBy('cs.id', 'ASC');
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @param array{
+     *     q?: string|null,
+     *     characterId?: string|null,
+     *     firstMoveId?: string|null,
+     *     seasonId?: int|null,
+     *     minDamage?: int|null,
+     *     maxDamage?: int|null,
+     *     minDifficulty?: int|null,
+     *     maxDifficulty?: int|null,
+     *     counterHitRequired?: bool|null,
+     *     punishCounterRequired?: bool|null,
+     *     cornerRequired?: bool|null,
+     *     airborneRequired?: bool|null,
+     *     midScreenRequired?: bool|null,
+     *     notCrouchingRequired?: bool|null,
+     *     isEssential?: bool|null,
+     *     moveTypes?: list<string>
+     * } $filters
+     *
+     * @return list<ComboSequences>
+     */
+    public function searchNonLeafsByFilters(array $filters, int $limit = 100): array
+    {
+        $safeLimit = max(1, min($limit, 300));
+
+        $qb = $this->createQueryBuilder('combo')
+            ->leftJoin('combo.type', 'comboType')
+            ->leftJoin('combo.comboMetrics', 'metrics')
+            ->leftJoin('combo.comboRequirement', 'requirement')
+            ->addSelect('comboType', 'metrics', 'requirement')
+            ->andWhere('comboType.name != :leafType')
+            ->setParameter('leafType', 'leaf')
+            ->orderBy('combo.id', 'ASC')
+            ->setMaxResults($safeLimit)
+            ->distinct();
+
+        $query = isset($filters['q']) && is_string($filters['q']) ? trim($filters['q']) : '';
+        if ('' !== $query) {
+            $qb->andWhere('LOWER(combo.name) LIKE :query')
+                ->setParameter('query', '%' . mb_strtolower($query) . '%');
+        }
+
+        $characterId = isset($filters['characterId']) && is_string($filters['characterId']) ? trim($filters['characterId']) : '';
+        $firstMoveId = isset($filters['firstMoveId']) && is_string($filters['firstMoveId']) ? trim($filters['firstMoveId']) : '';
+        if ('' !== $characterId || '' !== $firstMoveId) {
+            $qb->innerJoin('combo.steps', 'starterStep')
+                ->innerJoin('starterStep.child_sequence', 'starterSequence')
+                ->innerJoin('starterSequence.move', 'starterMove')
+                ->andWhere('starterStep.ordinal_in_combo = 1');
+
+            if ('' !== $characterId) {
+                $qb->innerJoin('starterMove.character', 'starterCharacter')
+                    ->andWhere('starterCharacter.id = :characterId')
+                    ->setParameter('characterId', $characterId);
+            }
+
+            if ('' !== $firstMoveId) {
+                $qb->andWhere('starterMove.id = :firstMoveId')
+                    ->setParameter('firstMoveId', $firstMoveId);
+            }
+        }
+
+        $seasonId = isset($filters['seasonId']) && is_int($filters['seasonId']) ? $filters['seasonId'] : null;
+        if (null !== $seasonId) {
+            $qb->innerJoin('combo.season', 'season')
+                ->andWhere('season.id = :seasonId')
+                ->setParameter('seasonId', $seasonId);
+        }
+
+        $minDamage = isset($filters['minDamage']) && is_int($filters['minDamage']) ? $filters['minDamage'] : null;
+        if (null !== $minDamage) {
+            $qb->andWhere('metrics.damage >= :minDamage')
+                ->setParameter('minDamage', $minDamage);
+        }
+
+        $maxDamage = isset($filters['maxDamage']) && is_int($filters['maxDamage']) ? $filters['maxDamage'] : null;
+        if (null !== $maxDamage) {
+            $qb->andWhere('metrics.damage <= :maxDamage')
+                ->setParameter('maxDamage', $maxDamage);
+        }
+
+        $minDifficulty = isset($filters['minDifficulty']) && is_int($filters['minDifficulty']) ? $filters['minDifficulty'] : null;
+        if (null !== $minDifficulty) {
+            $qb->andWhere('metrics.difficultyLevel >= :minDifficulty')
+                ->setParameter('minDifficulty', $minDifficulty);
+        }
+
+        $maxDifficulty = isset($filters['maxDifficulty']) && is_int($filters['maxDifficulty']) ? $filters['maxDifficulty'] : null;
+        if (null !== $maxDifficulty) {
+            $qb->andWhere('metrics.difficultyLevel <= :maxDifficulty')
+                ->setParameter('maxDifficulty', $maxDifficulty);
+        }
+
+        $booleanRequirementFilters = [
+            'counterHitRequired' => 'requirement.counter_hit_required',
+            'punishCounterRequired' => 'requirement.punish_counter_required',
+            'cornerRequired' => 'requirement.corner_required',
+            'airborneRequired' => 'requirement.airborne_required',
+            'midScreenRequired' => 'requirement.mid_screen_required',
+            'notCrouchingRequired' => 'requirement.not_crouching_required',
+        ];
+
+        foreach ($booleanRequirementFilters as $filterKey => $columnName) {
+            if (!array_key_exists($filterKey, $filters) || !is_bool($filters[$filterKey])) {
+                continue;
+            }
+
+            $parameterName = sprintf('%sValue', $filterKey);
+            $qb->andWhere(sprintf('%s = :%s', $columnName, $parameterName))
+                ->setParameter($parameterName, $filters[$filterKey]);
+        }
+
+        if (array_key_exists('isEssential', $filters) && is_bool($filters['isEssential'])) {
+            $qb->andWhere('combo.isEssential = :isEssential')
+                ->setParameter('isEssential', $filters['isEssential']);
+        }
+
+        $moveTypes = isset($filters['moveTypes']) && is_array($filters['moveTypes']) ? array_values($filters['moveTypes']) : [];
+        if ([] !== $moveTypes) {
+            $moveTypeSubQuery = $this->getEntityManager()->createQueryBuilder()
+                ->select('1')
+                ->from(Step::class, 'moveTypeStep')
+                ->innerJoin('moveTypeStep.child_sequence', 'moveTypeSequence')
+                ->innerJoin('moveTypeSequence.move', 'moveTypeMove')
+                ->innerJoin('moveTypeMove.frameData', 'moveTypeFrameData')
+                ->where('moveTypeStep.parent_sequence = combo')
+                ->andWhere('moveTypeFrameData.moveType IN (:moveTypes)')
+                ->getDQL();
+
+            $qb->andWhere($qb->expr()->exists($moveTypeSubQuery))
+                ->setParameter('moveTypes', $moveTypes);
+        }
 
         return $qb->getQuery()->getResult();
     }

@@ -1,6 +1,6 @@
 import React from "react";
 
-import {fetchScenarioItems, filterScenarioItems, ScenarioSearchError, ScenarioSearchItem} from "../services/scenarioSearchService";
+import {fetchScenarioItems, ScenarioSearchError, ScenarioSearchItem} from "../services/scenarioSearchService";
 
 interface ScenarioLinkPanelProps {
     open: boolean;
@@ -15,6 +15,17 @@ export function ScenarioLinkPanel({open, initialScenarioId, onClose, onConfirm}:
     const [query, setQuery] = React.useState("");
     const [items, setItems] = React.useState<ScenarioSearchItem[]>([]);
     const [selectedId, setSelectedId] = React.useState<string | null>(initialScenarioId ?? null);
+    const [debouncedQuery, setDebouncedQuery] = React.useState("");
+
+    React.useEffect(() => {
+        const handle = window.setTimeout(() => {
+            setDebouncedQuery(query.trim());
+        }, 250);
+
+        return () => {
+            window.clearTimeout(handle);
+        };
+    }, [query]);
 
     React.useEffect(() => {
         if (!open) {
@@ -25,7 +36,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, onClose, onConfirm}:
         setLoading(true);
         setError(null);
 
-        fetchScenarioItems()
+        fetchScenarioItems({q: debouncedQuery, size: 80})
             .then((nextItems) => {
                 if (!isMounted) {
                     return;
@@ -55,9 +66,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, onClose, onConfirm}:
         return () => {
             isMounted = false;
         };
-    }, [open, initialScenarioId]);
-
-    const filtered = React.useMemo(() => filterScenarioItems(items, query), [items, query]);
+    }, [open, initialScenarioId, debouncedQuery]);
 
     if (!open) {
         return null;
@@ -107,10 +116,10 @@ export function ScenarioLinkPanel({open, initialScenarioId, onClose, onConfirm}:
                 <div style={{border: "1px solid #f0f0f0", borderRadius: 6, overflow: "auto", maxHeight: "50vh"}}>
                     {loading ? <div style={{padding: 12}}>Loading scenarios...</div> : null}
                     {!loading && error ? <div style={{padding: 12, color: "#cf1322"}}>{error}</div> : null}
-                    {!loading && !error && filtered.length === 0 ? <div style={{padding: 12}}>No scenarios found.</div> : null}
-                    {!loading && !error && filtered.length > 0 ? (
+                    {!loading && !error && items.length === 0 ? <div style={{padding: 12}}>No scenarios found.</div> : null}
+                    {!loading && !error && items.length > 0 ? (
                         <div>
-                            {filtered.map((item) => {
+                            {items.map((item) => {
                                 const selected = selectedId === item.id;
                                 return (
                                     <button
@@ -142,7 +151,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, onClose, onConfirm}:
                         type="button"
                         disabled={!selectedId}
                         onClick={() => {
-                            const selected = filtered.find((item) => item.id === selectedId) ?? items.find((item) => item.id === selectedId);
+                            const selected = items.find((item) => item.id === selectedId);
                             if (selected) {
                                 onConfirm(selected);
                             }

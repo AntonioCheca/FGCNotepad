@@ -1,4 +1,5 @@
 // hooks/useCombos.js
+import {useCallback} from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 
@@ -16,7 +17,7 @@ const useCombos = () => {
      * @param {number} [options.size] - Page size (future use)
      * @returns {Promise<Array>} - List of combos
      */
-    const fetchCombos = async (options = {}) => {
+    const fetchCombos = useCallback(async (options = {}) => {
         try {
             const data = await request(() =>
                 api.get("/combo-sequences", {params: {...options}})
@@ -26,9 +27,9 @@ const useCombos = () => {
             console.error("Error fetching combos", error);
             throw error;
         }
-    };
+    }, [request]);
 
-    const fetchLeafs = async (characterId) => {
+    const fetchLeafs = useCallback(async (characterId) => {
         try {
             if (!characterId) {
                 return [];
@@ -45,7 +46,7 @@ const useCombos = () => {
             console.error("[useCombos] Error fetching leafs:", error);
             throw error;
         }
-    };
+    }, [request]);
 
 
     /**
@@ -53,7 +54,7 @@ const useCombos = () => {
      * @param {Object} comboData - ComboSequences creation payload
      * @returns {Promise<Object>} - Created combo
      */
-    const createCombo = async (comboData) => {
+    const createCombo = useCallback(async (comboData) => {
         try {
             const data = await request(() =>
                 api.post("/combo-sequences", comboData)
@@ -63,9 +64,9 @@ const useCombos = () => {
             console.error("Error creating combo", error);
             throw error;
         }
-    };
+    }, [request]);
 
-    const createFullCombo = async (payload) => {
+    const createFullCombo = useCallback(async (payload) => {
         try {
             const data = await request(() =>
                 api.post("/combo-sequences/full", payload)
@@ -75,9 +76,9 @@ const useCombos = () => {
             console.error("Error creating full combo", error);
             throw error;
         }
-    };
+    }, [request]);
 
-    const translateComboNotation = async (payload) => {
+    const translateComboNotation = useCallback(async (payload) => {
         try {
             return await request(() =>
                 api.post("/combo-sequences/translate", payload)
@@ -86,9 +87,9 @@ const useCombos = () => {
             console.error("Error translating combo notation", error);
             throw error;
         }
-    };
+    }, [request]);
 
-    const fetchRequirementObjects = async () => {
+    const fetchRequirementObjects = useCallback(async () => {
         try {
             return await request(() =>
                 api.get("/combo-sequences/requirements/objects")
@@ -97,14 +98,14 @@ const useCombos = () => {
             console.error("Error fetching requirement objects", error);
             throw error;
         }
-    };
+    }, [request]);
 
     /**
      * Get details for a specific combo
      * @param {number|string} id - Combo ID
      * @returns {Promise<Object>} - Combo details
      */
-    const getCombo = async (id) => {
+    const getCombo = useCallback(async (id) => {
         try {
             const data = await request(() =>
                 api.get(`/combo-sequences/${id}`)
@@ -114,7 +115,7 @@ const useCombos = () => {
             console.error(`Error fetching combo with ID ${id}`, error);
             throw error;
         }
-    };
+    }, [request]);
 
     /**
      * Update an existing combo
@@ -122,7 +123,7 @@ const useCombos = () => {
      * @param {Object} updateData - Partial combo data to update
      * @returns {Promise<Object>} - Updated combo
      */
-    const updateCombo = async (id, updateData) => {
+    const updateCombo = useCallback(async (id, updateData) => {
         try {
             const data = await request(() =>
                 api.patch(`/combo-sequences/${id}`, updateData)
@@ -132,14 +133,14 @@ const useCombos = () => {
             console.error(`Error updating combo with ID ${id}`, error);
             throw error;
         }
-    };
+    }, [request]);
 
     /**
      * Delete a combo
      * @param {number|string} id - Combo ID
      * @returns {Promise<void>}
      */
-    const deleteCombo = async (id) => {
+    const deleteCombo = useCallback(async (id) => {
         try {
             await request(() =>
                 api.delete(`/combo-sequences/${id}`)
@@ -148,7 +149,7 @@ const useCombos = () => {
             console.error(`Error deleting combo with ID ${id}`, error);
             throw error;
         }
-    };
+    }, [request]);
 
     return {
         fetchCombos,
