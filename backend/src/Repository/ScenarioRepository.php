@@ -79,6 +79,27 @@ class ScenarioRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /**
+     * @return list<Scenario>
+     */
+    public function findEssentialByCharacterId(string $characterId): array
+    {
+        return $this->createQueryBuilder('scenario')
+            ->leftJoin('scenario.attackerCharacter', 'attackerCharacter')
+            ->leftJoin('scenario.defenderCharacter', 'defenderCharacter')
+            ->leftJoin('scenario.rows', 'rows')
+            ->leftJoin('scenario.columns', 'columns')
+            ->leftJoin('scenario.cells', 'cells')
+            ->leftJoin('cells.starterMoves', 'starterMoves')
+            ->addSelect('attackerCharacter', 'defenderCharacter', 'rows', 'columns', 'cells', 'starterMoves')
+            ->andWhere('scenario.isEssential = true')
+            ->andWhere('attackerCharacter.id = :characterId OR defenderCharacter.id = :characterId')
+            ->setParameter('characterId', $characterId)
+            ->orderBy('scenario.updatedAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     //    /**
     //     * @return Scenario[] Returns an array of Scenario objects
     //     */

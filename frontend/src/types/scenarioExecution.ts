@@ -28,3 +28,17 @@ export interface ComboKnowledgeResponse {
     selectedCharacterId: string | null;
     combos: ComboKnowledgeItem[];
 }
+
+export interface ComboRecommendationItem {
+    comboId: number;
+    comboName: string;
+    comboLink: string;
+    averageEvGainPerScenario: number;
+}
+
+export interface ComboRecommendationResponse {
+    characterId: string;
+    difficultyCap: number;
+    essentialScenarioCount: number;
+    recommendations: ComboRecommendationItem[];
+}

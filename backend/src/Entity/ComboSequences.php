@@ -61,6 +61,9 @@ class ComboSequences
     #[ORM\OneToMany(targetEntity: Step::class, mappedBy: 'parent_sequence', cascade: ['persist', 'remove'], fetch: 'EAGER')]
     private Collection $steps;
 
+    #[ORM\Column(name: 'is_essential', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isEssential = false;
+
     public function __construct()
     {
         // Force initialize the properties that Doctrine will access
@@ -239,5 +242,17 @@ class ComboSequences
     {
         error_log('__wakeup called on ' . __CLASS__);
         $this->__construct();
+    }
+
+    public function isEssential(): bool
+    {
+        return $this->isEssential;
+    }
+
+    public function setIsEssential(bool $isEssential): static
+    {
+        $this->isEssential = $isEssential;
+
+        return $this;
     }
 }

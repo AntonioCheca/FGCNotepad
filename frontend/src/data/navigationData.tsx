@@ -62,7 +62,14 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Profile",
                 href: "/profile",
-                icon: <AccountCircleOutlinedIcon/> // user icon for profile
+                icon: <AccountCircleOutlinedIcon/>, // user icon for profile
+                requiresAuth: true,
+            },
+            {
+                label: "Recommend me a new combo",
+                href: "/profile/recommend-combo",
+                icon: <SportsMartialArtsOutlinedIcon/>,
+                requiresAuth: true,
             },
             {
                 label: "Settings",

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import {Brightness4Icon, Brightness7Icon, ChevronLeftIcon, ChevronRightIcon} from '@/src/components/ui/AppIcons';
 import {useMode} from "@/src/context/ThemeContext";
 import ThemeLogo from "@/src/components/ui/ThemeLogo";
+import React from "react";
 
 
 type SidebarProps = {
@@ -18,6 +19,31 @@ type SidebarProps = {
 
 export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
     const {mode, toggleColorMode} = useMode();
+    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const syncAuthenticationState = () => {
+            setIsAuthenticated(Boolean(localStorage.getItem('jwt')));
+        };
+
+        syncAuthenticationState();
+        window.addEventListener('storage', syncAuthenticationState);
+
+        return () => {
+            window.removeEventListener('storage', syncAuthenticationState);
+        };
+    }, []);
+
+    const visibleSections = navigationSections
+        .map((section) => ({
+            ...section,
+            items: section.items.filter((item) => !item.requiresAuth || isAuthenticated),
+        }))
+        .filter((section) => section.items.length > 0);
 
     return (
         <AppBox
@@ -94,11 +120,11 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
 
             {/* Navigation Sections */}
             <AppBox sx={{flexGrow: 1, pt: 2}}>
-                {navigationSections.map((section, index) => (
+                {visibleSections.map((section, index) => (
                     <NavigationSection
                         key={section.title}
                         section={section}
-                        showDivider={!collapsed && index < navigationSections.length - 1}
+                        showDivider={!collapsed && index < visibleSections.length - 1}
                         collapsed={collapsed}
                     />
                 ))}

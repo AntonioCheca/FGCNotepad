@@ -59,6 +59,70 @@ class ResolveDynamicComboCellService
             $filter['maxDifficulty'],
             $filter['includeUnratedDifficulty']
         );
+
+        return $this->buildResolutionFromComboMatch(
+            trim($attackerCharacterId),
+            $normalizedStarterMoveIds,
+            $comboMatch
+        );
+    }
+
+    /**
+     * @param list<string> $starterMoveIds
+     * @param list<int>|null $allowedComboIds
+     *
+     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
+     */
+    public function resolveWithComboFilter(
+        string $attackerCharacterId,
+        array $starterMoveIds,
+        string $hitType,
+        ?array $allowedComboIds,
+        ?int $maxDifficulty,
+        bool $includeUnratedDifficulty
+    ): array {
+        $normalizedStarterMoveIds = array_values(array_filter(
+            $starterMoveIds,
+            static fn (mixed $starterMoveId): bool => is_string($starterMoveId) && '' !== trim($starterMoveId)
+        ));
+
+        if ([] === $normalizedStarterMoveIds || '' === trim($attackerCharacterId)) {
+            return [
+                'resolvedDamage' => null,
+                'resolvedComboId' => null,
+                'resolvedStarterMoveId' => null,
+            ];
+        }
+
+        $normalizedHitType = $this->normalizeHitType($hitType);
+
+        $comboMatch = $this->comboSequencesRepository->findBestDynamicComboMatchWithExecutionFilter(
+            trim($attackerCharacterId),
+            $normalizedStarterMoveIds,
+            $normalizedHitType,
+            $allowedComboIds,
+            $maxDifficulty,
+            $includeUnratedDifficulty
+        );
+
+        return $this->buildResolutionFromComboMatch(
+            trim($attackerCharacterId),
+            $normalizedStarterMoveIds,
+            $comboMatch
+        );
+    }
+
+    /**
+     * @param list<string> $starterMoveIds
+     * @param array{combo_id:int,resolved_damage:int,starter_move_id:string}|null $comboMatch
+     *
+     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
+     */
+    private function buildResolutionFromComboMatch(
+        string $attackerCharacterId,
+        array $starterMoveIds,
+        ?array $comboMatch
+    ): array {
         if (null !== $comboMatch) {
             return [
                 'resolvedDamage' => (float) $comboMatch['resolved_damage'],
@@ -67,7 +131,7 @@ class ResolveDynamicComboCellService
             ];
         }
 
-        $starterMoveFallback = $this->findStarterMoveFallbackDamage(trim($attackerCharacterId), $normalizedStarterMoveIds);
+        $starterMoveFallback = $this->findStarterMoveFallbackDamage($attackerCharacterId, $starterMoveIds);
         if (null === $starterMoveFallback) {
             return [
                 'resolvedDamage' => null,

@@ -240,6 +240,56 @@ class ComboSequencesRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param list<int> $excludedComboIds
+     *
+     * @return list<array{id:int,name:string,difficultyLevel:int|null}>
+     */
+    public function findEssentialCandidateRowsByCharacterAndDifficulty(
+        string $characterId,
+        int $difficultyCap,
+        array $excludedComboIds = []
+    ): array {
+        $qb = $this->createQueryBuilder('combo')
+            ->select(
+                'combo.id AS id',
+                'combo.name AS name',
+                'metrics.difficultyLevel AS difficulty_level'
+            )
+            ->innerJoin('combo.type', 'comboType')
+            ->innerJoin('combo.steps', 'starterStep')
+            ->innerJoin('starterStep.child_sequence', 'starterSequence')
+            ->innerJoin('starterSequence.move', 'starterMove')
+            ->innerJoin('starterMove.character', 'character')
+            ->leftJoin('combo.comboMetrics', 'metrics')
+            ->andWhere('comboType.name = :comboTypeName')
+            ->andWhere('starterStep.ordinal_in_combo = 1')
+            ->andWhere('character.id = :characterId')
+            ->andWhere('combo.isEssential = true')
+            ->andWhere('metrics.difficultyLevel <= :difficultyCap')
+            ->setParameter('comboTypeName', 'combo')
+            ->setParameter('characterId', $characterId)
+            ->setParameter('difficultyCap', $difficultyCap)
+            ->orderBy('metrics.difficultyLevel', 'ASC')
+            ->addOrderBy('combo.name', 'ASC');
+
+        if ([] !== $excludedComboIds) {
+            $qb->andWhere('combo.id NOT IN (:excludedComboIds)')
+                ->setParameter('excludedComboIds', $excludedComboIds);
+        }
+
+        $rows = $qb->getQuery()->getArrayResult();
+
+        return array_values(array_map(
+            static fn (array $row): array => [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+                'difficultyLevel' => null !== $row['difficulty_level'] ? (int) $row['difficulty_level'] : null,
+            ],
+            $rows
+        ));
+    }
+
+    /**
      * @param list<int>|null $allowedComboIds
      *
      * @return array{combo_id:int,resolved_damage:int,starter_move_id:string}|null

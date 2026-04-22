@@ -9,6 +9,7 @@ use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\UserComboRepository;
 use App\Repository\UserScenarioPreferenceRepository;
+use App\Service\ComboRecommendationService;
 use App\Service\ScenarioExecutionModeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,6 +31,7 @@ class ProfileController extends AbstractController
         private readonly UserComboRepository $userComboRepository,
         private readonly UserScenarioPreferenceRepository $userScenarioPreferenceRepository,
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
+        private readonly ComboRecommendationService $comboRecommendationService,
     ) {
     }
 
@@ -188,6 +190,46 @@ class ProfileController extends AbstractController
         return new JsonResponse([
             'defaultMode' => $mode,
             'difficultyCap' => $preference->getDifficultyCap(),
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/combo-recommendations', name: 'combo_recommendations_get', methods: ['GET'])]
+    public function getComboRecommendations(Request $request): JsonResponse
+    {
+        $user = $this->requireUser();
+        $characterId = trim((string) $request->query->get('characterId', ''));
+
+        if ('' === $characterId) {
+            throw new BadRequestHttpException('characterId is required.');
+        }
+
+        $character = $this->characterRepository->find($characterId);
+        if (null === $character) {
+            throw new BadRequestHttpException(sprintf('Character %s was not found.', $characterId));
+        }
+
+        $difficultyCap = $this->scenarioExecutionModeService->normalizeDifficultyCap($request->query->get('difficultyCap'));
+        if (null === $difficultyCap) {
+            throw new BadRequestHttpException('difficultyCap is required and must be an integer greater than or equal to 1.');
+        }
+
+        $result = $this->comboRecommendationService->recommend($user, $characterId, $difficultyCap);
+
+        $recommendations = array_map(
+            static fn (array $recommendation): array => [
+                'comboId' => $recommendation['comboId'],
+                'comboName' => $recommendation['comboName'],
+                'comboLink' => sprintf('/combos?highlightComboId=%d', $recommendation['comboId']),
+                'averageEvGainPerScenario' => $recommendation['averageEvGainPerScenario'],
+            ],
+            $result['recommendations']
+        );
+
+        return new JsonResponse([
+            'characterId' => $characterId,
+            'difficultyCap' => $difficultyCap,
+            'essentialScenarioCount' => $result['essentialScenarioCount'],
+            'recommendations' => $recommendations,
         ], JsonResponse::HTTP_OK);
     }
 

@@ -4,6 +4,7 @@ import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 import {
     ComboKnowledgeResponse,
+    ComboRecommendationResponse,
     ScenarioExecutionPreference,
     ScenarioExecutionSelection,
 } from "@/src/types/scenarioExecution";
@@ -59,10 +60,25 @@ export function useExecutionProfile() {
         [request]
     );
 
+    const getComboRecommendations = React.useCallback(
+        async (characterId: string, difficultyCap: number): Promise<ComboRecommendationResponse> => {
+            return request(() =>
+                api.get("/profile/combo-recommendations", {
+                    params: {
+                        characterId,
+                        difficultyCap,
+                    },
+                })
+            );
+        },
+        [request]
+    );
+
     return {
         getExecutionPreference,
         updateExecutionPreference,
         getComboKnowledge,
         updateComboKnowledge,
+        getComboRecommendations,
     };
 }

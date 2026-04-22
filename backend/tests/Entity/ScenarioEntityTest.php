@@ -49,6 +49,7 @@ class ScenarioEntityTest extends DatabaseTestCase
         self::assertSame('Ryu', $saved->getDefenderCharacter()?->getName());
         self::assertSame('Ken', $saved->getAttackerCharacter()?->getName());
         self::assertSame('Ken - 2MK', $saved->getTriggerMove()?->getName());
+        self::assertFalse($saved->isEssential());
         self::assertNotNull($saved->getCreatedAt());
         self::assertNotNull($saved->getUpdatedAt());
     }

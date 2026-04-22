@@ -13,6 +13,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: "scenario", schema: "sf6")]
 #[ORM\Index(name: "idx_scenario_public_id", columns: ["public_id"])]
 #[ORM\Index(name: "idx_scenario_search_label", columns: ["search_label"])]
+#[ORM\Index(name: "idx_scenario_is_essential", columns: ["is_essential"])]
 #[ORM\Entity(repositoryClass: ScenarioRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 class Scenario
@@ -33,6 +34,9 @@ class Scenario
 
     #[ORM\Column(name: 'scenario_type', type: Types::STRING, length: 32)]
     private string $scenarioType = 'oki';
+
+    #[ORM\Column(name: 'is_essential', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $isEssential = false;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'defender_character_id', referencedColumnName: 'id', nullable: false)]
@@ -148,6 +152,18 @@ class Scenario
     {
         $normalized = trim(mb_strtolower($scenarioType));
         $this->scenarioType = in_array($normalized, ['oki', 'blockstun'], true) ? $normalized : 'oki';
+
+        return $this;
+    }
+
+    public function isEssential(): bool
+    {
+        return $this->isEssential;
+    }
+
+    public function setIsEssential(bool $isEssential): static
+    {
+        $this->isEssential = $isEssential;
 
         return $this;
     }
