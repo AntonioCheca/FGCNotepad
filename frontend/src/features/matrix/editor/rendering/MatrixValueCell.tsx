@@ -75,9 +75,9 @@ function MatrixValueCellComponent({
                     minHeight: densityProfile.cellHeight,
                     fontSize: densityProfile.valueFontSize,
                     padding: "1px 6px",
-                    border: draftHasFormatError ? "1px solid #fa541c" : "1px solid #d9d9d9",
-                    background: draftHasFormatError ? "#fff2e8" : "#fff",
-                    borderRadius: 4,
+                    border: draftHasFormatError ? "1px solid #d8642b" : "1px solid #a8c0d8",
+                    background: draftHasFormatError ? "#fff3ea" : "#f8fbff",
+                    borderRadius: 6,
                 }}
                 aria-invalid={draftHasFormatError}
                 title={draftHasFormatError ? "Invalid number draft. You can keep typing before commit." : undefined}
@@ -127,19 +127,19 @@ function MatrixValueCellComponent({
                     minHeight: densityProfile.cellHeight,
                     fontSize: densityProfile.valueFontSize,
                     border: hasCommittedError
-                        ? "2px solid #ff4d4f"
+                        ? "2px solid #d45454"
                         : isActive
-                            ? "2px solid #1677ff"
-                            : "1px solid #d9d9d9",
+                            ? "2px solid #3d71a8"
+                            : "1px solid #b6c9dd",
                     background: readOnly
-                        ? "#f5f5f5"
+                        ? "#f2f6fb"
                         : hasCommittedError
-                            ? "#fff1f0"
+                            ? "#fff2f2"
                             : axisHighlighted
-                                ? "#f6ffed"
+                                ? "#f1f7ff"
                                 : "#fff",
                     cursor: "pointer",
-                    borderRadius: 4,
+                    borderRadius: 6,
                     fontVariantNumeric: "tabular-nums",
                     padding: dynamicChipLabels.length > 0 ? "4px" : undefined,
                     textAlign: "left",

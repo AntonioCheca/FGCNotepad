@@ -26,6 +26,11 @@ export function useMatrixEditorPanels({canEditReferences, canEditDynamicCombos, 
         });
     }, [focusContainer]);
 
+    const dismissPanels = React.useCallback(() => {
+        setLinkTargetKey(null);
+        setDynamicComboTargetKey(null);
+    }, []);
+
     const openLinkPanelForKey = React.useCallback((key: string) => {
         if (!canEditReferences) {
             return;
@@ -50,6 +55,7 @@ export function useMatrixEditorPanels({canEditReferences, canEditDynamicCombos, 
         isAnyModalOpen,
         closeLinkPanel,
         closeDynamicComboPanel,
+        dismissPanels,
         openLinkPanelForKey,
         openDynamicComboPanelForKey,
     };

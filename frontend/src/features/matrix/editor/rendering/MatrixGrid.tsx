@@ -166,10 +166,11 @@ export function MatrixGrid({
                 maxWidth: "100%",
                 minWidth: 0,
                 maxHeight: "62vh",
-                border: "1px solid #e8e8e8",
-                borderRadius: 8,
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.75)",
+                border: "1px solid #d4e0eb",
+                borderRadius: 10,
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
                 width: "100%",
+                background: "#ffffff",
             }}
         >
             <table

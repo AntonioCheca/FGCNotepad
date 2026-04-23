@@ -197,6 +197,7 @@ export function MatrixEditorShell({
         isAnyModalOpen,
         closeLinkPanel,
         closeDynamicComboPanel,
+        dismissPanels,
         openLinkPanelForKey,
         openDynamicComboPanelForKey,
     } = useMatrixEditorPanels({
@@ -204,6 +205,20 @@ export function MatrixEditorShell({
         canEditDynamicCombos,
         focusContainer,
     });
+
+    React.useEffect(() => {
+        const active = state.selection.activeTarget;
+        const activeBodyKey = active?.zone === "body" ? active.key : null;
+
+        if (linkTargetKey && activeBodyKey !== linkTargetKey) {
+            dismissPanels();
+            return;
+        }
+
+        if (dynamicComboTargetKey && activeBodyKey !== dynamicComboTargetKey) {
+            dismissPanels();
+        }
+    }, [state.selection.activeTarget, linkTargetKey, dynamicComboTargetKey, dismissPanels]);
 
     const selectTarget = React.useCallback((target: ReturnType<typeof toSelectionTarget>) => {
         dispatch(actions.setActiveSelection(target));
@@ -389,16 +404,23 @@ export function MatrixEditorShell({
         return false;
     }, [canEditBodyValues, canEditSummaries, state.selection.activeTarget]);
 
+    const inlinePanelMode = React.useMemo<"link" | "dynamic" | null>(() => {
+        if (linkTargetKey) {
+            return "link";
+        }
+
+        if (dynamicComboTargetKey) {
+            return "dynamic";
+        }
+
+        return null;
+    }, [linkTargetKey, dynamicComboTargetKey]);
+
     return (
         <div
             ref={containerRef}
             tabIndex={0}
             style={{width: "100%", maxWidth: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box"}}
-            onClick={(event) => {
-                if (isAnyModalOpen) {
-                    event.stopPropagation();
-                }
-            }}
             onPaste={(event) => {
                 if (isAnyModalOpen) {
                     return;
@@ -476,111 +498,150 @@ export function MatrixEditorShell({
                     onShowLayerControlsChange={setShowLayerControls}
                 />
                 {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
-                <MatrixGrid
-                    state={filteredVisibleState}
-                    expectedValue={displayedExpectedValue}
-                    activeTarget={state.selection.activeTarget}
-                    activeKey={state.selection.activeTarget?.key ?? null}
-                    activeRowId={axisContext.activeRowId}
-                    activeColumnId={axisContext.activeColumnId}
-                    editingKey={state.editing.mode === "edit" ? state.editing.activeKey : null}
-                    draft={state.editing.draft ?? ""}
-                    draftHasFormatError={draftHasFormatError}
-                    validationByKey={state.validation.byKey}
-                    displayedBodyValues={referenceResolution.displayedBodyValues}
-                    moveLabelById={moveLabelById}
-                    canEditRowStructure={canEditRowStructure}
-                    canEditColumnStructure={canEditColumnStructure}
-                    canEditRowAxisLabels={canEditRowAxisLabels}
-                    canEditColumnAxisLabels={canEditColumnAxisLabels}
-                    canEditRowLayers={canEditRowLayers}
-                    canEditColumnLayers={canEditColumnLayers}
-                    canEditBodyValues={canEditBodyValues}
-                    canEditSummaries={canEditSummaries}
-                    onAddRow={() => {
-                        if (canEditRowStructure) {
-                            dispatch(actions.addRow());
-                        }
+
+                <div
+                    style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 10,
+                        alignItems: "flex-start",
+                        width: "100%",
+                        minWidth: 0,
                     }}
-                    onAddColumn={() => {
-                        if (canEditColumnStructure) {
-                            dispatch(actions.addColumn());
-                        }
-                    }}
-                    onRemoveRow={(rowId) => {
-                        if (canEditRowStructure) {
-                            dispatch(actions.removeRow(rowId));
-                        }
-                    }}
-                    onRemoveColumn={(columnId) => {
-                        if (canEditColumnStructure) {
-                            dispatch(actions.removeColumn(columnId));
-                        }
-                    }}
-                    onRowLabelChange={(rowId, label) => dispatch(actions.setAxisLabel("rows", rowId, label))}
-                    onColumnLabelChange={(columnId, label) => dispatch(actions.setAxisLabel("columns", columnId, label))}
-                    onRowLayerChange={(rowId, layer) => dispatch(actions.setAxisLayer("rows", rowId, layer))}
-                    onColumnLayerChange={(columnId, layer) => dispatch(actions.setAxisLayer("columns", columnId, layer))}
-                    onSelectBodyCell={(rowId, columnId) => selectTarget(toSelectionTarget("body", rowId, columnId))}
-                    onSelectRowSummary={(rowId) => selectTarget(toSelectionTarget("rowSummary", rowId))}
-                    onSelectColumnSummary={(columnId) => selectTarget(toSelectionTarget("columnSummary", columnId))}
-                    onSelectExpectedValue={() => selectTarget(toSelectionTarget("expectedValue"))}
-                    onOpenReferenceLink={openLinkPanelForKey}
-                    onOpenDynamicCombo={openDynamicComboPanelForKey}
-                    onStartEdit={(key) => startEditForKey(key)}
-                    onStartOverwriteEdit={(key, firstCharacter) => startOverwriteEditForKey(key, firstCharacter)}
-                    onDraftChange={(draft) => dispatch(actions.updateDraft(draft))}
-                    onCommitEdit={commitEditAndRefocus}
-                    onCancelEdit={cancelEditAndRefocus}
-                    density="standard"
-                    showLayerControls={showLayerControls}
-                />
+                >
+                    <div style={{flex: "1 1 560px", minWidth: 0, width: "100%"}}>
+                        <MatrixGrid
+                        state={filteredVisibleState}
+                        expectedValue={displayedExpectedValue}
+                        activeTarget={state.selection.activeTarget}
+                        activeKey={state.selection.activeTarget?.key ?? null}
+                        activeRowId={axisContext.activeRowId}
+                        activeColumnId={axisContext.activeColumnId}
+                        editingKey={state.editing.mode === "edit" ? state.editing.activeKey : null}
+                        draft={state.editing.draft ?? ""}
+                        draftHasFormatError={draftHasFormatError}
+                        validationByKey={state.validation.byKey}
+                        displayedBodyValues={referenceResolution.displayedBodyValues}
+                        moveLabelById={moveLabelById}
+                        canEditRowStructure={canEditRowStructure}
+                        canEditColumnStructure={canEditColumnStructure}
+                        canEditRowAxisLabels={canEditRowAxisLabels}
+                        canEditColumnAxisLabels={canEditColumnAxisLabels}
+                        canEditRowLayers={canEditRowLayers}
+                        canEditColumnLayers={canEditColumnLayers}
+                        canEditBodyValues={canEditBodyValues}
+                        canEditSummaries={canEditSummaries}
+                        onAddRow={() => {
+                            if (canEditRowStructure) {
+                                dispatch(actions.addRow());
+                            }
+                        }}
+                        onAddColumn={() => {
+                            if (canEditColumnStructure) {
+                                dispatch(actions.addColumn());
+                            }
+                        }}
+                        onRemoveRow={(rowId) => {
+                            if (canEditRowStructure) {
+                                dispatch(actions.removeRow(rowId));
+                            }
+                        }}
+                        onRemoveColumn={(columnId) => {
+                            if (canEditColumnStructure) {
+                                dispatch(actions.removeColumn(columnId));
+                            }
+                        }}
+                        onRowLabelChange={(rowId, label) => dispatch(actions.setAxisLabel("rows", rowId, label))}
+                        onColumnLabelChange={(columnId, label) => dispatch(actions.setAxisLabel("columns", columnId, label))}
+                        onRowLayerChange={(rowId, layer) => dispatch(actions.setAxisLayer("rows", rowId, layer))}
+                        onColumnLayerChange={(columnId, layer) => dispatch(actions.setAxisLayer("columns", columnId, layer))}
+                        onSelectBodyCell={(rowId, columnId) => selectTarget(toSelectionTarget("body", rowId, columnId))}
+                        onSelectRowSummary={(rowId) => selectTarget(toSelectionTarget("rowSummary", rowId))}
+                        onSelectColumnSummary={(columnId) => selectTarget(toSelectionTarget("columnSummary", columnId))}
+                        onSelectExpectedValue={() => selectTarget(toSelectionTarget("expectedValue"))}
+                        onOpenReferenceLink={openLinkPanelForKey}
+                        onOpenDynamicCombo={openDynamicComboPanelForKey}
+                        onStartEdit={(key) => startEditForKey(key)}
+                        onStartOverwriteEdit={(key, firstCharacter) => startOverwriteEditForKey(key, firstCharacter)}
+                        onDraftChange={(draft) => dispatch(actions.updateDraft(draft))}
+                        onCommitEdit={commitEditAndRefocus}
+                        onCancelEdit={cancelEditAndRefocus}
+                        density="standard"
+                        showLayerControls={showLayerControls}
+                    />
+                    </div>
+
+                    {inlinePanelMode ? (
+                        <div
+                            style={{
+                                flex: "0 1 340px",
+                                width: "100%",
+                                maxWidth: 360,
+                                minWidth: 0,
+                                border: "1px solid #d9e2ec",
+                                borderRadius: 10,
+                                background: "linear-gradient(180deg, #f8fbff 0%, #f1f6fc 100%)",
+                                padding: 10,
+                                maxHeight: "62vh",
+                                overflowY: "auto",
+                                overflowX: "hidden",
+                                boxSizing: "border-box",
+                            }}
+                        >
+                            {inlinePanelMode === "link" ? (
+                                <ScenarioLinkPanel
+                                    open={linkTargetKey !== null}
+                                    presentation="inline"
+                                    initialScenarioId={
+                                        linkTargetKey && state.grid.bodyCells[linkTargetKey]?.kind === "reference"
+                                            ? state.grid.bodyCells[linkTargetKey].reference?.scenarioId
+                                            : undefined
+                                    }
+                                    onClose={closeLinkPanel}
+                                    onConfirm={(item) => {
+                                        if (!linkTargetKey) {
+                                            return;
+                                        }
+
+                                        dispatch(actions.linkReferenceCell(linkTargetKey, item.id, item.label));
+                                        closeLinkPanel();
+                                    }}
+                                />
+                            ) : null}
+
+                            {inlinePanelMode === "dynamic" ? (
+                                <DynamicComboPanel
+                                    open={dynamicComboTargetKey !== null}
+                                    presentation="inline"
+                                    initialValue={
+                                        dynamicComboTargetKey && state.grid.bodyCells[dynamicComboTargetKey]?.kind === "dynamic_combo"
+                                            ? state.grid.bodyCells[dynamicComboTargetKey].dynamicCombo
+                                            : null
+                                    }
+                                    moveLabelById={moveLabelById}
+                                    onClose={closeDynamicComboPanel}
+                                    onConfirm={(value, starterLabels) => {
+                                        if (!dynamicComboTargetKey) {
+                                            return;
+                                        }
+
+                                        const targetKey = dynamicComboTargetKey;
+
+                                        void (async () => {
+                                            mergeMoveLabels(starterLabels);
+                                            dispatch(actions.setDynamicComboCell(targetKey, value));
+
+                                            const resolvedValue = await resolveDynamicComboValue(value);
+                                            dispatch(actions.setDynamicComboResolvedValue(targetKey, resolvedValue));
+                                            closeDynamicComboPanel();
+                                        })();
+                                    }}
+                                />
+                            ) : null}
+                        </div>
+                    ) : null}
+                </div>
             </MatrixEditorLayout>
-
-            <ScenarioLinkPanel
-                open={linkTargetKey !== null}
-                initialScenarioId={
-                    linkTargetKey && state.grid.bodyCells[linkTargetKey]?.kind === "reference"
-                        ? state.grid.bodyCells[linkTargetKey].reference?.scenarioId
-                        : undefined
-                }
-                onClose={closeLinkPanel}
-                onConfirm={(item) => {
-                    if (!linkTargetKey) {
-                        return;
-                    }
-
-                    dispatch(actions.linkReferenceCell(linkTargetKey, item.id, item.label));
-                    closeLinkPanel();
-                }}
-            />
-
-            <DynamicComboPanel
-                open={dynamicComboTargetKey !== null}
-                initialValue={
-                    dynamicComboTargetKey && state.grid.bodyCells[dynamicComboTargetKey]?.kind === "dynamic_combo"
-                        ? state.grid.bodyCells[dynamicComboTargetKey].dynamicCombo
-                        : null
-                }
-                moveLabelById={moveLabelById}
-                onClose={closeDynamicComboPanel}
-                onConfirm={(value, starterLabels) => {
-                    if (!dynamicComboTargetKey) {
-                        return;
-                    }
-
-                    const targetKey = dynamicComboTargetKey;
-
-                    void (async () => {
-                        mergeMoveLabels(starterLabels);
-                        dispatch(actions.setDynamicComboCell(targetKey, value));
-
-                        const resolvedValue = await resolveDynamicComboValue(value);
-                        dispatch(actions.setDynamicComboResolvedValue(targetKey, resolvedValue));
-                        closeDynamicComboPanel();
-                    })();
-                }}
-            />
         </div>
     );
 }

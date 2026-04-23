@@ -79,8 +79,8 @@ export function MatrixGridBody({
                         position: "sticky",
                         left: 0,
                         zIndex: 3,
-                        background: rowIsActive ? "#e6f7ff" : "#fcfcfc",
-                        borderRight: rowIsActive ? "2px solid #1677ff" : "1px solid #f0f0f0",
+                        background: rowIsActive ? "#dfeefe" : "#f5f8fc",
+                        borderRight: rowIsActive ? "2px solid #3c71a8" : "1px solid #d8e2ec",
                         minWidth: densityProfile.rowLabelWidth,
                     }}
                 >
@@ -95,6 +95,9 @@ export function MatrixGridBody({
                             minHeight: densityProfile.cellHeight,
                             fontSize: densityProfile.labelFontSize,
                             padding: "2px 6px",
+                            borderRadius: 6,
+                            border: "1px solid #b8c9dc",
+                            background: "#fff",
                         }}
                     />
                     {showLayerControls ? (
@@ -117,8 +120,8 @@ export function MatrixGridBody({
                             key={key}
                             style={{
                                 padding: `${densityProfile.cellPadding}px`,
-                                background: axisHighlighted ? "#f6ffed" : "#fff",
-                                border: axisHighlighted ? "1px solid #d9f7be" : "1px solid #f5f5f5",
+                                background: axisHighlighted ? "#f1f7ff" : "#fff",
+                                border: axisHighlighted ? "1px solid #c7d9ec" : "1px solid #edf2f7",
                             }}
                         >
                             <MatrixValueCell
@@ -158,7 +161,7 @@ export function MatrixGridBody({
                         </td>
                     );
                 })}
-                <td style={{padding: `${densityProfile.cellPadding}px`, background: rowIsActive ? "#e6f7ff" : "#fff"}}>
+                <td style={{padding: `${densityProfile.cellPadding}px`, background: rowIsActive ? "#dfeefe" : "#fff"}}>
                     <MatrixValueCell
                         value={state.grid.rowSummaryCells[createRowSummaryKey(row.id)]?.value ?? null}
                         isActive={activeKey === createRowSummaryKey(row.id)}

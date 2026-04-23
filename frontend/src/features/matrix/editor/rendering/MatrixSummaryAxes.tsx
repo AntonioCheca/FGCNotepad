@@ -53,10 +53,11 @@ export function MatrixSummaryAxes({
                     position: "sticky",
                     left: 0,
                     zIndex: 3,
-                    background: "#fafafa",
-                    borderTop: "1px solid #d9d9d9",
+                    background: "#eef4fb",
+                    borderTop: "1px solid #c6d5e5",
                     minWidth: densityProfile.rowLabelWidth,
                     fontSize: densityProfile.labelFontSize,
+                    color: "#2e4b6d",
                 }}
             >
                 P2 Freq
@@ -66,8 +67,8 @@ export function MatrixSummaryAxes({
                     key={column.id}
                     style={{
                         padding: `${densityProfile.cellPadding}px`,
-                        background: activeColumnId === column.id ? "#e6f7ff" : "#fff",
-                        borderTop: activeColumnId === column.id ? "2px solid #1677ff" : "1px solid #f0f0f0",
+                        background: activeColumnId === column.id ? "#dfeefe" : "#fff",
+                        borderTop: activeColumnId === column.id ? "2px solid #3c71a8" : "1px solid #e2e8f0",
                     }}
                 >
                     <MatrixValueCell

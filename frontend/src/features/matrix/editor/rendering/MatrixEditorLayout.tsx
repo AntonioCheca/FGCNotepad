@@ -12,11 +12,11 @@ export function MatrixEditorLayout({title, onDelete, warnings = [], children}: M
         <section
             className="matrix-editor-shell"
             style={{
-                border: "1px solid #d9d9d9",
-                borderRadius: 10,
+                border: "1px solid #cfd9e3",
+                borderRadius: 12,
                 padding: 10,
                 marginTop: 8,
-                background: "linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%)",
+                background: "linear-gradient(180deg, #ffffff 0%, #f5f8fc 100%)",
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
@@ -25,7 +25,22 @@ export function MatrixEditorLayout({title, onDelete, warnings = [], children}: M
             }}
         >
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
-                <strong style={{fontSize: 13, letterSpacing: 0.2}}>{title ?? "Matrix Editor"}</strong>
+                <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                    <strong style={{fontSize: 13, letterSpacing: 0.2, color: "#1f334d"}}>{title ?? "Matrix Editor"}</strong>
+                    <span
+                        style={{
+                            border: "1px solid #b7c9dd",
+                            borderRadius: 999,
+                            background: "#edf3fb",
+                            color: "#375a84",
+                            fontSize: 11,
+                            padding: "2px 8px",
+                            fontWeight: 600,
+                        }}
+                    >
+                        Segmented
+                    </span>
+                </div>
                 {onDelete ? (
                     <button type="button" onClick={onDelete} aria-label="Delete matrix" style={{fontSize: 12}}>
                         Delete

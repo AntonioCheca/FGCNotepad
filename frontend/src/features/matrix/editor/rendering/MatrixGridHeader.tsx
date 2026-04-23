@@ -38,10 +38,11 @@ export function MatrixGridHeader({
                     top: 0,
                     left: 0,
                     zIndex: 5,
-                    background: "#fafafa",
-                    borderBottom: "1px solid #d9d9d9",
+                    background: "#eef4fb",
+                    borderBottom: "1px solid #c6d5e5",
                     minWidth: densityProfile.rowLabelWidth,
                     fontSize: densityProfile.labelFontSize,
+                    color: "#2e4b6d",
                 }}
             >
                 P1 / P2
@@ -55,8 +56,8 @@ export function MatrixGridHeader({
                             position: "sticky",
                             top: 0,
                             zIndex: 4,
-                            background: activeColumnId === column.id ? "#e6f7ff" : "#fafafa",
-                            borderBottom: activeColumnId === column.id ? "2px solid #1677ff" : "1px solid #d9d9d9",
+                            background: activeColumnId === column.id ? "#dfeefe" : "#eef4fb",
+                            borderBottom: activeColumnId === column.id ? "2px solid #3c71a8" : "1px solid #c6d5e5",
                             minWidth: densityProfile.columnLabelWidth,
                         }}
                     >
@@ -71,6 +72,9 @@ export function MatrixGridHeader({
                             minHeight: densityProfile.cellHeight,
                             fontSize: densityProfile.labelFontSize,
                             padding: "2px 6px",
+                            borderRadius: 6,
+                            border: "1px solid #b8c9dc",
+                            background: "#fff",
                         }}
                     />
                     {showLayerControls ? (
@@ -92,10 +96,11 @@ export function MatrixGridHeader({
                     position: "sticky",
                     top: 0,
                     zIndex: 4,
-                    background: "#fafafa",
-                    borderBottom: "1px solid #d9d9d9",
+                    background: "#eef4fb",
+                    borderBottom: "1px solid #c6d5e5",
                     minWidth: densityProfile.valueCellWidth,
                     fontSize: densityProfile.labelFontSize,
+                    color: "#2e4b6d",
                 }}
             >
                 P1 Freq
@@ -106,8 +111,8 @@ export function MatrixGridHeader({
                     position: "sticky",
                     top: 0,
                     zIndex: 4,
-                    background: "#fafafa",
-                    borderBottom: "1px solid #d9d9d9",
+                    background: "#eef4fb",
+                    borderBottom: "1px solid #c6d5e5",
                     minWidth: 72,
                 }}
             />

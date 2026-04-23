@@ -9,6 +9,7 @@ interface DynamicComboPanelProps {
     open: boolean;
     initialValue: MatrixDynamicComboData | null;
     moveLabelById: Record<string, string>;
+    presentation?: "modal" | "inline";
     onClose: () => void;
     onConfirm: (value: MatrixDynamicComboData, starterLabels: Record<string, string>) => void;
 }
@@ -73,7 +74,7 @@ function normalizeMoveSearchResults(value: unknown): MoveSearchOption[] {
         .filter((option): option is MoveSearchOption => option !== null);
 }
 
-export function DynamicComboPanel({open, initialValue, moveLabelById, onClose, onConfirm}: DynamicComboPanelProps) {
+export function DynamicComboPanel({open, initialValue, moveLabelById, presentation = "modal", onClose, onConfirm}: DynamicComboPanelProps) {
     const {characters, loading: charactersLoading} = useCharacters();
     const {searchMoves, getSpecificMove} = useMoves();
     const searchMovesRef = React.useRef(searchMoves);
@@ -237,38 +238,32 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, onClose, o
         return null;
     }
 
-    return (
+    const isInline = presentation === "inline";
+
+    const panelContent = (
         <div
-            role="dialog"
-            aria-modal="true"
             style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(0,0,0,0.35)",
+                width: isInline ? "100%" : "min(560px, 92vw)",
+                maxHeight: isInline ? "unset" : "80vh",
+                background: isInline ? "transparent" : "#fff",
+                borderRadius: isInline ? 0 : 8,
+                border: isInline ? "none" : "1px solid #d9d9d9",
+                padding: 12,
                 display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 1200,
+                flexDirection: "column",
+                gap: 10,
+                minWidth: 0,
+                boxSizing: "border-box",
+                overflowX: "hidden",
             }}
-            onClick={onClose}
+            onClick={(event) => event.stopPropagation()}
         >
-            <div
-                style={{
-                    width: "min(560px, 92vw)",
-                    maxHeight: "80vh",
-                    background: "#fff",
-                    borderRadius: 8,
-                    border: "1px solid #d9d9d9",
-                    padding: 12,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                }}
-                onClick={(event) => event.stopPropagation()}
-            >
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                    <strong>Dynamic Combo Cell</strong>
-                    <button type="button" onClick={onClose}>Close</button>
+                    <div style={{display: "grid", gap: 2}}>
+                        <strong style={{fontSize: 14, color: "#2a4a6f"}}>Dynamic Combo Cell</strong>
+                        <span style={{fontSize: 12, color: "#5e7795"}}>Visible only for selected dynamic combo-capable cell</span>
+                    </div>
+                    <button type="button" onClick={onClose} style={{height: 30}}>Close</button>
                 </div>
 
                 <WrappedAutocomplete<CharacterOption>
@@ -285,7 +280,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, onClose, o
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                 />
 
-                <div style={{display: "grid", gap: 6}}>
+                <div style={{display: "grid", gap: 6, minWidth: 0}}>
                     <WrappedAutocomplete<MoveSearchOption>
                         label="Search Starter Move"
                         options={starterOptions}
@@ -321,7 +316,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, onClose, o
                         filterOptions={(options) => options}
                         noOptionsText={starterQuery.trim().length === 0 ? "Type to search moves" : "No moves found"}
                     />
-                    <div style={{display: "grid", gap: 4, border: "1px solid #f0f0f0", borderRadius: 6, padding: 8}}>
+                    <div style={{display: "grid", gap: 4, border: "1px solid #cfdeec", borderRadius: 8, padding: 8, background: "#fff", minWidth: 0}}>
                         <span style={{fontSize: 12, color: "#595959"}}>Selected Starters</span>
                         {starterSelections.length === 0 ? (
                             <span style={{fontSize: 12, color: "#8c8c8c"}}>No starter moves selected yet.</span>
@@ -329,11 +324,12 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, onClose, o
                             starterSelections.map((item) => (
                                 <div
                                     key={item.id}
-                                    style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8}}
+                                    style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, minWidth: 0}}
                                 >
-                                    <span style={{fontSize: 13}}>{item.summary}</span>
+                                    <span style={{fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{item.summary}</span>
                                     <button
                                         type="button"
+                                        style={{flexShrink: 0}}
                                         onClick={() => {
                                             setStarterSelections((prev) => prev.filter((entry) => entry.id !== item.id));
                                         }}
@@ -358,9 +354,17 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, onClose, o
                 {error ? <div style={{fontSize: 12, color: "#cf1322"}}>{error}</div> : null}
 
                 <div style={{display: "flex", justifyContent: "flex-end", gap: 8}}>
-                    <button type="button" onClick={onClose}>Cancel</button>
+                    <button type="button" onClick={onClose} style={{height: 30}}>Cancel</button>
                     <button
                         type="button"
+                        style={{
+                            height: 30,
+                            borderRadius: 6,
+                            border: "1px solid #2c5e93",
+                            background: "linear-gradient(135deg, #356ba4 0%, #4a80b8 100%)",
+                            color: "#fff",
+                            fontWeight: 600,
+                        }}
                         onClick={() => {
                             if (!selectedCharacter) {
                                 setError("Select an attacker character.");
@@ -388,6 +392,28 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, onClose, o
                     </button>
                 </div>
             </div>
+    );
+
+    if (presentation === "inline") {
+        return panelContent;
+    }
+
+    return (
+        <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.35)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 1200,
+            }}
+            onClick={onClose}
+        >
+            {panelContent}
         </div>
     );
 }
