@@ -55,6 +55,33 @@ export default function SearchScenariosPage() {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
 
+    const applyFilters = React.useCallback(() => {
+        setAppliedFilters({
+            q: query.trim(),
+            scenarioType,
+            defenderCharacterId,
+            attackerCharacterId,
+            triggerMoveId: triggerMoveSelection?.id ?? "",
+        });
+    }, [query, scenarioType, defenderCharacterId, attackerCharacterId, triggerMoveSelection]);
+
+    const resetFilters = React.useCallback(() => {
+        setQuery("");
+        setScenarioType("");
+        setDefenderCharacterId("");
+        setAttackerCharacterId("");
+        setTriggerMoveSelection(null);
+        setTriggerMoveInput("");
+        setTriggerMoveOptions([]);
+        setAppliedFilters({
+            q: "",
+            scenarioType: "",
+            defenderCharacterId: "",
+            attackerCharacterId: "",
+            triggerMoveId: "",
+        });
+    }, []);
+
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
             const trimmed = triggerMoveInput.trim();
@@ -160,20 +187,38 @@ export default function SearchScenariosPage() {
     }, [appliedFilters, characterOptions]);
 
     return (
-        <AppContainer maxWidth={false}>
-            <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1.5, mb: 2}}>
-                <AppTypography variant="h4">Search Scenarios</AppTypography>
-                <Link href="/scenarios/new" style={{textDecoration: "none"}}>
-                    <AppButton type="button">Create Scenario</AppButton>
-                </Link>
-            </AppBox>
+        <AppContainer maxWidth={false} sx={{py: {xs: 2, md: 3}}}>
+            <AppPaper
+                variant="outlined"
+                sx={{
+                    p: {xs: 2, md: 2.5},
+                    borderRadius: 3,
+                    mb: 2,
+                    background: (theme) =>
+                        `linear-gradient(145deg, ${theme.palette.background.paper} 0%, ${theme.palette.action.hover} 100%)`,
+                }}
+            >
+                <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1.5, flexWrap: "wrap"}}>
+                    <AppBox sx={{display: "grid", gap: 0.5}}>
+                        <AppTypography variant="h4">Search Scenarios</AppTypography>
+                        <AppTypography variant="body2" color="text.secondary">
+                            Narrow by matchup, trigger move, and scenario type.
+                        </AppTypography>
+                    </AppBox>
+                    <Link href="/scenarios/new" style={{textDecoration: "none"}}>
+                        <AppButton type="button">Create Scenario</AppButton>
+                    </Link>
+                </AppBox>
+            </AppPaper>
 
-            <AppPaper variant="outlined" sx={{p: 2, borderRadius: 2, mb: 2}}>
+            <AppPaper variant="outlined" sx={{p: {xs: 2, md: 2.5}, borderRadius: 3, mb: 2}}>
+                <AppTypography variant="subtitle2" sx={{mb: 1}}>Search Inputs</AppTypography>
                 <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 1.5}}>
                     <AppTextField
                         label="Search by scenario name"
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
+                        size="small"
                     />
 
                     <AppTextField
@@ -181,9 +226,11 @@ export default function SearchScenariosPage() {
                         label="Scenario type"
                         value={scenarioType}
                         onChange={(event) => setScenarioType(event.target.value as ScenarioType | "")}
+                        size="small"
                     >
                         <AppMenuItem value="">Any type</AppMenuItem>
                         <AppMenuItem value="oki">Oki</AppMenuItem>
+                        <AppMenuItem value="aggregated_oki">Aggregated Oki</AppMenuItem>
                         <AppMenuItem value="blockstun">Blockstun</AppMenuItem>
                     </AppTextField>
 
@@ -192,6 +239,7 @@ export default function SearchScenariosPage() {
                         label="Defender"
                         value={defenderCharacterId}
                         onChange={(event) => setDefenderCharacterId(event.target.value)}
+                        size="small"
                     >
                         <AppMenuItem value="">Any defender</AppMenuItem>
                         {characterOptions.map((character) => (
@@ -204,6 +252,7 @@ export default function SearchScenariosPage() {
                         label="Attacker"
                         value={attackerCharacterId}
                         onChange={(event) => setAttackerCharacterId(event.target.value)}
+                        size="small"
                     >
                         <AppMenuItem value="">Any attacker</AppMenuItem>
                         {characterOptions.map((character) => (
@@ -222,80 +271,76 @@ export default function SearchScenariosPage() {
                         getOptionLabel={(option) => option.summary}
                         isOptionEqualToValue={(option, value) => option.id === value.id}
                         noOptionsText={triggerMoveInput.trim().length < 2 ? "Type 2+ characters" : "No moves found"}
-                        renderInput={(params) => <AppTextField {...params} label="Trigger move"/>}
+                        renderInput={(params) => <AppTextField {...params} label="Trigger move" size="small"/>}
                     />
                 </AppBox>
 
-                <AppBox sx={{display: "flex", gap: 1, mt: 2, flexWrap: "wrap"}}>
+                <AppBox sx={{display: "flex", gap: 1, mt: 2, flexWrap: "wrap", justifyContent: "flex-end"}}>
                     <AppButton
                         type="button"
-                        onClick={() => {
-                            setAppliedFilters({
-                                q: query.trim(),
-                                scenarioType,
-                                defenderCharacterId,
-                                attackerCharacterId,
-                                triggerMoveId: triggerMoveSelection?.id ?? "",
-                            });
-                        }}
+                        onClick={applyFilters}
                     >
                         Apply Filters
                     </AppButton>
                     <AppButton
                         type="button"
                         variant="outlined"
-                        onClick={() => {
-                            setQuery("");
-                            setScenarioType("");
-                            setDefenderCharacterId("");
-                            setAttackerCharacterId("");
-                            setTriggerMoveSelection(null);
-                            setTriggerMoveInput("");
-                            setTriggerMoveOptions([]);
-                            setAppliedFilters({
-                                q: "",
-                                scenarioType: "",
-                                defenderCharacterId: "",
-                                attackerCharacterId: "",
-                                triggerMoveId: "",
-                            });
-                        }}
+                        onClick={resetFilters}
                     >
                         Reset
                     </AppButton>
                 </AppBox>
 
-                <AppBox sx={{display: "flex", gap: 1, mt: 1.5, flexWrap: "wrap"}}>
+                <AppBox sx={{display: "flex", gap: 1, mt: 1.5, flexWrap: "wrap", alignItems: "center"}}>
+                    <AppTypography variant="caption" color="text.secondary">Active filters:</AppTypography>
                     {activeFilters.length === 0 ? <AppChip label="No active filters" size="small"/> : null}
                     {activeFilters.map((label) => <AppChip key={label} label={label} size="small" variant="outlined"/>) }
                 </AppBox>
             </AppPaper>
 
-            {loading ? <AppCircularProgress/> : null}
+            {loading ? <AppCircularProgress sx={{display: "block", margin: "24px auto"}}/> : null}
             {error ? <AppTypography color="error">{error}</AppTypography> : null}
 
             {!loading && !error ? (
-                <AppBox sx={{display: "grid", gap: 1}}>
-                    {items.length === 0 ? <AppTypography>No scenarios found.</AppTypography> : null}
+                <AppBox sx={{display: "grid", gap: 1.25}}>
+                    <AppTypography variant="body2" color="text.secondary">
+                        {items.length} scenario{items.length === 1 ? "" : "s"} found
+                    </AppTypography>
+                    {items.length === 0 ? (
+                        <AppPaper variant="outlined" sx={{p: 2.5, borderRadius: 2.5, display: "grid", gap: 0.5}}>
+                            <AppTypography variant="h6">No scenarios found</AppTypography>
+                            <AppTypography variant="body2" color="text.secondary">Try reducing the number of active filters.</AppTypography>
+                        </AppPaper>
+                    ) : null}
                     {items.map((item) => (
                         <Link
                             key={item.id}
                             href={`/scenarios/${item.id}`}
                             style={{
-                                border: "1px solid #e8e8e8",
-                                borderRadius: 8,
-                                padding: 12,
                                 textDecoration: "none",
                                 color: "inherit",
-                                display: "grid",
-                                gap: 4,
                             }}
                         >
-                            <AppTypography variant="h6">{item.name}</AppTypography>
-                            <AppTypography variant="body2">
-                                {item.scenarioType.toUpperCase()} · {item.defenderCharacterName ?? "?"} vs {item.attackerCharacterName ?? "?"}
-                            </AppTypography>
-                            <AppTypography variant="body2">Trigger: {item.triggerMoveLabel ?? item.triggerMoveId ?? "Unknown"}</AppTypography>
+                            <AppPaper
+                                variant="outlined"
+                                sx={{
+                                    p: 1.5,
+                                    borderRadius: 2.5,
+                                    display: "grid",
+                                    gap: 0.5,
+                                    transition: "border-color 0.2s ease, transform 0.2s ease",
+                                    "&:hover": {
+                                        borderColor: "primary.main",
+                                        transform: "translateY(-1px)",
+                                    },
+                                }}
+                            >
+                                <AppTypography variant="h6">{item.name}</AppTypography>
+                                <AppTypography variant="body2" color="text.secondary">
+                                    {item.scenarioType.toUpperCase()} · {item.defenderCharacterName ?? "?"} vs {item.attackerCharacterName ?? "?"}
+                                </AppTypography>
+                                <AppTypography variant="body2">Trigger: {item.triggerMoveLabel ?? item.triggerMoveId ?? "Unknown"}</AppTypography>
+                            </AppPaper>
                         </Link>
                     ))}
                 </AppBox>

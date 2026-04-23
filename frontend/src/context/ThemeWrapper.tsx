@@ -24,7 +24,7 @@ export default function ThemeWrapper({children}: { children: React.ReactNode }) 
                         throw new Error("Function not implemented.");
                     }}
                 />
-                <main style={{marginLeft: 280, width: "100%"}}>
+                <main style={{marginLeft: 296, width: "100%"}}>
                     {children}
                 </main>
             </div>

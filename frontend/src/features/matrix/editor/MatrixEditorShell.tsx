@@ -27,6 +27,13 @@ interface MatrixEditorShellProps {
     matrix: MatrixPayload;
     onMatrixChange: (next: MatrixPayload) => void;
     editable?: boolean;
+    allowRowStructureEdit?: boolean;
+    allowColumnStructureEdit?: boolean;
+    allowRowAxisLabelEdit?: boolean;
+    allowColumnAxisLabelEdit?: boolean;
+    allowRowLayerEdit?: boolean;
+    allowColumnLayerEdit?: boolean;
+    columnVisibilityByLabel?: Record<string, boolean> | null;
     onDelete?: () => void;
     onRefreshDynamicCells?: () => Promise<MatrixPayload>;
     onResolveDynamicComboCell?: (dynamicCombo: {
@@ -40,6 +47,13 @@ export function MatrixEditorShell({
     matrix,
     onMatrixChange,
     editable = true,
+    allowRowStructureEdit,
+    allowColumnStructureEdit,
+    allowRowAxisLabelEdit,
+    allowColumnAxisLabelEdit,
+    allowRowLayerEdit,
+    allowColumnLayerEdit,
+    columnVisibilityByLabel,
     onDelete,
     onRefreshDynamicCells,
     onResolveDynamicComboCell,
@@ -55,8 +69,12 @@ export function MatrixEditorShell({
     const stateRef = React.useRef(state);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
-    const canEditStructure = isEditorEditable;
-    const canEditAxisLabels = isEditorEditable;
+    const canEditRowStructure = isEditorEditable && (allowRowStructureEdit ?? true);
+    const canEditColumnStructure = isEditorEditable && (allowColumnStructureEdit ?? true);
+    const canEditRowAxisLabels = isEditorEditable && (allowRowAxisLabelEdit ?? true);
+    const canEditColumnAxisLabels = isEditorEditable && (allowColumnAxisLabelEdit ?? true);
+    const canEditRowLayers = isEditorEditable && (allowRowLayerEdit ?? true);
+    const canEditColumnLayers = isEditorEditable && (allowColumnLayerEdit ?? true);
     const canEditBodyValues = isEditorEditable;
     const canEditReferences = isEditorEditable;
     const canEditDynamicCombos = isEditorEditable;
@@ -101,15 +119,66 @@ export function MatrixEditorShell({
         return computeExpectedValue(values, rowWeights, columnWeights);
     }, [state]);
 
+    const columnVisibilitySet = React.useMemo(() => {
+        if (!columnVisibilityByLabel) {
+            return null;
+        }
+
+        const visible = new Set<string>();
+        state.grid.columns.forEach((column) => {
+            if (columnVisibilityByLabel[column.label] !== false) {
+                visible.add(column.id);
+            }
+        });
+
+        return visible;
+    }, [columnVisibilityByLabel, state.grid.columns]);
+
+    const filteredVisibleState = React.useMemo(() => {
+        if (!columnVisibilitySet) {
+            return visibleState;
+        }
+
+        const filteredColumns = visibleState.grid.columns.filter((column) => columnVisibilitySet.has(column.id));
+        const filteredColumnIds = new Set(filteredColumns.map((column) => column.id));
+        const bodyCells = Object.fromEntries(
+            Object.entries(visibleState.grid.bodyCells).filter(([, cell]) => filteredColumnIds.has(cell.columnId))
+        );
+        const columnSummaryCells = Object.fromEntries(
+            Object.entries(visibleState.grid.columnSummaryCells).filter(([, summary]) => {
+                const columnId = summary.key.replace("column-summary::", "");
+                return filteredColumnIds.has(columnId);
+            })
+        );
+
+        return {
+            ...visibleState,
+            grid: {
+                ...visibleState.grid,
+                columns: filteredColumns,
+                bodyCells,
+                columnSummaryCells,
+            },
+        };
+    }, [columnVisibilitySet, visibleState]);
+
+    const forceSolveColumnIds = React.useMemo(() => {
+        if (!columnVisibilitySet) {
+            return null;
+        }
+
+        return Array.from(columnVisibilitySet);
+    }, [columnVisibilitySet]);
+
     const displayedExpectedValue = React.useMemo(() => {
-        const values = selectGridValues(visibleState);
-        const rowWeights = visibleState.grid.rows.map((row) => visibleState.grid.rowSummaryCells[`row-summary::${row.id}`]?.value ?? null);
-        const columnWeights = visibleState.grid.columns.map(
-            (column) => visibleState.grid.columnSummaryCells[`column-summary::${column.id}`]?.value ?? null
+        const values = selectGridValues(filteredVisibleState);
+        const rowWeights = filteredVisibleState.grid.rows.map((row) => filteredVisibleState.grid.rowSummaryCells[`row-summary::${row.id}`]?.value ?? null);
+        const columnWeights = filteredVisibleState.grid.columns.map(
+            (column) => filteredVisibleState.grid.columnSummaryCells[`column-summary::${column.id}`]?.value ?? null
         );
 
         return computeExpectedValue(values, rowWeights, columnWeights);
-    }, [visibleState]);
+    }, [filteredVisibleState]);
 
     React.useEffect(() => {
         if (state.grid.expectedValueCell.value !== expectedValue) {
@@ -299,6 +368,7 @@ export function MatrixEditorShell({
         displayedBodyValues: referenceResolution.displayedBodyValues,
         solveGame,
         resolveDynamicCellsForSolve,
+        forceSolveColumnIds,
     });
 
     const canMutateActiveSelection = React.useMemo(() => {
@@ -382,7 +452,7 @@ export function MatrixEditorShell({
         >
             <MatrixEditorLayout
                 title={state.grid.metadata.title}
-                onDelete={canEditStructure ? onDelete : undefined}
+                onDelete={canEditRowStructure || canEditColumnStructure ? onDelete : undefined}
                 warnings={displayWarnings}
             >
                 <MatrixEditorToolbar
@@ -397,14 +467,14 @@ export function MatrixEditorShell({
                     onOpenDynamicCombo={openDynamicComboPanelForKey}
                     onSolve={solveCurrentMatrix}
                     isSolving={isSolving}
-                    rowCount={visibleState.grid.rows.length}
-                    columnCount={visibleState.grid.columns.length}
+                    rowCount={filteredVisibleState.grid.rows.length}
+                    columnCount={filteredVisibleState.grid.columns.length}
                     editable={isEditorEditable}
                     selectedReferenceLabel={selectedReferenceLabel}
                 />
                 {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
                 <MatrixGrid
-                    state={visibleState}
+                    state={filteredVisibleState}
                     expectedValue={displayedExpectedValue}
                     activeTarget={state.selection.activeTarget}
                     activeKey={state.selection.activeTarget?.key ?? null}
@@ -416,27 +486,31 @@ export function MatrixEditorShell({
                     validationByKey={state.validation.byKey}
                     displayedBodyValues={referenceResolution.displayedBodyValues}
                     moveLabelById={moveLabelById}
-                    canEditStructure={canEditStructure}
-                    canEditAxisLabels={canEditAxisLabels}
+                    canEditRowStructure={canEditRowStructure}
+                    canEditColumnStructure={canEditColumnStructure}
+                    canEditRowAxisLabels={canEditRowAxisLabels}
+                    canEditColumnAxisLabels={canEditColumnAxisLabels}
+                    canEditRowLayers={canEditRowLayers}
+                    canEditColumnLayers={canEditColumnLayers}
                     canEditBodyValues={canEditBodyValues}
                     canEditSummaries={canEditSummaries}
                     onAddRow={() => {
-                        if (canEditStructure) {
+                        if (canEditRowStructure) {
                             dispatch(actions.addRow());
                         }
                     }}
                     onAddColumn={() => {
-                        if (canEditStructure) {
+                        if (canEditColumnStructure) {
                             dispatch(actions.addColumn());
                         }
                     }}
                     onRemoveRow={(rowId) => {
-                        if (canEditStructure) {
+                        if (canEditRowStructure) {
                             dispatch(actions.removeRow(rowId));
                         }
                     }}
                     onRemoveColumn={(columnId) => {
-                        if (canEditStructure) {
+                        if (canEditColumnStructure) {
                             dispatch(actions.removeColumn(columnId));
                         }
                     }}

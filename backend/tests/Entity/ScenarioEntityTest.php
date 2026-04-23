@@ -53,4 +53,11 @@ class ScenarioEntityTest extends DatabaseTestCase
         self::assertNotNull($saved->getCreatedAt());
         self::assertNotNull($saved->getUpdatedAt());
     }
+
+    public function testScenarioTypeSupportsAggregatedOki(): void
+    {
+        $scenario = (new Scenario())->setScenarioType('aggregated_oki');
+
+        self::assertSame('aggregated_oki', $scenario->getScenarioType());
+    }
 }

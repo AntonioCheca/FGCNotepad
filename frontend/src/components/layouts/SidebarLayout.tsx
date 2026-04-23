@@ -14,7 +14,7 @@ export default function SidebarLayout({
     const collapsed = collapsedState[0];
     const setCollapsed = collapsedState[1];
 
-    const sidebarWidth = collapsed ? 80 : 280;
+    const sidebarWidth = collapsed ? 84 : 296;
 
     return (
         <AppBox sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -26,8 +26,8 @@ export default function SidebarLayout({
                     width: `calc(100% - ${sidebarWidth}px)`,
                     maxWidth: `calc(100% - ${sidebarWidth}px)`,
                     minWidth: 0,
-                    transition: 'margin-left 0.3s',
-                    padding: 4,
+                    transition: 'margin-left 0.28s',
+                    padding: {xs: 2, md: 3},
                     boxSizing: 'border-box',
                 }}
             >

@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
 use App\Repository\ScenarioRepository;
+use App\Service\AggregatedDefenseCatalogService;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioExecutionModeService;
 use App\Service\ScenarioResponseBuilder;
@@ -31,6 +32,7 @@ class ScenarioController extends AbstractController
         private readonly ScenarioRepository $scenarioRepository,
         private readonly CharacterRepository $characterRepository,
         private readonly MoveRepository $moveRepository,
+        private readonly AggregatedDefenseCatalogService $aggregatedDefenseCatalogService,
         private readonly ScenarioResponseBuilder $scenarioResponseBuilder,
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
@@ -213,6 +215,24 @@ class ScenarioController extends AbstractController
         ], JsonResponse::HTTP_OK);
     }
 
+    #[Route('/aggregated-defense-capabilities', name: 'aggregated_defense_capabilities', methods: ['GET'])]
+    public function aggregatedDefenseCapabilities(Request $request): JsonResponse
+    {
+        $characterId = $request->query->get('characterId');
+        $character = null;
+
+        if (is_string($characterId) && '' !== trim($characterId)) {
+            $character = $this->resolveCharacter($characterId, 'characterId');
+        }
+
+        return new JsonResponse([
+            'catalog' => $this->aggregatedDefenseCatalogService->catalog(),
+            'capabilities' => $this->aggregatedDefenseCatalogService->capabilitiesForCharacter($character),
+            'characterId' => $character?->getId()?->toRfc4122(),
+            'characterName' => $character?->getName(),
+        ], JsonResponse::HTTP_OK);
+    }
+
     /**
      * @param array<string, mixed> $data
      */
@@ -234,8 +254,8 @@ class ScenarioController extends AbstractController
             }
 
             $normalizedScenarioType = mb_strtolower($scenarioType);
-            if (!in_array($normalizedScenarioType, ['oki', 'blockstun'], true)) {
-                throw new BadRequestHttpException('scenarioType must be either oki or blockstun.');
+            if (!in_array($normalizedScenarioType, ['oki', 'blockstun', 'aggregated_oki'], true)) {
+                throw new BadRequestHttpException('scenarioType must be either oki, blockstun, or aggregated_oki.');
             }
 
             $scenario->setScenarioType($normalizedScenarioType);
@@ -257,6 +277,10 @@ class ScenarioController extends AbstractController
             $matrix = $data['matrix'] ?? null;
             if (!is_array($matrix)) {
                 throw new BadRequestHttpException('Field matrix is required and must be an object.');
+            }
+
+            if ($this->aggregatedDefenseCatalogService->isAggregatedScenarioType($scenario->getScenarioType())) {
+                $matrix = $this->aggregatedDefenseCatalogService->normalizeAggregatedMatrix($matrix);
             }
 
             $this->scenarioMatrixMapper->replaceScenarioMatrixFromPayload($scenario, $matrix);

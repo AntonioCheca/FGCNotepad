@@ -19,8 +19,12 @@ interface MatrixGridProps {
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
     moveLabelById: Record<string, string>;
-    canEditStructure: boolean;
-    canEditAxisLabels: boolean;
+    canEditRowStructure: boolean;
+    canEditColumnStructure: boolean;
+    canEditRowAxisLabels: boolean;
+    canEditColumnAxisLabels: boolean;
+    canEditRowLayers: boolean;
+    canEditColumnLayers: boolean;
     canEditBodyValues: boolean;
     canEditSummaries: boolean;
     onAddRow: () => void;
@@ -56,11 +60,15 @@ export function MatrixGrid({
                                draft,
                                 draftHasFormatError,
                                  validationByKey,
-                                 displayedBodyValues,
-                                 moveLabelById,
-                                 canEditStructure,
-                                canEditAxisLabels,
-                                canEditBodyValues,
+                                  displayedBodyValues,
+                                  moveLabelById,
+                                  canEditRowStructure,
+                                 canEditColumnStructure,
+                                 canEditRowAxisLabels,
+                                 canEditColumnAxisLabels,
+                                 canEditRowLayers,
+                                 canEditColumnLayers,
+                                 canEditBodyValues,
                                 canEditSummaries,
                                 onAddRow,
                                 onAddColumn,
@@ -146,8 +154,8 @@ export function MatrixGrid({
 
     const selectedColumnHeaderId = structureSelection?.axis === "column" ? structureSelection.id : null;
     const selectedRowHeaderId = structureSelection?.axis === "row" ? structureSelection.id : null;
-    const showRemoveColumn = canEditStructure && selectedColumnHeaderId !== null;
-    const showRemoveRow = canEditStructure && selectedRowHeaderId !== null;
+    const showRemoveColumn = canEditColumnStructure && selectedColumnHeaderId !== null;
+    const showRemoveRow = canEditRowStructure && selectedRowHeaderId !== null;
 
     return (
         <div
@@ -175,7 +183,8 @@ export function MatrixGrid({
                 <MatrixGridHeader
                     state={state}
                     activeColumnId={activeColumnId}
-                    canEditAxisLabels={canEditAxisLabels}
+                    canEditColumnAxisLabels={canEditColumnAxisLabels}
+                    canEditColumnLayers={canEditColumnLayers}
                     onColumnLabelChange={onColumnLabelChange}
                     onColumnLayerChange={onColumnLayerChange}
                     onSelectColumnHeader={handleSelectColumnHeader}
@@ -192,7 +201,8 @@ export function MatrixGrid({
                     validationByKey={validationByKey}
                     displayedBodyValues={displayedBodyValues}
                     moveLabelById={moveLabelById}
-                    canEditAxisLabels={canEditAxisLabels}
+                    canEditRowAxisLabels={canEditRowAxisLabels}
+                    canEditRowLayers={canEditRowLayers}
                     canEditBodyValues={canEditBodyValues}
                     canEditSummaries={canEditSummaries}
                     onRowLabelChange={onRowLabelChange}
@@ -229,7 +239,7 @@ export function MatrixGrid({
                     densityProfile={profile}
                 />
             </table>
-            {canEditStructure ? (
+            {canEditRowStructure || canEditColumnStructure ? (
                 <div
                     style={{
                         display: "flex",
@@ -242,12 +252,16 @@ export function MatrixGrid({
                         bottom: 0,
                     }}
                 >
-                    <button type="button" onClick={onAddRow} style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}>
-                        + Row
-                    </button>
-                    <button type="button" onClick={onAddColumn} style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}>
-                        + Col
-                    </button>
+                    {canEditRowStructure ? (
+                        <button type="button" onClick={onAddRow} style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}>
+                            + Row
+                        </button>
+                    ) : null}
+                    {canEditColumnStructure ? (
+                        <button type="button" onClick={onAddColumn} style={{minHeight: profile.cellHeight, fontSize: profile.labelFontSize}}>
+                            + Col
+                        </button>
+                    ) : null}
                     {showRemoveColumn ? (
                         <button
                             type="button"

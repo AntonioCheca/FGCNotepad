@@ -12,6 +12,7 @@ interface UseSolveMatrixOptions {
     displayedBodyValues: Record<string, number | null>;
     solveGame: (payoffMatrix: Record<string, Record<string, number>>) => Promise<unknown>;
     resolveDynamicCellsForSolve: () => Promise<Record<string, number | null>>;
+    forceSolveColumnIds?: string[] | null;
 }
 
 export function useSolveMatrix({
@@ -22,6 +23,7 @@ export function useSolveMatrix({
     displayedBodyValues,
     solveGame,
     resolveDynamicCellsForSolve,
+    forceSolveColumnIds,
 }: UseSolveMatrixOptions) {
     const [isSolving, setIsSolving] = React.useState(false);
 
@@ -31,7 +33,11 @@ export function useSolveMatrix({
         try {
             const dynamicOverrides = await resolveDynamicCellsForSolve();
             const currentState = stateRef.current;
-            const {rows: solveRows, columns: solveColumns} = toSolveRowsAndColumns(currentState, effectiveLayerLimit);
+            const {rows: solveRows, columns: candidateColumns} = toSolveRowsAndColumns(currentState, effectiveLayerLimit);
+            const forcedColumnSet = forceSolveColumnIds && forceSolveColumnIds.length > 0 ? new Set(forceSolveColumnIds) : null;
+            const solveColumns = forcedColumnSet
+                ? candidateColumns.filter((column) => forcedColumnSet.has(column.id))
+                : candidateColumns;
 
             const payoffMatrix = buildPayoffMatrix({
                 state: currentState,
@@ -72,7 +78,7 @@ export function useSolveMatrix({
         } finally {
             setIsSolving(false);
         }
-    }, [actions, dispatch, displayedBodyValues, effectiveLayerLimit, resolveDynamicCellsForSolve, solveGame, stateRef]);
+    }, [actions, dispatch, displayedBodyValues, effectiveLayerLimit, forceSolveColumnIds, resolveDynamicCellsForSolve, solveGame, stateRef]);
 
     return {
         isSolving,

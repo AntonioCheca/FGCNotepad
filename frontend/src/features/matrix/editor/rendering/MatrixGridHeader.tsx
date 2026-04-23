@@ -6,7 +6,8 @@ import {MatrixDensityProfile} from "./gridDensity";
 interface MatrixGridHeaderProps {
     state: MatrixEditorState;
     activeColumnId: string | null;
-    canEditAxisLabels: boolean;
+    canEditColumnAxisLabels: boolean;
+    canEditColumnLayers: boolean;
     onColumnLabelChange: (columnId: string, label: string) => void;
     onColumnLayerChange: (columnId: string, layer: number) => void;
     onSelectColumnHeader: (columnId: string) => void;
@@ -16,7 +17,8 @@ interface MatrixGridHeaderProps {
 export function MatrixGridHeader({
     state,
     activeColumnId,
-    canEditAxisLabels,
+    canEditColumnAxisLabels,
+    canEditColumnLayers,
     onColumnLabelChange,
     onColumnLayerChange,
     onSelectColumnHeader,
@@ -57,7 +59,7 @@ export function MatrixGridHeader({
                     <input
                         type="text"
                         value={column.label}
-                        readOnly={!canEditAxisLabels}
+                        readOnly={!canEditColumnAxisLabels}
                         onFocus={() => onSelectColumnHeader(column.id)}
                         onChange={(event) => onColumnLabelChange(column.id, event.target.value)}
                         style={{
@@ -72,7 +74,7 @@ export function MatrixGridHeader({
                         min={1}
                         step={1}
                         value={column.layer}
-                        readOnly={!canEditAxisLabels}
+                        readOnly={!canEditColumnLayers}
                         onFocus={() => onSelectColumnHeader(column.id)}
                         onChange={(event) => {
                             const next = Number(event.target.value);

@@ -266,6 +266,73 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertNotNull($easyCombo->getId());
     }
 
+    public function testCreateAggregatedScenarioLocksDefensiveColumns(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $payload = $this->buildMatrixPayload();
+        $payload['axes']['columns'] = ['Custom Defense'];
+        $payload['summary']['columnAxis'] = [
+            ['cellType' => 'summary', 'dataType' => 'number', 'value' => 1],
+        ];
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Aggregated Oki Scenario',
+            'scenarioType' => 'aggregated_oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $payload,
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame('aggregated_oki', $created['scenarioType']);
+        self::assertSame('Aggregated Oki', $created['typeLabel']);
+        self::assertSame([
+            'Block',
+            'Mash 4f',
+            'Invincible Reversal Fast',
+            'Invincible Reversal Slow',
+            'Invincible Super',
+            'Backdash',
+            'Delay Tech',
+            'Perfect Parry',
+            'No Invincible Option',
+        ], $created['matrix']['axes']['columns']);
+        self::assertCount(9, $created['matrix']['summary']['columnAxis']);
+        self::assertCount(9, $created['matrix']['cells'][0]);
+    }
+
+    public function testAggregatedDefenseCapabilitiesEndpointSupportsCharacterMapping(): void
+    {
+        $ed = (new Character())->setName('Ed');
+        $this->em->persist($ed);
+        $this->em->flush();
+
+        $this->client->request('GET', '/api/scenarios/aggregated-defense-capabilities', [], [], $this->getHeaders());
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $genericPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertCount(9, $genericPayload['catalog']);
+        self::assertTrue($genericPayload['capabilities']['invincible_reversal_fast']);
+
+        $this->client->request(
+            'GET',
+            sprintf('/api/scenarios/aggregated-defense-capabilities?characterId=%s', $ed->getId()?->toRfc4122()),
+            [],
+            [],
+            $this->getHeaders()
+        );
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $edPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame($ed->getId()?->toRfc4122(), $edPayload['characterId']);
+        self::assertFalse($edPayload['capabilities']['invincible_reversal_fast']);
+        self::assertTrue($edPayload['capabilities']['invincible_reversal_slow']);
+    }
+
     /**
      * @return array{Character, Character, Move}
      */

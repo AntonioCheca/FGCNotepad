@@ -1,4 +1,3 @@
-// src/components/layouts/Sidebar.tsx
 'use client';
 
 import {AppBox} from '@/src/components/ui/AppBox';
@@ -48,9 +47,10 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
     return (
         <AppBox
             sx={{
-                width: collapsed ? 80 : 280,
+                width: collapsed ? 84 : 296,
                 height: '100vh',
-                backgroundColor: 'background.paper',
+                background: (theme) =>
+                    `linear-gradient(180deg, ${theme.palette.action.hover} 0%, ${theme.palette.background.paper} 40%)`,
                 borderRight: '1px solid',
                 borderColor: 'divider',
                 position: 'fixed',
@@ -60,7 +60,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                 display: 'flex',
                 flexDirection: 'column',
                 zIndex: 1000,
-                transition: 'width 0.3s ease',
+                transition: 'width 0.28s ease',
             }}
         >
             <AppBox
@@ -74,12 +74,14 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                     backgroundColor: 'background.default',
                     px: 2,
                     py: 1,
-                    minHeight: collapsed ? 96 : 56,
+                    minHeight: collapsed ? 100 : 60,
                     transition: 'min-height 0.3s ease, flex-direction 0.3s ease',
                     gap: 1,
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 2,
                 }}
             >
-                {/* Logo container */}
                 <AppBox
                     sx={{
                         width: collapsed ? '100%' : 'auto',
@@ -94,7 +96,6 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                     </Link>
                 </AppBox>
 
-                {/* Buttons container */}
                 <AppBox
                     sx={{
                         width: collapsed ? '100%' : 'auto',
@@ -117,9 +118,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                 </AppBox>
             </AppBox>
 
-
-            {/* Navigation Sections */}
-            <AppBox sx={{flexGrow: 1, pt: 2}}>
+            <AppBox sx={{flexGrow: 1, pt: 1.5, pb: 2.5}}>
                 {visibleSections.map((section, index) => (
                     <NavigationSection
                         key={section.title}

@@ -31,7 +31,7 @@ class ScenarioResponseBuilder
             'name' => $scenario->getName(),
             'label' => $scenario->getName(),
             'scenarioType' => $scenario->getScenarioType(),
-            'typeLabel' => ucfirst($scenario->getScenarioType()),
+            'typeLabel' => $this->toTypeLabel($scenario->getScenarioType()),
             'defenderCharacterId' => $scenario->getDefenderCharacter()?->getId()?->toRfc4122(),
             'defenderCharacterName' => $scenario->getDefenderCharacter()?->getName(),
             'attackerCharacterId' => $scenario->getAttackerCharacter()?->getId()?->toRfc4122(),
@@ -52,7 +52,7 @@ class ScenarioResponseBuilder
             'name' => $scenario->getName(),
             'searchLabel' => $scenario->getSearchLabel(),
             'scenarioType' => $scenario->getScenarioType(),
-            'typeLabel' => ucfirst($scenario->getScenarioType()),
+            'typeLabel' => $this->toTypeLabel($scenario->getScenarioType()),
             'defenderCharacterId' => $scenario->getDefenderCharacter()?->getId()?->toRfc4122(),
             'defenderCharacterName' => $scenario->getDefenderCharacter()?->getName(),
             'attackerCharacterId' => $scenario->getAttackerCharacter()?->getId()?->toRfc4122(),
@@ -64,5 +64,16 @@ class ScenarioResponseBuilder
             'updatedAt' => $scenario->getUpdatedAt()->format(DATE_ATOM),
             'author' => $scenario->getAuthor()?->getUsername(),
         ];
+    }
+
+    private function toTypeLabel(string $scenarioType): string
+    {
+        $normalized = trim(mb_strtolower($scenarioType));
+
+        if ('aggregated_oki' === $normalized) {
+            return 'Aggregated Oki';
+        }
+
+        return ucfirst($normalized);
     }
 }

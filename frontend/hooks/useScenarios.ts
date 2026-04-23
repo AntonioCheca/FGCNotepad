@@ -4,7 +4,19 @@ import api from "@/services/api";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 
-export type ScenarioType = "oki" | "blockstun";
+export type ScenarioType = "oki" | "blockstun" | "aggregated_oki";
+
+export interface AggregatedDefenseCatalogItem {
+    key: string;
+    label: string;
+}
+
+export interface AggregatedDefenseCapabilitiesResponse {
+    catalog: AggregatedDefenseCatalogItem[];
+    capabilities: Record<string, boolean>;
+    characterId: string | null;
+    characterName: string | null;
+}
 
 export interface ScenarioListItem {
     id: string;
@@ -130,6 +142,18 @@ export function useScenarios() {
         }));
     }, [request]);
 
+    const getAggregatedDefenseCapabilities = React.useCallback(async (
+        characterId?: string
+    ): Promise<AggregatedDefenseCapabilitiesResponse> => {
+        return request(() =>
+            api.get('/scenarios/aggregated-defense-capabilities', {
+                params: {
+                    characterId: characterId && characterId.trim() !== '' ? characterId : undefined,
+                },
+            })
+        );
+    }, [request]);
+
     return {
         listScenarios,
         getScenario,
@@ -138,5 +162,6 @@ export function useScenarios() {
         deleteScenario,
         resolveDynamicCells,
         resolveDynamicCellPreview,
+        getAggregatedDefenseCapabilities,
     };
 }

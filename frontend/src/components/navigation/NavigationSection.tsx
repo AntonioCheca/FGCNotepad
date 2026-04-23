@@ -18,20 +18,22 @@ export default function NavigationSection({section, showDivider = false, collaps
     const pathname = usePathname();
 
     return (
-        <AppBox sx={{mb: 2}}>
-            <AppBox sx={{px: 2, mb: 1}}>
-                <AppTypography
-                    variant="overline"
-                    sx={{
-                        fontWeight: 'bold',
-                        color: 'text.primary',
-                        fontSize: '0.75rem',
-                        letterSpacing: 1.2
-                    }}
-                >
-                    {section.title}
-                </AppTypography>
-            </AppBox>
+        <AppBox sx={{mb: 1.5}}>
+            {!collapsed ? (
+                <AppBox sx={{px: 2.5, mb: 0.5}}>
+                    <AppTypography
+                        variant="overline"
+                        sx={{
+                            fontWeight: 700,
+                            color: 'text.secondary',
+                            fontSize: '0.66rem',
+                            letterSpacing: 1.3,
+                        }}
+                    >
+                        {section.title}
+                    </AppTypography>
+                </AppBox>
+            ) : null}
 
             <AppList disablePadding>
                 {section.items.map((item) => (
@@ -45,7 +47,7 @@ export default function NavigationSection({section, showDivider = false, collaps
             </AppList>
 
             {showDivider && (
-                <AppDivider sx={{mx: 2, mt: 2}}/>
+                <AppDivider sx={{mx: 2, mt: 1.5}}/>
             )}
         </AppBox>
     );

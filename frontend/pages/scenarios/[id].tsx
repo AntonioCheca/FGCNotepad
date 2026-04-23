@@ -14,6 +14,7 @@ import {useScenarios, ScenarioDetail} from "@/hooks/useScenarios";
 import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
+import {useCharacters} from "@/hooks/useCharacters";
 
 const DEFAULT_EXECUTION_SELECTION: ScenarioExecutionSelection = {
     mode: "standard",
@@ -37,14 +38,17 @@ export default function ScenarioDetailPage() {
     const {id} = router.query;
     const scenarioId = typeof id === "string" ? id : null;
 
-    const {getScenario, resolveDynamicCells} = useScenarios();
+    const {getScenario, resolveDynamicCells, getAggregatedDefenseCapabilities} = useScenarios();
     const {getExecutionPreference} = useExecutionProfile();
+    const {characters} = useCharacters();
     const [scenario, setScenario] = React.useState<ScenarioDetail | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const [refreshingDynamicCombos, setRefreshingDynamicCombos] = React.useState(false);
     const [executionSelection, setExecutionSelection] = React.useState<ScenarioExecutionSelection>(DEFAULT_EXECUTION_SELECTION);
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const [personalizedDefenderId, setPersonalizedDefenderId] = React.useState("");
+    const [columnVisibilityByLabel, setColumnVisibilityByLabel] = React.useState<Record<string, boolean> | null>(null);
 
     React.useEffect(() => {
         const authenticated = hasJwtToken();
@@ -134,6 +138,42 @@ export default function ScenarioDetailPage() {
             canceled = true;
         };
     }, [executionSelection, resolveDynamicCells, scenarioId, loading, error]);
+
+    React.useEffect(() => {
+        if (!scenario || scenario.scenarioType !== "aggregated_oki") {
+            setPersonalizedDefenderId("");
+            setColumnVisibilityByLabel(null);
+            return;
+        }
+
+        if (personalizedDefenderId.trim() === "") {
+            setColumnVisibilityByLabel(null);
+            return;
+        }
+
+        let canceled = false;
+        getAggregatedDefenseCapabilities(personalizedDefenderId)
+            .then((response) => {
+                if (canceled) {
+                    return;
+                }
+
+                const availabilityByLabel: Record<string, boolean> = {};
+                response.catalog.forEach((item) => {
+                    availabilityByLabel[item.label] = response.capabilities[item.key] !== false;
+                });
+                setColumnVisibilityByLabel(availabilityByLabel);
+            })
+            .catch(() => {
+                if (!canceled) {
+                    setColumnVisibilityByLabel(null);
+                }
+            });
+
+        return () => {
+            canceled = true;
+        };
+    }, [scenario, personalizedDefenderId, getAggregatedDefenseCapabilities]);
 
     if (loading) {
         return (
@@ -256,9 +296,26 @@ export default function ScenarioDetailPage() {
                 <AppTypography variant="body2">Trigger Move: {scenario.triggerMoveLabel ?? "Unknown"}</AppTypography>
             </div>
 
+            {scenario.scenarioType === "aggregated_oki" ? (
+                <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap"}}>
+                    <AppTypography variant="body2">Personalize Defender</AppTypography>
+                    <select
+                        value={personalizedDefenderId}
+                        onChange={(event) => setPersonalizedDefenderId(event.target.value)}
+                        style={{height: 36, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
+                    >
+                        <option value="">Generic (All defensive options)</option>
+                        {(characters as Array<{id: string; name: string}>).map((character) => (
+                            <option key={character.id} value={character.id}>{character.name}</option>
+                        ))}
+                    </select>
+                </div>
+            ) : null}
+
             <MatrixEditorShell
                 matrix={scenario.matrix}
                 editable={false}
+                columnVisibilityByLabel={columnVisibilityByLabel}
                 onMatrixChange={() => {
                 }}
                 onRefreshDynamicCells={async () => {

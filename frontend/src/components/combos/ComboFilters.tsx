@@ -248,80 +248,99 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
     }, [onChange]);
 
     return (
-        <AppPaper variant="outlined" sx={{p: 2, mb: 2, borderRadius: 2}}>
-            <AppStack direction="row" alignItems="center" justifyContent="space-between" sx={{mb: 1.5}}>
-                <AppTypography variant="h6">Filters</AppTypography>
+        <AppPaper variant="outlined" sx={{p: {xs: 2, md: 2.5}, mb: 2, borderRadius: 3}}>
+            <AppStack direction="row" alignItems="center" justifyContent="space-between" sx={{mb: 2, gap: 1, flexWrap: "wrap"}}>
+                <AppBox sx={{display: "grid", gap: 0.25}}>
+                    <AppTypography variant="h6">Filters</AppTypography>
+                    <AppTypography variant="body2" color="text.secondary">Set one or multiple filters, then apply.</AppTypography>
+                </AppBox>
                 <AppChip label={activeFilterCount === 0 ? "No active filters" : `${activeFilterCount} active`} size="small"/>
             </AppStack>
 
-            <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 1.5}}>
-                <AppTextField label="Search by name" value={query} onChange={(event) => setQuery(event.target.value)}/>
+            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5, mb: 1.5}}>
+                <AppTypography variant="subtitle2" sx={{mb: 1}}>Basic Search</AppTypography>
+                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 1.5}}>
+                    <AppTextField label="Search by name" value={query} onChange={(event) => setQuery(event.target.value)} size="small"/>
 
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-character-label">Character</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-character-label"
-                        label="Character"
-                        value={characterId}
-                        onChange={(event) => setCharacterId(event.target.value)}
-                    >
-                        <AppMenuItem value="">Any character</AppMenuItem>
-                        {characterOptions.map((character) => (
-                            <AppMenuItem key={character.id} value={character.id}>{character.name}</AppMenuItem>
-                        ))}
-                    </AppSelect>
-                </AppFormControl>
+                    <AppFormControl size="small">
+                        <AppInputLabel id="combo-filter-character-label">Character</AppInputLabel>
+                        <AppSelect
+                            labelId="combo-filter-character-label"
+                            label="Character"
+                            value={characterId}
+                            onChange={(event) => setCharacterId(event.target.value)}
+                        >
+                            <AppMenuItem value="">Any character</AppMenuItem>
+                            {characterOptions.map((character) => (
+                                <AppMenuItem key={character.id} value={character.id}>{character.name}</AppMenuItem>
+                            ))}
+                        </AppSelect>
+                    </AppFormControl>
 
-                <AppAutocomplete<MoveSearchOption, false, false, false>
-                    options={firstMoveOptions}
-                    value={firstMove}
-                    inputValue={firstMoveQuery}
-                    loading={searchingMoves}
-                    filterOptions={(options) => options}
-                    onChange={(_, value) => setFirstMove(value)}
-                    onInputChange={(_, value) => setFirstMoveQuery(value)}
-                    getOptionLabel={(option) => option.summary}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                    noOptionsText={firstMoveQuery.trim().length < 2 ? "Type 2+ characters" : "No moves found"}
-                    renderInput={(params) => <AppTextField {...params} label="First move"/>}
-                />
+                    <AppAutocomplete<MoveSearchOption, false, false, false>
+                        options={firstMoveOptions}
+                        value={firstMove}
+                        inputValue={firstMoveQuery}
+                        loading={searchingMoves}
+                        filterOptions={(options) => options}
+                        onChange={(_, value) => setFirstMove(value)}
+                        onInputChange={(_, value) => setFirstMoveQuery(value)}
+                        getOptionLabel={(option) => option.summary}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        noOptionsText={firstMoveQuery.trim().length < 2 ? "Type 2+ characters" : "No moves found"}
+                        renderInput={(params) => <AppTextField {...params} label="First move" size="small"/>}
+                    />
 
-                <AppAutocomplete<{label: string; value: string}, true, false, false>
-                    multiple
-                    options={moveTypeOptions}
-                    value={moveTypeOptions.filter((entry) => moveTypes.includes(entry.value))}
-                    filterOptions={(options) => options}
-                    onChange={(_, value) => setMoveTypes(value.map((entry) => entry.value))}
-                    getOptionLabel={(option) => option.label}
-                    isOptionEqualToValue={(option, value) => option.value === value.value}
-                    renderInput={(params) => <AppTextField {...params} label="Contains move type"/>}
-                />
+                    <AppAutocomplete<{label: string; value: string}, true, false, false>
+                        multiple
+                        options={moveTypeOptions}
+                        value={moveTypeOptions.filter((entry) => moveTypes.includes(entry.value))}
+                        filterOptions={(options) => options}
+                        onChange={(_, value) => setMoveTypes(value.map((entry) => entry.value))}
+                        getOptionLabel={(option) => option.label}
+                        isOptionEqualToValue={(option, value) => option.value === value.value}
+                        renderInput={(params) => <AppTextField {...params} label="Contains move type" size="small"/>}
+                    />
+                </AppBox>
+            </AppPaper>
 
-                <AppTextField
-                    label="Min difficulty"
-                    type="number"
-                    value={minDifficulty}
-                    onChange={(event) => setMinDifficulty(event.target.value)}
-                />
-                <AppTextField
-                    label="Max difficulty"
-                    type="number"
-                    value={maxDifficulty}
-                    onChange={(event) => setMaxDifficulty(event.target.value)}
-                />
-                <AppTextField
-                    label="Min damage"
-                    type="number"
-                    value={minDamage}
-                    onChange={(event) => setMinDamage(event.target.value)}
-                />
-                <AppTextField
-                    label="Max damage"
-                    type="number"
-                    value={maxDamage}
-                    onChange={(event) => setMaxDamage(event.target.value)}
-                />
+            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5, mb: 1.5}}>
+                <AppTypography variant="subtitle2" sx={{mb: 1}}>Ranges</AppTypography>
+                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 1.5}}>
+                    <AppTextField
+                        label="Min difficulty"
+                        type="number"
+                        size="small"
+                        value={minDifficulty}
+                        onChange={(event) => setMinDifficulty(event.target.value)}
+                    />
+                    <AppTextField
+                        label="Max difficulty"
+                        type="number"
+                        size="small"
+                        value={maxDifficulty}
+                        onChange={(event) => setMaxDifficulty(event.target.value)}
+                    />
+                    <AppTextField
+                        label="Min damage"
+                        type="number"
+                        size="small"
+                        value={minDamage}
+                        onChange={(event) => setMinDamage(event.target.value)}
+                    />
+                    <AppTextField
+                        label="Max damage"
+                        type="number"
+                        size="small"
+                        value={maxDamage}
+                        onChange={(event) => setMaxDamage(event.target.value)}
+                    />
+                </AppBox>
+            </AppPaper>
 
+            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5}}>
+                <AppTypography variant="subtitle2" sx={{mb: 1}}>Requirements</AppTypography>
+                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 1.5}}>
                 <AppFormControl size="small">
                     <AppInputLabel id="combo-filter-essential-label">Essential</AppInputLabel>
                     <AppSelect
@@ -420,8 +439,9 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                     </AppSelect>
                 </AppFormControl>
             </AppBox>
+            </AppPaper>
 
-            <AppStack direction="row" spacing={1} sx={{mt: 2}}>
+            <AppStack direction="row" spacing={1} sx={{mt: 2.5, justifyContent: "flex-end", flexWrap: "wrap"}}>
                 <AppButton type="button" onClick={applyFilters}>Apply Filters</AppButton>
                 <AppButton type="button" variant="outlined" onClick={clearFilters}>Clear</AppButton>
             </AppStack>

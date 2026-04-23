@@ -15,7 +15,8 @@ interface MatrixGridBodyProps {
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
     moveLabelById: Record<string, string>;
-    canEditAxisLabels: boolean;
+    canEditRowAxisLabels: boolean;
+    canEditRowLayers: boolean;
     canEditBodyValues: boolean;
     canEditSummaries: boolean;
     onRowLabelChange: (rowId: string, label: string) => void;
@@ -41,12 +42,13 @@ export function MatrixGridBody({
                                      editingKey,
                                      draft,
                                      draftHasFormatError,
-                                      validationByKey,
-                                      displayedBodyValues,
-                                      moveLabelById,
-                                     canEditAxisLabels,
-                                      canEditBodyValues,
-                                      canEditSummaries,
+                                       validationByKey,
+                                       displayedBodyValues,
+                                       moveLabelById,
+                                      canEditRowAxisLabels,
+                                      canEditRowLayers,
+                                       canEditBodyValues,
+                                       canEditSummaries,
                                       onRowLabelChange,
                                       onRowLayerChange,
                                       onSelectRowHeader,
@@ -82,7 +84,7 @@ export function MatrixGridBody({
                     <input
                         type="text"
                         value={row.label}
-                        readOnly={!canEditAxisLabels}
+                        readOnly={!canEditRowAxisLabels}
                         onFocus={() => onSelectRowHeader(row.id)}
                         onChange={(event) => onRowLabelChange(row.id, event.target.value)}
                         style={{
@@ -97,7 +99,7 @@ export function MatrixGridBody({
                         min={1}
                         step={1}
                         value={row.layer}
-                        readOnly={!canEditAxisLabels}
+                        readOnly={!canEditRowLayers}
                         onFocus={() => onSelectRowHeader(row.id)}
                         onChange={(event) => {
                             const next = Number(event.target.value);
