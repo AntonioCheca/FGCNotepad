@@ -47,6 +47,7 @@ interface MatrixGridProps {
     onCommitEdit: () => void;
     onCancelEdit: () => void;
     density: MatrixDensityMode;
+    showLayerControls: boolean;
 }
 
 export function MatrixGrid({
@@ -86,11 +87,12 @@ export function MatrixGrid({
                                 onSelectExpectedValue,
                                 onStartEdit,
                                 onStartOverwriteEdit,
-                                 onDraftChange,
-                                 onCommitEdit,
-                                 onCancelEdit,
-                                density,
-                             }: MatrixGridProps) {
+                                  onDraftChange,
+                                  onCommitEdit,
+                                  onCancelEdit,
+                                 density,
+                                 showLayerControls,
+                              }: MatrixGridProps) {
     const [structureSelection, setStructureSelection] = React.useState<{axis: "row" | "column"; id: string} | null>(null);
 
     const profile = React.useMemo(
@@ -189,6 +191,7 @@ export function MatrixGrid({
                     onColumnLayerChange={onColumnLayerChange}
                     onSelectColumnHeader={handleSelectColumnHeader}
                     densityProfile={profile}
+                    showLayerControls={showLayerControls}
                 />
                 <MatrixGridBody
                     state={state}
@@ -218,6 +221,7 @@ export function MatrixGrid({
                     onCommitEdit={onCommitEdit}
                     onCancelEdit={onCancelEdit}
                     densityProfile={profile}
+                    showLayerControls={showLayerControls}
                 />
                 <MatrixSummaryAxes
                     state={state}

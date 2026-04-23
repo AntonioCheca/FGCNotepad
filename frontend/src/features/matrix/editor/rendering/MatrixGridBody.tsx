@@ -3,6 +3,7 @@ import React from "react";
 import {MatrixEditorState, MatrixValidationIssue, createBodyCellKey, createRowSummaryKey, isEditableBodyCell} from "@/src/features/matrix/model";
 import {MatrixValueCell} from "./MatrixValueCell";
 import {MatrixDensityProfile} from "./gridDensity";
+import {MatrixLayerBadge} from "./MatrixLayerBadge";
 
 interface MatrixGridBodyProps {
     state: MatrixEditorState;
@@ -32,6 +33,7 @@ interface MatrixGridBodyProps {
     onCommitEdit: () => void;
     onCancelEdit: () => void;
     densityProfile: MatrixDensityProfile;
+    showLayerControls: boolean;
 }
 
 export function MatrixGridBody({
@@ -58,11 +60,12 @@ export function MatrixGridBody({
                                      onOpenDynamicCombo,
                                      onStartEdit,
                                     onStartOverwriteEdit,
-                                      onDraftChange,
-                                      onCommitEdit,
-                                      onCancelEdit,
-                                      densityProfile,
-                                   }: MatrixGridBodyProps) {
+                                       onDraftChange,
+                                       onCommitEdit,
+                                       onCancelEdit,
+                                       densityProfile,
+                                       showLayerControls,
+                                    }: MatrixGridBodyProps) {
     return (
         <tbody>
         {state.grid.rows.map((row) => {
@@ -94,25 +97,16 @@ export function MatrixGridBody({
                             padding: "2px 6px",
                         }}
                     />
-                    <input
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={row.layer}
-                        readOnly={!canEditRowLayers}
-                        onFocus={() => onSelectRowHeader(row.id)}
-                        onChange={(event) => {
-                            const next = Number(event.target.value);
-                            onRowLayerChange(row.id, Number.isFinite(next) ? Math.max(1, Math.trunc(next)) : 1);
-                        }}
-                        style={{
-                            width: 58,
-                            minHeight: densityProfile.cellHeight,
-                            fontSize: densityProfile.labelFontSize,
-                            padding: "2px 6px",
-                            marginTop: 4,
-                        }}
-                    />
+                    {showLayerControls ? (
+                        <MatrixLayerBadge
+                            value={row.layer}
+                            readOnly={!canEditRowLayers}
+                            axisLabel={row.label || "Row"}
+                            onSelect={() => onSelectRowHeader(row.id)}
+                            onChange={(nextLayer) => onRowLayerChange(row.id, nextLayer)}
+                            densityProfile={densityProfile}
+                        />
+                    ) : null}
                 </th>
                 {state.grid.columns.map((column) => {
                     const key = createBodyCellKey(row.id, column.id);

@@ -18,6 +18,8 @@ interface MatrixEditorToolbarProps {
     columnCount: number;
     editable: boolean;
     selectedReferenceLabel: string | null;
+    showLayerControls: boolean;
+    onShowLayerControlsChange: (show: boolean) => void;
 }
 
 export function MatrixEditorToolbar({
@@ -36,6 +38,8 @@ export function MatrixEditorToolbar({
     columnCount,
     editable,
     selectedReferenceLabel,
+    showLayerControls,
+    onShowLayerControlsChange,
 }: MatrixEditorToolbarProps) {
     return (
         <div style={{display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap"}}>
@@ -66,6 +70,9 @@ export function MatrixEditorToolbar({
                     />
                 </label>
             ) : null}
+            <button type="button" onClick={() => onShowLayerControlsChange(!showLayerControls)} style={{height: 28}}>
+                {showLayerControls ? "Hide Layers" : "Show Layers"}
+            </button>
             {canEditReferences ? (
                 <button
                     type="button"

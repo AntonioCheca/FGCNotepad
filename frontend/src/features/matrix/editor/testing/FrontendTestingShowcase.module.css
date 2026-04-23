@@ -1,0 +1,332 @@
+.page {
+    display: grid;
+    gap: 24px;
+    padding: 20px;
+    background:
+        radial-gradient(circle at 9% 11%, rgba(95, 149, 214, 0.18), transparent 44%),
+        radial-gradient(circle at 90% 88%, rgba(60, 121, 198, 0.12), transparent 46%),
+        #e9eff6;
+    color: #1d2f46;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.pageHeader {
+    border: 1px solid #b7c8db;
+    border-radius: 22px;
+    padding: 18px 20px;
+    background: linear-gradient(136deg, rgba(255, 255, 255, 0.95), rgba(227, 236, 246, 0.9));
+    box-shadow: 0 12px 24px rgba(39, 70, 106, 0.1);
+}
+
+.eyebrow {
+    margin: 0;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: #4d7098;
+}
+
+.pageHeader h1 {
+    margin: 6px 0;
+    font-size: clamp(1.35rem, 2.8vw, 2.15rem);
+    line-height: 1.1;
+}
+
+.pageHeader p {
+    margin: 0;
+    color: #38567c;
+    max-width: 72ch;
+}
+
+.variant {
+    border: 1px solid #b4c7dc;
+    border-radius: 20px;
+    padding: 16px;
+    background: linear-gradient(128deg, rgba(255, 255, 255, 0.95), rgba(229, 237, 248, 0.88));
+    box-shadow: 0 10px 22px rgba(37, 70, 106, 0.1);
+    display: grid;
+    gap: 11px;
+}
+
+.variantHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.variantTag {
+    margin: 0;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: #5b7ea6;
+}
+
+.variantTitle {
+    margin: 4px 0 2px;
+    font-size: clamp(1.05rem, 2.2vw, 1.55rem);
+}
+
+.variantSubtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #3c5a82;
+    max-width: 66ch;
+}
+
+.metaPills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.metaPills span {
+    border: 1px solid #a7bfd8;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.84);
+    padding: 5px 10px;
+    font-size: 0.75rem;
+}
+
+.toolbarRow,
+.contextActions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.toolbarRow button,
+.contextActions button {
+    border: 1px solid #9db9d6;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #264a70;
+    padding: 6px 11px;
+    font-size: 0.77rem;
+    cursor: default;
+}
+
+.primaryButton {
+    background: linear-gradient(135deg, #2b629d, #3f79b8);
+    border-color: #25578b;
+    color: #fff;
+}
+
+.editingNotice {
+    border: 1px dashed #a8c0d9;
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    color: #416188;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.variantBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    gap: 11px;
+}
+
+.sheetCard,
+.contextPanel,
+.contextHint {
+    border: 1px solid #adc3dc;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 10px;
+}
+
+.referenceBar {
+    border: 1px solid #acc1da;
+    border-radius: 10px;
+    background: rgba(67, 125, 188, 0.1);
+    color: #2f547f;
+    font-size: 0.79rem;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+}
+
+.tableWrap {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #afc4dd;
+}
+
+.matrixTable {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.matrixTable th,
+.matrixTable td {
+    border: 1px solid #b2c6de;
+    text-align: center;
+    padding: 6px;
+}
+
+.matrixTable th {
+    font-weight: 700;
+}
+
+.matrixTable small {
+    color: #56789f;
+}
+
+.cellPill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+    min-height: 26px;
+    border: 1px solid #a5bdd7;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 0 6px;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.cellSelected {
+    border-color: #2f659f;
+    box-shadow: 0 0 0 2px rgba(47, 101, 159, 0.22);
+}
+
+.cellEditing {
+    background: rgba(229, 242, 255, 0.95);
+}
+
+.cellLink {
+    background: rgba(64, 119, 179, 0.12);
+    border-color: #7ea5ce;
+    font-weight: 700;
+}
+
+.cellDynamic {
+    background: rgba(81, 141, 204, 0.16);
+    border-color: #6e9fce;
+    font-weight: 700;
+}
+
+.cellPill input {
+    width: 44px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    color: #244f7e;
+    font-size: 0.78rem;
+    font-family: inherit;
+    outline: none;
+}
+
+.summaryCell,
+.evCell {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.contextHint {
+    font-size: 0.79rem;
+    color: #43658d;
+    display: grid;
+    place-items: center;
+    text-align: center;
+}
+
+.contextPanel {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+}
+
+.contextPanel strong {
+    font-size: 0.84rem;
+}
+
+.contextInput,
+.contextItem,
+.contextItemActive {
+    border: 1px solid #aec4dc;
+    border-radius: 9px;
+    padding: 7px 9px;
+    font-size: 0.78rem;
+}
+
+.contextItemActive {
+    background: rgba(66, 121, 182, 0.14);
+}
+
+.variantOne .toolbarRow button {
+    border-radius: 999px;
+}
+
+.variantTwo .toolbarRow button {
+    border-radius: 8px;
+    padding: 6px 9px;
+}
+
+.variantTwo .cellPill {
+    border-radius: 12px;
+}
+
+.variantThree .toolbarRow {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid #aec4dd;
+    border-radius: 11px;
+    padding: 6px;
+}
+
+.variantThree .toolbarRow button {
+    border-radius: 6px;
+}
+
+.variantThree .cellSelected {
+    box-shadow: 0 0 0 2px rgba(50, 108, 170, 0.28), inset 0 0 0 1px rgba(43, 95, 153, 0.42);
+}
+
+.variantFour .matrixTable th,
+.variantFour .matrixTable td {
+    border-color: #cad8e7;
+}
+
+.variantFour .cellPill {
+    border-radius: 4px;
+    border-color: #b5cae1;
+}
+
+.variantFour .toolbarRow button {
+    border-radius: 5px;
+}
+
+.variantFive .editingNotice {
+    border-style: solid;
+    background: rgba(62, 117, 178, 0.11);
+}
+
+.variantFive .cellEditing {
+    background: rgba(202, 226, 250, 0.95);
+}
+
+.variantFive .contextPanel {
+    box-shadow: inset 0 0 0 1px rgba(76, 126, 180, 0.25);
+}
+
+@media (max-width: 1120px) {
+    .variantBody {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .page {
+        padding: 12px;
+    }
+
+    .variant {
+        border-radius: 16px;
+        padding: 12px;
+    }
+}

@@ -75,6 +75,7 @@ export function MatrixEditorShell({
     const canEditColumnAxisLabels = isEditorEditable && (allowColumnAxisLabelEdit ?? true);
     const canEditRowLayers = isEditorEditable && (allowRowLayerEdit ?? true);
     const canEditColumnLayers = isEditorEditable && (allowColumnLayerEdit ?? true);
+    const [showLayerControls, setShowLayerControls] = React.useState(false);
     const canEditBodyValues = isEditorEditable;
     const canEditReferences = isEditorEditable;
     const canEditDynamicCombos = isEditorEditable;
@@ -471,6 +472,8 @@ export function MatrixEditorShell({
                     columnCount={filteredVisibleState.grid.columns.length}
                     editable={isEditorEditable}
                     selectedReferenceLabel={selectedReferenceLabel}
+                    showLayerControls={showLayerControls}
+                    onShowLayerControlsChange={setShowLayerControls}
                 />
                 {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
                 <MatrixGrid
@@ -530,6 +533,7 @@ export function MatrixEditorShell({
                     onCommitEdit={commitEditAndRefocus}
                     onCancelEdit={cancelEditAndRefocus}
                     density="standard"
+                    showLayerControls={showLayerControls}
                 />
             </MatrixEditorLayout>
 

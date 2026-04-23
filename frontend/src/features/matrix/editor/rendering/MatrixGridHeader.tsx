@@ -2,6 +2,7 @@ import React from "react";
 
 import {MatrixEditorState} from "@/src/features/matrix/model";
 import {MatrixDensityProfile} from "./gridDensity";
+import {MatrixLayerBadge} from "./MatrixLayerBadge";
 
 interface MatrixGridHeaderProps {
     state: MatrixEditorState;
@@ -12,6 +13,7 @@ interface MatrixGridHeaderProps {
     onColumnLayerChange: (columnId: string, layer: number) => void;
     onSelectColumnHeader: (columnId: string) => void;
     densityProfile: MatrixDensityProfile;
+    showLayerControls: boolean;
 }
 
 export function MatrixGridHeader({
@@ -23,6 +25,7 @@ export function MatrixGridHeader({
     onColumnLayerChange,
     onSelectColumnHeader,
     densityProfile,
+    showLayerControls,
 }: MatrixGridHeaderProps) {
     return (
         <thead>
@@ -43,19 +46,20 @@ export function MatrixGridHeader({
             >
                 P1 / P2
             </th>
-            {state.grid.columns.map((column) => (
-                <th
-                    key={column.id}
-                    style={{
-                        padding: `${densityProfile.cellPadding}px`,
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 4,
-                        background: activeColumnId === column.id ? "#e6f7ff" : "#fafafa",
-                        borderBottom: activeColumnId === column.id ? "2px solid #1677ff" : "1px solid #d9d9d9",
-                        minWidth: densityProfile.columnLabelWidth,
-                    }}
-                >
+            {state.grid.columns.map((column) => {
+                return (
+                    <th
+                        key={column.id}
+                        style={{
+                            padding: `${densityProfile.cellPadding}px`,
+                            position: "sticky",
+                            top: 0,
+                            zIndex: 4,
+                            background: activeColumnId === column.id ? "#e6f7ff" : "#fafafa",
+                            borderBottom: activeColumnId === column.id ? "2px solid #1677ff" : "1px solid #d9d9d9",
+                            minWidth: densityProfile.columnLabelWidth,
+                        }}
+                    >
                     <input
                         type="text"
                         value={column.label}
@@ -69,27 +73,19 @@ export function MatrixGridHeader({
                             padding: "2px 6px",
                         }}
                     />
-                    <input
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={column.layer}
-                        readOnly={!canEditColumnLayers}
-                        onFocus={() => onSelectColumnHeader(column.id)}
-                        onChange={(event) => {
-                            const next = Number(event.target.value);
-                            onColumnLayerChange(column.id, Number.isFinite(next) ? Math.max(1, Math.trunc(next)) : 1);
-                        }}
-                        style={{
-                            width: 58,
-                            minHeight: densityProfile.cellHeight,
-                            fontSize: densityProfile.labelFontSize,
-                            padding: "2px 6px",
-                            marginTop: 4,
-                        }}
-                    />
-                </th>
-            ))}
+                    {showLayerControls ? (
+                        <MatrixLayerBadge
+                            value={column.layer}
+                            readOnly={!canEditColumnLayers}
+                            axisLabel={column.label || "Column"}
+                            onSelect={() => onSelectColumnHeader(column.id)}
+                            onChange={(nextLayer) => onColumnLayerChange(column.id, nextLayer)}
+                            densityProfile={densityProfile}
+                        />
+                    ) : null}
+                    </th>
+                );
+            })}
             <th
                 style={{
                     padding: `${densityProfile.cellPadding}px`,
