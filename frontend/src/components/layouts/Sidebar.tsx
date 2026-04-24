@@ -49,8 +49,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
             sx={{
                 width: collapsed ? 84 : 296,
                 height: '100vh',
-                background: (theme) =>
-                    `linear-gradient(180deg, ${theme.palette.action.hover} 0%, ${theme.palette.background.paper} 40%)`,
+                backgroundColor: (theme) => theme.fgc.background.sidebar,
                 borderRight: '1px solid',
                 borderColor: 'divider',
                 position: 'fixed',
@@ -71,7 +70,7 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                     justifyContent: collapsed ? 'center' : 'space-between',
                     borderBottom: '1px solid',
                     borderColor: 'divider',
-                    backgroundColor: 'background.default',
+                    backgroundColor: (theme) => theme.fgc.background.workspace,
                     px: 2,
                     py: 1,
                     minHeight: collapsed ? 100 : 60,

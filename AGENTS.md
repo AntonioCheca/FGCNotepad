@@ -51,3 +51,114 @@ Do not present long design docs in approval steps; provide concise action bullet
 - If uncertain, prefer consistency with existing touched files over broad refactors.
 - Do not perform opportunistic rewrites outside the feature scope.
 - Keep files understandable by reading; comments only for non-obvious behavior.
+
+## FGC Tactical Editorial UI System
+
+This project uses a tactical editorial visual system anchored to two separate artist palettes. Do not merge them into a single 8-color set.
+
+### Artist palette split
+
+- Light theme palette only:
+  - Red `#d72829`
+  - Orange `#f78002`
+  - Amber `#fcbf49`
+  - Cream `#eae2b7`
+- Dark theme palette only:
+  - Navy `#003049`
+  - Teal Dark `#246f89`
+  - Teal Mid `#4d9eba`
+  - Teal Light `#a2ccdb`
+- Derived shades are allowed only when needed for accessibility/state clarity, and must be documented and tokenized in the global theme.
+
+### Semantic token rules
+
+- Use semantic tokens (theme-level) instead of raw hex in page components.
+- Derived shades are implemented and documented in `frontend/styles/theme.ts` via `lightTokens`, `darkTokens`, and explicit semantic mappings under `getDesignTokens`.
+- Required semantic groups:
+  - `background.default`, `background.paper`
+  - `surface.raised`, `surface.subtle`, `surface.sunken`
+  - `text.primary`, `text.secondary`, `text.disabled`
+  - `border.default`, `border.strong`
+  - `action.primary`, `action.primaryHover`, `action.secondary`, `action.danger`, `action.disabled`
+  - `feedback.error`, `feedback.warning`, `feedback.success`, `feedback.info`
+  - `selection.active`, `selection.hover`
+  - `focus.outline`
+- Do not add one-off color values in feature components.
+
+### CTA hierarchy
+
+- Each screen should have one clear primary CTA.
+- Secondary actions must be visually quieter (`outlined`/subtle surface treatment).
+- Destructive actions should use danger semantics and should not compete with primary actions.
+
+### Surface rules
+
+- Use layered surfaces with clear hierarchy: `background` -> `paper` -> `surface.raised/subtle/sunken`.
+- Keep border treatment consistent via semantic border tokens.
+- Prefer segmented/grouped sections over long flat blocks.
+- Avoid gradient backgrounds on tactical/editorial forms and page shells unless explicitly requested.
+
+### Density and layout tone
+
+- Favor dense, elegant layouts for advanced workflows.
+- Constrain field widths by expected input size (for example short title/damage fields should not span full-width containers on desktop).
+- Prefer compact section spacing and avoid oversized "giant card" treatments for routine form sections.
+
+### Feedback, error, and success rules
+
+- Prefer inline or toast feedback; avoid blocking native dialogs for routine form flows.
+- Map messages to semantic feedback roles (`error`, `warning`, `success`, `info`).
+- Keep validation feedback near relevant form sections.
+
+### Icon usage rules
+
+- Use consistent icon families and tokenized icon colors.
+- Meaningful icons/controls must maintain at least `3:1` contrast against adjacent surfaces.
+- Do not use color alone to convey critical status; include label or context text.
+
+### Accessibility contrast requirements
+
+- Normal text: minimum `4.5:1` contrast ratio.
+- Large text (18pt regular or 14pt bold equivalent): minimum `3:1`.
+- Meaningful UI graphics/icons/controls and state indicators: minimum `3:1`.
+- Focus states must always be visible and should meet non-text contrast guidance.
+
+### Page migration QA checklist
+
+- Visual:
+  - no horizontal overflow
+  - consistent spacing scale
+  - consistent radius and border treatment
+  - adjacent controls in the same row must be center-aligned on desktop (for example token strip vs editor panel, and primary input vs primary CTA rows)
+  - no random raw hex values in page components
+- Theme:
+  - light mode and dark mode both verified
+  - artist palette split respected per mode
+  - derived shades only through documented semantic tokens
+- UX:
+  - one clear primary CTA
+  - secondary actions quieter than primary
+  - loading/error/empty states visible and clear
+  - feedback shown inline/toast (not blocking alerts)
+- Accessibility:
+  - text and controls meet WCAG AA contrast targets
+  - focus indicators visible
+  - inputs have accessible labels
+- Regression:
+  - existing functionality still works
+  - no API behavior changes
+  - no data model/schema changes
+
+### UI Library Strategy
+
+- Strategy choice: Hybrid approach (Option D).
+- MUI remains useful as the underlying accessibility and complex input foundation (inputs, autocomplete, dialogs, data-heavy controls).
+- Brand-heavy tactical/editorial surfaces should use shared project components and semantic tokens first, with MUI treated as an implementation detail behind wrappers.
+- New UI work should prefer:
+  1. Semantic theme tokens in `frontend/styles/theme.ts`
+  2. Wrapper-level primitives in `frontend/src/components/ui/*`
+  3. Tactical shared surfaces/components for page composition
+- To avoid mixing visual systems accidentally:
+  - never import MUI directly outside wrapper files
+  - avoid raw hex values in feature/page components
+  - do not introduce parallel ad hoc styling systems for the same page area

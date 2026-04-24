@@ -28,6 +28,7 @@ export default function SidebarLayout({
                     minWidth: 0,
                     transition: 'margin-left 0.28s',
                     padding: {xs: 2, md: 3},
+                    backgroundColor: (theme) => theme.fgc.background.workspace,
                     boxSizing: 'border-box',
                 }}
             >

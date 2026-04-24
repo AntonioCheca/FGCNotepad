@@ -145,6 +145,17 @@ Pull Requests
 - Documentation is optional if the code is clean
 - No front-end test suite is currently in place
 
+## 🎨 Theme Tokens
+
+The tactical/editorial theme is configured in `frontend/styles/theme.ts` and consumed through semantic tokens.
+
+- Light mode now uses neutral product surfaces (`background.default`, `background.surface`, `background.subtle`) with brand colors kept as accents.
+- Cream is reserved for highlight usage (`highlight.surface`) instead of full page backgrounds.
+- Sidebar uses `background.sidebar` so navigation can keep identity while staying clean and readable.
+- Primary CTA and destructive actions remain brand red (`action.primary`, `action.primaryHover`, `feedback.error`).
+
+When styling feature pages (including Create Combo), prefer semantic token usage over hardcoded color values.
+
 ## 🧭 Roadmap
 
 ### ✅ Current Features

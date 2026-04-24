@@ -42,8 +42,7 @@ export default function SearchCombosPage() {
                     p: {xs: 2, md: 2.5},
                     borderRadius: 3,
                     mb: 2,
-                    background: (theme) =>
-                        `linear-gradient(145deg, ${theme.palette.background.paper} 0%, ${theme.palette.action.hover} 100%)`,
+                    backgroundColor: "background.paper",
                 }}
             >
                 <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1.5, flexWrap: "wrap"}}>

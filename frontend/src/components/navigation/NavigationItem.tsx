@@ -36,7 +36,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                 sx={{
                     minWidth: 0,
                     mr: collapsed ? 0 : 1.5,
-                    color: isActive ? 'primary.main' : 'text.secondary',
+                    color: isActive ? 'secondary.main' : 'text.secondary',
                     display: 'flex',
                     justifyContent: 'center',
                 }}
