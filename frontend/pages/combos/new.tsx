@@ -8,11 +8,10 @@ export default function CreateComboPage() {
     const [createdCount, setCreatedCount] = useState(0);
 
     return (
-        <AppContainer maxWidth={false} sx={{py: {xs: 2, md: 3}}}>
+        <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell
                 title="Create Combo"
                 subtitle="Rapid parser verification flow: paste notation, confirm route, fix small mismatches, and submit fast."
-                badgeLabel="FGC Tactical Editorial"
             >
                 {createdCount > 0 ? (
                     <InlineNotice severity="success">

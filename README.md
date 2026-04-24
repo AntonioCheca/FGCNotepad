@@ -149,10 +149,11 @@ Pull Requests
 
 The tactical/editorial theme is configured in `frontend/styles/theme.ts` and consumed through semantic tokens.
 
-- Light mode now uses neutral product surfaces (`background.default`, `background.surface`, `background.subtle`) with brand colors kept as accents.
+- Light mode now uses neutral product surfaces (`background.default`, `background.paper`, `surface.subtle`) with brand colors kept as accents.
 - Cream is reserved for highlight usage (`highlight.surface`) instead of full page backgrounds.
-- Sidebar uses `background.sidebar` so navigation can keep identity while staying clean and readable.
-- Primary CTA and destructive actions remain brand red (`action.primary`, `action.primaryHover`, `feedback.error`).
+- Dark mode surface roles are explicit and reusable: `app.canvas`, `app.sidebar`, `surface.base`, `surface.raised`, `surface.sunken`, and `control.default`.
+- Dark mode accent semantics are strict: `accent.parser`, `accent.primary`, `accent.selected`, `accent.warning`, `accent.success`, `accent.danger`.
+- Active navigation and parser states should use `accent.selected`; parser actions should use `accent.parser`; warnings/success/danger must use matching semantic accent tokens only.
 
 When styling feature pages (including Create Combo), prefer semantic token usage over hardcoded color values.
 

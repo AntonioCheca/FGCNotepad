@@ -94,9 +94,27 @@ This project uses a tactical editorial visual system anchored to two separate ar
 ### Surface rules
 
 - Use layered surfaces with clear hierarchy: `background` -> `paper` -> `surface.raised/subtle/sunken`.
+- In dark mode, enforce these reusable roles before adding feature-specific styling:
+  - `app.canvas` = deepest page background
+  - `app.sidebar` = navigation chrome
+  - `surface.base` = normal content panels
+  - `surface.raised` = active/high-priority panels
+  - `surface.sunken` = grouped inner regions
+  - `control.default` = fields/inputs/select/button bases
 - Keep border treatment consistent via semantic border tokens.
 - Prefer segmented/grouped sections over long flat blocks.
 - Avoid gradient backgrounds on tactical/editorial forms and page shells unless explicitly requested.
+
+### Accent semantics (dark mode)
+
+- Use explicit accent tokens and keep accent families constrained on primary workflows:
+  - `accent.parser` = parser/ingestion actions
+  - `accent.primary` = final primary CTA on the page
+  - `accent.selected` = selected/focused/active UI states
+  - `accent.warning` = warnings only
+  - `accent.success` = success/readiness only
+  - `accent.danger` = destructive/danger states only
+- Do not use ad hoc purple accents unless they are intentionally documented as a brand accent.
 
 ### Density and layout tone
 

@@ -49,9 +49,9 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
             sx={{
                 width: collapsed ? 84 : 296,
                 height: '100vh',
-                backgroundColor: (theme) => theme.fgc.background.sidebar,
+                backgroundColor: (theme) => theme.fgc.app.sidebar,
                 borderRight: '1px solid',
-                borderColor: 'divider',
+                borderColor: 'fgc.border.default',
                 position: 'fixed',
                 left: 0,
                 top: 0,
@@ -69,8 +69,8 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                     alignItems: 'center',
                     justifyContent: collapsed ? 'center' : 'space-between',
                     borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    backgroundColor: (theme) => theme.fgc.background.workspace,
+                    borderColor: 'fgc.border.default',
+                    backgroundColor: (theme) => theme.fgc.surface.sunken,
                     px: 2,
                     py: 1,
                     minHeight: collapsed ? 100 : 60,
@@ -103,7 +103,19 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                         gap: 1,
                     }}
                 >
-                    <AppIconButton onClick={toggleCollapse} size="small" aria-label="Toggle sidebar">
+                    <AppIconButton
+                        onClick={toggleCollapse}
+                        size="small"
+                        aria-label="Toggle sidebar"
+                        sx={{
+                            border: '1px solid',
+                            borderColor: 'fgc.border.subtle',
+                            backgroundColor: 'fgc.surface.interactive',
+                            '&:hover': {
+                                backgroundColor: 'fgc.surface.raised',
+                            },
+                        }}
+                    >
                         {collapsed ? <ChevronRightIcon/> : <ChevronLeftIcon/>}
                     </AppIconButton>
 
@@ -111,13 +123,21 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                         onClick={toggleColorMode}
                         size="small"
                         aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                        sx={{
+                            border: '1px solid',
+                            borderColor: 'fgc.border.subtle',
+                            backgroundColor: 'fgc.surface.interactive',
+                            '&:hover': {
+                                backgroundColor: 'fgc.surface.raised',
+                            },
+                        }}
                     >
                         {mode === 'light' ? <Brightness4Icon/> : <Brightness7Icon/>}
                     </AppIconButton>
                 </AppBox>
             </AppBox>
 
-            <AppBox sx={{flexGrow: 1, pt: 1.5, pb: 2.5}}>
+            <AppBox sx={{flexGrow: 1, pt: 1.25, pb: 2.5}}>
                 {visibleSections.map((section, index) => (
                     <NavigationSection
                         key={section.title}

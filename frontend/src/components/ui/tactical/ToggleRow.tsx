@@ -19,11 +19,12 @@ export function ToggleRow({label, checked, disabled, onChange}: ToggleRowProps) 
                 alignItems: "center",
                 justifyContent: "space-between",
                 border: "1px solid",
-                borderColor: "divider",
+                borderColor: checked ? "fgc.border.strong" : "divider",
                 borderRadius: 1.5,
                 px: 1,
-                py: 0.25,
-                backgroundColor: (theme) => (checked ? theme.fgc.surface.selected : "transparent"),
+                py: 0.35,
+                backgroundColor: (theme) => (checked ? theme.fgc.surface.selected : theme.fgc.surface.sunken),
+                transition: "border-color 0.2s ease, background-color 0.2s ease",
             }}
         >
             <AppTypography variant="body2" color="text.primary">{label}</AppTypography>

@@ -16,17 +16,20 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
     const navButton = (
         <AppListItemButton
             sx={{
-                px: collapsed ? 1.25 : 1.75,
-                py: 1.1,
+                px: collapsed ? 1.25 : 1.6,
+                py: 1,
                 borderRadius: 2,
                 mx: 1,
                 my: 0.25,
-                backgroundColor: isActive ? 'action.selected' : 'transparent',
+                backgroundColor: isActive ? 'fgc.surface.selected' : 'transparent',
                 border: '1px solid',
-                borderColor: isActive ? 'divider' : 'transparent',
-                transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                borderColor: isActive ? 'fgc.accent.selected' : 'transparent',
+                boxShadow: isActive ? 'inset 3px 0 0 0' : 'none',
+                color: isActive ? 'fgc.icon.primary' : 'text.primary',
+                transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
                 '&:hover': {
-                    backgroundColor: 'action.hover',
+                    backgroundColor: 'fgc.surface.subtle',
+                    borderColor: isActive ? 'fgc.accent.selected' : 'fgc.border.subtle',
                 },
                 justifyContent: collapsed ? 'center' : 'flex-start',
             }}
@@ -36,7 +39,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                 sx={{
                     minWidth: 0,
                     mr: collapsed ? 0 : 1.5,
-                    color: isActive ? 'secondary.main' : 'text.secondary',
+                    color: isActive ? 'fgc.accent.selected' : 'fgc.icon.muted',
                     display: 'flex',
                     justifyContent: 'center',
                 }}
@@ -49,7 +52,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                     primary={item.label}
                     primaryTypographyProps={{
                         variant: 'body2',
-                        fontWeight: isActive ? 600 : 500,
+                        fontWeight: isActive ? 650 : 520,
                         lineHeight: 1.35,
                     }}
                 />
