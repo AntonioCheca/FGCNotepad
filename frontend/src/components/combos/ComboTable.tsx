@@ -19,26 +19,35 @@ interface ComboTableProps {
 export default function ComboTable({combos}: ComboTableProps) {
     if (combos.length === 0) {
         return (
-            <AppPaper variant="outlined" sx={{p: 3, borderRadius: 3, display: "grid", gap: 0.75}}>
+            <AppPaper
+                variant="outlined"
+                sx={{
+                    p: {xs: 2, md: 2.25},
+                    borderRadius: 2.5,
+                    display: "grid",
+                    gap: 0.45,
+                    backgroundColor: "fgc.surface.sunken",
+                }}
+            >
                 <AppTypography variant="h6">No combos found</AppTypography>
-                <AppTypography variant="body2" color="text.secondary">Try broadening filters or clearing one requirement.</AppTypography>
+                <AppTypography variant="body2" color="text.secondary">Try easing requirements or removing one advanced filter.</AppTypography>
             </AppPaper>
         );
     }
 
     return (
-        <AppPaper variant="outlined" sx={{borderRadius: 3, overflow: "hidden"}}>
-            <AppTableContainer sx={{maxHeight: "calc(100vh - 260px)"}}>
+        <AppPaper variant="outlined" sx={{borderRadius: 2.5, overflow: "hidden", borderColor: "fgc.border.default"}}>
+            <AppTableContainer sx={{maxHeight: "calc(100vh - 275px)", backgroundColor: "fgc.surface.base"}}>
                 <AppTable stickyHeader>
                     <AppTableHead>
                         <AppTableRow>
-                            <AppTableCell sx={{fontWeight: 700}}>Title</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700}}>Character</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700}}>Moves</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700}}>Damage</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700}}>Season</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700}}>Audit Status</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700}}>Flag</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Title</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Character</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Moves</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Damage</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Season</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Audit Status</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Flag</AppTableCell>
                         </AppTableRow>
                     </AppTableHead>
                     <AppTableBody>
@@ -51,10 +60,27 @@ export default function ComboTable({combos}: ComboTableProps) {
                                 : "-";
 
                             return (
-                                <AppTableRow key={combo.id} hover>
+                                <AppTableRow
+                                    key={combo.id}
+                                    hover
+                                    sx={{
+                                        "&:hover": {
+                                            backgroundColor: "fgc.selection.hover",
+                                        },
+                                    }}
+                                >
                                     <AppTableCell>
                                         <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
-                                            <AppBox component="span" sx={{fontWeight: 600, textDecoration: "underline", textDecorationColor: "transparent", '&:hover': {textDecorationColor: "currentColor"}}}>
+                                            <AppBox
+                                                component="span"
+                                                sx={{
+                                                    fontWeight: 620,
+                                                    textDecoration: "underline",
+                                                    textDecorationColor: "transparent",
+                                                    textUnderlineOffset: "2px",
+                                                    '&:hover': {textDecorationColor: "currentColor"},
+                                                }}
+                                            >
                                                 {combo.title}
                                             </AppBox>
                                         </Link>
@@ -65,12 +91,12 @@ export default function ComboTable({combos}: ComboTableProps) {
                                     <AppTableCell>{season}</AppTableCell>
                                     <AppTableCell>
                                         {combo.needsTechnicalReview ? (
-                                            <AppChip size="small" label="Pending technical review" variant="outlined"/>
+                                            <AppChip size="small" label="Pending technical review" color="warning" variant="outlined" />
                                         ) : (
-                                            <AppChip size="small" label="Fully audited" color="success" variant="outlined"/>
+                                            <AppChip size="small" label="Fully audited" color="success" variant="outlined" />
                                         )}
                                     </AppTableCell>
-                                    <AppTableCell><ContentFlagButton targetType="combo" targetId={combo.id}/></AppTableCell>
+                                    <AppTableCell><ContentFlagButton targetType="combo" targetId={combo.id} /></AppTableCell>
                                 </AppTableRow>
                             );
                         })}

@@ -94,7 +94,12 @@ local-create-test-database:
 local-serve:
 	@echo "Starting Symfony development server..."
 	@echo "Frontend should be started separately with: npm run dev"
-	cd backend && symfony server:start
+	@echo "Ensuring no stale Symfony process is registered..."
+	-cd backend && symfony server:stop
+	cd backend && symfony server:start -d --no-tls
+	cd backend && symfony server:status
+	@echo "Streaming backend logs (Ctrl+C to stop log tail)..."
+	cd backend && symfony server:log
 
 local-serve-detached:
 	cd backend && symfony server:start -d

@@ -1,12 +1,13 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppChip} from "@/src/components/ui/AppChip";
-import {AppPaper} from "@/src/components/ui/AppPaper";
 import ComboFilters from "@/src/components/combos/ComboFilters";
 import ComboTable from "@/src/components/combos/ComboTable";
+import {PageShell} from "@/src/components/ui/tactical/PageShell";
+import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import useCombos from "@/hooks/useCombos";
 import {ComboRow, mapComboToRow} from "@/src/types/combo";
 
@@ -15,18 +16,36 @@ export default function SearchCombosPage() {
     const [filters, setFilters] = useState<Record<string, unknown>>({});
     const [combos, setCombos] = useState<ComboRow[]>([]);
     const [loading, setLoading] = useState(false);
+    const [hasLoadedAtLeastOnce, setHasLoadedAtLeastOnce] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const requestSequence = useRef(0);
 
     const loadCombos = useCallback(async () => {
+        const currentRequestId = requestSequence.current + 1;
+        requestSequence.current = currentRequestId;
         setLoading(true);
+        setErrorMessage(null);
+
         try {
             const data = await fetchCombos(filters);
+            if (requestSequence.current !== currentRequestId) {
+                return;
+            }
+
             const mapped = (data ?? []).map(mapComboToRow);
             setCombos(mapped);
-        } catch (err) {
-            console.error(err);
-            setCombos([]);
+            setHasLoadedAtLeastOnce(true);
+        } catch {
+            if (requestSequence.current !== currentRequestId) {
+                return;
+            }
+
+            setErrorMessage("Could not load combos for this filter set.");
+            setHasLoadedAtLeastOnce(true);
         } finally {
-            setLoading(false);
+            if (requestSequence.current === currentRequestId) {
+                setLoading(false);
+            }
         }
     }, [fetchCombos, filters]);
 
@@ -35,38 +54,32 @@ export default function SearchCombosPage() {
     }, [loadCombos]);
 
     return (
-        <AppContainer maxWidth={false} sx={{py: {xs: 2, md: 3}}}>
-            <AppPaper
-                variant="outlined"
-                sx={{
-                    p: {xs: 2, md: 2.5},
-                    borderRadius: 3,
-                    mb: 2,
-                    backgroundColor: "background.paper",
-                }}
+        <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
+            <PageShell
+                title="Search Combos"
+                subtitle="High-speed lookup flow: lock character, refine opener and constraints, and browse viable routes immediately."
+                badgeLabel={`${combos.length} result${combos.length === 1 ? "" : "s"}`}
             >
-                <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1.5, flexWrap: "wrap"}}>
-                    <AppBox sx={{display: "grid", gap: 0.5}}>
-                        <AppTypography variant="h4">Search Combos</AppTypography>
-                        <AppTypography variant="body2" color="text.secondary">
-                            Filter by character, move properties, and execution conditions.
-                        </AppTypography>
-                    </AppBox>
-                    <AppChip label={`${combos.length} result${combos.length === 1 ? "" : "s"}`} variant="outlined"/>
-                </AppBox>
-            </AppPaper>
+                {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}
+                <ComboFilters onChange={(newFilters) => {
+                    setFilters(newFilters);
+                }} />
 
-            <ComboFilters onChange={(newFilters) => {
-                setFilters(newFilters);
-            }}/>
-            {loading ? (
-                <AppBox sx={{display: "grid", placeItems: "center", gap: 1, py: 4}}>
-                    <AppCircularProgress/>
-                    <AppTypography variant="body2" color="text.secondary">Loading matching combos...</AppTypography>
-                </AppBox>
-            ) : (
-                <ComboTable combos={combos}/>
-            )}
+                {loading && hasLoadedAtLeastOnce ? (
+                    <AppBox sx={{display: "flex", justifyContent: "flex-end", pb: 0.5}}>
+                        <AppChip icon={<AppCircularProgress size={14} />} label="Updating results..." size="small" color="info" variant="outlined" />
+                    </AppBox>
+                ) : null}
+
+                {loading && !hasLoadedAtLeastOnce ? (
+                    <AppBox sx={{display: "grid", placeItems: "center", gap: 1, py: 4}}>
+                        <AppCircularProgress />
+                        <AppTypography variant="body2" color="text.secondary">Loading combos...</AppTypography>
+                    </AppBox>
+                ) : (
+                    <ComboTable combos={combos} />
+                )}
+            </PageShell>
         </AppContainer>
     );
 }

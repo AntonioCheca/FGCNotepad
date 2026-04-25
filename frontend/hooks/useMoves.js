@@ -6,8 +6,15 @@ import api from "@/services/api";
 const useMoves = () => {
     const {request} = useApi();
 
-    const searchMoves = useCallback((query) =>
-        request(() => api.get(`/moves/search?query=${encodeURIComponent(query)}`)), [request]);
+    const searchMoves = useCallback((query, characterId) => {
+        const params = new URLSearchParams({query});
+        if (characterId) {
+            params.set("characterId", String(characterId));
+            params.set("character_id", String(characterId));
+        }
+
+        return request(() => api.get(`/moves/search?${params.toString()}`));
+    }, [request]);
 
     const listMoves = useCallback(() => request(() => api.get('/moves')), [request]);
 

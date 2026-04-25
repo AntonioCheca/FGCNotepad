@@ -1,12 +1,12 @@
 // services/api.js
 import axios from "axios";
 
-// Check if we're running on the client side (browser) or server side (Docker container)
+// Check if we're running on the client side (browser) or server side (Node runtime)
 const isClient = typeof window !== 'undefined';
 
-const API_BASE_URL = isClient
-    ? "http://localhost:8000/api"  // Browser can reach localhost:8000
-    : "http://nginx:80/api";       // Docker container uses service name
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (isClient
+    ? "http://127.0.0.1:8000/api"
+    : "http://nginx:80/api");
 
 const api = axios.create({
     baseURL: API_BASE_URL,

@@ -3,22 +3,25 @@ import {AppAutocomplete} from "@/src/components/ui/AppAutocomplete";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
-import {AppFormControl} from "@/src/components/ui/AppFormControl";
-import {AppInputLabel} from "@/src/components/ui/AppInputLabel";
-import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
+import {AppCollapse} from "@/src/components/ui/AppCollapse";
 import {AppPaper} from "@/src/components/ui/AppPaper";
-import {AppSelect} from "@/src/components/ui/AppSelect";
 import {AppStack} from "@/src/components/ui/AppStack";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
+import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
+import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
+import {ToggleRow} from "@/src/components/ui/tactical/ToggleRow";
 import {useCharacters} from "@/hooks/useCharacters";
 import useMoves from "@/hooks/useMoves";
-
-type TriStateBoolean = "" | "true" | "false";
 
 interface MoveSearchOption {
     id: string;
     summary: string;
+}
+
+interface CharacterOption {
+    id: string;
+    name: string;
 }
 
 export interface ComboSearchFilters {
@@ -60,14 +63,6 @@ function parseOptionalNumber(value: string): number | undefined {
     return Number.isFinite(parsed) ? Math.trunc(parsed) : undefined;
 }
 
-function parseTriStateBoolean(value: TriStateBoolean): boolean | undefined {
-    if (value === "") {
-        return undefined;
-    }
-
-    return value === "true";
-}
-
 export default function ComboFilters({onChange}: ComboFiltersProps) {
     const {characters} = useCharacters();
     const {searchMoves} = useMoves();
@@ -84,34 +79,49 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
     const [minDamage, setMinDamage] = React.useState("");
     const [maxDamage, setMaxDamage] = React.useState("");
 
-    const [isEssential, setIsEssential] = React.useState<TriStateBoolean>("");
-    const [counterHitRequired, setCounterHitRequired] = React.useState<TriStateBoolean>("");
-    const [punishCounterRequired, setPunishCounterRequired] = React.useState<TriStateBoolean>("");
-    const [cornerRequired, setCornerRequired] = React.useState<TriStateBoolean>("");
-    const [airborneRequired, setAirborneRequired] = React.useState<TriStateBoolean>("");
-    const [midScreenRequired, setMidScreenRequired] = React.useState<TriStateBoolean>("");
-    const [notCrouchingRequired, setNotCrouchingRequired] = React.useState<TriStateBoolean>("");
+    const [isEssential, setIsEssential] = React.useState(false);
+    const [counterHitRequired, setCounterHitRequired] = React.useState(false);
+    const [punishCounterRequired, setPunishCounterRequired] = React.useState(false);
+    const [cornerRequired, setCornerRequired] = React.useState(false);
+    const [airborneRequired, setAirborneRequired] = React.useState(false);
+    const [midScreenRequired, setMidScreenRequired] = React.useState(false);
+    const [notCrouchingRequired, setNotCrouchingRequired] = React.useState(false);
 
     const [moveTypes, setMoveTypes] = React.useState<string[]>([]);
-
-    const characterOptions = React.useMemo(
-        () =>
-            (characters as Array<{id: string; name: string}>)
-                .filter((character) => typeof character.id === "string" && typeof character.name === "string")
-                .sort((left, right) => left.name.localeCompare(right.name)),
-        [characters],
+    const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
+    const compactFieldSx = React.useMemo(
+        () => ({
+            "& .MuiFormControl-root": {
+                margin: 0,
+            },
+            "& .MuiInputBase-root": {
+                minHeight: 40,
+            },
+        }),
+        [],
     );
+
+    const characterOptions = React.useMemo<CharacterOption[]>(() => {
+        return (characters as Array<{id: string; name: string}>)
+            .filter((character) => typeof character.id === "string" && typeof character.name === "string")
+            .sort((left, right) => left.name.localeCompare(right.name));
+    }, [characters]);
+
+    const selectedCharacter = React.useMemo(() => {
+        if (!characterId) {
+            return null;
+        }
+
+        return characterOptions.find((character) => character.id === characterId) ?? null;
+    }, [characterId, characterOptions]);
 
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
             const trimmed = firstMoveQuery.trim();
-            if (trimmed.length < 2) {
-                setFirstMoveOptions([]);
-                return;
-            }
+            const queryToSend = trimmed.length > 0 ? trimmed : " ";
 
             setSearchingMoves(true);
-            searchMoves(trimmed)
+            searchMoves(queryToSend, characterId || undefined)
                 .then((result: unknown) => {
                     if (!Array.isArray(result)) {
                         setFirstMoveOptions([]);
@@ -136,6 +146,14 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                         })
                         .filter((entry): entry is MoveSearchOption => entry !== null);
 
+                    if (selectedCharacter?.name) {
+                        const characterNamePrefix = `${selectedCharacter.name.toLowerCase()} `;
+                        setFirstMoveOptions(
+                            normalized.filter((entry) => entry.summary.toLowerCase().startsWith(characterNamePrefix)),
+                        );
+                        return;
+                    }
+
                     setFirstMoveOptions(normalized);
                 })
                 .catch(() => {
@@ -149,7 +167,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         return () => {
             window.clearTimeout(handle);
         };
-    }, [firstMoveQuery, searchMoves]);
+    }, [firstMoveQuery, characterId, searchMoves, selectedCharacter]);
 
     const activeFilterCount = React.useMemo(() => {
         const active = [
@@ -160,13 +178,13 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
             maxDifficulty.trim() !== "",
             minDamage.trim() !== "",
             maxDamage.trim() !== "",
-            isEssential !== "",
-            counterHitRequired !== "",
-            punishCounterRequired !== "",
-            cornerRequired !== "",
-            airborneRequired !== "",
-            midScreenRequired !== "",
-            notCrouchingRequired !== "",
+            isEssential,
+            counterHitRequired,
+            punishCounterRequired,
+            cornerRequired,
+            airborneRequired,
+            midScreenRequired,
+            notCrouchingRequired,
             moveTypes.length > 0,
         ];
 
@@ -189,8 +207,8 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         moveTypes,
     ]);
 
-    const applyFilters = React.useCallback(() => {
-        onChange({
+    const normalizedFilters = React.useMemo<ComboSearchFilters>(() => {
+        return {
             q: query.trim() || undefined,
             characterId: characterId || undefined,
             firstMoveId: firstMove?.id ?? undefined,
@@ -198,17 +216,16 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
             maxDifficulty: parseOptionalNumber(maxDifficulty),
             minDamage: parseOptionalNumber(minDamage),
             maxDamage: parseOptionalNumber(maxDamage),
-            isEssential: parseTriStateBoolean(isEssential),
-            counterHitRequired: parseTriStateBoolean(counterHitRequired),
-            punishCounterRequired: parseTriStateBoolean(punishCounterRequired),
-            cornerRequired: parseTriStateBoolean(cornerRequired),
-            airborneRequired: parseTriStateBoolean(airborneRequired),
-            midScreenRequired: parseTriStateBoolean(midScreenRequired),
-            notCrouchingRequired: parseTriStateBoolean(notCrouchingRequired),
+            isEssential: isEssential ? true : undefined,
+            counterHitRequired: counterHitRequired ? true : undefined,
+            punishCounterRequired: punishCounterRequired ? true : undefined,
+            cornerRequired: cornerRequired ? true : undefined,
+            airborneRequired: airborneRequired ? true : undefined,
+            midScreenRequired: midScreenRequired ? true : undefined,
+            notCrouchingRequired: notCrouchingRequired ? true : undefined,
             moveTypes: moveTypes.length > 0 ? moveTypes : undefined,
-        });
+        };
     }, [
-        onChange,
         query,
         characterId,
         firstMove,
@@ -226,6 +243,16 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         moveTypes,
     ]);
 
+    React.useEffect(() => {
+        const handle = window.setTimeout(() => {
+            onChange(normalizedFilters);
+        }, 240);
+
+        return () => {
+            window.clearTimeout(handle);
+        };
+    }, [normalizedFilters, onChange]);
+
     const clearFilters = React.useCallback(() => {
         setQuery("");
         setCharacterId("");
@@ -236,46 +263,50 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         setMaxDifficulty("");
         setMinDamage("");
         setMaxDamage("");
-        setIsEssential("");
-        setCounterHitRequired("");
-        setPunishCounterRequired("");
-        setCornerRequired("");
-        setAirborneRequired("");
-        setMidScreenRequired("");
-        setNotCrouchingRequired("");
+        setIsEssential(false);
+        setCounterHitRequired(false);
+        setPunishCounterRequired(false);
+        setCornerRequired(false);
+        setAirborneRequired(false);
+        setMidScreenRequired(false);
+        setNotCrouchingRequired(false);
         setMoveTypes([]);
         onChange({});
     }, [onChange]);
 
     return (
-        <AppPaper variant="outlined" sx={{p: {xs: 2, md: 2.5}, mb: 2, borderRadius: 3}}>
-            <AppStack direction="row" alignItems="center" justifyContent="space-between" sx={{mb: 2, gap: 1, flexWrap: "wrap"}}>
-                <AppBox sx={{display: "grid", gap: 0.25}}>
-                    <AppTypography variant="h6">Filters</AppTypography>
-                    <AppTypography variant="body2" color="text.secondary">Set one or multiple filters, then apply.</AppTypography>
+        <AppPaper variant="outlined" sx={{p: {xs: 1.25, md: 1.5}, mb: 2, borderRadius: 2.5, display: "grid", gap: 1}}>
+            <AppStack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{gap: 1, flexWrap: "wrap"}}>
+                <AppBox sx={{display: "grid", gap: 0.15}}>
+                    <AppTypography variant="h6">Search Filters</AppTypography>
+                    <AppTypography variant="body2" color="text.secondary">Character and first move are prioritized for fast discovery.</AppTypography>
                 </AppBox>
-                <AppChip label={activeFilterCount === 0 ? "No active filters" : `${activeFilterCount} active`} size="small"/>
+                <AppStack direction="row" spacing={0.75} sx={{flexWrap: "wrap", pt: 0.2}}>
+                    <AppChip size="small" color="info" label="Auto search on" />
+                    <AppChip size="small" label={activeFilterCount === 0 ? "No active filters" : `${activeFilterCount} active`} />
+                </AppStack>
             </AppStack>
 
-            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5, mb: 1.5}}>
-                <AppTypography variant="subtitle2" sx={{mb: 1}}>Basic Search</AppTypography>
-                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 1.5}}>
-                    <AppTextField label="Search by name" value={query} onChange={(event) => setQuery(event.target.value)} size="small"/>
-
-                    <AppFormControl size="small">
-                        <AppInputLabel id="combo-filter-character-label">Character</AppInputLabel>
-                        <AppSelect
-                            labelId="combo-filter-character-label"
-                            label="Character"
-                            value={characterId}
-                            onChange={(event) => setCharacterId(event.target.value)}
-                        >
-                            <AppMenuItem value="">Any character</AppMenuItem>
-                            {characterOptions.map((character) => (
-                                <AppMenuItem key={character.id} value={character.id}>{character.name}</AppMenuItem>
-                            ))}
-                        </AppSelect>
-                    </AppFormControl>
+            <SectionCard
+                title="Primary Filters"
+                description="Set character first, then opener. Results refresh automatically."
+                tone="raised"
+                variant="input"
+            >
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(260px, 1fr) minmax(320px, 1.3fr) minmax(220px, 0.9fr)"}, gap: 1}}>
+                    <AppAutocomplete<CharacterOption, false, false, false>
+                        options={characterOptions}
+                        value={selectedCharacter}
+                        onChange={(_, value) => {
+                            setCharacterId(value?.id ?? "");
+                            setFirstMove(null);
+                            setFirstMoveQuery("");
+                            setFirstMoveOptions([]);
+                        }}
+                        getOptionLabel={(option) => option.name}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        renderInput={(params) => <AppTextField {...params} label="Character" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
+                    />
 
                     <AppAutocomplete<MoveSearchOption, false, false, false>
                         options={firstMoveOptions}
@@ -287,164 +318,78 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                         onInputChange={(_, value) => setFirstMoveQuery(value)}
                         getOptionLabel={(option) => option.summary}
                         isOptionEqualToValue={(option, value) => option.id === value.id}
-                        noOptionsText={firstMoveQuery.trim().length < 2 ? "Type 2+ characters" : "No moves found"}
-                        renderInput={(params) => <AppTextField {...params} label="First move" size="small"/>}
+                        noOptionsText="No moves found"
+                        renderInput={(params) => <AppTextField {...params} label="First move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
                     />
 
-                    <AppAutocomplete<{label: string; value: string}, true, false, false>
-                        multiple
-                        options={moveTypeOptions}
-                        value={moveTypeOptions.filter((entry) => moveTypes.includes(entry.value))}
-                        filterOptions={(options) => options}
-                        onChange={(_, value) => setMoveTypes(value.map((entry) => entry.value))}
-                        getOptionLabel={(option) => option.label}
-                        isOptionEqualToValue={(option, value) => option.value === value.value}
-                        renderInput={(params) => <AppTextField {...params} label="Contains move type" size="small"/>}
+                    <AppTextField
+                        label="Search title"
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        size="small"
+                        InputLabelProps={{shrink: true}}
+                        sx={compactFieldSx}
                     />
                 </AppBox>
-            </AppPaper>
+            </SectionCard>
 
-            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5, mb: 1.5}}>
-                <AppTypography variant="subtitle2" sx={{mb: 1}}>Ranges</AppTypography>
-                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 1.5}}>
-                    <AppTextField
-                        label="Min difficulty"
-                        type="number"
-                        size="small"
-                        value={minDifficulty}
-                        onChange={(event) => setMinDifficulty(event.target.value)}
-                    />
-                    <AppTextField
-                        label="Max difficulty"
-                        type="number"
-                        size="small"
-                        value={maxDifficulty}
-                        onChange={(event) => setMaxDifficulty(event.target.value)}
-                    />
-                    <AppTextField
-                        label="Min damage"
-                        type="number"
-                        size="small"
-                        value={minDamage}
-                        onChange={(event) => setMinDamage(event.target.value)}
-                    />
-                    <AppTextField
-                        label="Max damage"
-                        type="number"
-                        size="small"
-                        value={maxDamage}
-                        onChange={(event) => setMaxDamage(event.target.value)}
-                    />
+            <ActionBar>
+                <AppButton
+                    type="button"
+                    variant="text"
+                    color="secondary"
+                    onClick={() => setShowAdvancedFilters((previous) => !previous)}
+                    sx={{color: "text.secondary"}}
+                >
+                    {showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}
+                </AppButton>
+                <AppButton type="button" variant="outlined" color="secondary" onClick={clearFilters}>Clear Filters</AppButton>
+            </ActionBar>
+
+            <AppCollapse in={showAdvancedFilters} timeout={200} unmountOnExit>
+                <AppBox sx={{display: "grid", gap: 1, pt: 0.75}}>
+                    <SectionCard
+                        title="Execution and Damage"
+                        description="Optional range and move composition tuning."
+                        tone="default"
+                        variant="review"
+                    >
+                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(240px, 1.2fr) repeat(4, minmax(120px, 1fr))"}, gap: 1}}>
+                            <AppAutocomplete<{label: string; value: string}, true, false, false>
+                                multiple
+                                options={moveTypeOptions}
+                                value={moveTypeOptions.filter((entry) => moveTypes.includes(entry.value))}
+                                filterOptions={(options) => options}
+                                onChange={(_, value) => setMoveTypes(value.map((entry) => entry.value))}
+                                getOptionLabel={(option) => option.label}
+                                isOptionEqualToValue={(option, value) => option.value === value.value}
+                                renderInput={(params) => <AppTextField {...params} label="Contains move type" size="small" />}
+                            />
+                            <AppTextField label="Min difficulty" type="number" size="small" value={minDifficulty} onChange={(event) => setMinDifficulty(event.target.value)} />
+                            <AppTextField label="Max difficulty" type="number" size="small" value={maxDifficulty} onChange={(event) => setMaxDifficulty(event.target.value)} />
+                            <AppTextField label="Min damage" type="number" size="small" value={minDamage} onChange={(event) => setMinDamage(event.target.value)} />
+                            <AppTextField label="Max damage" type="number" size="small" value={maxDamage} onChange={(event) => setMaxDamage(event.target.value)} />
+                        </AppBox>
+                    </SectionCard>
+
+                    <SectionCard
+                        title="Requirements"
+                        description="Lower-priority context filters for niche scenarios and routing checks."
+                        tone="sunken"
+                        variant="default"
+                    >
+                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 0.75}}>
+                            <ToggleRow label="Essential" checked={isEssential} onChange={setIsEssential} />
+                            <ToggleRow label="Counter hit required" checked={counterHitRequired} onChange={setCounterHitRequired} />
+                            <ToggleRow label="Punish counter required" checked={punishCounterRequired} onChange={setPunishCounterRequired} />
+                            <ToggleRow label="Corner required" checked={cornerRequired} onChange={setCornerRequired} />
+                            <ToggleRow label="Airborne required" checked={airborneRequired} onChange={setAirborneRequired} />
+                            <ToggleRow label="Mid-screen required" checked={midScreenRequired} onChange={setMidScreenRequired} />
+                            <ToggleRow label="Not crouching required" checked={notCrouchingRequired} onChange={setNotCrouchingRequired} />
+                        </AppBox>
+                    </SectionCard>
                 </AppBox>
-            </AppPaper>
-
-            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5}}>
-                <AppTypography variant="subtitle2" sx={{mb: 1}}>Requirements</AppTypography>
-                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 1.5}}>
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-essential-label">Essential</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-essential-label"
-                        label="Essential"
-                        value={isEssential}
-                        onChange={(event) => setIsEssential(event.target.value as TriStateBoolean)}
-                    >
-                        <AppMenuItem value="">Any</AppMenuItem>
-                        <AppMenuItem value="true">Yes</AppMenuItem>
-                        <AppMenuItem value="false">No</AppMenuItem>
-                    </AppSelect>
-                </AppFormControl>
-
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-counter-hit-label">Counter hit</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-counter-hit-label"
-                        label="Counter hit"
-                        value={counterHitRequired}
-                        onChange={(event) => setCounterHitRequired(event.target.value as TriStateBoolean)}
-                    >
-                        <AppMenuItem value="">Any</AppMenuItem>
-                        <AppMenuItem value="true">Required</AppMenuItem>
-                        <AppMenuItem value="false">Not required</AppMenuItem>
-                    </AppSelect>
-                </AppFormControl>
-
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-punish-counter-label">Punish counter</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-punish-counter-label"
-                        label="Punish counter"
-                        value={punishCounterRequired}
-                        onChange={(event) => setPunishCounterRequired(event.target.value as TriStateBoolean)}
-                    >
-                        <AppMenuItem value="">Any</AppMenuItem>
-                        <AppMenuItem value="true">Required</AppMenuItem>
-                        <AppMenuItem value="false">Not required</AppMenuItem>
-                    </AppSelect>
-                </AppFormControl>
-
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-corner-label">Corner</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-corner-label"
-                        label="Corner"
-                        value={cornerRequired}
-                        onChange={(event) => setCornerRequired(event.target.value as TriStateBoolean)}
-                    >
-                        <AppMenuItem value="">Any</AppMenuItem>
-                        <AppMenuItem value="true">Required</AppMenuItem>
-                        <AppMenuItem value="false">Not required</AppMenuItem>
-                    </AppSelect>
-                </AppFormControl>
-
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-airborne-label">Airborne</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-airborne-label"
-                        label="Airborne"
-                        value={airborneRequired}
-                        onChange={(event) => setAirborneRequired(event.target.value as TriStateBoolean)}
-                    >
-                        <AppMenuItem value="">Any</AppMenuItem>
-                        <AppMenuItem value="true">Required</AppMenuItem>
-                        <AppMenuItem value="false">Not required</AppMenuItem>
-                    </AppSelect>
-                </AppFormControl>
-
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-mid-screen-label">Mid-screen</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-mid-screen-label"
-                        label="Mid-screen"
-                        value={midScreenRequired}
-                        onChange={(event) => setMidScreenRequired(event.target.value as TriStateBoolean)}
-                    >
-                        <AppMenuItem value="">Any</AppMenuItem>
-                        <AppMenuItem value="true">Required</AppMenuItem>
-                        <AppMenuItem value="false">Not required</AppMenuItem>
-                    </AppSelect>
-                </AppFormControl>
-
-                <AppFormControl size="small">
-                    <AppInputLabel id="combo-filter-not-crouching-label">Not crouching</AppInputLabel>
-                    <AppSelect
-                        labelId="combo-filter-not-crouching-label"
-                        label="Not crouching"
-                        value={notCrouchingRequired}
-                        onChange={(event) => setNotCrouchingRequired(event.target.value as TriStateBoolean)}
-                    >
-                        <AppMenuItem value="">Any</AppMenuItem>
-                        <AppMenuItem value="true">Required</AppMenuItem>
-                        <AppMenuItem value="false">Not required</AppMenuItem>
-                    </AppSelect>
-                </AppFormControl>
-            </AppBox>
-            </AppPaper>
-
-            <AppStack direction="row" spacing={1} sx={{mt: 2.5, justifyContent: "flex-end", flexWrap: "wrap"}}>
-                <AppButton type="button" onClick={applyFilters}>Apply Filters</AppButton>
-                <AppButton type="button" variant="outlined" onClick={clearFilters}>Clear</AppButton>
-            </AppStack>
+            </AppCollapse>
         </AppPaper>
     );
 }
