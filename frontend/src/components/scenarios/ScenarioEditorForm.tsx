@@ -2,14 +2,18 @@ import React from "react";
 
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
+import {AppChip} from "@/src/components/ui/AppChip";
 import {AppFormControl} from "@/src/components/ui/AppFormControl";
 import {AppInputLabel} from "@/src/components/ui/AppInputLabel";
 import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
-import {AppPaper} from "@/src/components/ui/AppPaper";
 import {AppSelect} from "@/src/components/ui/AppSelect";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
+import {CheckCircleOutlineIcon} from "@/src/components/ui/AppIcons";
+import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
+import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
+import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {useCharacters} from "@/hooks/useCharacters";
 import useMoves from "@/hooks/useMoves";
 import {ScenarioSavePayload, ScenarioType} from "@/hooks/useScenarios";
@@ -117,6 +121,11 @@ export function ScenarioEditorForm({
         [characterOptions, attackerCharacterId]
     );
 
+    const selectedDefender = React.useMemo(
+        () => characterOptions.find((character) => character.id === defenderCharacterId) ?? null,
+        [characterOptions, defenderCharacterId]
+    );
+
     React.useEffect(() => {
         if (!initialValue?.triggerMoveId || !initialValue?.matrix) {
             return;
@@ -156,18 +165,20 @@ export function ScenarioEditorForm({
         }
 
         const query = triggerMoveQuery.trim();
-        const backendQuery = query === "" ? selectedAttacker.name : `${selectedAttacker.name} ${query}`;
+        const backendQuery = query === "" ? " " : query;
 
         let canceled = false;
         setIsSearchingMoves(true);
 
-        searchMovesRef.current(backendQuery)
+        searchMovesRef.current(backendQuery, attackerCharacterId)
             .then((results) => {
                 if (canceled) {
                     return;
                 }
 
-                setMoveOptions(normalizeMoveListResults(results));
+                const normalized = normalizeMoveListResults(results);
+                const attackerPrefix = `${selectedAttacker.name.toLowerCase()} `;
+                setMoveOptions(normalized.filter((option) => option.summary.toLowerCase().startsWith(attackerPrefix)));
             })
             .catch(() => {
                 if (!canceled) {
@@ -196,113 +207,112 @@ export function ScenarioEditorForm({
         }
     }, [attackerCharacterId, moveOptions, triggerMove]);
 
+    const canSubmit = Boolean(name.trim()) && Boolean(defenderCharacterId) && Boolean(attackerCharacterId) && Boolean(triggerMove?.id);
+
     return (
-        <AppBox sx={{display: "grid", gap: 2}}>
-            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5}}>
-                <AppBox sx={{display: "grid", gap: 1.5}}>
-                    <AppTypography variant="subtitle2">Scenario Setup</AppTypography>
-
-                    <AppTextField
-                        label="Scenario Name"
-                        value={name}
-                        onChange={(event) => {
-                            setName(event.target.value);
-                            setError(null);
-                        }}
-                        required
-                        size="small"
-                    />
-
-                    <AppFormControl size="small" sx={{maxWidth: 280}}>
-                        <AppInputLabel id="scenario-type-label">Scenario Type</AppInputLabel>
-                        <AppSelect
-                            labelId="scenario-type-label"
-                            label="Scenario Type"
-                            value={scenarioType}
-                            onChange={(event) => setScenarioType(event.target.value as ScenarioType)}
-                        >
-                            <AppMenuItem value="oki">Oki</AppMenuItem>
-                            <AppMenuItem value="aggregated_oki">Aggregated Oki</AppMenuItem>
-                            <AppMenuItem value="blockstun">Blockstun</AppMenuItem>
-                        </AppSelect>
-                    </AppFormControl>
-
-                    <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 1.5}}>
-                        <AppFormControl size="small">
-                            <AppInputLabel id="scenario-defender-label">Defender Character</AppInputLabel>
-                            <AppSelect
-                                labelId="scenario-defender-label"
-                                label="Defender Character"
-                                value={defenderCharacterId}
-                                onChange={(event) => {
-                                    setDefenderCharacterId(event.target.value as string);
-                                    setError(null);
-                                }}
-                                disabled={charactersLoading}
-                            >
-                                <AppMenuItem value="">Select defender</AppMenuItem>
-                                {characterOptions.map((character) => (
-                                    <AppMenuItem key={character.id} value={character.id}>{character.name}</AppMenuItem>
-                                ))}
-                            </AppSelect>
-                        </AppFormControl>
-
-                        <AppFormControl size="small">
-                            <AppInputLabel id="scenario-attacker-label">Attacker Character</AppInputLabel>
-                            <AppSelect
-                                labelId="scenario-attacker-label"
-                                label="Attacker Character"
-                                value={attackerCharacterId}
-                                onChange={(event) => {
-                                    setAttackerCharacterId(event.target.value as string);
-                                    setTriggerMoveQuery("");
-                                    setTriggerMove(null);
-                                    setError(null);
-                                }}
-                                disabled={charactersLoading}
-                            >
-                                <AppMenuItem value="">Select attacker</AppMenuItem>
-                                {characterOptions.map((character) => (
-                                    <AppMenuItem key={character.id} value={character.id}>{character.name}</AppMenuItem>
-                                ))}
-                            </AppSelect>
-                        </AppFormControl>
-                    </AppBox>
-
-                    <WrappedAutocomplete<MoveOption>
-                        label="Trigger Move"
-                        value={triggerMove}
-                        options={moveOptions}
-                        loading={isSearchingMoves}
-                        getOptionLabel={(option) => option.summary}
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        onChange={(value) => {
-                            setTriggerMove(value);
-                            setError(null);
-                        }}
-                        disabled={!attackerCharacterId}
-                        openOnFocus
-                        inputValue={attackerCharacterId ? triggerMoveQuery : ""}
-                        onInputChange={(_event, value) => {
-                            if (!attackerCharacterId) {
-                                return;
-                            }
-
-                            setTriggerMoveQuery(value);
-                        }}
-                        noOptionsText={!attackerCharacterId ? "Select attacker first" : "No moves found"}
-                    />
-                </AppBox>
-            </AppPaper>
-
-            <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2}, borderRadius: 2.5}}>
+        <AppBox sx={{display: "grid", gap: {xs: 1.25, md: 1.5}, width: "100%"}}>
+            <SectionCard
+                title="Scenario Setup"
+                description="Lock attacker and trigger first, then complete defender and type context."
+                tone="default"
+                variant="input"
+            >
                 <AppBox sx={{display: "grid", gap: 1}}>
-                    <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap"}}>
-                        <AppTypography variant="h6">Matrix</AppTypography>
-                        <AppTypography variant="body2" color="text.secondary">Configure outcomes and dynamic combo cells.</AppTypography>
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) 220px"}, gap: 1, alignItems: "stretch"}}>
+                        <AppTextField
+                            label="Scenario Name"
+                            value={name}
+                            onChange={(event) => {
+                                setName(event.target.value);
+                                setError(null);
+                            }}
+                            required
+                            size="small"
+                        />
+
+                        <AppFormControl size="small">
+                            <AppInputLabel id="scenario-type-label">Scenario Type</AppInputLabel>
+                            <AppSelect
+                                labelId="scenario-type-label"
+                                label="Scenario Type"
+                                value={scenarioType}
+                                onChange={(event) => setScenarioType(event.target.value as ScenarioType)}
+                            >
+                                <AppMenuItem value="oki">Oki</AppMenuItem>
+                                <AppMenuItem value="aggregated_oki">Aggregated Oki</AppMenuItem>
+                                <AppMenuItem value="blockstun">Blockstun</AppMenuItem>
+                            </AppSelect>
+                        </AppFormControl>
                     </AppBox>
+
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(240px, 1fr) minmax(300px, 1.3fr) minmax(240px, 1fr)"}, gap: 1}}>
+                        <WrappedAutocomplete<CharacterOption>
+                            label="Attacker Character"
+                            options={characterOptions}
+                            value={selectedAttacker}
+                            loading={charactersLoading}
+                            disableClearable={false}
+                            getOptionLabel={(option) => option?.name ?? ""}
+                            onChange={(value) => {
+                                setAttackerCharacterId(value?.id ?? "");
+                                setTriggerMoveQuery("");
+                                setTriggerMove(null);
+                                setError(null);
+                            }}
+                        />
+
+                        <WrappedAutocomplete<MoveOption>
+                            label="Trigger Move"
+                            value={triggerMove}
+                            options={moveOptions}
+                            loading={isSearchingMoves}
+                            getOptionLabel={(option) => option.summary}
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                            onChange={(value) => {
+                                setTriggerMove(value);
+                                setError(null);
+                            }}
+                            disabled={!attackerCharacterId}
+                            openOnFocus
+                            inputValue={attackerCharacterId ? triggerMoveQuery : ""}
+                            onInputChange={(_event, value) => {
+                                if (!attackerCharacterId) {
+                                    return;
+                                }
+
+                                setTriggerMoveQuery(value);
+                            }}
+                            noOptionsText={!attackerCharacterId ? "Select attacker first" : "No moves found"}
+                        />
+
+                        <WrappedAutocomplete<CharacterOption>
+                            label="Defender Character"
+                            options={characterOptions}
+                            value={selectedDefender}
+                            loading={charactersLoading}
+                            disableClearable={false}
+                            getOptionLabel={(option) => option?.name ?? ""}
+                            onChange={(value) => {
+                                setDefenderCharacterId(value?.id ?? "");
+                                setError(null);
+                            }}
+                        />
+                    </AppBox>
+                </AppBox>
+            </SectionCard>
+
+            <SectionCard
+                title="Matrix Workspace"
+                description="Keep existing matrix flow; tune outcomes and dynamic combo cells with the refreshed tactical palette."
+                tone="raised"
+                variant="review"
+            >
+                <ActionBar>
+                    <AppChip size="small" variant="outlined" label={scenarioType === "aggregated_oki" ? "Aggregated columns locked" : "Standard matrix editing"} />
                     <AppButton
                         type="button"
+                        variant="outlined"
+                        color="secondary"
                         disabled={!onResolveDynamicCells || resolvingDynamicCells || submitting}
                         onClick={async () => {
                             if (!onResolveDynamicCells) {
@@ -325,6 +335,9 @@ export function ScenarioEditorForm({
                             ? (resolvingDynamicCells ? "Refreshing Dynamic Combos..." : "Refresh Dynamic Combos")
                             : "Refresh Dynamic Combos (Save First)"}
                     </AppButton>
+                </ActionBar>
+
+                <AppBox sx={{p: {xs: 0.75, md: 0.9}, borderRadius: 1.5, border: "1px solid", borderColor: "fgc.border.default", backgroundColor: "fgc.surface.sunken"}}>
                     <MatrixEditorShell
                         matrix={matrix}
                         onMatrixChange={setMatrix}
@@ -336,56 +349,69 @@ export function ScenarioEditorForm({
                         onResolveDynamicComboCell={onResolveDynamicComboCell}
                     />
                 </AppBox>
-            </AppPaper>
+            </SectionCard>
 
-            {error ? <AppTypography color="error">{error}</AppTypography> : null}
+            {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
 
-            <AppBox sx={{display: "flex", justifyContent: "flex-end", pt: 0.5}}>
-                <AppButton
-                    type="button"
-                    disabled={submitting}
-                    onClick={async () => {
-                        const trimmedName = name.trim();
-                        if (!trimmedName) {
-                            setError("Scenario name is required.");
-                            return;
-                        }
+            <SectionCard
+                title="Finalize"
+                description="Submit one primary action once setup and matrix are valid."
+                tone="default"
+                variant="finalize"
+            >
+                <AppBox sx={{display: "flex", gap: 0.6, alignItems: "center", flexWrap: "wrap"}}>
+                    <CheckCircleOutlineIcon fontSize="small" color={canSubmit ? "success" : "disabled"} />
+                    <AppTypography variant="body2" color="text.secondary">
+                        Ready: {canSubmit ? "yes" : "missing scenario name, attacker, defender, or trigger move"}
+                    </AppTypography>
+                </AppBox>
+                <AppBox sx={{display: "flex", justifyContent: "flex-end"}}>
+                    <AppButton
+                        type="button"
+                        disabled={submitting}
+                        onClick={async () => {
+                            const trimmedName = name.trim();
+                            if (!trimmedName) {
+                                setError("Scenario name is required.");
+                                return;
+                            }
 
-                        if (!defenderCharacterId || !attackerCharacterId) {
-                            setError("Select both defender and attacker characters.");
-                            return;
-                        }
+                            if (!defenderCharacterId || !attackerCharacterId) {
+                                setError("Select both defender and attacker characters.");
+                                return;
+                            }
 
-                        if (!triggerMove?.id) {
-                            setError("Select a trigger move.");
-                            return;
-                        }
+                            if (!triggerMove?.id) {
+                                setError("Select a trigger move.");
+                                return;
+                            }
 
-                        setSubmitting(true);
-                        setError(null);
-                        try {
-                            await onSubmit({
-                                name: trimmedName,
-                                scenarioType,
-                                defenderCharacterId,
-                                attackerCharacterId,
-                                triggerMoveId: triggerMove.id,
-                                matrix,
-                            });
-                        } catch (err) {
-                            const message =
-                                typeof err === "object" && err !== null && "response" in err
-                                    ? (err as {response?: {data?: {error?: string}}}).response?.data?.error
-                                    : null;
-                            setError(message ?? "Unable to save scenario.");
-                        } finally {
-                            setSubmitting(false);
-                        }
-                    }}
-                >
-                    {submitting ? "Saving..." : submitLabel}
-                </AppButton>
-            </AppBox>
+                            setSubmitting(true);
+                            setError(null);
+                            try {
+                                await onSubmit({
+                                    name: trimmedName,
+                                    scenarioType,
+                                    defenderCharacterId,
+                                    attackerCharacterId,
+                                    triggerMoveId: triggerMove.id,
+                                    matrix,
+                                });
+                            } catch (err) {
+                                const message =
+                                    typeof err === "object" && err !== null && "response" in err
+                                        ? (err as {response?: {data?: {error?: string}}}).response?.data?.error
+                                        : null;
+                                setError(message ?? "Unable to save scenario.");
+                            } finally {
+                                setSubmitting(false);
+                            }
+                        }}
+                    >
+                        {submitting ? "Saving..." : submitLabel}
+                    </AppButton>
+                </AppBox>
+            </SectionCard>
         </AppBox>
     );
 }
