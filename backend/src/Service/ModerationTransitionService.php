@@ -7,6 +7,7 @@ use App\Entity\Post;
 use App\Entity\Scenario;
 use App\Entity\User;
 use App\Util\Enum\ModerationState;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -68,6 +69,21 @@ class ModerationTransitionService
         );
     }
 
+    public function approvePost(Post $post, User $actor): void
+    {
+        $this->moderatePost($post, $actor, ModerationState::APPROVED->value, null);
+    }
+
+    public function rejectPost(Post $post, User $actor, string $reason): void
+    {
+        $this->moderatePost($post, $actor, ModerationState::REJECTED->value, $reason);
+    }
+
+    public function hidePost(Post $post, User $actor, string $reason): void
+    {
+        $this->moderatePost($post, $actor, ModerationState::HIDDEN->value, $reason);
+    }
+
     public function moderateCombo(ComboSequences $combo, User $actor, string $targetState, ?string $reason): void
     {
         $this->moderate(
@@ -83,6 +99,21 @@ class ModerationTransitionService
         );
     }
 
+    public function approveCombo(ComboSequences $combo, User $actor): void
+    {
+        $this->moderateCombo($combo, $actor, ModerationState::APPROVED->value, null);
+    }
+
+    public function rejectCombo(ComboSequences $combo, User $actor, string $reason): void
+    {
+        $this->moderateCombo($combo, $actor, ModerationState::REJECTED->value, $reason);
+    }
+
+    public function hideCombo(ComboSequences $combo, User $actor, string $reason): void
+    {
+        $this->moderateCombo($combo, $actor, ModerationState::HIDDEN->value, $reason);
+    }
+
     public function moderateScenario(Scenario $scenario, User $actor, string $targetState, ?string $reason): void
     {
         $this->moderate(
@@ -96,6 +127,21 @@ class ModerationTransitionService
             $targetState,
             $reason,
         );
+    }
+
+    public function approveScenario(Scenario $scenario, User $actor): void
+    {
+        $this->moderateScenario($scenario, $actor, ModerationState::APPROVED->value, null);
+    }
+
+    public function rejectScenario(Scenario $scenario, User $actor, string $reason): void
+    {
+        $this->moderateScenario($scenario, $actor, ModerationState::REJECTED->value, $reason);
+    }
+
+    public function hideScenario(Scenario $scenario, User $actor, string $reason): void
+    {
+        $this->moderateScenario($scenario, $actor, ModerationState::HIDDEN->value, $reason);
     }
 
     /**
@@ -160,6 +206,10 @@ class ModerationTransitionService
             throw new BadRequestHttpException('Invalid current moderation state.');
         }
 
+        if ($current === $target) {
+            throw new ConflictHttpException(sprintf('Content is already in %s state.', $target->value));
+        }
+
         if (!$this->isTransitionAllowed($current, $target)) {
             throw new BadRequestHttpException(sprintf('Cannot transition moderation state from %s to %s.', $current->value, $target->value));
         }
@@ -183,10 +233,6 @@ class ModerationTransitionService
 
     private function isTransitionAllowed(ModerationState $from, ModerationState $to): bool
     {
-        if ($from === $to) {
-            return true;
-        }
-
         return match ($to) {
             ModerationState::APPROVED => in_array($from, [
                 ModerationState::PENDING_REVIEW,
