@@ -35,6 +35,19 @@ class ProfileController extends AbstractController
     ) {
     }
 
+    #[Route('/me', name: 'me', methods: ['GET'])]
+    public function me(): JsonResponse
+    {
+        $user = $this->requireUser();
+
+        return new JsonResponse([
+            'id' => $user->getId()?->toRfc4122(),
+            'username' => $user->getUsername(),
+            'roles' => $user->getRoles(),
+            'isActive' => $user->isActive(),
+        ], JsonResponse::HTTP_OK);
+    }
+
     #[Route('/combo-knowledge', name: 'combo_knowledge_get', methods: ['GET'])]
     public function getComboKnowledge(Request $request): JsonResponse
     {

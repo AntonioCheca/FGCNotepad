@@ -3,6 +3,7 @@ import {
     AccountCircleOutlinedIcon,
     ArticleOutlinedIcon,
     HelpOutlineOutlinedIcon,
+    PendingActionsIcon,
     SearchOutlinedIcon,
     SettingsOutlinedIcon,
     SportsKabaddiOutlinedIcon,
@@ -75,6 +76,30 @@ export const navigationSections: NavigationSection[] = [
                 label: "Settings",
                 href: "/settings",
                 icon: <SettingsOutlinedIcon/> // gear icon for settings
+            }
+        ]
+    },
+    {
+        title: "Moderation",
+        items: [
+            {
+                label: "Moderation Queue",
+                href: "/moderation/queue",
+                icon: <PendingActionsIcon/>,
+                requiresAuth: true,
+                allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
+            }
+        ]
+    },
+    {
+        title: "Admin",
+        items: [
+            {
+                label: "User Management",
+                href: "/admin/users",
+                icon: <SettingsOutlinedIcon/>,
+                requiresAuth: true,
+                allowedRoles: ["ROLE_ADMIN"],
             }
         ]
     },

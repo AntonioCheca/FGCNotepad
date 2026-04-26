@@ -1,6 +1,7 @@
 // hooks/useAuth.js
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
+import {fetchCurrentUserProfile} from "@/services/authProfile";
 
 const useAuth = () => {
     const {request} = useApi();
@@ -9,12 +10,12 @@ const useAuth = () => {
         request(() => api.post("/register", {username, password}));
 
     const loginUser = async (username, password) => {
-        const data = await request(() => api.post("/login_check", {username, password}));
-        if (data.token) localStorage.setItem("jwt", data.token);
-        return data;
+        return request(() => api.post("/login_check", {username, password}));
     };
 
-    return {registerUser, loginUser};
+    const getCurrentUser = () => request(() => fetchCurrentUserProfile());
+
+    return {registerUser, loginUser, getCurrentUser};
 };
 
 export default useAuth;

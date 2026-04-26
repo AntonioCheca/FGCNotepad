@@ -23,6 +23,7 @@ const useApi = () => {
         } catch (error) {
             if (error.response?.status === 401) {
                 localStorage.removeItem("jwt"); // Clear token if unauthorized
+                window.dispatchEvent(new Event("auth:unauthorized"));
                 router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
             }
             throw error;

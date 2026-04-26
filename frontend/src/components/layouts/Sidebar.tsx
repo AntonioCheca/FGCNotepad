@@ -9,6 +9,7 @@ import {Brightness4Icon, Brightness7Icon, ChevronLeftIcon, ChevronRightIcon} fro
 import {useMode} from "@/src/context/ThemeContext";
 import ThemeLogo from "@/src/components/ui/ThemeLogo";
 import React from "react";
+import AuthContext from "@/services/AuthContext";
 
 
 type SidebarProps = {
@@ -18,29 +19,28 @@ type SidebarProps = {
 
 export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
     const {mode, toggleColorMode} = useMode();
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const authContext = React.useContext(AuthContext);
 
-    React.useEffect(() => {
-        if (typeof window === 'undefined') {
-            return;
-        }
+    if (!authContext) {
+        throw new Error("AuthContext must be used within an AuthProvider");
+    }
 
-        const syncAuthenticationState = () => {
-            setIsAuthenticated(Boolean(localStorage.getItem('jwt')));
-        };
-
-        syncAuthenticationState();
-        window.addEventListener('storage', syncAuthenticationState);
-
-        return () => {
-            window.removeEventListener('storage', syncAuthenticationState);
-        };
-    }, []);
+    const {isAuthenticated, hasRole} = authContext;
 
     const visibleSections = navigationSections
         .map((section) => ({
             ...section,
-            items: section.items.filter((item) => !item.requiresAuth || isAuthenticated),
+            items: section.items.filter((item) => {
+                if (item.requiresAuth && !isAuthenticated) {
+                    return false;
+                }
+
+                if (!item.allowedRoles || item.allowedRoles.length === 0) {
+                    return true;
+                }
+
+                return item.allowedRoles.some((role) => hasRole(role));
+            }),
         }))
         .filter((section) => section.items.length > 0);
 
