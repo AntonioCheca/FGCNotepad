@@ -45,4 +45,11 @@ class EndpointAuthorizationService
             throw new AccessDeniedHttpException($message);
         }
     }
+
+    public function assertCanManageUsers(User $actor, string $message = 'Forbidden'): void
+    {
+        if (!$this->authorizationPolicyService->canManageUsers($actor)) {
+            throw new AccessDeniedHttpException($message);
+        }
+    }
 }

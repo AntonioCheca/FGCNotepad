@@ -16,6 +16,7 @@ security:
         login:
             pattern: ^/api/login_check
             stateless: true
+            user_checker: App\Security\ApiUserChecker
             json_login:
                 check_path: /api/login_check
                 success_handler: lexik_jwt_authentication.handler.authentication_success
@@ -25,6 +26,7 @@ security:
         api:
             pattern: ^/api
             stateless: true
+            user_checker: App\Security\ApiUserChecker
             jwt: ~  # normal in prod/dev; overridden in dev environment
 
         # Dev tools, profiler, assets
@@ -48,6 +50,7 @@ security:
 
     access_control:
         - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/api/admin, roles: ROLE_ADMIN }
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: '^/api/scenarios/aggregated-defense-capabilities', roles: PUBLIC_ACCESS }
