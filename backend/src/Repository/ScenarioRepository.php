@@ -36,6 +36,8 @@ class ScenarioRepository extends ServiceEntityRepository
             ->leftJoin('scenario.defenderCharacter', 'defender')
             ->leftJoin('scenario.attackerCharacter', 'attacker')
             ->leftJoin('scenario.triggerMove', 'triggerMove')
+            ->andWhere('scenario.moderationState = :approvedState')
+            ->setParameter('approvedState', 'approved')
             ->orderBy('scenario.updatedAt', 'DESC')
             ->setMaxResults($safeLimit);
 
@@ -79,6 +81,18 @@ class ScenarioRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    public function findOneApprovedByPublicId(string $publicId): ?Scenario
+    {
+        return $this->createQueryBuilder('scenario')
+            ->andWhere('scenario.publicId = :publicId')
+            ->andWhere('scenario.moderationState = :approvedState')
+            ->setParameter('publicId', $publicId)
+            ->setParameter('approvedState', 'approved')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     /**
      * @return list<Scenario>
      */
@@ -93,7 +107,9 @@ class ScenarioRepository extends ServiceEntityRepository
             ->leftJoin('cells.starterMoves', 'starterMoves')
             ->addSelect('attackerCharacter', 'defenderCharacter', 'rows', 'columns', 'cells', 'starterMoves')
             ->andWhere('scenario.isEssential = true')
+            ->andWhere('scenario.moderationState = :approvedState')
             ->andWhere('attackerCharacter.id = :characterId OR defenderCharacter.id = :characterId')
+            ->setParameter('approvedState', 'approved')
             ->setParameter('characterId', $characterId)
             ->orderBy('scenario.updatedAt', 'DESC')
             ->getQuery()

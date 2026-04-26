@@ -9,6 +9,7 @@ use App\Repository\MoveRepository;
 use App\Repository\ScenarioRepository;
 use App\Service\AggregatedDefenseCatalogService;
 use App\Service\EndpointAuthorizationService;
+use App\Service\ModerationTransitionService;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioExecutionModeService;
 use App\Service\ScenarioResponseBuilder;
@@ -25,6 +26,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Uid\Uuid;
+use App\Util\Enum\ModerationState;
 
 #[Route('/api/scenarios', name: 'api_scenarios_')]
 class ScenarioController extends AbstractController
@@ -42,6 +44,7 @@ class ScenarioController extends AbstractController
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
         private readonly EndpointAuthorizationService $endpointAuthorizationService,
+        private readonly ModerationTransitionService $moderationTransitionService,
     ) {
     }
 
@@ -87,6 +90,7 @@ class ScenarioController extends AbstractController
         $this->hydrateScenario($scenario, $data, true, $actor);
         $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
         $scenario->setAuthor($actor);
+        $this->moderationTransitionService->submitScenarioForReview($scenario);
 
         $this->entityManager->persist($scenario);
         $this->entityManager->flush();
@@ -98,6 +102,19 @@ class ScenarioController extends AbstractController
     public function read(string $id): JsonResponse
     {
         $scenario = $this->findByPublicId($id);
+
+        if ($scenario->getModerationState() !== ModerationState::APPROVED->value) {
+            $actor = $this->extractCurrentUser();
+            if (null === $actor) {
+                throw new NotFoundHttpException(sprintf('Scenario with ID %s not found', $id));
+            }
+
+            try {
+                $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $scenario->getAuthor(), 'Scenario not found.');
+            } catch (AccessDeniedHttpException) {
+                throw new NotFoundHttpException(sprintf('Scenario with ID %s not found', $id));
+            }
+        }
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
     }
@@ -126,6 +143,8 @@ class ScenarioController extends AbstractController
             $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
         }
 
+        $this->moderationTransitionService->submitScenarioForReview($scenario);
+
         $this->entityManager->flush();
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
@@ -151,6 +170,35 @@ class ScenarioController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/{id}/moderation', name: 'moderate', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['PATCH'])]
+    public function moderate(string $id, Request $request): JsonResponse
+    {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanModerateContent($actor);
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
+        $scenario = $this->findByPublicId($id);
+        $payload = $this->decodeRequestBody($request);
+        $targetState = $payload['state'] ?? null;
+        if (!is_string($targetState) || '' === trim($targetState)) {
+            return new JsonResponse(['error' => 'state is required'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $reason = isset($payload['reason']) && is_string($payload['reason']) ? $payload['reason'] : null;
+        $this->moderationTransitionService->moderateScenario($scenario, $actor, $targetState, $reason);
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'message' => 'Scenario moderation updated',
+            'moderationState' => $scenario->getModerationState(),
+        ], JsonResponse::HTTP_OK);
     }
 
     #[Route('/{id}/resolve-dynamic-cells', name: 'resolve_dynamic_cells', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]

@@ -38,4 +38,11 @@ class EndpointAuthorizationService
             throw new AccessDeniedHttpException($message);
         }
     }
+
+    public function assertCanModerateContent(User $actor, string $message = 'Forbidden'): void
+    {
+        if (!$this->authorizationPolicyService->canModerateContent($actor)) {
+            throw new AccessDeniedHttpException($message);
+        }
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\ComboSequencesRepository;
+use App\Util\Enum\ModerationState;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -67,6 +68,22 @@ class ComboSequences
 
     #[ORM\Column(name: 'is_essential', type: Types::BOOLEAN, options: ['default' => false])]
     private bool $isEssential = false;
+
+    #[ORM\Column(name: 'moderation_state', type: Types::STRING, length: 32)]
+    private string $moderationState = ModerationState::APPROVED->value;
+
+    #[ORM\Column(name: 'submitted_for_review_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $submittedForReviewAt = null;
+
+    #[ORM\Column(name: 'moderation_decided_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $moderationDecidedAt = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'moderation_decided_by_id', referencedColumnName: 'id', nullable: true)]
+    private ?User $moderationDecidedBy = null;
+
+    #[ORM\Column(name: 'moderation_reason', type: Types::TEXT, nullable: true)]
+    private ?string $moderationReason = null;
 
     public function __construct()
     {
@@ -268,6 +285,66 @@ class ComboSequences
     public function setIsEssential(bool $isEssential): static
     {
         $this->isEssential = $isEssential;
+
+        return $this;
+    }
+
+    public function getModerationState(): string
+    {
+        return $this->moderationState;
+    }
+
+    public function setModerationState(string $moderationState): static
+    {
+        $this->moderationState = $moderationState;
+
+        return $this;
+    }
+
+    public function getSubmittedForReviewAt(): ?\DateTimeImmutable
+    {
+        return $this->submittedForReviewAt;
+    }
+
+    public function setSubmittedForReviewAt(?\DateTimeImmutable $submittedForReviewAt): static
+    {
+        $this->submittedForReviewAt = $submittedForReviewAt;
+
+        return $this;
+    }
+
+    public function getModerationDecidedAt(): ?\DateTimeImmutable
+    {
+        return $this->moderationDecidedAt;
+    }
+
+    public function setModerationDecidedAt(?\DateTimeImmutable $moderationDecidedAt): static
+    {
+        $this->moderationDecidedAt = $moderationDecidedAt;
+
+        return $this;
+    }
+
+    public function getModerationDecidedBy(): ?User
+    {
+        return $this->moderationDecidedBy;
+    }
+
+    public function setModerationDecidedBy(?User $moderationDecidedBy): static
+    {
+        $this->moderationDecidedBy = $moderationDecidedBy;
+
+        return $this;
+    }
+
+    public function getModerationReason(): ?string
+    {
+        return $this->moderationReason;
+    }
+
+    public function setModerationReason(?string $moderationReason): static
+    {
+        $this->moderationReason = $moderationReason;
 
         return $this;
     }

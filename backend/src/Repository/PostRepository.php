@@ -57,7 +57,9 @@ class PostRepository extends ServiceEntityRepository
         LEFT JOIN forum.tag tagg ON fpt.tag_id = tagg.id
         LEFT JOIN forum.user fu ON fp.author_id = fu.id
         WHERE 1 = 1
+        AND fp.moderation_state = :approvedState
         SQL;
+        $elementsForPreparedSql['approvedState'] = 'approved';
 
         // Add search condition for title if query is provided
         if ('' !== $query) {

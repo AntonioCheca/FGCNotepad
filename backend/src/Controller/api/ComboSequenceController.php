@@ -3,6 +3,7 @@
 namespace App\Controller\api;
 
 use App\Entity\ComboSequences;
+use App\Entity\User;
 use App\Util\Enum\MoveType;
 use App\Entity\ConnectionType;
 use App\Entity\Move;
@@ -12,7 +13,9 @@ use App\Repository\ConnectionTypeRepository;
 use App\Service\ComboNotationTranslator;
 use App\Service\ComboSequenceCreationService;
 use App\Service\EndpointAuthorizationService;
+use App\Service\ModerationTransitionService;
 use App\Service\RequirementSpecificCharacterCatalog;
+use App\Util\Enum\ModerationState;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -36,6 +39,7 @@ class ComboSequenceController extends AbstractController
         private ComboSequenceCreationService $comboSequenceCreationService,
         private EndpointAuthorizationService $endpointAuthorizationService,
         private Security $security,
+        private ModerationTransitionService $moderationTransitionService,
     )
     {
     }
@@ -191,6 +195,7 @@ class ComboSequenceController extends AbstractController
         }
 
         $sequence = $this->comboSequenceCreationService->createFromPayload((array) $data, $typeName, null, $actor);
+        $this->moderationTransitionService->submitComboForReview($sequence);
         if (array_key_exists('isEssential', $data)) {
             try {
                 $this->endpointAuthorizationService->assertCanManageEssentialFlag($actor);
@@ -198,8 +203,9 @@ class ComboSequenceController extends AbstractController
                 return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
             }
             $sequence->setIsEssential($this->normalizeEssentialValue($data['isEssential']));
-            $this->entityManager->flush();
         }
+
+        $this->entityManager->flush();
 
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
@@ -231,6 +237,7 @@ class ComboSequenceController extends AbstractController
         }
 
         $sequence = $this->comboSequenceCreationService->createFromPayload((array) $data, 'combo', $data['steps'], $actor);
+        $this->moderationTransitionService->submitComboForReview($sequence);
         if (array_key_exists('isEssential', $data)) {
             try {
                 $this->endpointAuthorizationService->assertCanManageEssentialFlag($actor);
@@ -238,8 +245,9 @@ class ComboSequenceController extends AbstractController
                 return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
             }
             $sequence->setIsEssential($this->normalizeEssentialValue($data['isEssential']));
-            $this->entityManager->flush();
         }
+
+        $this->entityManager->flush();
 
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
@@ -316,6 +324,19 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException('Not accessible');
         }
 
+        if ($sequence->getModerationState() !== ModerationState::APPROVED->value) {
+            $actor = $this->security->getUser();
+            if (!$actor instanceof User) {
+                throw new NotFoundHttpException('Not accessible');
+            }
+
+            try {
+                $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $sequence->getAuthor(), 'Not accessible');
+            } catch (AccessDeniedHttpException) {
+                throw new NotFoundHttpException('Not accessible');
+            }
+        }
+
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
             JsonResponse::HTTP_OK,
@@ -356,6 +377,7 @@ class ComboSequenceController extends AbstractController
 
         $sequence->setName($data['name'] ?? $sequence->getName());
         $sequence->setDescription($data['description'] ?? $sequence->getDescription());
+        $this->moderationTransitionService->submitComboForReview($sequence);
 
         $this->entityManager->flush();
 
@@ -383,6 +405,33 @@ class ComboSequenceController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/{id}/moderation', name: 'moderate', requirements: ['id' => '\\d+'], methods: ['PATCH'])]
+    public function moderate(ComboSequences $sequence, Request $request): JsonResponse
+    {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanModerateContent($actor);
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload) || !isset($payload['state']) || !is_string($payload['state'])) {
+            return new JsonResponse(['error' => 'state is required'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $reason = isset($payload['reason']) && is_string($payload['reason']) ? $payload['reason'] : null;
+        $this->moderationTransitionService->moderateCombo($sequence, $actor, $payload['state'], $reason);
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'message' => 'Combo moderation updated',
+            'moderationState' => $sequence->getModerationState(),
+        ], JsonResponse::HTTP_OK);
     }
 
     private function normalizeEssentialValue(mixed $value): bool

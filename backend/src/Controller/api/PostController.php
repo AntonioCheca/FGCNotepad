@@ -9,7 +9,9 @@ use App\Repository\MoveRepository;
 use App\Repository\PostRepository;
 use App\Repository\TagRepository;
 use App\Service\EndpointAuthorizationService;
+use App\Service\ModerationTransitionService;
 use App\Service\PostComponentExtractor;
+use App\Util\Enum\ModerationState;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -35,6 +37,7 @@ class PostController extends AbstractController
         private EntityManagerInterface $entityManager,
         private Security $security,
         private EndpointAuthorizationService $endpointAuthorizationService,
+        private ModerationTransitionService $moderationTransitionService,
     )
     {
     }
@@ -84,6 +87,7 @@ class PostController extends AbstractController
         $post->setAuthor($internalUserEntity);
         $post->setCreatedAt(new \DateTimeImmutable());
         $post->setLastModified(new \DateTimeImmutable());
+        $this->moderationTransitionService->submitPostForReview($post);
 
         $moveUuids = $componentExtractor->extractComponentIds($decodedBody);
         if (!empty($moveUuids)) {
@@ -122,6 +126,19 @@ class PostController extends AbstractController
         $post = $postRepository->find($id);
         if (!$post) {
             throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
+        }
+
+        $actor = $this->security->getUser();
+        if ($post->getModerationState() !== ModerationState::APPROVED->value) {
+            if (!$actor instanceof User) {
+                throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
+            }
+
+            try {
+                $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $post->getAuthor(), 'Post not found.');
+            } catch (AccessDeniedHttpException) {
+                throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));
+            }
         }
 
         $author = $post->getAuthor();
@@ -204,6 +221,7 @@ class PostController extends AbstractController
         }
 
         $post->setLastModified(new \DateTimeImmutable());
+        $this->moderationTransitionService->submitPostForReview($post);
 
         $errors = $validator->validate($post);
         if (count($errors) > 0) {
@@ -236,6 +254,38 @@ class PostController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse(['message' => 'Post deleted']);
+    }
+
+    #[Route('/{id}/moderation', name: 'moderate', methods: ['PATCH'])]
+    public function moderate(string $id, Request $request, PostRepository $postRepository): JsonResponse
+    {
+        $post = $postRepository->find($id);
+        if (!$post) {
+            throw new NotFoundHttpException('Post not found');
+        }
+
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanModerateContent($actor);
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload) || !isset($payload['state']) || !is_string($payload['state'])) {
+            return new JsonResponse(['error' => 'state is required'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $reason = isset($payload['reason']) && is_string($payload['reason']) ? $payload['reason'] : null;
+        $this->moderationTransitionService->moderatePost($post, $actor, $payload['state'], $reason);
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'message' => 'Post moderation updated',
+            'moderationState' => $post->getModerationState(),
+        ], Response::HTTP_OK);
     }
 
     /**

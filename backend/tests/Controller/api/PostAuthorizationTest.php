@@ -82,6 +82,68 @@ class PostAuthorizationTest extends DatabaseTestCase
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testPendingPostIsHiddenFromOtherRegularUsersUntilApproved(): void
+    {
+        $author = $this->createUser('author_user', [UserRole::USER]);
+        $viewer = $this->createUser('viewer_user', [UserRole::USER]);
+        $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
+
+        $authorHeaders = $this->loginHeaders($author->getUsername(), 'testpassword');
+        $this->client->request(
+            'POST',
+            '/api/posts',
+            [],
+            [],
+            $authorHeaders,
+            json_encode([
+                'title' => 'Pending Post',
+                'body' => json_encode(['content' => 'pending']),
+            ])
+        );
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $createdPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $postId = (string) ($createdPayload['id'] ?? '');
+
+        $viewerHeaders = $this->loginHeaders($viewer->getUsername(), 'testpassword');
+        $this->client->request('GET', sprintf('/api/posts/%s', $postId), [], [], $viewerHeaders);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $moderatorHeaders = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $this->client->request(
+            'PATCH',
+            sprintf('/api/posts/%s/moderation', $postId),
+            [],
+            [],
+            $moderatorHeaders,
+            json_encode([
+                'state' => 'approved',
+            ])
+        );
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', sprintf('/api/posts/%s', $postId), [], [], $viewerHeaders);
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testModeratorCanTransitionPostHiddenBackToApproved(): void
+    {
+        $owner = $this->createUser('owner_user', [UserRole::USER]);
+        $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
+        $post = $this->createPost($owner, 'Moderation Target');
+
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $endpoint = sprintf('/api/posts/%s/moderation', $post->getId()?->toRfc4122());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['state' => 'hidden', 'reason' => 'spam']));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['state' => 'approved']));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->entityManager->refresh($post);
+        self::assertSame('approved', $post->getModerationState());
+    }
+
     /**
      * @param list<UserRole> $roles
      */

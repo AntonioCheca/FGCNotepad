@@ -131,6 +131,55 @@ class ComboSequenceAuthorizationTest extends DatabaseTestCase
         self::assertTrue($combo->isEssential());
     }
 
+    public function testPendingComboIsHiddenFromOtherRegularUsersUntilApproved(): void
+    {
+        $this->seedComboMeta();
+        $owner = $this->createUser('owner_user', [UserRole::USER]);
+        $viewer = $this->createUser('viewer_user', [UserRole::USER]);
+        $moderator = $this->createUser('mod_user', [UserRole::MODERATOR]);
+        $combo = $this->createCombo($owner);
+        $combo->setModerationState('pending_review');
+        $this->entityManager->flush();
+
+        $viewerHeaders = $this->loginHeaders($viewer->getUsername(), 'testpassword');
+        $this->client->request('GET', sprintf('/api/combo-sequences/%d', $combo->getId()), [], [], $viewerHeaders);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $moderatorHeaders = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $this->client->request(
+            'PATCH',
+            sprintf('/api/combo-sequences/%d/moderation', $combo->getId()),
+            [],
+            [],
+            $moderatorHeaders,
+            json_encode(['state' => 'approved'])
+        );
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', sprintf('/api/combo-sequences/%d', $combo->getId()), [], [], $viewerHeaders);
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testModeratorCanTransitionComboHiddenBackToApproved(): void
+    {
+        $this->seedComboMeta();
+        $owner = $this->createUser('owner_user', [UserRole::USER]);
+        $moderator = $this->createUser('mod_user', [UserRole::MODERATOR]);
+        $combo = $this->createCombo($owner);
+
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $endpoint = sprintf('/api/combo-sequences/%d/moderation', $combo->getId());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['state' => 'hidden', 'reason' => 'invalid']));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['state' => 'approved']));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->entityManager->refresh($combo);
+        self::assertSame('approved', $combo->getModerationState());
+    }
+
     /**
      * @param list<UserRole> $roles
      */

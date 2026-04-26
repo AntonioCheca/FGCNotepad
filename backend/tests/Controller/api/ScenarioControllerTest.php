@@ -46,7 +46,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
         $created = json_decode((string) $this->client->getResponse()->getContent(), true);
 
-        $this->client->request('GET', '/api/scenarios/' . $created['id']);
+        $this->client->request('GET', '/api/scenarios/' . $created['id'], [], [], $this->getHeaders());
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
 
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);

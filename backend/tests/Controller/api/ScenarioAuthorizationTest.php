@@ -129,6 +129,51 @@ class ScenarioAuthorizationTest extends DatabaseTestCase
         self::assertTrue($scenario->isEssential());
     }
 
+    public function testPendingScenarioIsNotPubliclyVisibleUntilApproved(): void
+    {
+        $owner = $this->createUser('owner_user', [UserRole::USER]);
+        $scenario = $this->createScenario($owner);
+        $scenario->setModerationState('pending_review');
+        $this->entityManager->flush();
+
+        $this->client->request('GET', sprintf('/api/scenarios/%s', $scenario->getPublicId()->toRfc4122()));
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $moderator = $this->createUser('mod_user', [UserRole::MODERATOR]);
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $this->client->request(
+            'PATCH',
+            sprintf('/api/scenarios/%s/moderation', $scenario->getPublicId()->toRfc4122()),
+            [],
+            [],
+            $headers,
+            json_encode(['state' => 'approved'])
+        );
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', sprintf('/api/scenarios/%s', $scenario->getPublicId()->toRfc4122()));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testModeratorCanTransitionScenarioHiddenBackToApproved(): void
+    {
+        $owner = $this->createUser('owner_user', [UserRole::USER]);
+        $moderator = $this->createUser('mod_user', [UserRole::MODERATOR]);
+        $scenario = $this->createScenario($owner);
+
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $endpoint = sprintf('/api/scenarios/%s/moderation', $scenario->getPublicId()->toRfc4122());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['state' => 'hidden', 'reason' => 'spam']));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['state' => 'approved']));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->entityManager->refresh($scenario);
+        self::assertSame('approved', $scenario->getModerationState());
+    }
+
     /**
      * @param list<UserRole> $roles
      */
