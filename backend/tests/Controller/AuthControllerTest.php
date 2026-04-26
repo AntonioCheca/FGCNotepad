@@ -54,4 +54,23 @@ class AuthControllerTest extends DatabaseTestCase
 
         $this->assertResponseStatusCodeSame(401);
     }
+
+    public function testRegisterReturnsDefaultUserRoleMetadata(): void
+    {
+        $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => 'newuser',
+            'password' => 'newpassword',
+        ]));
+
+        $this->assertResponseStatusCodeSame(201);
+
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame('User registered successfully.', $payload['message'] ?? null);
+        $this->assertSame('newuser', $payload['username'] ?? null);
+        $this->assertSame(['ROLE_USER'], $payload['roles'] ?? null);
+
+        $createdUser = $this->userRepository->findOneBy(['username' => 'newuser']);
+        $this->assertNotNull($createdUser);
+        $this->assertSame(['ROLE_USER'], $createdUser->getRoles());
+    }
 }

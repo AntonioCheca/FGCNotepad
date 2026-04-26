@@ -45,6 +45,10 @@ class ComboSequences
     #[ORM\JoinColumn(nullable: false)]
     private ?Visibility $visibility = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'author_id', referencedColumnName: 'id', nullable: true)]
+    private ?User $author = null;
+
     /**
      * @var Collection<int, Season>
      */
@@ -168,6 +172,18 @@ class ComboSequences
     public function setVisibility(?Visibility $visibility): static
     {
         $this->visibility = $visibility;
+
+        return $this;
+    }
+
+    public function getAuthor(): ?User
+    {
+        return $this->author;
+    }
+
+    public function setAuthor(?User $author): static
+    {
+        $this->author = $author;
 
         return $this;
     }

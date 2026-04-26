@@ -34,7 +34,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
 
-        $this->client->request('POST', '/api/scenarios', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $this->client->request('POST', '/api/scenarios', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
             'name' => 'Corner Oki Test',
             'scenarioType' => 'oki',
             'defenderCharacterId' => $defender->getId()?->toRfc4122(),
@@ -64,7 +64,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
 
-        $this->client->request('POST', '/api/scenarios', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $this->client->request('POST', '/api/scenarios', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
             'name' => 'Layered Oki Test',
             'scenarioType' => 'oki',
             'defenderCharacterId' => $defender->getId()?->toRfc4122(),

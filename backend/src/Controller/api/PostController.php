@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\MoveRepository;
 use App\Repository\PostRepository;
 use App\Repository\TagRepository;
+use App\Service\EndpointAuthorizationService;
 use App\Service\PostComponentExtractor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,7 +16,9 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Constraints\Collection;
 use Symfony\Component\Validator\Constraints\NotBlank;
@@ -31,6 +34,7 @@ class PostController extends AbstractController
     public function __construct(
         private EntityManagerInterface $entityManager,
         private Security $security,
+        private EndpointAuthorizationService $endpointAuthorizationService,
     )
     {
     }
@@ -55,8 +59,9 @@ class PostController extends AbstractController
             return new JsonResponse(['error' => (string)$violations], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $userFromSymfony = $this->security->getUser();
-        if (!$userFromSymfony) {
+        try {
+            $userFromSymfony = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        } catch (UnauthorizedHttpException) {
             return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
@@ -164,15 +169,19 @@ class PostController extends AbstractController
 
 
     #[Route('/{id}', name: 'update', methods: ['PUT'])]
-    public function update(int $id, Request $request, PostRepository $postRepository, ValidatorInterface $validator): JsonResponse
+    public function update(string $id, Request $request, PostRepository $postRepository, ValidatorInterface $validator): JsonResponse
     {
         $post = $postRepository->find($id);
         if (!$post) {
             throw new NotFoundHttpException('Post not found');
         }
 
-        $user = $this->security->getUser();
-        if ($user !== $post->getAuthor()) {
+        try {
+            $user = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanMutateOwnedContent($user, $post->getAuthor());
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
             return new JsonResponse(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
         }
 
@@ -207,15 +216,19 @@ class PostController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
-    public function delete(int $id, PostRepository $postRepository): JsonResponse
+    public function delete(string $id, PostRepository $postRepository): JsonResponse
     {
         $post = $postRepository->find($id);
         if (!$post) {
             throw new NotFoundHttpException('Post not found');
         }
 
-        $user = $this->security->getUser();
-        if ($user !== $post->getAuthor()) {
+        try {
+            $user = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanMutateOwnedContent($user, $post->getAuthor());
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
             return new JsonResponse(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
         }
 

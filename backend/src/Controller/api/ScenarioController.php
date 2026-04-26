@@ -8,6 +8,7 @@ use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
 use App\Repository\ScenarioRepository;
 use App\Service\AggregatedDefenseCatalogService;
+use App\Service\EndpointAuthorizationService;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioExecutionModeService;
 use App\Service\ScenarioResponseBuilder;
@@ -18,8 +19,10 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Uid\Uuid;
 
@@ -38,6 +41,7 @@ class ScenarioController extends AbstractController
         private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
+        private readonly EndpointAuthorizationService $endpointAuthorizationService,
     ) {
     }
 
@@ -71,16 +75,18 @@ class ScenarioController extends AbstractController
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $data = $this->decodeRequestBody($request);
         $scenario = new Scenario();
 
-        $this->hydrateScenario($scenario, $data, true);
-        $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $this->extractCurrentUser());
-
-        $user = $this->security->getUser();
-        if ($user instanceof User) {
-            $scenario->setAuthor($user);
-        }
+        $this->hydrateScenario($scenario, $data, true, $actor);
+        $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
+        $scenario->setAuthor($actor);
 
         $this->entityManager->persist($scenario);
         $this->entityManager->flush();
@@ -99,13 +105,25 @@ class ScenarioController extends AbstractController
     #[Route('/{id}', name: 'update', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['PATCH'])]
     public function update(string $id, Request $request): JsonResponse
     {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $scenario = $this->findByPublicId($id);
+        try {
+            $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $scenario->getAuthor());
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
         $data = $this->decodeRequestBody($request);
 
-        $this->hydrateScenario($scenario, $data, false);
+        $this->hydrateScenario($scenario, $data, false, $actor);
 
         if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data)) {
-            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $this->extractCurrentUser());
+            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
         }
 
         $this->entityManager->flush();
@@ -116,7 +134,18 @@ class ScenarioController extends AbstractController
     #[Route('/{id}', name: 'delete', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['DELETE'])]
     public function delete(string $id): JsonResponse
     {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $scenario = $this->findByPublicId($id);
+        try {
+            $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $scenario->getAuthor());
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
 
         $this->entityManager->remove($scenario);
         $this->entityManager->flush();
@@ -127,13 +156,24 @@ class ScenarioController extends AbstractController
     #[Route('/{id}/resolve-dynamic-cells', name: 'resolve_dynamic_cells', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
     public function resolveDynamicCells(string $id, Request $request): JsonResponse
     {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $scenario = $this->findByPublicId($id);
+        try {
+            $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $scenario->getAuthor());
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
 
         $execution = $this->parseExecutionModePayload($request);
 
         $summary = $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
             $scenario,
-            $this->extractCurrentUser(),
+            $actor,
             $execution['mode'],
             $execution['difficultyCap']
         );
@@ -236,7 +276,7 @@ class ScenarioController extends AbstractController
     /**
      * @param array<string, mixed> $data
      */
-    private function hydrateScenario(Scenario $scenario, array $data, bool $isCreate): void
+    private function hydrateScenario(Scenario $scenario, array $data, bool $isCreate, User $actor): void
     {
         if ($isCreate || array_key_exists('name', $data)) {
             $name = isset($data['name']) && is_string($data['name']) ? trim($data['name']) : '';
@@ -284,6 +324,20 @@ class ScenarioController extends AbstractController
             }
 
             $this->scenarioMatrixMapper->replaceScenarioMatrixFromPayload($scenario, $matrix);
+        }
+
+        if (array_key_exists('isEssential', $data)) {
+            try {
+                $this->endpointAuthorizationService->assertCanManageEssentialFlag($actor);
+            } catch (AccessDeniedHttpException $exception) {
+                throw new AccessDeniedHttpException('Forbidden', $exception);
+            }
+
+            if (!is_bool($data['isEssential'])) {
+                throw new BadRequestHttpException('isEssential must be a boolean value.');
+            }
+
+            $scenario->setIsEssential($data['isEssential']);
         }
 
         if (null === $scenario->getDefenderCharacter() || null === $scenario->getAttackerCharacter() || null === $scenario->getTriggerMove()) {

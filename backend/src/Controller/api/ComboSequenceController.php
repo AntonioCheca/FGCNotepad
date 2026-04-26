@@ -11,15 +11,19 @@ use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
 use App\Service\ComboNotationTranslator;
 use App\Service\ComboSequenceCreationService;
+use App\Service\EndpointAuthorizationService;
 use App\Service\RequirementSpecificCharacterCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 #[Route('/api/combo-sequences', name: 'api_combo_sequences_')]
 class ComboSequenceController extends AbstractController
@@ -30,6 +34,8 @@ class ComboSequenceController extends AbstractController
         private ComboSequencesRepository    $comboSequencesRepository,
         private ConnectionTypeRepository    $connectionTypeRepository,
         private ComboSequenceCreationService $comboSequenceCreationService,
+        private EndpointAuthorizationService $endpointAuthorizationService,
+        private Security $security,
     )
     {
     }
@@ -165,6 +171,15 @@ class ComboSequenceController extends AbstractController
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
+
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
 
         $typeName = $data['type'] ?? null;
         if (!in_array($typeName, ['combo', 'sequence'])) {
@@ -175,7 +190,16 @@ class ComboSequenceController extends AbstractController
             throw new BadRequestHttpException('Leaf sequences cannot be created via API');
         }
 
-        $sequence = $this->comboSequenceCreationService->createFromPayload((array) $data, $typeName);
+        $sequence = $this->comboSequenceCreationService->createFromPayload((array) $data, $typeName, null, $actor);
+        if (array_key_exists('isEssential', $data)) {
+            try {
+                $this->endpointAuthorizationService->assertCanManageEssentialFlag($actor);
+            } catch (AccessDeniedHttpException) {
+                return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+            }
+            $sequence->setIsEssential($this->normalizeEssentialValue($data['isEssential']));
+            $this->entityManager->flush();
+        }
 
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
@@ -191,13 +215,31 @@ class ComboSequenceController extends AbstractController
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
+
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
 
         // 1. Validate required top-level fields
         if (empty($data['name']) || empty($data['steps']) || !is_array($data['steps'])) {
             throw new BadRequestHttpException('Name and steps are required.');
         }
 
-        $sequence = $this->comboSequenceCreationService->createFromPayload((array) $data, 'combo', $data['steps']);
+        $sequence = $this->comboSequenceCreationService->createFromPayload((array) $data, 'combo', $data['steps'], $actor);
+        if (array_key_exists('isEssential', $data)) {
+            try {
+                $this->endpointAuthorizationService->assertCanManageEssentialFlag($actor);
+            } catch (AccessDeniedHttpException) {
+                return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+            }
+            $sequence->setIsEssential($this->normalizeEssentialValue($data['isEssential']));
+            $this->entityManager->flush();
+        }
 
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
@@ -285,10 +327,31 @@ class ComboSequenceController extends AbstractController
     #[Route('/{id}', name: 'update', requirements: ['id' => '\\d+'], methods: ['PATCH'])]
     public function update(ComboSequences $sequence, Request $request): JsonResponse
     {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $sequence->getAuthor());
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
         $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
 
         if (isset($data['type'])) {
             throw new BadRequestHttpException('Cannot change type of ComboSequence');
+        }
+
+        if (array_key_exists('isEssential', $data)) {
+            try {
+                $this->endpointAuthorizationService->assertCanManageEssentialFlag($actor);
+            } catch (AccessDeniedHttpException) {
+                return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+            }
+            $sequence->setIsEssential($this->normalizeEssentialValue($data['isEssential']));
         }
 
         $sequence->setName($data['name'] ?? $sequence->getName());
@@ -307,9 +370,27 @@ class ComboSequenceController extends AbstractController
     #[Route('/{id}', name: 'delete', requirements: ['id' => '\\d+'], methods: ['DELETE'])]
     public function delete(ComboSequences $sequence): JsonResponse
     {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $sequence->getAuthor());
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
         $this->entityManager->remove($sequence);
         $this->entityManager->flush();
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+    }
+
+    private function normalizeEssentialValue(mixed $value): bool
+    {
+        if (!is_bool($value)) {
+            throw new BadRequestHttpException('isEssential must be a boolean value.');
+        }
+
+        return $value;
     }
 }

@@ -6,6 +6,7 @@ use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
 use App\Entity\ComboSequenceType;
+use App\Entity\User;
 use App\Repository\ComboSequenceTypeRepository;
 use App\Repository\SeasonRepository;
 use App\Repository\VisibilityRepository;
@@ -30,14 +31,15 @@ final class ComboSequenceCreationService
      * @param array<string, mixed> $payload
      * @param array<int, array<string, mixed>>|null $stepsPayload
      */
-    public function createFromPayload(array $payload, string $typeName, ?array $stepsPayload = null): ComboSequences
+    public function createFromPayload(array $payload, string $typeName, ?array $stepsPayload = null, ?User $author = null): ComboSequences
     {
         $type = $this->resolveType($typeName);
 
         $sequence = (new ComboSequences())
             ->setName((string) ($payload['name'] ?? ''))
             ->setDescription((string) ($payload['description'] ?? ''))
-            ->setType($type);
+            ->setType($type)
+            ->setAuthor($author);
 
         $visibility = $this->visibilityRepository->findOneBy(['name' => $payload['visibility'] ?? 'public']);
         $sequence->setVisibility($visibility);

@@ -4,32 +4,32 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\RegistrationService;
 use App\Util\MixedValidator;
-use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api')]
 class AuthController extends AbstractController
 {
-    private EntityManagerInterface $entityManager;
     private UserPasswordHasherInterface $passwordHasher;
 
     private JWTTokenManagerInterface $jwtManager;
     private UserRepository $userRepository;
+    private RegistrationService $registrationService;
 
-    public function __construct(EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher, JWTTokenManagerInterface $jwtManager, UserRepository $userRepository)
+    public function __construct(UserPasswordHasherInterface $passwordHasher, JWTTokenManagerInterface $jwtManager, UserRepository $userRepository, RegistrationService $registrationService)
     {
-        $this->entityManager = $entityManager;
         $this->passwordHasher = $passwordHasher;
         $this->jwtManager = $jwtManager;
         $this->userRepository = $userRepository;
+        $this->registrationService = $registrationService;
     }
 
     /**
@@ -65,30 +65,22 @@ class AuthController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        // Validate input data
-        if (!isset($data['username'], $data['password'])) {
-            return new JsonResponse(['message' => 'Email and password are required.'], Response::HTTP_BAD_REQUEST);
+        if (!is_array($data) || !isset($data['username'], $data['password']) || !is_string($data['username']) || !is_string($data['password'])) {
+            return new JsonResponse(['message' => 'Username and password are required.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $username = $data['username'];
-        $password = $data['password'];
-
-        // Check if user already exists
-        $existingUser = $this->entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
-        if ($existingUser) {
-            return new JsonResponse(['message' => 'User already exists.'], Response::HTTP_CONFLICT);
+        try {
+            $user = $this->registrationService->register($data['username'], $data['password']);
+        } catch (ConflictHttpException $exception) {
+            return new JsonResponse(['message' => $exception->getMessage()], Response::HTTP_CONFLICT);
+        } catch (\InvalidArgumentException $exception) {
+            return new JsonResponse(['message' => $exception->getMessage()], Response::HTTP_BAD_REQUEST);
         }
 
-        // Create new user
-        $user = new User();
-        $user->setUsername($username);
-        $user->setPassword($this->passwordHasher->hashPassword($user, $password));
-        $user->setRoles(['ROLE_USER']); // Default role
-
-        // Persist user to database
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-
-        return new JsonResponse(['message' => 'User registered successfully.'], Response::HTTP_CREATED);
+        return new JsonResponse([
+            'message' => 'User registered successfully.',
+            'username' => $user->getUsername(),
+            'roles' => $user->getRoles(),
+        ], Response::HTTP_CREATED);
     }
 }
