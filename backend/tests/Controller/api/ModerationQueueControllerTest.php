@@ -101,6 +101,48 @@ class ModerationQueueControllerTest extends DatabaseTestCase
         self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testQueueRejectsInvalidFilters(): void
+    {
+        $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+
+        $this->client->request('GET', '/api/moderation/queue?contentType=invalid_type', [], [], $headers);
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', '/api/moderation/queue?state=bad_state', [], [], $headers);
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', '/api/moderation/queue?sort=sideways', [], [], $headers);
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testQueueAcceptsCommaSeparatedFilters(): void
+    {
+        $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
+        $author = $this->createUser('author_user', [UserRole::USER]);
+        $reporter = $this->createUser('reporter_user', [UserRole::USER]);
+
+        $post = $this->createPendingPost($author, 'Pending Post CSV');
+        $scenario = $this->createApprovedFlaggedScenario($author, $reporter);
+
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $this->client->request(
+            'GET',
+            '/api/moderation/queue?contentType=post,scenario&state=pending_review,flagged&sort=oldest',
+            [],
+            [],
+            $headers
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertCount(2, $payload['data']);
+
+        $contentIds = array_map(static fn (array $row): string => (string) $row['contentId'], $payload['data']);
+        self::assertContains($post->getId()?->toRfc4122(), $contentIds);
+        self::assertContains($scenario->getPublicId()->toRfc4122(), $contentIds);
+    }
+
     /**
      * @param list<UserRole> $roles
      */

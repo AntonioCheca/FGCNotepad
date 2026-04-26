@@ -115,6 +115,75 @@ class AdminUserManagementControllerTest extends DatabaseTestCase
         self::assertStringContainsString('deactivated', mb_strtolower($message));
     }
 
+    public function testUnauthenticatedCannotAccessAdminUserEndpoints(): void
+    {
+        $target = $this->createUser([UserRole::USER]);
+
+        $this->client->request('GET', '/api/admin/users');
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request(
+            'PATCH',
+            sprintf('/api/admin/users/%s/roles', $target->getId()?->toRfc4122()),
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['roles' => ['ROLE_MODERATOR']])
+        );
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('POST', sprintf('/api/admin/users/%s/deactivate', $target->getId()?->toRfc4122()));
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testAdminEndpointsReturnNotFoundForInvalidUserId(): void
+    {
+        $admin = $this->createUser([UserRole::ADMIN]);
+        $headers = $this->loginHeaders($admin->getUsername(), 'testpassword');
+
+        $this->client->request(
+            'PATCH',
+            '/api/admin/users/not-a-uuid/roles',
+            [],
+            [],
+            $headers,
+            json_encode(['roles' => ['ROLE_USER']])
+        );
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('POST', '/api/admin/users/not-a-uuid/deactivate', [], [], $headers);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testAdminRoleUpdateRejectsMalformedRolePayload(): void
+    {
+        $admin = $this->createUser([UserRole::ADMIN]);
+        $target = $this->createUser([UserRole::USER]);
+        $headers = $this->loginHeaders($admin->getUsername(), 'testpassword');
+
+        $endpoint = sprintf('/api/admin/users/%s/roles', $target->getId()?->toRfc4122());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['roles' => 'ROLE_ADMIN']));
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('PATCH', $endpoint, [], [], $headers, json_encode(['roles' => ['ROLE_GODMODE']]));
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testDeactivatingAlreadyInactiveUserReturnsConflict(): void
+    {
+        $admin = $this->createUser([UserRole::ADMIN]);
+        $target = $this->createUser([UserRole::USER]);
+        $headers = $this->loginHeaders($admin->getUsername(), 'testpassword');
+        $endpoint = sprintf('/api/admin/users/%s/deactivate', $target->getId()?->toRfc4122());
+
+        $this->client->request('POST', $endpoint, [], [], $headers);
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('POST', $endpoint, [], [], $headers);
+        self::assertSame(Response::HTTP_CONFLICT, $this->client->getResponse()->getStatusCode());
+    }
+
     /**
      * @param list<UserRole> $roles
      */

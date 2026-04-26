@@ -75,6 +75,22 @@ class AuthorizationPolicyServiceTest extends TestCase
         self::assertFalse($this->policy->canManageUsers(null));
     }
 
+    public function testMixedRoleUserRetainsHighestPermissionExpectations(): void
+    {
+        $adminModerator = $this->newUser('admin_mod', [UserRole::ADMIN, UserRole::MODERATOR]);
+
+        self::assertTrue($this->policy->canEditAnyContent($adminModerator));
+        self::assertTrue($this->policy->canModerateContent($adminModerator));
+        self::assertTrue($this->policy->canManageUsers($adminModerator));
+    }
+
+    public function testNullActorReturnsFalseAcrossPolicyChecks(): void
+    {
+        self::assertFalse($this->policy->canEditAnyContent(null));
+        self::assertFalse($this->policy->canModerateContent(null));
+        self::assertFalse($this->policy->canManageUsers(null));
+    }
+
     /**
      * @param list<UserRole> $roles
      */

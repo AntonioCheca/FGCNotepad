@@ -93,6 +93,59 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
         self::assertTrue($payload['isPubliclyVisible']);
     }
 
+    public function testUnauthenticatedCannotExecuteModerationDecisions(): void
+    {
+        $author = $this->createUser('author_user', [UserRole::USER]);
+        $post = $this->createPost($author, 'pending_review');
+
+        $this->client->request('POST', sprintf('/api/moderation/post/%s/approve', $post->getId()?->toRfc4122()));
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('POST', sprintf('/api/moderation/post/%s/reject', $post->getId()?->toRfc4122()), [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['reason' => 'x']));
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('POST', sprintf('/api/moderation/post/%s/hide', $post->getId()?->toRfc4122()), [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['reason' => 'x']));
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testDecisionReturnsNotFoundForUnsupportedType(): void
+    {
+        $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+
+        $this->client->request('POST', '/api/moderation/unknown/1/approve', [], [], $headers);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testDecisionReturnsNotFoundForInvalidIdentifiers(): void
+    {
+        $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+
+        $this->client->request('POST', '/api/moderation/post/not-a-uuid/approve', [], [], $headers);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('POST', '/api/moderation/combo/not-numeric/approve', [], [], $headers);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('POST', '/api/moderation/scenario/not-a-uuid/approve', [], [], $headers);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testDecisionReturnsBadRequestForInvalidCurrentModerationState(): void
+    {
+        $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
+        $author = $this->createUser('author_user', [UserRole::USER]);
+        $post = $this->createPost($author, 'invalid_state');
+
+        $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
+        $this->client->request('POST', sprintf('/api/moderation/post/%s/approve', $post->getId()?->toRfc4122()), [], [], $headers);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame('Invalid current moderation state.', $payload['error'] ?? null);
+    }
+
     /**
      * @param list<UserRole> $roles
      */
