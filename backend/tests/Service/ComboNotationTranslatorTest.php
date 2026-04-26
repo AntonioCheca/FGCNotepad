@@ -10,7 +10,7 @@ class ComboNotationTranslatorTest extends TestCase
     private ComboNotationTranslator $translator;
 
     /**
-     * @var array<int, array{id:int, notation:string, moveType:string|null}>
+     * @var array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}>
      */
     private array $leafOptions;
 
@@ -24,13 +24,13 @@ class ComboNotationTranslatorTest extends TestCase
         $this->translator = new ComboNotationTranslator();
 
         $this->leafOptions = [
-            ['id' => 101, 'notation' => '2LP', 'moveType' => 'normal'],
-            ['id' => 102, 'notation' => '5LP', 'moveType' => 'normal'],
-            ['id' => 103, 'notation' => '236MK', 'moveType' => 'special'],
-            ['id' => 104, 'notation' => '236236P', 'moveType' => 'super'],
-            ['id' => 105, 'notation' => '5MP', 'moveType' => 'normal'],
-            ['id' => 106, 'notation' => '4HP', 'moveType' => 'follow-up'],
-            ['id' => 107, 'notation' => '63214P', 'moveType' => 'command-grab'],
+            ['id' => 101, 'notation' => '2LP', 'moveType' => 'normal', 'cancelTypeCodes' => ['ch', 'sp', 'su']],
+            ['id' => 102, 'notation' => '5LP', 'moveType' => 'normal', 'cancelTypeCodes' => ['ch', 'sp']],
+            ['id' => 103, 'notation' => '236MK', 'moveType' => 'special', 'cancelTypeCodes' => ['su']],
+            ['id' => 104, 'notation' => '236236P', 'moveType' => 'super', 'cancelTypeCodes' => []],
+            ['id' => 105, 'notation' => '5MP', 'moveType' => 'normal', 'cancelTypeCodes' => []],
+            ['id' => 106, 'notation' => '4HP', 'moveType' => 'follow-up', 'cancelTypeCodes' => ['tc']],
+            ['id' => 107, 'notation' => '63214P', 'moveType' => 'command-grab', 'cancelTypeCodes' => []],
         ];
 
         $this->connectionTypes = [
@@ -94,6 +94,14 @@ class ComboNotationTranslatorTest extends TestCase
 
         self::assertCount(2, $result['steps']);
         self::assertSame(2, $result['steps'][1]['connection_type_id']);
+    }
+
+    public function testTranslateInfersLinkWhenNormalsAreNotBothChainCancellable(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('5MP, 2LP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(6, $result['steps'][1]['connection_type_id']);
     }
 
     public function testTranslateInfersLinkConnection(): void

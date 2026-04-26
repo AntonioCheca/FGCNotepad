@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\FrameDataRepository;
+use App\Util\Enum\CancelType;
 use App\Util\Enum\MoveType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -230,6 +231,71 @@ class FrameData
         $this->cancelsTo = $cancelsTo;
 
         return $this;
+    }
+
+    /**
+     * @return array<int, CancelType>
+     */
+    public function getCancelTypes(): array
+    {
+        return self::parseCancelTypes($this->cancelsTo);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getCancelTypeCodes(): array
+    {
+        return array_map(static fn (CancelType $cancelType): string => $cancelType->value, $this->getCancelTypes());
+    }
+
+    public function hasCancelType(CancelType $cancelType): bool
+    {
+        return in_array($cancelType, $this->getCancelTypes(), true);
+    }
+
+    /**
+     * @return array<int, CancelType>
+     */
+    private static function parseCancelTypes(?string $rawCancelsTo): array
+    {
+        if (null === $rawCancelsTo || '' === trim($rawCancelsTo)) {
+            return [];
+        }
+
+        $decoded = json_decode($rawCancelsTo, true);
+        $rawValues = [];
+
+        if (is_array($decoded)) {
+            foreach ($decoded as $value) {
+                if (is_string($value)) {
+                    $rawValues[] = $value;
+                }
+            }
+        } else {
+            $fallback = preg_split('/[\s,]+/', trim($rawCancelsTo));
+            if (false !== $fallback) {
+                foreach ($fallback as $value) {
+                    if ('' !== $value) {
+                        $rawValues[] = trim($value, " \t\n\r\0\x0B[]\"'");
+                    }
+                }
+            }
+        }
+
+        $parsed = [];
+        foreach ($rawValues as $rawValue) {
+            $cancelType = CancelType::tryFromCode($rawValue);
+            if (!$cancelType instanceof CancelType) {
+                continue;
+            }
+
+            if (!in_array($cancelType, $parsed, true)) {
+                $parsed[] = $cancelType;
+            }
+        }
+
+        return $parsed;
     }
 
     public function getDamage(): ?int

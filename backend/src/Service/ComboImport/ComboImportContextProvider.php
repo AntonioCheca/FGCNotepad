@@ -36,7 +36,7 @@ class ComboImportContextProvider
     }
 
     /**
-     * @return array<int, array{id:int, notation:string, moveType:string|null}>
+     * @return array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}>
      */
     public function buildLeafOptions(Character $character): array
     {
@@ -61,6 +61,7 @@ class ComboImportContextProvider
                 'id' => (int) $leafId,
                 'notation' => (string) $move->getNumpadNotation(),
                 'moveType' => $move->getFrameData()?->getMoveType(),
+                'cancelTypeCodes' => $move->getFrameData()?->getCancelTypeCodes() ?? [],
             ];
         }
 

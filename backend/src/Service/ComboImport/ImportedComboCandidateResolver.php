@@ -16,7 +16,7 @@ class ImportedComboCandidateResolver
 
     /**
      * @param array<int, ImportedComboCandidate> $candidates
-     * @param array<int, array{id:int, notation:string, moveType:string|null}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>}> $leafOptions
      * @param array<int, array{id:int, name:string}> $connectionTypes
      *
      * @return array<int, ResolvedImportedComboCandidate>

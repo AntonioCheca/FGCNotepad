@@ -8,7 +8,7 @@ final class ComboNotationTranslator
     private const CONNECTOR_TARGET_COMBO = 'TC';
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>}> $leafOptions
      * @param array<int, array{id:int, name:string}> $connectionTypes
      *
      * @return array{
@@ -75,6 +75,7 @@ final class ComboNotationTranslator
                 'leafId' => $leaf['id'],
                 'moveType' => $leaf['moveType'],
                 'connector' => $pendingConnector,
+                'cancelTypeCodes' => $leaf['cancelTypeCodes'],
             ];
 
             $parsedTokens[] = [
@@ -101,7 +102,9 @@ final class ComboNotationTranslator
                 $canonicalConnection = $this->inferConnection(
                     $move['connector'],
                     $previousMove['moveType'],
-                    $move['moveType']
+                    $move['moveType'],
+                    $previousMove['cancelTypeCodes'],
+                    $move['cancelTypeCodes'],
                 );
             }
 
@@ -128,7 +131,7 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>}> $leafOptions
      * @param array<int, array{id:int, name:string}> $connectionTypes
      *
      * @return array{
@@ -185,7 +188,7 @@ final class ComboNotationTranslator
      * @param array<int, array{id:int, notation:string, moveType:string|null}> $leafOptions
      * @param array<int, string> $warnings
      *
-     * @return array<string, array{id:int, moveType:string|null}>
+     * @return array<string, array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}>
      */
     private function buildLeafIndex(array $leafOptions, array &$warnings): array
     {
@@ -205,6 +208,7 @@ final class ComboNotationTranslator
             $index[$normalizedNotation] = [
                 'id' => $leaf['id'],
                 'moveType' => $leaf['moveType'],
+                'cancelTypeCodes' => $this->normalizeCancelTypeCodes($leaf['cancelTypeCodes'] ?? []),
             ];
         }
 
@@ -258,7 +262,17 @@ final class ComboNotationTranslator
         };
     }
 
-    private function inferConnection(?string $explicitConnector, ?string $previousMoveType, ?string $currentMoveType): string
+    /**
+     * @param array<int, string> $previousMoveCancelTypeCodes
+     * @param array<int, string> $currentMoveCancelTypeCodes
+     */
+    private function inferConnection(
+        ?string $explicitConnector,
+        ?string $previousMoveType,
+        ?string $currentMoveType,
+        array $previousMoveCancelTypeCodes,
+        array $currentMoveCancelTypeCodes,
+    ): string
     {
         if ('target_combo' === $explicitConnector) {
             return 'target_combo';
@@ -270,7 +284,12 @@ final class ComboNotationTranslator
 
         $candidateConnections = [];
 
-        if ($this->isChainCandidate($previousMoveType, $currentMoveType)) {
+        if ($this->isChainCandidate(
+            $previousMoveType,
+            $currentMoveType,
+            $previousMoveCancelTypeCodes,
+            $currentMoveCancelTypeCodes,
+        )) {
             $candidateConnections[] = 'chain';
         }
 
@@ -295,9 +314,22 @@ final class ComboNotationTranslator
         return 'link';
     }
 
-    private function isChainCandidate(?string $previousMoveType, ?string $currentMoveType): bool
+    /**
+     * @param array<int, string> $previousMoveCancelTypeCodes
+     * @param array<int, string> $currentMoveCancelTypeCodes
+     */
+    private function isChainCandidate(
+        ?string $previousMoveType,
+        ?string $currentMoveType,
+        array $previousMoveCancelTypeCodes,
+        array $currentMoveCancelTypeCodes,
+    ): bool
     {
-        return $this->isNormalLike($previousMoveType) && $this->isNormalLike($currentMoveType);
+        if (!$this->isNormalMoveType($previousMoveType) || !$this->isNormalMoveType($currentMoveType)) {
+            return false;
+        }
+
+        return in_array('ch', $previousMoveCancelTypeCodes, true) && in_array('ch', $currentMoveCancelTypeCodes, true);
     }
 
     private function isSpecialCancelCandidate(?string $currentMoveType): bool
@@ -316,13 +348,37 @@ final class ComboNotationTranslator
         return null !== $moveType && 'super' === strtolower($moveType);
     }
 
-    private function isNormalLike(?string $moveType): bool
+    private function isNormalMoveType(?string $moveType): bool
     {
         if (null === $moveType) {
             return false;
         }
 
-        return in_array(strtolower($moveType), ['normal', 'follow-up', 'throw'], true);
+        return 'normal' === strtolower($moveType);
+    }
+
+    /**
+     * @param array<int, mixed> $codes
+     *
+     * @return array<int, string>
+     */
+    private function normalizeCancelTypeCodes(array $codes): array
+    {
+        $normalizedCodes = [];
+        foreach ($codes as $code) {
+            if (!is_string($code)) {
+                continue;
+            }
+
+            $normalizedCode = strtolower(trim($code));
+            if ('' === $normalizedCode || in_array($normalizedCode, $normalizedCodes, true)) {
+                continue;
+            }
+
+            $normalizedCodes[] = $normalizedCode;
+        }
+
+        return $normalizedCodes;
     }
 
     /**

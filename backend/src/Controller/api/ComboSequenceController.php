@@ -250,6 +250,7 @@ class ComboSequenceController extends AbstractController
                 'id' => (int) $leafSequence->getId(),
                 'notation' => $move->getNumpadNotation(),
                 'moveType' => $move->getFrameData()?->getMoveType(),
+                'cancelTypeCodes' => $move->getFrameData()?->getCancelTypeCodes() ?? [],
             ];
         }
 

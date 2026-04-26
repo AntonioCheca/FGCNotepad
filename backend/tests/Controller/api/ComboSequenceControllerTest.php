@@ -732,8 +732,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->persistConnectionType('Target Combo');
         $this->persistConnectionType('Link');
 
-        $this->persistLeafSequence($character, $leafType, $visibility, '2LP', 'normal');
-        $this->persistLeafSequence($character, $leafType, $visibility, '236MK', 'special');
+        $this->persistLeafSequence($character, $leafType, $visibility, '2LP', 'normal', '["ch","sp","su"]');
+        $this->persistLeafSequence($character, $leafType, $visibility, '236MK', 'special', '["su"]');
 
         $this->entityManager->flush();
 
@@ -754,7 +754,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         ComboSequenceType $type,
         Visibility $visibility,
         string $notation,
-        string $moveType
+        string $moveType,
+        ?string $cancelsTo = null,
     ): void
     {
         $move = new Move();
@@ -763,6 +764,9 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
         $frameData = new FrameData();
         $frameData->setMoveType($moveType);
+        if (null !== $cancelsTo) {
+            $frameData->setCancelsTo($cancelsTo);
+        }
         $move->setFrameData($frameData);
 
         $sequence = new ComboSequences();
