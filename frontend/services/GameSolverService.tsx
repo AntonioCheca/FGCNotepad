@@ -10,7 +10,7 @@ export class GameSolverService {
     }
 
     async solveOptimalStrategy(): Promise<void> {
-        const payoffMatrix = this._formatPayoffMatrix();
+        const payoffMatrix = this.formatPayoffMatrix();
 
         try {
             const {equilibria, derivedMetrics} = await this.solveGame(payoffMatrix);
@@ -27,14 +27,11 @@ export class GameSolverService {
                 this.actions.setAndUpdateRowFrequencies(newRowFrequencies);
                 this.actions.setAndUpdateColumnFrequencies(newColumnFrequencies);
 
-                const expectedVal = this._calculateExpectedValue();
+                const expectedVal = this.calculateExpectedValue();
                 this.actions.setAndUpdateExpectedValue(parseFloat(expectedVal));
             }
 
-            // 🔥 NEW: store derivedMetrics in state if useful
             if (derivedMetrics) {
-                console.log("Derived metrics:", derivedMetrics);
-                // you could add an action like:
                 this.actions.setDerivedMetrics(derivedMetrics);
             }
         } catch (error) {
@@ -42,7 +39,7 @@ export class GameSolverService {
         }
     }
 
-    private _formatPayoffMatrix(): Record<string, Record<string, number>> {
+    private formatPayoffMatrix(): Record<string, Record<string, number>> {
         const payoffMatrix: Record<string, Record<string, number>> = {};
 
         this.state.rows.forEach((row, rowIndex) => {
@@ -55,7 +52,7 @@ export class GameSolverService {
         return payoffMatrix;
     }
 
-    private _calculateExpectedValue(): string {
+    private calculateExpectedValue(): string {
         let ev = 0;
         for (let i = 0; i < this.state.rows.length; i++) {
             for (let j = 0; j < this.state.columns.length; j++) {

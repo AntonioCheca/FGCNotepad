@@ -7,9 +7,6 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-/**
- * Auto-generated Migration: Please modify to your needs!
- */
 final class Version20250930203343 extends AbstractMigration
 {
     public function getDescription(): string
@@ -19,7 +16,6 @@ final class Version20250930203343 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE TABLE sf6.scenario (id SERIAL NOT NULL, type_id INT NOT NULL, name TEXT NOT NULL, PRIMARY KEY(id))');
         $this->addSql('CREATE INDEX IDX_E4D975EFC54C8C93 ON sf6.scenario (type_id)');
         $this->addSql('CREATE TABLE sf6.scenario_layer (id SERIAL NOT NULL, scenario_id INT NOT NULL, index INT NOT NULL, PRIMARY KEY(id))');
@@ -51,7 +47,6 @@ final class Version20250930203343 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE SCHEMA public');
         $this->addSql('ALTER TABLE sf6.scenario DROP CONSTRAINT FK_E4D975EFC54C8C93');
         $this->addSql('ALTER TABLE sf6.scenario_layer DROP CONSTRAINT FK_4D748501E04E49DF');

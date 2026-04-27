@@ -1,6 +1,6 @@
 import {create} from "zustand";
 import {persist} from "zustand/middleware";
-import {PaletteMode} from "@mui/material";
+import type {PaletteMode} from "@/src/components/ui/AppTheme";
 
 interface ThemeStore {
     mode: PaletteMode;

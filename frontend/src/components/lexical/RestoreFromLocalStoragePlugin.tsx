@@ -1,15 +1,13 @@
-import {useLocalStorage} from 'react-use';
 import {useState, useEffect, useCallback} from 'react';
 import {OnChangePlugin} from '@lexical/react/LexicalOnChangePlugin';
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {EditorState} from 'lexical';
-import {$createParagraphNode, $getRoot} from 'lexical';
+import type {EditorState, LexicalEditor} from 'lexical';
 
-/**
- * Loads saved JSON content into the editor from a given string.
- * Ensures the editor starts with a valid state even if the string is empty.
- */
-const loadEditorContent = (editor, jsonString) => {
+interface LoadFromJsonStringPluginProps {
+    jsonString: unknown;
+}
+
+const loadEditorContent = (editor: LexicalEditor, jsonString: unknown): void => {
     if (jsonString) {
         try {
             const parsedJson = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
@@ -21,31 +19,21 @@ const loadEditorContent = (editor, jsonString) => {
     }
 };
 
-
-/**
- * Handles saving the editor content to local storage on change.
- */
-const useEditorSaveToStorage = (storageKey) => {
-    const [editor] = useLexicalComposerContext();
-
+const useEditorSaveToStorage = (storageKey: string) => {
     return useCallback(
-        (editorState) => {
+        (editorState: EditorState) => {
             try {
                 const json = JSON.stringify(editorState);
-                console.log("DETECTING CGHANGE IN EDITOR; SAVING", json);
                 localStorage.setItem(storageKey, json);
             } catch (error) {
                 console.error("Error while saving editor state to localStorage:", error);
             }
         },
-        [editor]
+        [storageKey]
     );
 };
 
-/**
- * Plugin to load content from a given JSON string on first render.
- */
-function LoadFromJsonStringPlugin({jsonString}) {
+function LoadFromJsonStringPlugin({jsonString}: LoadFromJsonStringPluginProps) {
     const [editor] = useLexicalComposerContext();
     const [isFirstRender, setIsFirstRender] = useState(true);
 
@@ -59,10 +47,6 @@ function LoadFromJsonStringPlugin({jsonString}) {
     return null;
 }
 
-/**
- * Plugin to restore editor content from local storage on initial render
- * and save updates to storage on changes.
- */
 function RestoreFromLocalStoragePlugin() {
     const [editor] = useLexicalComposerContext();
     const onChange = useEditorSaveToStorage('postDraftBody');

@@ -7,9 +7,6 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-/**
- * Auto-generated Migration: Please modify to your needs!
- */
 final class Version20250729122523 extends AbstractMigration
 {
     public function getDescription(): string
@@ -19,7 +16,6 @@ final class Version20250729122523 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE TABLE sf6.season_combo_sequence (combo_sequences_id INT NOT NULL, season_id INT NOT NULL, PRIMARY KEY(combo_sequences_id, season_id))');
         $this->addSql('CREATE INDEX IDX_29C087495C63522F ON sf6.season_combo_sequence (combo_sequences_id)');
         $this->addSql('CREATE INDEX IDX_29C087494EC001D1 ON sf6.season_combo_sequence (season_id)');
@@ -44,7 +40,6 @@ final class Version20250729122523 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
         $this->addSql('ALTER TABLE sf6.combo_sequence DROP CONSTRAINT FK_8AC25213B7157780');
         $this->addSql('ALTER TABLE sf6.season_combo_sequence DROP CONSTRAINT FK_29C087495C63522F');
         $this->addSql('ALTER TABLE sf6.season_combo_sequence DROP CONSTRAINT FK_29C087494EC001D1');

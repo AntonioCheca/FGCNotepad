@@ -7,9 +7,6 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-/**
- * Auto-generated Migration: Please modify to your needs!
- */
 final class Version20250725202233 extends AbstractMigration
 {
     public function getDescription(): string
@@ -19,7 +16,6 @@ final class Version20250725202233 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE TABLE sf6.combo_metrics (id SERIAL NOT NULL, sequence_id INT NOT NULL, damage INT NOT NULL, PRIMARY KEY(id))');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_6B24484F98FB19AE ON sf6.combo_metrics (sequence_id)');
         $this->addSql('CREATE TABLE sf6.combo_requirement (id SERIAL NOT NULL, sequence_id INT NOT NULL, counter_hit_required BOOLEAN NOT NULL, punish_counter_required BOOLEAN NOT NULL, corner_required BOOLEAN NOT NULL, airborne_required BOOLEAN NOT NULL, mid_screen_required BOOLEAN NOT NULL, PRIMARY KEY(id))');
@@ -56,7 +52,6 @@ final class Version20250725202233 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE TABLE sf6.combo (id UUID NOT NULL, numpad_notation TEXT NOT NULL, damage INT NOT NULL, PRIMARY KEY(id))');
         $this->addSql('COMMENT ON COLUMN sf6.combo.id IS \'(DC2Type:uuid)\'');
         $this->addSql('ALTER TABLE sf6.combo ADD CONSTRAINT fk_b8a871fbbf396750 FOREIGN KEY (id) REFERENCES sf6.component (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE');

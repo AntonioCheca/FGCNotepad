@@ -271,9 +271,8 @@ class ComboSequences
         return null;
     }
 
-    public function __wakeup()
+    public function __wakeup(): void
     {
-        error_log('__wakeup called on ' . __CLASS__);
         $this->__construct();
     }
 

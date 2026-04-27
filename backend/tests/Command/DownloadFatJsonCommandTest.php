@@ -13,13 +13,11 @@ class DownloadFatJsonCommandTest extends TestCase
     {
         $mockJson = '{"Ryu": [{"numCmd": "5LP", "startup": 4}]}';
 
-        // Fake downloader service
         $downloader = $this->createMock(FATFrameDataDownloader::class);
         $downloader->expects($this->once())
             ->method('download')
             ->willReturn($mockJson);
 
-        // Use a temp directory for the test
         $tempDir = sys_get_temp_dir() . '/fat_test_' . uniqid();
         mkdir($tempDir);
 
@@ -35,7 +33,6 @@ class DownloadFatJsonCommandTest extends TestCase
         $contents = file_get_contents($expectedFile);
         $this->assertSame($mockJson, $contents);
 
-        // Cleanup
         unlink($expectedFile);
         rmdir($tempDir . '/data');
         rmdir($tempDir);

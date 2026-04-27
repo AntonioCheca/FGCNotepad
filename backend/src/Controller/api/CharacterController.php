@@ -21,11 +21,9 @@ class CharacterController extends AbstractController
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
-        error_log('Controller start: ' . microtime(true));
         $characters = $this->characterRepository->findAll();
 
         $json = $this->serializer->serialize($characters, 'json');
-        error_log('Controller end: ' . microtime(true));
 
         return new JsonResponse($json, 200, [], true);
     }

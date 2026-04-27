@@ -7,9 +7,6 @@ namespace DoctrineMigrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
-/**
- * Auto-generated Migration: Please modify to your needs!
- */
 final class Version20250303210546 extends AbstractMigration
 {
     public function getDescription(): string
@@ -19,7 +16,6 @@ final class Version20250303210546 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
         $this->addSql('CREATE SCHEMA sf6');
         $this->addSql('CREATE TABLE sf6.combo (id UUID NOT NULL, numpad_notation TEXT NOT NULL, damage INT NOT NULL, PRIMARY KEY(id))');
         $this->addSql('COMMENT ON COLUMN sf6.combo.id IS \'(DC2Type:uuid)\'');
@@ -42,7 +38,6 @@ final class Version20250303210546 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
         $this->addSql('ALTER TABLE sf6.combo DROP CONSTRAINT FK_B8A871FBBF396750');
         $this->addSql('ALTER TABLE sf6.move DROP CONSTRAINT FK_CD33AD74BF396750');
         $this->addSql('ALTER TABLE forum.post_components DROP CONSTRAINT FK_EA66FC214B89032C');

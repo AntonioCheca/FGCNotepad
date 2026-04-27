@@ -25,14 +25,14 @@ create-test-database:
 composer-install:
 	docker exec -it fgc_backend composer install
 
-# NEW: Install frontend dependencies (creates node_modules on host)
+# Install frontend dependencies (creates node_modules on host)
 npm-install:
 	docker exec -it fgc_frontend npm install
 
-# NEW: Install all dependencies
+# Install all dependencies
 install: composer-install npm-install
 
-# NEW: Start frontend development server
+# Start frontend development server
 frontend-dev:
 	docker exec -it fgc_frontend npm run dev
 
