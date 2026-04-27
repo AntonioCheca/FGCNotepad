@@ -1,7 +1,7 @@
 import React from "react";
 
 import useApi from "@/hooks/useApi";
-import api from "@/services/api";
+import api, {getStoredAuthToken} from "@/services/api";
 import {
     ComboKnowledgeResponse,
     ComboRecommendationResponse,
@@ -14,7 +14,7 @@ export function hasJwtToken(): boolean {
         return false;
     }
 
-    const token = localStorage.getItem("jwt");
+    const token = getStoredAuthToken();
 
     return typeof token === "string" && token.length > 0;
 }

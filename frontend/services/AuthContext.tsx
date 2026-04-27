@@ -3,6 +3,7 @@
 import {createContext, useState, useEffect, ReactNode, useCallback} from "react";
 import {useRouter} from "next/navigation";
 import {fetchCurrentUserProfile} from "@/services/authProfile";
+import {clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken} from "@/services/api";
 import {AuthUser, UserRole} from "@/src/types/auth";
 
 interface AuthContextType {
@@ -18,13 +19,72 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getHttpStatus(error: unknown): number | null {
+    if (!error || typeof error !== "object") {
+        return null;
+    }
+
+    const response = (error as {response?: {status?: unknown}}).response;
+
+    return typeof response?.status === "number" ? response.status : null;
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+    const [, payload] = token.split(".");
+    if (!payload) {
+        return null;
+    }
+
+    try {
+        const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+
+        return JSON.parse(atob(padded)) as Record<string, unknown>;
+    } catch {
+        return null;
+    }
+}
+
+function isUserRole(role: unknown): role is UserRole {
+    return role === "ROLE_USER" || role === "ROLE_MODERATOR" || role === "ROLE_ADMIN";
+}
+
+function buildUserFromToken(token: string): AuthUser | null {
+    const payload = decodeJwtPayload(token);
+    if (!payload) {
+        return null;
+    }
+
+    const username = typeof payload.username === "string"
+        ? payload.username
+        : typeof payload.user === "string"
+            ? payload.user
+            : null;
+
+    if (!username) {
+        return null;
+    }
+
+    const roles = Array.isArray(payload.roles)
+        ? payload.roles.filter(isUserRole)
+        : [];
+
+    return {
+        token,
+        id: typeof payload.id === "string" ? payload.id : "",
+        username,
+        roles: roles.length > 0 ? roles : ["ROLE_USER"],
+        isActive: true,
+    };
+}
+
 export function AuthProvider({children}: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const router = useRouter();
 
     const clearSession = useCallback(() => {
-        localStorage.removeItem("jwt");
+        clearStoredAuthToken();
         setUser(null);
     }, []);
 
@@ -33,15 +93,24 @@ export function AuthProvider({children}: { children: ReactNode }) {
         try {
             const profile = await fetchCurrentUserProfile();
             setUser({token, ...profile});
-        } catch {
-            clearSession();
+        } catch (error: unknown) {
+            const status = getHttpStatus(error);
+            if (status === 401 || status === 403) {
+                clearSession();
+                return;
+            }
+
+            const userFromToken = buildUserFromToken(token);
+            if (userFromToken) {
+                setUser(userFromToken);
+            }
         } finally {
             setLoading(false);
         }
     }, [clearSession]);
 
     useEffect(() => {
-        const token = localStorage.getItem("jwt");
+        const token = getStoredAuthToken();
         if (!token) {
             setLoading(false);
             return;
@@ -52,16 +121,18 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
     useEffect(() => {
         const handleStorage = (event: StorageEvent) => {
-            if (event.key !== "jwt") {
+            if (event.key !== "jwt" && event.key !== "token") {
                 return;
             }
 
-            if (!event.newValue) {
+            const token = getStoredAuthToken();
+
+            if (!token) {
                 setUser(null);
                 return;
             }
 
-            void hydrateUserFromToken(event.newValue);
+            void hydrateUserFromToken(token);
         };
 
         const handleUnauthorized = () => {
@@ -78,8 +149,12 @@ export function AuthProvider({children}: { children: ReactNode }) {
     }, [clearSession, hydrateUserFromToken]);
 
     const login = (token: string) => {
-        localStorage.setItem("jwt", token);
-        void hydrateUserFromToken(token);
+        setStoredAuthToken(token);
+        const normalizedToken = getStoredAuthToken();
+        if (normalizedToken) {
+            void hydrateUserFromToken(normalizedToken);
+        }
+
         const redirectPath = localStorage.getItem("redirectAfterLogin");
         localStorage.removeItem("redirectAfterLogin");
         router.push(redirectPath || "/");

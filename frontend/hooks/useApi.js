@@ -1,6 +1,7 @@
 // hooks/useApi.js
 import {useCallback, useState} from "react";
 import {useRouter} from "next/router";
+import {clearStoredAuthToken} from "@/services/api";
 
 const useApi = () => {
     const [loading, setLoading] = useState(false);
@@ -22,7 +23,7 @@ const useApi = () => {
             return response;
         } catch (error) {
             if (error.response?.status === 401) {
-                localStorage.removeItem("jwt"); // Clear token if unauthorized
+                clearStoredAuthToken();
                 window.dispatchEvent(new Event("auth:unauthorized"));
                 router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
             }

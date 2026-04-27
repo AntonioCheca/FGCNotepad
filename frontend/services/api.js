@@ -13,17 +13,64 @@ const api = axios.create({
     headers: {"Content-Type": "application/json"},
 });
 
-// Retrieve token from localStorage (only on client side)
-const getToken = () => {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem("jwt");
+const AUTH_TOKEN_STORAGE_KEYS = ["jwt", "token"];
+
+const normalizeToken = (token) => {
+    if (typeof token !== "string") {
+        return null;
     }
+
+    const trimmedToken = token.trim();
+    if (!trimmedToken) {
+        return null;
+    }
+
+    return trimmedToken.replace(/^Bearer\s+/i, "").trim() || null;
+};
+
+export const getStoredAuthToken = () => {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    for (const key of AUTH_TOKEN_STORAGE_KEYS) {
+        const normalizedToken = normalizeToken(localStorage.getItem(key));
+        if (normalizedToken) {
+            return normalizedToken;
+        }
+    }
+
     return null;
+};
+
+export const setStoredAuthToken = (token) => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    const normalizedToken = normalizeToken(token);
+    if (!normalizedToken) {
+        clearStoredAuthToken();
+        return;
+    }
+
+    localStorage.setItem("jwt", normalizedToken);
+    localStorage.removeItem("token");
+};
+
+export const clearStoredAuthToken = () => {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    for (const key of AUTH_TOKEN_STORAGE_KEYS) {
+        localStorage.removeItem(key);
+    }
 };
 
 // Attach token to all requests
 api.interceptors.request.use((config) => {
-    const token = getToken();
+    const token = getStoredAuthToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }

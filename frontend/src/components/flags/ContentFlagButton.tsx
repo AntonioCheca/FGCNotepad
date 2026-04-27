@@ -4,6 +4,7 @@ import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {useContentFlags} from "@/hooks/useContentFlags";
+import {getStoredAuthToken} from "@/services/api";
 
 interface ContentFlagButtonProps {
     targetType: "scenario" | "combo";
@@ -24,7 +25,7 @@ export function ContentFlagButton({targetType, targetId}: ContentFlagButtonProps
             return;
         }
 
-        setIsAuthenticated(Boolean(localStorage.getItem("jwt")));
+        setIsAuthenticated(Boolean(getStoredAuthToken()));
     }, []);
 
     if (!isAuthenticated) {
