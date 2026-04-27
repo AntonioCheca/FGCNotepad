@@ -12,6 +12,7 @@ use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
 use App\Service\ComboNotationTranslator;
 use App\Service\ComboSequenceCreationService;
+use App\Service\ComboValueEstimator;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
 use App\Service\RequirementSpecificCharacterCatalog;
@@ -37,6 +38,7 @@ class ComboSequenceController extends AbstractController
         private ComboSequencesRepository    $comboSequencesRepository,
         private ConnectionTypeRepository    $connectionTypeRepository,
         private ComboSequenceCreationService $comboSequenceCreationService,
+        private ComboValueEstimator $comboValueEstimator,
         private EndpointAuthorizationService $endpointAuthorizationService,
         private Security $security,
         private ModerationTransitionService $moderationTransitionService,
@@ -85,6 +87,9 @@ class ComboSequenceController extends AbstractController
         $limit = $request->query->getInt('size', 100);
 
         $sequences = $this->comboSequencesRepository->searchNonLeafsByFilters($filters, $limit);
+        if ('resourceAdjustedDamage' === $request->query->get('sort')) {
+            $sequences = $this->comboValueEstimator->sortByEstimatedValue($sequences);
+        }
         $json = $this->serializer->serialize($sequences, 'json');
 
         return new JsonResponse($json, 200, [], true);

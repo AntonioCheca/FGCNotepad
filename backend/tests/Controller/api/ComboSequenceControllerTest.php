@@ -390,6 +390,82 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('2', $specificRequirement->getStatusRequired());
     }
 
+    public function testCreateFullComboPersistsResourceMetrics(): void
+    {
+        [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
+
+        $payload = [
+            'name' => 'Resource Combo',
+            'metrics' => [
+                'damage' => 2400,
+                'driveCost' => 2.5,
+                'driveGain' => 0.5,
+                'superCost' => 1,
+                'superGain' => 0,
+            ],
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $connectionType->getId(),
+                ],
+            ],
+        ];
+
+        $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode($payload));
+
+        $response = $this->client->getResponse();
+        $responsePayload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+        $this->assertSame(2400, $responsePayload['comboMetrics']['damage']);
+        $this->assertEquals(2.5, $responsePayload['comboMetrics']['driveCost']);
+        $this->assertEquals(0.5, $responsePayload['comboMetrics']['driveGain']);
+        $this->assertEquals(1.0, $responsePayload['comboMetrics']['superCost']);
+        $this->assertEquals(0.0, $responsePayload['comboMetrics']['superGain']);
+        $this->assertEquals(1500.0, $responsePayload['comboMetrics']['resourceAdjustedDamage']);
+    }
+
+    public function testListCanSortByResourceAdjustedDamage(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $connectionType = new ConnectionType();
+        $connectionType->setName('Initial Move');
+        $this->entityManager->persist($connectionType);
+
+        $character = new Character();
+        $character->setName('Luke');
+        $this->entityManager->persist($character);
+
+        $firstMove = $this->createLeafForFilters($character, $leafType, $visibility, '5MP', 'normal');
+
+        $this->createComboForFilters('Expensive Damage', $comboType, $visibility, $firstMove, null, $connectionType, 2500, 3, false, false, 3.0, 0.0, 1.0, 0.0);
+        $this->createComboForFilters('Efficient Damage', $comboType, $visibility, $firstMove, null, $connectionType, 2000, 3, false, false);
+
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/api/combo-sequences?sort=resourceAdjustedDamage', [], [], $this->getHeaders());
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame('Efficient Damage', $payload[0]['name']);
+        $this->assertEquals(2000.0, $payload[0]['comboMetrics']['resourceAdjustedDamage']);
+        $this->assertEquals(1400.0, $payload[1]['comboMetrics']['resourceAdjustedDamage']);
+    }
+
     public function testCreateFullComboRejectsCounterAndPunishCounterAtSameTime(): void
     {
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
@@ -820,7 +896,11 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         int $damage,
         int $difficulty,
         bool $counterHitRequired,
-        bool $isEssential
+        bool $isEssential,
+        ?float $driveCost = null,
+        ?float $driveGain = null,
+        ?float $superCost = null,
+        ?float $superGain = null
     ): ComboSequences {
         $combo = new ComboSequences();
         $combo->setName($name);
@@ -833,6 +913,10 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $metrics->setSequence($combo);
         $metrics->setDamage($damage);
         $metrics->setDifficultyLevel($difficulty);
+        $metrics->setDriveCost($driveCost);
+        $metrics->setDriveGain($driveGain);
+        $metrics->setSuperCost($superCost);
+        $metrics->setSuperGain($superGain);
         $combo->setComboMetrics($metrics);
 
         $requirement = new ComboRequirement();

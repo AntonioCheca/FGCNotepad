@@ -30,7 +30,13 @@ export interface StepDraft {
 export interface CreateFullComboPayload {
     name: string;
     description?: string;
-    metrics?: { damage?: number };
+    metrics?: {
+        damage?: number;
+        driveCost?: number;
+        driveGain?: number;
+        superCost?: number;
+        superGain?: number;
+    };
     requirements?: ComboRequirementsPayload;
     steps: Array<{
         child_sequence_id: ID;
@@ -123,6 +129,11 @@ export interface ComboRow {
     characterName: string;
     moves: string[];        // just move names
     damage: number | string;
+    resourceAdjustedDamage: number | string;
+    driveCost: number | string;
+    driveGain: number | string;
+    superCost: number | string;
+    superGain: number | string;
     season: string;         // human-readable
     isUsable: boolean;
     isFullyAudited: boolean;
@@ -147,7 +158,7 @@ export interface ComboApiSummary {
     character?: { name?: string };
     moves?: ComboMoveSummary[];
     steps?: ComboStepSummary[];
-    comboMetrics?: { damage?: number | string };
+    comboMetrics?: ComboMetricsApi;
     season?: ComboSeasonSummary[];
     is_usable?: boolean;
     is_fully_audited?: boolean;
@@ -166,6 +177,11 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         characterName: combo.character?.name ?? "-",
         moves: moveNamesFromLegacyField.length > 0 ? moveNamesFromLegacyField : moveNamesFromSteps,
         damage: combo.comboMetrics?.damage ?? "-",
+        resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",
+        driveCost: combo.comboMetrics?.driveCost ?? "-",
+        driveGain: combo.comboMetrics?.driveGain ?? "-",
+        superCost: combo.comboMetrics?.superCost ?? "-",
+        superGain: combo.comboMetrics?.superGain ?? "-",
         season: Array.isArray(combo.season)
             ? combo.season.map((season) => season.name ?? "-").join(", ")
             : "-",
@@ -205,7 +221,7 @@ export interface ComboDetailApi {
     name?: string;
     description?: string | null;
     character?: { id?: string | number; name?: string } | null;
-    comboMetrics?: { damage?: number | string } | null;
+    comboMetrics?: ComboMetricsApi | null;
     comboRequirement?: ComboRequirement | null;
     season?: ComboSeasonSummary[];
     steps?: ComboStep[];
@@ -218,6 +234,11 @@ export interface ComboDetailView {
     description: string;
     characterName: string;
     damage: number | string;
+    resourceAdjustedDamage: number | string;
+    driveCost: number | string;
+    driveGain: number | string;
+    superCost: number | string;
+    superGain: number | string;
     seasonLabels: string[];
     needsTechnicalReview: boolean;
     requirements: ComboRequirement | null;
@@ -231,6 +252,11 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
         description: combo.description ?? "",
         characterName: combo.character?.name ?? "-",
         damage: combo.comboMetrics?.damage ?? "-",
+        resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",
+        driveCost: combo.comboMetrics?.driveCost ?? "-",
+        driveGain: combo.comboMetrics?.driveGain ?? "-",
+        superCost: combo.comboMetrics?.superCost ?? "-",
+        superGain: combo.comboMetrics?.superGain ?? "-",
         seasonLabels: Array.isArray(combo.season)
             ? combo.season.map((season) => season.name ?? "-")
             : [],
@@ -240,5 +266,15 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
             ? [...combo.steps].sort((left, right) => left.ordinal_in_combo - right.ordinal_in_combo)
             : [],
     };
+}
+
+export interface ComboMetricsApi {
+    damage?: number | string;
+    difficultyLevel?: number | string | null;
+    driveCost?: number | string | null;
+    driveGain?: number | string | null;
+    superCost?: number | string | null;
+    superGain?: number | string | null;
+    resourceAdjustedDamage?: number | string | null;
 }
 

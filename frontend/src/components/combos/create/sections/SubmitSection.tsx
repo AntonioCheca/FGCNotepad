@@ -21,6 +21,10 @@ import {
 interface SubmitSectionProps {
     title: string;
     damage: string;
+    driveCost: string;
+    driveGain: string;
+    superCost: string;
+    superGain: string;
     description: string;
     notes: string;
     canSubmit: boolean;
@@ -35,6 +39,10 @@ interface SubmitSectionProps {
     selectedObjectIsBoolean: boolean;
     onTitleChange: (value: string) => void;
     onDamageChange: (value: string) => void;
+    onDriveCostChange: (value: string) => void;
+    onDriveGainChange: (value: string) => void;
+    onSuperCostChange: (value: string) => void;
+    onSuperGainChange: (value: string) => void;
     onDescriptionChange: (value: string) => void;
     onNotesChange: (value: string) => void;
     onToggleOptionalDetails: () => void;
@@ -48,6 +56,10 @@ interface SubmitSectionProps {
 export function SubmitSection({
     title,
     damage,
+    driveCost,
+    driveGain,
+    superCost,
+    superGain,
     description,
     notes,
     canSubmit,
@@ -62,6 +74,10 @@ export function SubmitSection({
     selectedObjectIsBoolean,
     onTitleChange,
     onDamageChange,
+    onDriveCostChange,
+    onDriveGainChange,
+    onSuperCostChange,
+    onSuperGainChange,
     onDescriptionChange,
     onNotesChange,
     onToggleOptionalDetails,
@@ -117,12 +133,36 @@ export function SubmitSection({
 
             {showOptionalDetails ? (
                 <AppBox sx={{display: "grid", gap: 1, pt: 0.5}}>
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "120px 1fr"}, gap: 1}}>
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr 1fr", md: "120px repeat(4, 96px) minmax(220px, 1fr)"}, gap: 1}}>
                         <AppTextField
                             label="Damage"
                             value={damage}
                             onChange={(event) => onDamageChange(event.target.value)}
                             inputMode="numeric"
+                        />
+                        <AppTextField
+                            label="Drive Cost"
+                            value={driveCost}
+                            onChange={(event) => onDriveCostChange(event.target.value)}
+                            inputMode="decimal"
+                        />
+                        <AppTextField
+                            label="Drive Gain"
+                            value={driveGain}
+                            onChange={(event) => onDriveGainChange(event.target.value)}
+                            inputMode="decimal"
+                        />
+                        <AppTextField
+                            label="Super Cost"
+                            value={superCost}
+                            onChange={(event) => onSuperCostChange(event.target.value)}
+                            inputMode="decimal"
+                        />
+                        <AppTextField
+                            label="Super Gain"
+                            value={superGain}
+                            onChange={(event) => onSuperGainChange(event.target.value)}
+                            inputMode="decimal"
                         />
                         <AppTextField
                             label="Description"

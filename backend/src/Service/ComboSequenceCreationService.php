@@ -81,9 +81,31 @@ final class ComboSequenceCreationService
 
         $metrics = (new ComboMetrics())
             ->setSequence($sequence)
-            ->setDamage((int) $payload['metrics']['damage']);
+            ->setDamage((int) $payload['metrics']['damage'])
+            ->setDriveCost($this->extractNullableFloat($payload['metrics']['driveCost'] ?? null))
+            ->setDriveGain($this->extractNullableFloat($payload['metrics']['driveGain'] ?? null))
+            ->setSuperCost($this->extractNullableFloat($payload['metrics']['superCost'] ?? null))
+            ->setSuperGain($this->extractNullableFloat($payload['metrics']['superGain'] ?? null));
 
+        $sequence->setComboMetrics($metrics);
         $this->entityManager->persist($metrics);
+    }
+
+    private function extractNullableFloat(mixed $value): ?float
+    {
+        if (null === $value || '' === $value) {
+            return null;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        if (is_string($value) && is_numeric(trim($value))) {
+            return (float) trim($value);
+        }
+
+        return null;
     }
 
     /**

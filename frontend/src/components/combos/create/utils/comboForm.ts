@@ -286,15 +286,20 @@ export function buildCreateFullComboPayload(params: {
     title: string;
     description: string;
     damage: string;
+    driveCost: string;
+    driveGain: string;
+    superCost: string;
+    superGain: string;
     requirements?: ComboRequirementsPayload;
     steps: StepDraft[];
 }): CreateFullComboPayload {
-    const {title, description, damage, requirements, steps} = params;
+    const {title, description, damage, driveCost, driveGain, superCost, superGain, requirements, steps} = params;
+    const metrics = buildMetricsPayload({damage, driveCost, driveGain, superCost, superGain});
 
     return {
         name: title,
         description: description || undefined,
-        metrics: damage ? {damage: Number.parseInt(damage, 10)} : undefined,
+        metrics,
         requirements,
         steps: steps.map((step, index) => {
             const baseStep = {
@@ -325,5 +330,36 @@ export function buildCreateFullComboPayload(params: {
                 delay_frames: Number.parseInt((step.delay_frames ?? "0").trim(), 10),
             };
         }),
+    };
+}
+
+function parseOptionalNumber(value: string): number | undefined {
+    const trimmed = value.trim();
+    if (trimmed === "") {
+        return undefined;
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function buildMetricsPayload(values: {
+    damage: string;
+    driveCost: string;
+    driveGain: string;
+    superCost: string;
+    superGain: string;
+}): CreateFullComboPayload["metrics"] {
+    const damage = parseOptionalNumber(values.damage);
+    if (damage === undefined) {
+        return undefined;
+    }
+
+    return {
+        damage: Math.trunc(damage),
+        driveCost: parseOptionalNumber(values.driveCost),
+        driveGain: parseOptionalNumber(values.driveGain),
+        superCost: parseOptionalNumber(values.superCost),
+        superGain: parseOptionalNumber(values.superGain),
     };
 }

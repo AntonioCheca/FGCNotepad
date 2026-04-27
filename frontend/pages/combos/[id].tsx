@@ -146,6 +146,10 @@ export default function ComboDetailPage() {
                     <AppTypography variant="h4">{combo.title}</AppTypography>
                     <AppTypography variant="body2">Character: {combo.characterName}</AppTypography>
                     <AppTypography variant="body2">Damage: {combo.damage}</AppTypography>
+                    <AppTypography variant="body2">Resource-adjusted damage: {combo.resourceAdjustedDamage}</AppTypography>
+                    <AppTypography variant="body2">
+                        Resources: Drive {combo.driveCost}/{combo.driveGain} · Super {combo.superCost}/{combo.superGain}
+                    </AppTypography>
                     <AppTypography variant="body2">Audit Status: {getAuditStatusLabel(combo.needsTechnicalReview)}</AppTypography>
                     <AppTypography variant="body2">
                         Seasons: {combo.seasonLabels.length > 0 ? combo.seasonLabels.join(", ") : "-"}

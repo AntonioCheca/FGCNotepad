@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ComboMetricsRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ComboMetricsRepository::class)]
 #[ORM\Table(name: "combo_metrics", schema: "sf6")]
@@ -12,6 +13,7 @@ class ComboMetrics
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['combo:read'])]
     private ?int $id = null;
 
     #[ORM\OneToOne(inversedBy: 'comboMetrics', cascade: ['persist', 'remove'])]
@@ -19,10 +21,28 @@ class ComboMetrics
     private ?ComboSequences $sequence = null;
 
     #[ORM\Column]
+    #[Groups(['combo:read'])]
     private ?int $damage = null;
 
     #[ORM\Column(name: 'difficulty_level', nullable: true)]
+    #[Groups(['combo:read'])]
     private ?int $difficultyLevel = null;
+
+    #[ORM\Column(name: 'drive_cost', nullable: true)]
+    #[Groups(['combo:read'])]
+    private ?float $driveCost = null;
+
+    #[ORM\Column(name: 'drive_gain', nullable: true)]
+    #[Groups(['combo:read'])]
+    private ?float $driveGain = null;
+
+    #[ORM\Column(name: 'super_cost', nullable: true)]
+    #[Groups(['combo:read'])]
+    private ?float $superCost = null;
+
+    #[ORM\Column(name: 'super_gain', nullable: true)]
+    #[Groups(['combo:read'])]
+    private ?float $superGain = null;
 
     public function getId(): ?int
     {
@@ -61,6 +81,54 @@ class ComboMetrics
     public function setDifficultyLevel(?int $difficultyLevel): static
     {
         $this->difficultyLevel = $difficultyLevel;
+
+        return $this;
+    }
+
+    public function getDriveCost(): ?float
+    {
+        return $this->driveCost;
+    }
+
+    public function setDriveCost(?float $driveCost): static
+    {
+        $this->driveCost = $driveCost;
+
+        return $this;
+    }
+
+    public function getDriveGain(): ?float
+    {
+        return $this->driveGain;
+    }
+
+    public function setDriveGain(?float $driveGain): static
+    {
+        $this->driveGain = $driveGain;
+
+        return $this;
+    }
+
+    public function getSuperCost(): ?float
+    {
+        return $this->superCost;
+    }
+
+    public function setSuperCost(?float $superCost): static
+    {
+        $this->superCost = $superCost;
+
+        return $this;
+    }
+
+    public function getSuperGain(): ?float
+    {
+        return $this->superGain;
+    }
+
+    public function setSuperGain(?float $superGain): static
+    {
+        $this->superGain = $superGain;
 
         return $this;
     }

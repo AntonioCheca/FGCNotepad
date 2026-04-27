@@ -65,6 +65,10 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             <SubmitSection
                 title={controller.title}
                 damage={controller.damage}
+                driveCost={controller.driveCost}
+                driveGain={controller.driveGain}
+                superCost={controller.superCost}
+                superGain={controller.superGain}
                 description={controller.description}
                 notes={controller.notes}
                 canSubmit={controller.canSubmit}
@@ -79,6 +83,10 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 selectedObjectIsBoolean={controller.selectedObjectIsBoolean}
                 onTitleChange={controller.setTitle}
                 onDamageChange={controller.setDamage}
+                onDriveCostChange={controller.setDriveCost}
+                onDriveGainChange={controller.setDriveGain}
+                onSuperCostChange={controller.setSuperCost}
+                onSuperGainChange={controller.setSuperGain}
                 onDescriptionChange={controller.setDescription}
                 onNotesChange={controller.setNotes}
                 onToggleOptionalDetails={() => controller.setShowOptionalDetails((prev) => !prev)}

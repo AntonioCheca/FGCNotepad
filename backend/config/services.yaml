@@ -1,4 +1,6 @@
 parameters:
+    app.combo_resource.drive_bar_value: 200.0
+    app.combo_resource.super_bar_value: 500.0
 
 services:
     _defaults:
@@ -28,8 +30,17 @@ services:
     App\Command\ImportNewChallengerCombosCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
+    App\Service\ComboValueEstimator:
+        arguments:
+            $driveBarValue: '%app.combo_resource.drive_bar_value%'
+            $superBarValue: '%app.combo_resource.super_bar_value%'
     App\Serializer\Normalizer\:
         resource: '../src/Serializer/Normalizer'
+        tags:
+            - { name: serializer.normalizer, priority: 100 }
+    App\Serializer\Normalizer\ComboMetricsNormalizer:
+        arguments:
+            $comboValueEstimator: '@App\Service\ComboValueEstimator'
         tags:
             - { name: serializer.normalizer, priority: 100 }
     App\Serializer\Denormalizer\:

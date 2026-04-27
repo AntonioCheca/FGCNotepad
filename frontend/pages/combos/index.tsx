@@ -4,7 +4,7 @@ import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppChip} from "@/src/components/ui/AppChip";
-import ComboFilters from "@/src/components/combos/ComboFilters";
+import ComboFilters, {ComboSearchFilters} from "@/src/components/combos/ComboFilters";
 import ComboTable from "@/src/components/combos/ComboTable";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
@@ -13,7 +13,7 @@ import {ComboRow, mapComboToRow} from "@/src/types/combo";
 
 export default function SearchCombosPage() {
     const {fetchCombos} = useCombos();
-    const [filters, setFilters] = useState<Record<string, unknown>>({});
+    const [filters, setFilters] = useState<ComboSearchFilters>({sort: "resourceAdjustedDamage"});
     const [combos, setCombos] = useState<ComboRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasLoadedAtLeastOnce, setHasLoadedAtLeastOnce] = useState(false);

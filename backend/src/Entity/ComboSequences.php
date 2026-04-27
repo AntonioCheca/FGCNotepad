@@ -37,6 +37,7 @@ class ComboSequences
     private ?ComboSequenceType $type = null;
 
     #[ORM\OneToOne(mappedBy: 'sequence', cascade: ['persist', 'remove'])]
+    #[Groups(['combo:read'])]
     private ?ComboMetrics $comboMetrics = null;
 
     #[ORM\OneToOne(mappedBy: 'sequence', cascade: ['persist', 'remove'])]

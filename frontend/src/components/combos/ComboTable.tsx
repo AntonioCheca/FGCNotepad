@@ -45,6 +45,8 @@ export default function ComboTable({combos}: ComboTableProps) {
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Character</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Moves</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Damage</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Resource-Adjusted</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Resources</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Season</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Audit Status</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Flag</AppTableCell>
@@ -54,9 +56,7 @@ export default function ComboTable({combos}: ComboTableProps) {
                         {combos.map((combo) => {
                             const moves = combo.moves ?? [];
                             const season = combo.season
-                                ? typeof combo.season === "string"
-                                    ? combo.season
-                                    : combo.season.name
+                                ? combo.season
                                 : "-";
 
                             return (
@@ -88,6 +88,10 @@ export default function ComboTable({combos}: ComboTableProps) {
                                     <AppTableCell>{combo.characterName ?? "-"}</AppTableCell>
                                     <AppTableCell>{moves.join(", ") || "-"}</AppTableCell>
                                     <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.resourceAdjustedDamage ?? "-"}</AppTableCell>
+                                    <AppTableCell>
+                                        D {combo.driveCost}/{combo.driveGain} · S {combo.superCost}/{combo.superGain}
+                                    </AppTableCell>
                                     <AppTableCell>{season}</AppTableCell>
                                     <AppTableCell>
                                         {combo.needsTechnicalReview ? (

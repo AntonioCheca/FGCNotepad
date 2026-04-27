@@ -35,6 +35,10 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [title, setTitle] = usePersistentState<string>("comboForm.title", "");
     const [character, setCharacter] = usePersistentState<CharacterOption | null>("comboForm.character", null, true);
     const [damage, setDamage] = usePersistentState<string>("comboForm.damage", "");
+    const [driveCost, setDriveCost] = usePersistentState<string>("comboForm.driveCost", "");
+    const [driveGain, setDriveGain] = usePersistentState<string>("comboForm.driveGain", "");
+    const [superCost, setSuperCost] = usePersistentState<string>("comboForm.superCost", "");
+    const [superGain, setSuperGain] = usePersistentState<string>("comboForm.superGain", "");
     const [description, setDescription] = usePersistentState<string>("comboForm.description", "");
     const [notes, setNotes] = usePersistentState<string>("comboForm.notes", "");
     const [notationInput, setNotationInput] = usePersistentState<string>("comboForm.notationInput", "");
@@ -103,6 +107,10 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setTitle("");
         setDescription("");
         setDamage("");
+        setDriveCost("");
+        setDriveGain("");
+        setSuperCost("");
+        setSuperGain("");
         setNotes("");
         setNotationInput("");
         setSteps([]);
@@ -234,6 +242,10 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             title,
             description,
             damage,
+            driveCost,
+            driveGain,
+            superCost,
+            superGain,
             requirements: requirementsResult.payload,
             steps,
         });
@@ -286,6 +298,10 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         title,
         character,
         damage,
+        driveCost,
+        driveGain,
+        superCost,
+        superGain,
         description,
         notes,
         notationInput,
@@ -320,6 +336,10 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setTitle,
         setCharacter,
         setDamage,
+        setDriveCost,
+        setDriveGain,
+        setSuperCost,
+        setSuperGain,
         setDescription,
         setNotes,
         setNotationInput,

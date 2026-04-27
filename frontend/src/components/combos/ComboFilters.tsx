@@ -5,6 +5,7 @@ import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
 import {AppCollapse} from "@/src/components/ui/AppCollapse";
 import {AppPaper} from "@/src/components/ui/AppPaper";
+import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
 import {AppStack} from "@/src/components/ui/AppStack";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -40,6 +41,7 @@ export interface ComboSearchFilters {
     midScreenRequired?: boolean;
     notCrouchingRequired?: boolean;
     moveTypes?: string[];
+    sort?: "resourceAdjustedDamage" | "created";
 }
 
 interface ComboFiltersProps {
@@ -88,6 +90,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
     const [notCrouchingRequired, setNotCrouchingRequired] = React.useState(false);
 
     const [moveTypes, setMoveTypes] = React.useState<string[]>([]);
+    const [sort, setSort] = React.useState<"resourceAdjustedDamage" | "created">("resourceAdjustedDamage");
     const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
     const compactFieldSx = React.useMemo(
         () => ({
@@ -186,6 +189,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
             midScreenRequired,
             notCrouchingRequired,
             moveTypes.length > 0,
+            sort !== "resourceAdjustedDamage",
         ];
 
         return active.filter(Boolean).length;
@@ -205,6 +209,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         midScreenRequired,
         notCrouchingRequired,
         moveTypes,
+        sort,
     ]);
 
     const normalizedFilters = React.useMemo<ComboSearchFilters>(() => {
@@ -224,6 +229,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
             midScreenRequired: midScreenRequired ? true : undefined,
             notCrouchingRequired: notCrouchingRequired ? true : undefined,
             moveTypes: moveTypes.length > 0 ? moveTypes : undefined,
+            sort,
         };
     }, [
         query,
@@ -241,6 +247,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         midScreenRequired,
         notCrouchingRequired,
         moveTypes,
+        sort,
     ]);
 
     React.useEffect(() => {
@@ -271,7 +278,8 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         setMidScreenRequired(false);
         setNotCrouchingRequired(false);
         setMoveTypes([]);
-        onChange({});
+        setSort("resourceAdjustedDamage");
+        onChange({sort: "resourceAdjustedDamage"});
     }, [onChange]);
 
     return (
@@ -354,7 +362,17 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                         tone="default"
                         variant="review"
                     >
-                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(240px, 1.2fr) repeat(4, minmax(120px, 1fr))"}, gap: 1}}>
+                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(180px, 0.8fr) minmax(240px, 1.2fr) repeat(4, minmax(120px, 1fr))"}, gap: 1}}>
+                            <AppTextField
+                                select
+                                label="Sort"
+                                size="small"
+                                value={sort}
+                                onChange={(event) => setSort(event.target.value as "resourceAdjustedDamage" | "created")}
+                            >
+                                <AppMenuItem value="resourceAdjustedDamage">Resource-adjusted</AppMenuItem>
+                                <AppMenuItem value="created">Created order</AppMenuItem>
+                            </AppTextField>
                             <AppAutocomplete<{label: string; value: string}, true, false, false>
                                 multiple
                                 options={moveTypeOptions}
