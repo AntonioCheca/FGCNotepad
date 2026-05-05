@@ -41,7 +41,7 @@ export function resolveReferenceDisplayValues(
             const fallback = cell.reference.cachedValue ?? cell.value ?? null;
             displayedBodyValues[cell.key] = fallback;
             issues.push(issue(`Reference ${cell.reference.scenarioId} is unavailable; showing cached value.`));
-        } catch (_error) {
+        } catch {
             const fallback = cell.reference.cachedValue ?? cell.value ?? null;
             displayedBodyValues[cell.key] = fallback;
             issues.push(issue(`Reference ${cell.reference.scenarioId} failed to resolve; showing cached value.`));

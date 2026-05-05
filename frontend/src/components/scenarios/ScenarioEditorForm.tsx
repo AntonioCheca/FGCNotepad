@@ -138,7 +138,7 @@ export function ScenarioEditorForm({
         getSpecificMoveRef.current(initialValue.triggerMoveId)
             .then((result) => {
                 const record = result as Record<string, unknown>;
-                const notation = typeof record.numpad_notation === "string" ? record.numpad_notation : initialValue.triggerMoveId;
+                const notation = typeof record.numpad_notation === "string" ? record.numpad_notation : initialValue.triggerMoveId ?? "";
                 const character = typeof record.character === "string" ? record.character : "";
                 setTriggerMove({
                     id: initialValue.triggerMoveId as string,

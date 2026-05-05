@@ -21,7 +21,7 @@ class DelimitedImportFileReader
         }
 
         $lines = preg_split('/\r\n|\n|\r/', $contents);
-        if (false === $lines || null === $lines) {
+        if (false === $lines) {
             return [];
         }
 

@@ -27,13 +27,13 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         return "scenario-table";
     }
 
-    static clone(node) {
+    static clone(node: ScenarioTableNode): ScenarioTableNode {
         return new ScenarioTableNode(
             node.__matrix,
             node.__key);
     }
 
-    createDOM() {
+    createDOM(): HTMLElement {
         const div = document.createElement("div");
         div.className = "scenario-table";
         div.setAttribute('contenteditable', 'false');
@@ -46,11 +46,11 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         return div;
     }
 
-    updateDOM() {
+    updateDOM(): false {
         return false;
     }
 
-    decorate() {
+    decorate(): React.ReactNode {
         return (
             <LexicalMatrixEditorShell
                 matrix={this.__matrix}
@@ -68,7 +68,7 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         };
     }
 
-    static importJSON(serializedNode: SerializedScenarioTableNode) {
+    static importJSON(serializedNode: SerializedScenarioTableNode): ScenarioTableNode {
         const result = deserializeMatrixPayload(serializedNode.matrix);
         return $createScenarioTableNode(result.payload).updateFromJSON(serializedNode);
     }
@@ -78,16 +78,16 @@ export class ScenarioTableNode extends DecoratorNode<React.ReactNode> {
         self.__matrix = matrix;
     }
 
-    isInline() {
+    isInline(): false {
         return false; // This is a block-level element
     }
 
-    isSelectable() {
+    isSelectable(): true {
         return true; // This makes the node selectable as a whole
     }
 }
 
-export function $createScenarioTableNode(matrix?: MatrixPayload) {
+export function $createScenarioTableNode(matrix?: MatrixPayload): ScenarioTableNode {
     const tableNode = new ScenarioTableNode(matrix ?? createDefaultMatrixPayload());
     return $applyNodeReplacement(tableNode);
 }

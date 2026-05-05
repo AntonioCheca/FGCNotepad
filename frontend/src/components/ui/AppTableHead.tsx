@@ -1,8 +1,7 @@
 import React from 'react';
 import {TableHead as MUITableHead, TableHeadProps as MUITableHeadProps} from '@mui/material';
 
-interface AppTableHeadProps extends MUITableHeadProps {
-}
+type AppTableHeadProps = MUITableHeadProps;
 
 export const AppTableHead: React.FC<AppTableHeadProps> = ({
                                                               ...props

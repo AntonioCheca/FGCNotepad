@@ -1,6 +1,5 @@
 import React from "react";
-import {useScenarioTableState} from "@/hooks/useScenarioTableState";
-import {useScenarioTableEditor} from "@/hooks/useScenarioTableEditor";
+import {type ScenarioTableValue, useScenarioTableState} from "@/hooks/useScenarioTableState";
 import {ScenarioTableService} from "@/services/ScenarioTableService";
 import {GameSolverService} from "@/services/GameSolverService";
 import useSolverGames from "@/hooks/useSolverGame";
@@ -11,13 +10,13 @@ import {ScenarioTable} from "@/src/components/lexical/ScenarioTable/ScenarioTabl
 interface ScenarioTableComponentProps {
     initialRows: string[];
     initialColumns: string[];
-    initialValues: number[][];
+    initialValues: ScenarioTableValue[][];
     initialRowFrequencies?: (number | string)[];
     initialColumnFrequencies?: (number | string)[];
     initialExpectedValue?: number;
     updateRows: (rows: string[]) => void;
     updateColumns: (columns: string[]) => void;
-    updateValues: (values: number[][]) => void;
+    updateValues: (values: ScenarioTableValue[][]) => void;
     updateRowFrequencies: (frequencies: (number | string)[]) => void;
     updateColumnFrequencies: (frequencies: (number | string)[]) => void;
     updateExpectedValue: (value: number) => void;

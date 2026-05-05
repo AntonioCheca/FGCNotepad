@@ -6,6 +6,11 @@ import {useState} from 'react';
 import InputField from './InputField';
 import {AppButton} from "@/src/components/ui/AppButton";
 
+interface RegisterFormData {
+    username: string;
+    password: string;
+}
+
 const schema = yup.object().shape({
     username: yup.string().min(4, 'Username must be at least 4 characters').required('Username is required'),
     password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
@@ -20,9 +25,9 @@ const RegisterForm = () => {
         register,
         handleSubmit,
         formState: {errors},
-    } = useForm({resolver: yupResolver(schema)});
+    } = useForm<RegisterFormData>({resolver: yupResolver(schema)});
 
-    const onSubmit = async (data) => {
+    const onSubmit = async (data: RegisterFormData) => {
         setLoading(true);
         setMessage('');
 
@@ -30,7 +35,7 @@ const RegisterForm = () => {
             await registerUser(data.username, data.password);
             setMessage('Registration successful!');
         } catch (error) {
-            setMessage(error.message || 'Registration failed');
+            setMessage(error instanceof Error ? error.message : 'Registration failed');
         }
 
         setLoading(false);

@@ -2,7 +2,7 @@ import React from 'react';
 import {useMode} from '@/src/context/ThemeContext';
 
 interface ScenarioTableControlsProps {
-    onDelete: () => void;
+    onDelete?: () => void;
     onSolveGame: () => void;
 }
 

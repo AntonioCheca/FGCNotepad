@@ -2,12 +2,19 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.8.1",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:turbo": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint \"app/**/*.{js,jsx,ts,tsx}\" \"pages/**/*.{js,jsx,ts,tsx}\" \"src/**/*.{js,jsx,ts,tsx}\" \"hooks/**/*.{js,jsx,ts,tsx}\" \"services/**/*.{js,jsx,ts,tsx}\" \"styles/**/*.{js,jsx,ts,tsx}\" \"*.config.{js,mjs,ts}\" --no-error-on-unmatched-pattern",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/run-node-tests.mjs",
+    "check": "npm run typecheck && npm run test && npm run lint"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-alpha.7",

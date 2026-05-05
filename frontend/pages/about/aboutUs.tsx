@@ -26,7 +26,7 @@ export default function AboutPage() {
                     <h1 className="text-3xl font-bold mb-4 text-center text-gray-800">What is FGC Notepad?</h1>
                     <p className="text-gray-700 leading-relaxed">
                         <strong>FGC Notepad</strong> is an open source project, a platform to analyze, discuss, and
-                        break down matches in fighting games. Whether you're recording combos, referencing frame data,
+                        break down matches in fighting games. Whether you&apos;re recording combos, referencing frame data,
                         or sharing match insights, the goal is to offer a clean, interactive, and efficient experience
                         for players and analysts alike.
                     </p>

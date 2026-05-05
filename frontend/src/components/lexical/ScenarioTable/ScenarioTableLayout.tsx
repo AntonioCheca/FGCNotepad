@@ -3,7 +3,7 @@ import React from 'react';
 
 interface ScenarioTableLayoutProps {
     children: React.ReactNode;
-    onBottomAreaClick: (event: React.MouseEvent) => void;
+    onBottomAreaClick?: (event: React.MouseEvent) => void;
 }
 
 export function ScenarioTableLayout({ children, onBottomAreaClick }: ScenarioTableLayoutProps) {

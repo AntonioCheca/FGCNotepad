@@ -1,7 +1,6 @@
 import {useContext} from "react";
 import AuthContext from "@/services/AuthContext";
 import {AppContainer} from "@/src/components/ui/AppContainer";
-import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import HeroSection from "@/src/components/home/HeroSection";
 import MockSections from "@/src/components/home/MockSections";
@@ -15,7 +14,7 @@ export default function HomePage() {
         throw new Error("AuthContext must be used within an AuthProvider");
     }
 
-    const {user, loading} = authContext;
+    const {loading} = authContext;
 
     if (loading) {
         return <AppCircularProgress sx={{display: "block", margin: "auto", mt: 4}}/>;

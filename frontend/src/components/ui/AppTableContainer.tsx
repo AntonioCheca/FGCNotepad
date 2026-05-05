@@ -1,8 +1,7 @@
 import React from 'react';
 import {TableContainer as MUITableContainer, TableContainerProps as MUITableContainerProps} from '@mui/material';
 
-interface AppTableContainerProps extends MUITableContainerProps {
-}
+type AppTableContainerProps = MUITableContainerProps;
 
 export const AppTableContainer: React.FC<AppTableContainerProps> = ({
                                                                         ...props

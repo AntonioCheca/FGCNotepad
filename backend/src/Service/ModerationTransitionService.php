@@ -146,11 +146,11 @@ class ModerationTransitionService
 
     /**
      * @param \Closure():string $getState
-     * @param \Closure(string):void $setState
-     * @param \Closure(?\DateTimeImmutable):void $setSubmittedAt
-     * @param \Closure(?\DateTimeImmutable):void $setDecidedAt
-     * @param \Closure(?User):void $setDecidedBy
-     * @param \Closure(?string):void $setReason
+     * @param \Closure(string):mixed $setState
+     * @param \Closure(?\DateTimeImmutable):mixed $setSubmittedAt
+     * @param \Closure(?\DateTimeImmutable):mixed $setDecidedAt
+     * @param \Closure(?User):mixed $setDecidedBy
+     * @param \Closure(?string):mixed $setReason
      */
     private function submitForReview(
         \Closure $getState,
@@ -174,11 +174,11 @@ class ModerationTransitionService
 
     /**
      * @param \Closure():string $getState
-     * @param \Closure(string):void $setState
-     * @param \Closure(?\DateTimeImmutable):void $setSubmittedAt
-     * @param \Closure(?\DateTimeImmutable):void $setDecidedAt
-     * @param \Closure(?User):void $setDecidedBy
-     * @param \Closure(?string):void $setReason
+     * @param \Closure(string):mixed $setState
+     * @param \Closure(?\DateTimeImmutable):mixed $setSubmittedAt
+     * @param \Closure(?\DateTimeImmutable):mixed $setDecidedAt
+     * @param \Closure(?User):mixed $setDecidedBy
+     * @param \Closure(?string):mixed $setReason
      */
     private function moderate(
         \Closure $getState,

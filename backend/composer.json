@@ -90,6 +90,12 @@
             "assets:install %PUBLIC_DIR%": "symfony-cmd",
             "importmap:install": "symfony-cmd"
         },
+        "test": "php bin/phpunit",
+        "phpstan": "php -d memory_limit=1G vendor/bin/phpstan analyse -c phpstan.dist.neon",
+        "check": [
+            "@test",
+            "@phpstan"
+        ],
         "post-install-cmd": [
             "@auto-scripts"
         ],

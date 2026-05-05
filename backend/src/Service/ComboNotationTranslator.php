@@ -185,7 +185,7 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>}> $leafOptions
      * @param array<int, string> $warnings
      *
      * @return array<string, array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}>
@@ -239,7 +239,7 @@ final class ComboNotationTranslator
         $prepared = preg_replace('/(XX|TC)/i', ' $1 ', $notation) ?? $notation;
         $tokens = preg_split('/[\s,]+/', trim($prepared));
 
-        if (false === $tokens || null === $tokens) {
+        if (false === $tokens) {
             return [];
         }
 

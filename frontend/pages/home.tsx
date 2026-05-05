@@ -6,12 +6,18 @@ import usePosts from "@/hooks/usePosts";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 
+interface PostSearchParams {
+    textQuery: string;
+    includedTags: string[];
+    excludedTags: string[];
+}
+
 const HomePage = () => {
     const {fetchPosts} = usePosts();
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const loadPosts = async (searchParams) => {
+    const loadPosts = async (searchParams: PostSearchParams) => {
         try {
             setLoading(true);
             const {textQuery, includedTags, excludedTags} = searchParams;

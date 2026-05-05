@@ -72,7 +72,7 @@ export default function PostPage() {
             </AppTypography>
             {/* Pass tags as the initialTags prop to PostEditor */}
             <PostEditor
-                onSubmit={null}
+                onSubmit={() => {}}
                 initialTitle={post.title}
                 initialBody={post.body}
                 initialTags={post.tags}  // Pass the tags here

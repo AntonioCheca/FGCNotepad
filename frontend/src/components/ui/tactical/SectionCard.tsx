@@ -14,10 +14,10 @@ interface SectionCardProps {
 
 export function SectionCard({title, description, tone = "default", variant = "default", children}: SectionCardProps) {
     const cardBackground = tone === "raised"
-        ? (theme) => theme.fgc.surface.raised
+        ? (theme: Theme) => theme.fgc.surface.raised
         : tone === "sunken"
-            ? (theme) => theme.fgc.surface.sunken
-            : (theme) => theme.fgc.surface.base;
+            ? (theme: Theme) => theme.fgc.surface.sunken
+            : (theme: Theme) => theme.fgc.surface.base;
 
     const accentColor = (theme: Theme) => (
         variant === "input"

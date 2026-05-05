@@ -9,6 +9,7 @@ import {AppTableContainer} from "@/src/components/ui/AppTableContainer";
 import {AppTableHead} from "@/src/components/ui/AppTableHead";
 import {AppTableRow} from "@/src/components/ui/AppTableRow";
 import {AppTypography} from "@/src/components/ui/AppTypography";
+import {PendingActionsIcon} from "@/src/components/ui/AppIcons";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 import {ComboRow} from "@/src/types/combo";
 
@@ -58,6 +59,7 @@ export default function ComboTable({combos}: ComboTableProps) {
                             const season = combo.season
                                 ? combo.season
                                 : "-";
+                            const isPendingReview = combo.moderationState === "pending_review";
 
                             return (
                                 <AppTableRow
@@ -70,20 +72,32 @@ export default function ComboTable({combos}: ComboTableProps) {
                                     }}
                                 >
                                     <AppTableCell>
-                                        <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
-                                            <AppBox
-                                                component="span"
-                                                sx={{
-                                                    fontWeight: 620,
-                                                    textDecoration: "underline",
-                                                    textDecorationColor: "transparent",
-                                                    textUnderlineOffset: "2px",
-                                                    '&:hover': {textDecorationColor: "currentColor"},
-                                                }}
-                                            >
-                                                {combo.title}
-                                            </AppBox>
-                                        </Link>
+                                        <AppBox sx={{display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap"}}>
+                                            <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
+                                                <AppBox
+                                                    component="span"
+                                                    sx={{
+                                                        fontWeight: 620,
+                                                        textDecoration: "underline",
+                                                        textDecorationColor: "transparent",
+                                                        textUnderlineOffset: "2px",
+                                                        '&:hover': {textDecorationColor: "currentColor"},
+                                                    }}
+                                                >
+                                                    {combo.title}
+                                                </AppBox>
+                                            </Link>
+                                            {isPendingReview ? (
+                                                <AppChip
+                                                    icon={<PendingActionsIcon fontSize="small" />}
+                                                    size="small"
+                                                    label="Pending review"
+                                                    color="warning"
+                                                    variant="outlined"
+                                                    sx={{fontWeight: 700}}
+                                                />
+                                            ) : null}
+                                        </AppBox>
                                     </AppTableCell>
                                     <AppTableCell>{combo.characterName ?? "-"}</AppTableCell>
                                     <AppTableCell>{moves.join(", ") || "-"}</AppTableCell>

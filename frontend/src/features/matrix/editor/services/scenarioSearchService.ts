@@ -1,5 +1,3 @@
-import api from "@/services/api";
-
 export interface ScenarioSearchItem {
     id: string;
     label: string;
@@ -89,6 +87,7 @@ export function filterScenarioItems(items: ScenarioSearchItem[], query: string):
 
 export async function fetchScenarioItems(request: ScenarioSearchRequest = {}): Promise<ScenarioSearchItem[]> {
     try {
+        const {default: api} = await import("@/services/api");
         const payload = await requestData(() =>
             api.get<unknown>("/scenarios", {
                 params: {

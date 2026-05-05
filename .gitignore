@@ -1,1 +1,7 @@
 .idea/
+
+# Local environment overrides
+backend/.env.local
+backend/.env.*.local
+frontend/.env.local
+frontend/.env.*.local

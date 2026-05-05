@@ -15,7 +15,12 @@ export class ScenarioTableService {
                     typeof this.state.columnFrequencies[j] !== 'number') {
                     continue;
                 }
-                ev += this.state.values[i][j] *
+                const value = this.state.values[i][j];
+                if (typeof value !== 'number') {
+                    continue;
+                }
+
+                ev += value *
                     (this.state.rowFrequencies[i] as number) *
                     (this.state.columnFrequencies[j] as number);
             }
@@ -106,8 +111,8 @@ export class ScenarioTableService {
 
     updateValue(rowIndex: number, colIndex: number, newValue: string): void {
         if (newValue === "" || newValue === "-") {
-            const newValues = [...this.state.values];
-            newValues[rowIndex][colIndex] = newValue as any;
+            const newValues = this.state.values.map((row) => [...row]);
+            newValues[rowIndex][colIndex] = newValue;
             this.actions.setAndUpdateValues(newValues);
             return;
         }

@@ -4,19 +4,19 @@ import {
     type DOMConversionMap,
     type DOMConversionOutput,
     type DOMExportOutput,
-    type EditorConfig,
-    type LexicalNode,
     type NodeKey,
-    type SerializedTextNode,
+    type SerializedLexicalNode,
     type Spread,
-    TextNode,
 } from "lexical";
 import MentionCardPopup from "@/src/components/lexical/MentionCardPopup";
 
 export type SerializedMentionNode = Spread<{
     mentionName: string;
+    idForComponent: string;
+    text: string;
+    detailsText: string;
 },
-    SerializedTextNode>;
+    SerializedLexicalNode>;
 
 function $convertMentionElement(domNode: HTMLElement): DOMConversionOutput | null {
     const mentionName = domNode.getAttribute("data-lexical-mention-name");
@@ -24,12 +24,12 @@ function $convertMentionElement(domNode: HTMLElement): DOMConversionOutput | nul
     const text = domNode.getAttribute("data-lexical-mention-text");
     const details = domNode.getAttribute("data-lexical-mention-details");
 
-    if (idForMove !== null) {
+    if (idForMove !== null && mentionName !== null) {
         const node = $createMentionNode(
             mentionName,
             idForMove,
-            text,
-            details
+            details ?? "",
+            text ?? undefined
         );
         return {node};
     }
@@ -73,7 +73,7 @@ export class MentionNode extends DecoratorNode<ReactNode> {
         };
     }
 
-    createDOM(config: EditorConfig): HTMLElement {
+    createDOM(): HTMLElement {
         const dom = document.createElement("span");
         dom.className = "mention";
         return dom;

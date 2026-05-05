@@ -116,6 +116,15 @@ type FgcTokenSet = {
     };
 };
 
+type Theme = {
+    fgc: FgcTokenSet;
+    palette: {
+        secondary: {
+            contrastText: string;
+        };
+    };
+};
+
 const lightTokens: FgcTokenSet = {
     app: {
         canvas: "#f8fafc",
@@ -534,7 +543,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
             },
             MuiPaper: {
                 styleOverrides: {
-                    root: ({theme}) => ({
+                    root: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.surface.base,
                         borderColor: theme.fgc.border.default,
                     }),
@@ -542,7 +551,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
             },
             MuiButton: {
                 styleOverrides: {
-                    root: ({theme}) => ({
+                    root: ({theme}: {theme: Theme}) => ({
                         borderRadius: 8,
                         boxShadow: "none",
                         transition: "background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease",
@@ -554,7 +563,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             transform: "translateY(0.5px)",
                         },
                     }),
-                    containedPrimary: ({theme}) => ({
+                    containedPrimary: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.action.primary,
                         color: "#ffffff",
                         boxShadow: `0 0 0 1px ${theme.fgc.action.primary} inset`,
@@ -571,7 +580,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             boxShadow: "none",
                         },
                     }),
-                    containedSecondary: ({theme}) => ({
+                    containedSecondary: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.action.secondary,
                         color: theme.palette.secondary.contrastText,
                         boxShadow: `0 0 0 1px ${theme.fgc.border.strong} inset`,
@@ -586,7 +595,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             backgroundColor: theme.fgc.action.disabled,
                         },
                     }),
-                    outlinedPrimary: ({theme}) => ({
+                    outlinedPrimary: ({theme}: {theme: Theme}) => ({
                         borderColor: theme.fgc.border.strong,
                         color: mode === "light" ? theme.fgc.text.primary : theme.fgc.icon.primary,
                         ":hover": {
@@ -594,7 +603,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             backgroundColor: theme.fgc.selection.hover,
                         },
                     }),
-                    outlinedSecondary: ({theme}) => ({
+                    outlinedSecondary: ({theme}: {theme: Theme}) => ({
                         borderColor: theme.fgc.border.default,
                         color: theme.fgc.text.secondary,
                         backgroundColor: "transparent",
@@ -608,7 +617,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             color: theme.fgc.text.disabled,
                         },
                     }),
-                    textSecondary: ({theme}) => ({
+                    textSecondary: ({theme}: {theme: Theme}) => ({
                         color: theme.fgc.accent.parser,
                         ":hover": {
                             backgroundColor: theme.fgc.surface.subtle,
@@ -618,7 +627,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             color: theme.fgc.text.disabled,
                         },
                     }),
-                    outlinedError: ({theme}) => ({
+                    outlinedError: ({theme}: {theme: Theme}) => ({
                         borderColor: theme.fgc.feedback.error,
                         color: theme.fgc.feedback.error,
                         ":hover": {
@@ -635,7 +644,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
             },
             MuiOutlinedInput: {
                 styleOverrides: {
-                    root: ({theme}) => ({
+                    root: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.control.default,
                         boxShadow: `0 1px 0 0 ${theme.fgc.border.subtle} inset`,
                         transition: "background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
@@ -660,14 +669,14 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             backgroundColor: theme.fgc.surface.sunken,
                         },
                     }),
-                    notchedOutline: ({theme}) => ({
+                    notchedOutline: ({theme}: {theme: Theme}) => ({
                         borderColor: theme.fgc.border.default,
                     }),
                 },
             },
             MuiInputLabel: {
                 styleOverrides: {
-                    root: ({theme}) => ({
+                    root: ({theme}: {theme: Theme}) => ({
                         color: theme.fgc.text.secondary,
                         "&.Mui-focused": {
                             color: theme.fgc.text.primary,
@@ -683,7 +692,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
             },
             MuiFormHelperText: {
                 styleOverrides: {
-                    root: ({theme}) => ({
+                    root: ({theme}: {theme: Theme}) => ({
                         color: theme.fgc.typographyRole.helper,
                         marginLeft: 2,
                         marginRight: 2,
@@ -695,26 +704,26 @@ export const getDesignTokens = (mode: PaletteMode) => {
             },
             MuiChip: {
                 styleOverrides: {
-                    root: ({theme}) => ({
+                    root: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.chip.neutralBg,
                         color: theme.fgc.chip.neutralText,
                         borderColor: theme.fgc.chip.neutralBorder,
                         fontWeight: 620,
                     }),
-                    outlined: ({theme}) => ({
+                    outlined: ({theme}: {theme: Theme}) => ({
                         borderColor: theme.fgc.chip.neutralBorder,
                     }),
-                    colorWarning: ({theme}) => ({
+                    colorWarning: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.chip.warningBg,
                         color: theme.fgc.chip.warningText,
                         borderColor: theme.fgc.chip.warningText,
                     }),
-                    colorSuccess: ({theme}) => ({
+                    colorSuccess: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.chip.successBg,
                         color: theme.fgc.chip.successText,
                         borderColor: theme.fgc.chip.successText,
                     }),
-                    colorInfo: ({theme}) => ({
+                    colorInfo: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.chip.infoBg,
                         color: theme.fgc.chip.infoText,
                         borderColor: theme.fgc.chip.infoText,
@@ -723,11 +732,11 @@ export const getDesignTokens = (mode: PaletteMode) => {
             },
             MuiAutocomplete: {
                 styleOverrides: {
-                    paper: ({theme}) => ({
+                    paper: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.surface.raised,
                         border: `1px solid ${theme.fgc.border.default}`,
                     }),
-                    option: ({theme}) => ({
+                    option: ({theme}: {theme: Theme}) => ({
                         '&[aria-selected="true"]': {
                             backgroundColor: theme.fgc.selection.active,
                             color: theme.fgc.text.primary,

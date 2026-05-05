@@ -86,7 +86,12 @@ class ComboSequenceController extends AbstractController
 
         $limit = $request->query->getInt('size', 100);
 
-        $sequences = $this->comboSequencesRepository->searchNonLeafsByFilters($filters, $limit);
+        $actor = $this->security->getUser();
+        $sequences = $this->comboSequencesRepository->searchNonLeafsByFilters(
+            $filters,
+            $limit,
+            $actor instanceof User ? $actor : null,
+        );
         if ('resourceAdjustedDamage' === $request->query->get('sort')) {
             $sequences = $this->comboValueEstimator->sortByEstimatedValue($sequences);
         }

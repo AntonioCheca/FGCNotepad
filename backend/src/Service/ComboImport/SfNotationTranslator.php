@@ -24,7 +24,7 @@ final class SfNotationTranslator
         $prepared = preg_replace('/\s+/', ' ', $prepared) ?? $prepared;
 
         $chunks = preg_split('/\s*,\s*/', $prepared);
-        if (false === $chunks || null === $chunks) {
+        if (false === $chunks) {
             return [
                 'normalizedNotation' => '',
                 'warnings' => ['Unable to split combo text into tokens.'],

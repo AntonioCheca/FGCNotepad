@@ -16,6 +16,7 @@ class PostScenarioSyncService
         private readonly ScenarioRepository $scenarioRepository,
         private readonly ScenarioTypeRepository $scenarioTypeRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
     ) {
     }
 
@@ -115,8 +116,9 @@ class PostScenarioSyncService
         $scenario
             ->setName($scenarioName)
             ->setType($scenarioType)
-            ->setPayload($matrix)
             ->setAuthor($author);
+
+        $this->scenarioMatrixMapper->replaceScenarioMatrixFromPayload($scenario, $matrix);
 
         $this->entityManager->persist($scenario);
 

@@ -31,7 +31,7 @@ class ResolveDynamicComboCellService
     {
         $normalizedStarterMoveIds = array_values(array_filter(
             $starterMoveIds,
-            static fn (mixed $starterMoveId): bool => is_string($starterMoveId) && '' !== trim($starterMoveId)
+            static fn (string $starterMoveId): bool => '' !== trim($starterMoveId)
         ));
 
         if ([] === $normalizedStarterMoveIds || '' === trim($attackerCharacterId)) {
@@ -83,7 +83,7 @@ class ResolveDynamicComboCellService
     ): array {
         $normalizedStarterMoveIds = array_values(array_filter(
             $starterMoveIds,
-            static fn (mixed $starterMoveId): bool => is_string($starterMoveId) && '' !== trim($starterMoveId)
+            static fn (string $starterMoveId): bool => '' !== trim($starterMoveId)
         ));
 
         if ([] === $normalizedStarterMoveIds || '' === trim($attackerCharacterId)) {

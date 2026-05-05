@@ -37,6 +37,7 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
             'comboMetrics' => $object->getComboMetrics() ? $this->normalizer->normalize($object->getComboMetrics(), $format, $context) : null,
             'comboRequirement' => $object->getComboRequirement() ? $this->normalizer->normalize($object->getComboRequirement(), $format, $context) : null,
             'visibility' => $object->getVisibility() ? $this->normalizer->normalize($object->getVisibility(), $format, $context) : null,
+            'moderationState' => $object->getModerationState(),
             'season' => $this->normalizer->normalize($object->getSeason()->toArray(), $format, $context),
             'steps' => $this->normalizer->normalize($sortedSteps, $format, $context),
             'is_usable' => true,

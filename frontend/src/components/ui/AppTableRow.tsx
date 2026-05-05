@@ -1,8 +1,7 @@
 import React from 'react';
 import {TableRow as MUITableRow, TableRowProps as MUITableRowProps} from '@mui/material';
 
-interface AppTableRowProps extends MUITableRowProps {
-}
+type AppTableRowProps = MUITableRowProps;
 
 export const AppTableRow: React.FC<AppTableRowProps> = ({
                                                             ...props

@@ -45,7 +45,8 @@ export class GameSolverService {
         this.state.rows.forEach((row, rowIndex) => {
             payoffMatrix[row] = {};
             this.state.columns.forEach((col, colIndex) => {
-                payoffMatrix[row][col] = this.state.values[rowIndex][colIndex];
+                const value = this.state.values[rowIndex][colIndex];
+                payoffMatrix[row][col] = typeof value === 'number' ? value : 0;
             });
         });
 
@@ -60,7 +61,12 @@ export class GameSolverService {
                     typeof this.state.columnFrequencies[j] !== 'number') {
                     continue;
                 }
-                ev += this.state.values[i][j] *
+                const value = this.state.values[i][j];
+                if (typeof value !== 'number') {
+                    continue;
+                }
+
+                ev += value *
                     (this.state.rowFrequencies[i] as number) *
                     (this.state.columnFrequencies[j] as number);
             }

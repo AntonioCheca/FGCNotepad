@@ -13,8 +13,10 @@ use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Entity\Season;
 use App\Entity\Step;
+use App\Entity\User;
 use App\Entity\Visibility;
 use App\Tests\Controller\AuthenticatedWebTestCase;
+use App\Util\Enum\ModerationState;
 use Symfony\Component\HttpFoundation\Response;
 
 class ComboSequenceControllerTest extends AuthenticatedWebTestCase
@@ -129,6 +131,61 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertCount(1, $payload);
         $this->assertSame($matching->getName(), $payload[0]['name']);
+        $this->assertSame(ModerationState::APPROVED->value, $payload[0]['moderationState']);
+    }
+
+    public function testListIncludesOwnPendingCombosButHidesOthers(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $currentUser = $this->entityManager->getRepository(User::class)->findOneBy(['username' => 'testuser']);
+        $this->assertInstanceOf(User::class, $currentUser);
+        $otherUser = (new User())
+            ->setUsername('other_combo_author')
+            ->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
+
+        $ownPendingCombo = (new ComboSequences())
+            ->setName('Own Pending Combo')
+            ->setDescription('pending')
+            ->setType($comboType)
+            ->setVisibility($visibility)
+            ->setAuthor($currentUser)
+            ->setModerationState(ModerationState::PENDING_REVIEW->value);
+
+        $otherPendingCombo = (new ComboSequences())
+            ->setName('Other Pending Combo')
+            ->setDescription('pending')
+            ->setType($comboType)
+            ->setVisibility($visibility)
+            ->setAuthor($otherUser)
+            ->setModerationState(ModerationState::PENDING_REVIEW->value);
+
+        $this->entityManager->persist($otherUser);
+        $this->entityManager->persist($ownPendingCombo);
+        $this->entityManager->persist($otherPendingCombo);
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/api/combo-sequences', [], [], $this->getHeaders());
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+        $returnedNames = array_map(static fn (array $row): string => (string) ($row['name'] ?? ''), $payload);
+        $ownPendingRows = array_values(array_filter(
+            $payload,
+            static fn (array $row): bool => 'Own Pending Combo' === ($row['name'] ?? null),
+        ));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertContains('Own Pending Combo', $returnedNames);
+        $this->assertNotContains('Other Pending Combo', $returnedNames);
+        $this->assertCount(1, $ownPendingRows);
+        $this->assertSame(ModerationState::PENDING_REVIEW->value, $ownPendingRows[0]['moderationState']);
     }
 
     public function testListSupportsCombinedMoveTypeRequirementAndDifficultyFilters(): void

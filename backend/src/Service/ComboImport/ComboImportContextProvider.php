@@ -73,13 +73,13 @@ class ComboImportContextProvider
      */
     public function buildConnectionTypes(): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (ConnectionType $connectionType): array => [
                 'id' => (int) $connectionType->getId(),
                 'name' => (string) $connectionType->getName(),
             ],
             $this->connectionTypeRepository->findAll()
-        ));
+        );
     }
 
     private function normalizeCharacter(string $value): string

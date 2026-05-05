@@ -226,7 +226,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         [action.payload.key]: {
                             ...cell,
                             kind: "dynamic_combo",
-                            value: cell.value,
+                            value: null,
                             reference: null,
                             dynamicCombo: {
                                 attackerCharacterId: action.payload.dynamicCombo.attackerCharacterId,
@@ -350,7 +350,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
         case "grid/setAxisLabel": {
             const target = action.payload.axis === "rows" ? state.grid.rows : state.grid.columns;
             const updated = target.map((axis) =>
-                axis.id === action.payload.axisId ? {...axis, label: action.payload.label.trim() || axis.label} : axis
+                axis.id === action.payload.axisId ? {...axis, label: action.payload.label} : axis
             );
 
             return {

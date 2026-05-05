@@ -4,27 +4,42 @@ FGCNotepad is a forum-wiki hybrid platform designed to analyze fighting games fr
 players break down matchups, explore optimal combos and oki setups, and structure in-depth strategic thinking. The
 platform is currently focused on Street Fighter 6, with plans for extensibility in the future.
 
-### 🌐 Project Structure
+### Project Structure
 
-Backend made in Symfony (PHP) with frontend made in Next.js, and database in Postgresql.
+Backend is Symfony/PHP, frontend is Next.js/React, and the database is PostgreSQL.
 
-## 🚀 Getting Started
+## Getting Started
 
-## 🔧 Setup
+### Expected Tooling
 
-Choose your preferred development environment:
+- PHP `>=8.2` with required Symfony extensions such as `pdo_pgsql`, `curl`, `mbstring`, `xml`, and `zip`.
+- Node.js `>=20`; Node 20 is the recommended local baseline.
+- npm is the current frontend package manager. Do not use Bun, pnpm, or yarn for this project baseline.
+- Composer is used for backend PHP dependencies.
+- PostgreSQL 15 is used by `docker-compose.yml`.
+- Symfony CLI is used by the local backend server commands.
 
-### Option A: Docker (Recommended for Linux/Mac)
+### Environment Files
 
-**Prerequisites:**
+- Backend defaults are tracked in `backend/.env` for Symfony compatibility.
+- Safe setup reference values are in `backend/.env.example` and `frontend/.env.example`.
+- Test setup reference values are in `backend/.env.test.example`.
+- Real local overrides should go in ignored files such as `backend/.env.local`, `backend/.env.dev.local`, `backend/.env.test.local`, or `frontend/.env.local`.
+- Generate local JWT keys with `make local-create-jwt-keys` for host development or `make create-jwt-keys` for Docker development.
+
+### Option A: Docker
+
+Docker is the recommended workflow for Linux contributors and deployment-like parity.
+
+Prerequisites:
 
 - Docker and Docker Compose
 
-**One-Time Setup:**
-Clone the repo and run:
+One-time setup:
 
 ```bash
 make build
+make up
 make composer-install
 make create-jwt-keys
 make create-test-database
@@ -32,33 +47,35 @@ make migrate
 make migrate-test
 ```
 
-**Development:**
+Development:
 
-- Start: `make up`
-- Stop: `make stop`
+- `make build` builds the containers.
+- `make up` starts containers with `docker compose up`; it does not build them.
+- `make stop` stops containers.
+- `make logs` follows service logs.
 
 Once running, access the frontend via http://localhost:3000.
 
-### Option B: Local Development (Windows-friendly)
+### Option B: Local Development
 
-**Prerequisites:**
+Local host development is the recommended Windows workflow.
 
-- PHP 8.1+ with extensions (pdo_pgsql, curl, mbstring, xml, zip)
-- Node.js 18+
-- PostgreSQL 14+
+Prerequisites:
+
+- PHP `>=8.2`
+- Node.js `>=20`
+- npm
+- PostgreSQL 15 or compatible local PostgreSQL server
 - Composer
-- Symfony
+- Symfony CLI
 
-**Database Setup:**
+Database setup:
 
-1. Create a PostgreSQL database and user
-2. Copy `.env.example` to `.env` and configure your database connection:
-   ```
-   DATABASE_URL="postgresql://username:password@127.0.0.1:5432/fgc_db"
-   ```
+1. Create a PostgreSQL database and user.
+2. Use `backend/.env.example` as the safe reference for required variables.
+3. Put machine-specific connection details in `backend/.env.local`.
 
-**One-Time Setup:**
-Clone the repo and run:
+One-time setup:
 
 ```bash
 make local-setup
@@ -76,53 +93,68 @@ make local-migrate
 make local-migrate-test
 ```
 
-**Development:**
-Start both servers in separate terminals:
+Development:
 
 ```bash
 # Terminal 1 - Backend
 make local-serve
 
-# Terminal 2 - Frontend  
+# Terminal 2 - Frontend
 make local-frontend
-```
-
-**Testing:**
-You can check the backend works by running:
-
-```bash
-make local-test
 ```
 
 Once running, access the frontend via http://localhost:3000.
 
-### 🆘 Need Help?
+### Makefile Commands
 
-Run `make help` to see all available commands for both Docker and local development.
+- `make help` lists available commands.
+- `make build` builds Docker containers.
+- `make up` starts Docker containers.
+- `make stop` stops Docker containers.
+- `make logs` follows Docker service logs.
+- `make composer-install` installs backend dependencies in Docker.
+- `make npm-install` installs frontend dependencies in Docker.
+- `make create-jwt-keys` generates Symfony JWT keys in Docker.
+- `make migrate` runs backend database migrations in Docker.
+- `make migrate-test` runs test database migrations in Docker.
+- `make create-test-database` creates the Docker test database.
+- `make bash` opens a shell inside the backend container.
+- `make psql` opens PostgreSQL CLI inside the database container.
+- `make local-setup` runs the local host setup sequence.
+- `make local-test` runs backend PHPUnit locally.
 
-### 🧰 Makefile Commands
+### Validation
 
-Command Description
+- `make check` runs frontend and backend validation.
+- `make check-frontend` runs `npm run check` in `frontend/`.
+- `make check-backend` runs `composer check` in `backend/`.
+- `make audit` runs frontend and backend security audits.
+- `make audit-frontend` runs `npm audit` in `frontend/`.
+- `make audit-backend` runs `composer audit` in `backend/`.
 
-`make up` Start containers and build the project
+Frontend scripts:
 
-`make down` Stop and remove all containers
+- `npm run typecheck` runs TypeScript without emitting output.
+- `npm test` runs existing `node:test` test files.
+- `npm run lint` runs ESLint CLI with the existing flat config.
+- `npm run check` runs typecheck, tests, then lint.
 
-`make logs` Show and follow logs from all services
+Backend scripts:
 
-`make composer-install`    Install PHP dependencies via Composer
+- `composer test` runs PHPUnit.
+- `composer phpstan` runs PHPStan with a 1G memory limit.
+- `composer check` runs PHPUnit, then PHPStan.
 
-`make create-jwt-keys`    Generate JWT keys for Symfony auth
+Known baseline failures:
 
-`make migrate`    Run backend DB migrations
+- Frontend typecheck currently fails from pre-existing TypeScript issues.
+- Frontend lint currently fails from pre-existing lint/config/code issues after replacing deprecated `next lint` with ESLint CLI.
+- Frontend `node:test` tests compile through the existing TypeScript compiler before running on Node.
+- Backend PHPUnit requires a reachable test database; local credentials should be supplied through `backend/.env.test.local` when defaults do not match the host PostgreSQL setup.
+- PHPStan no longer fails immediately from the default 128M PHP memory limit or missing dev fixtures, but it currently reports existing static analysis errors.
+- Security audit commands may report existing advisories. Dependency advisory remediation is intentionally out of scope for this baseline ticket.
 
-`make migrate-test`    Run test DB migrations
-
-`make create-test-database`    Create a PostgreSQL database for test purposes
-
-`make bash`    Open a bash shell inside the backend container
-
-`make psql`    Access PostgreSQL CLI inside the container
+Future tickets should address these failures directly instead of hiding them from validation commands.
 
 ## ✍️ Contribution Guidelines
 

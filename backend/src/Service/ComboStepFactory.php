@@ -19,7 +19,7 @@ final class ComboStepFactory
     }
 
     /**
-     * @param array<int, array<string, mixed>> $stepsPayload
+     * @param array<int, mixed> $stepsPayload
      *
      * @return array<int, Step>
      */

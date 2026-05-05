@@ -1,8 +1,7 @@
 import React from 'react';
 import {Button as MUIButton, ButtonProps as MUIButtonProps} from '@mui/material';
 
-interface AppButtonProps extends MUIButtonProps {
-}
+type AppButtonProps = MUIButtonProps;
 
 export const AppButton: React.FC<AppButtonProps> = ({
                                                         type = "submit",

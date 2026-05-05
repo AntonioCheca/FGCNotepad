@@ -1,4 +1,4 @@
-import {useState, useEffect, useCallback} from "react";
+import {useState, useEffect} from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 
@@ -37,7 +37,7 @@ export function useCharacters() {
         return () => {
             canceled = true;
         };
-    }, []);
+    }, [request]);
 
     return {characters, loading, error};
 }

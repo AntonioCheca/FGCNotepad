@@ -17,6 +17,7 @@ class ComboRequirementFactory
 
     private RequirementSpecificCharacterCatalog $catalog;
 
+    /** @param array<string, mixed> $requirements */
     public function createFromPayload(ComboSequences $sequence, array $requirements): ?ComboRequirement
     {
         $counterHitRequired = (bool) ($requirements['counter_hit_required'] ?? false);

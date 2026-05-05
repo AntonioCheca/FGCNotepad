@@ -4,6 +4,8 @@ namespace App\Repository;
 
 use App\Entity\ComboSequences;
 use App\Entity\Step;
+use App\Entity\User;
+use App\Util\Enum\ModerationState;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -65,7 +67,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *
      * @return list<ComboSequences>
      */
-    public function searchNonLeafsByFilters(array $filters, int $limit = 100): array
+    public function searchNonLeafsByFilters(array $filters, int $limit = 100, ?User $visibleAuthor = null): array
     {
         $safeLimit = max(1, min($limit, 300));
 
@@ -75,12 +77,19 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->leftJoin('combo.comboRequirement', 'requirement')
             ->addSelect('comboType', 'metrics', 'requirement')
             ->andWhere('comboType.name != :leafType')
-            ->andWhere('combo.moderationState = :approvedState')
             ->setParameter('leafType', 'leaf')
-            ->setParameter('approvedState', 'approved')
             ->orderBy('combo.id', 'ASC')
             ->setMaxResults($safeLimit)
             ->distinct();
+
+        if ($visibleAuthor instanceof User) {
+            $qb->andWhere('(combo.moderationState = :approvedState OR combo.author = :visibleAuthor)')
+                ->setParameter('approvedState', ModerationState::APPROVED->value)
+                ->setParameter('visibleAuthor', $visibleAuthor);
+        } else {
+            $qb->andWhere('combo.moderationState = :approvedState')
+                ->setParameter('approvedState', ModerationState::APPROVED->value);
+        }
 
         $query = isset($filters['q']) && is_string($filters['q']) ? trim($filters['q']) : '';
         if ('' !== $query) {

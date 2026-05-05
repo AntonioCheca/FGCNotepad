@@ -126,6 +126,7 @@ export interface TranslateComboNotationResponse {
 export interface ComboRow {
     id: number;
     title: string;
+    moderationState: string;
     characterName: string;
     moves: string[];        // just move names
     damage: number | string;
@@ -155,6 +156,7 @@ interface ComboSeasonSummary {
 export interface ComboApiSummary {
     id: number;
     name?: string;
+    moderationState?: string;
     character?: { name?: string };
     moves?: ComboMoveSummary[];
     steps?: ComboStepSummary[];
@@ -174,6 +176,7 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     return {
         id: combo.id,
         title: combo.name ?? "-",
+        moderationState: combo.moderationState ?? "approved",
         characterName: combo.character?.name ?? "-",
         moves: moveNamesFromLegacyField.length > 0 ? moveNamesFromLegacyField : moveNamesFromSteps,
         damage: combo.comboMetrics?.damage ?? "-",

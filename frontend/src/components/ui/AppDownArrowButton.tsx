@@ -2,8 +2,7 @@ import React from 'react';
 import {IconButton as MUIIconButton, IconButtonProps as MUIIconButtonProps} from '@mui/material';
 import {ArrowDownward} from "@mui/icons-material";
 
-interface AppIconButtonProps extends MUIIconButtonProps {
-}
+type AppIconButtonProps = MUIIconButtonProps;
 
 export const AppDownArrowButton: React.FC<AppIconButtonProps> = ({
                                                                      ...props

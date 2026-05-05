@@ -1,8 +1,7 @@
 import React from 'react';
 import {List as MUIList, ListProps as MUIListProps} from '@mui/material';
 
-interface AppListProps extends MUIListProps {
-}
+type AppListProps = MUIListProps;
 
 export const AppList: React.FC<AppListProps> = ({
                                                     ...props

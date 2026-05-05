@@ -6,7 +6,7 @@ import {AppContainer} from "@/src/components/ui/AppContainer";
 export default function CreatePostPage() {
     const {createPost} = usePosts();
 
-    const handleSubmit = async (title: string, body: string, tags: any) => {
+    const handleSubmit = async (title: string, body: string, tags: string[]) => {
         const response = await createPost(title, body, tags);
         if (response.ok) {
             alert("Post created successfully!");

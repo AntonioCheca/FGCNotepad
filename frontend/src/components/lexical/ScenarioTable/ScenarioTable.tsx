@@ -15,7 +15,7 @@ import {AppTableHead} from "@/src/components/ui/AppTableHead";
 import {AppTableContainer} from "@/src/components/ui/AppTableContainer";
 import {AppTable} from "@/src/components/ui/AppTable";
 import {AppTableBody} from "@/src/components/ui/AppTableBody";
-import {ScenarioTableState} from '@/hooks/useScenarioTableState';
+import {ScenarioTableState, type ScenarioTableValue} from '@/hooks/useScenarioTableState';
 import {ScenarioTableService} from '@/services/ScenarioTableService';
 import {styled} from '@/src/components/ui/AppStyled';
 import {useMode} from '@/src/context/ThemeContext';
@@ -27,15 +27,14 @@ interface ScenarioTableProps {
 
 interface FrequencyRowProps {
     columns: string[];
-    columnFrequencies: number[];
+    columnFrequencies: (number | string)[];
     handleColumnFrequencyChange: (colIndex: number, newValue: string) => void;
-    expectedValue: number;
+    expectedValue: number | string;
 }
 
 interface TableHeaderProps {
     columns: string[];
     addColumn: () => void;
-    removeColumn: (colIndex: number) => void;
     setColumns: (columns: string[]) => void;
 }
 
@@ -44,12 +43,12 @@ interface TableRowComponentProps {
     rows: string[];
     rowIndex: number;
     columns: string[];
-    values: number[][];
+    values: ScenarioTableValue[][];
     handleValueChange: (rowIndex: number, colIndex: number, newValue: string) => void;
     setRows: (rows: string[]) => void;
     moveRowUp: (rowIndex: number) => void;
     moveRowDown: (rowIndex: number) => void;
-    rowFrequency: number;
+    rowFrequency: number | string;
     onRowFrequencyChange: (newValue: string) => void;
     removeRow: (rowIndex: number) => void;
 }
@@ -66,7 +65,7 @@ interface TableFooterComponentProps {
 interface NumberInputFieldProps {
     rowIndex: number;
     colIndex: number;
-    value: number;
+    value: number | string;
     onValueChange: (newValue: string) => void;
 }
 
@@ -133,6 +132,15 @@ const StyledTableContainer = styled(AppTableContainer)(({theme}) => ({
     },
 }));
 
+function toNumberFieldValue(value: number | string): number | null {
+    if (typeof value === 'number') {
+        return value;
+    }
+
+    const parsedValue = Number(value);
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
 export function ScenarioTable({state, tableService}: ScenarioTableProps) {
     const {theme} = useMode();
     const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -187,7 +195,6 @@ export function ScenarioTable({state, tableService}: ScenarioTableProps) {
                     <TableHeader
                         columns={state.columns}
                         addColumn={() => tableService.addColumn()}
-                        removeColumn={(colIndex: number) => tableService.removeColumn(colIndex)}
                         setColumns={(columns: string[]) => tableService.setColumns(columns)}/>
                     <AppTableBody>
                         {state.rows.map((row, rowIndex) => (
@@ -236,12 +243,15 @@ function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, 
             </AppTableCell>
             {columns.map((_, colIndex) => (
                 <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
-                    <NumberField.Root>
+                    <NumberField.Root
+                        value={toNumberFieldValue(columnFrequencies[colIndex])}
+                        onValueChange={(value) => handleColumnFrequencyChange(colIndex, String(value ?? ''))}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                    >
                         <NumberField.Input
-                            value={columnFrequencies[colIndex]}
-                            onChange={(e) => handleColumnFrequencyChange(colIndex, e.target.value)}
-                            sx={{width: "60px"}}
-                            inputProps={{min: 0, max: 1, step: 0.01}}
+                            style={{width: "60px"}}
                         />
                     </NumberField.Root>
                 </AppTableCell>
@@ -253,7 +263,7 @@ function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, 
     );
 }
 
-function TableHeader({columns, addColumn, removeColumn, setColumns}: TableHeaderProps) {
+function TableHeader({columns, addColumn, setColumns}: TableHeaderProps) {
     const handleColumnNameChange = (colIndex: number, newName: string) => {
         const updatedColumns = [...columns];
         updatedColumns[colIndex] = newName;
@@ -324,12 +334,15 @@ function TableRowComponent({
                 </AppTableCell>
             ))}
             <AppTableCell className="frozen-last-column" sx={{textAlign: "center"}}>
-                <NumberField.Root>
+                <NumberField.Root
+                    value={toNumberFieldValue(rowFrequency)}
+                    onValueChange={(value) => onRowFrequencyChange(String(value ?? ''))}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                >
                     <NumberField.Input
-                        value={rowFrequency}
-                        onChange={(e) => onRowFrequencyChange(e.target.value)}
-                        sx={{width: "60px"}}
-                        inputProps={{min: 0, max: 1, step: 0.01}}
+                        style={{width: "60px"}}
                     />
                 </NumberField.Root>
             </AppTableCell>
@@ -407,13 +420,14 @@ function NumberInputField({rowIndex, colIndex, value, onValueChange}: NumberInpu
     };
 
     return (
-        <NumberField.Root>
+        <NumberField.Root
+            value={toNumberFieldValue(value)}
+            onValueChange={(value) => onValueChange(String(value ?? ''))}
+        >
             <NumberField.Input
-                inputRef={inputRef}
-                value={value}
-                onChange={(e) => onValueChange(e.target.value)}
+                ref={inputRef}
                 onKeyDown={handleKeyDown}
-                sx={{width: "60px"}}
+                style={{width: "60px"}}
                 tabIndex={0}
             />
         </NumberField.Root>

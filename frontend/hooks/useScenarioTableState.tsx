@@ -1,36 +1,38 @@
 import {useState, useCallback} from 'react';
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
 
+export type ScenarioTableValue = number | string;
+
 export interface ScenarioTableState {
     rows: string[];
     columns: string[];
-    values: number[][];
+    values: ScenarioTableValue[][];
     rowFrequencies: (number | string)[];
     columnFrequencies: (number | string)[];
     expectedValue: number;
-    derivedMetrics?: Record<string, any>;
+    derivedMetrics?: Record<string, unknown>;
 }
 
 export interface ScenarioTableActions {
     setAndUpdateRows: (rows: string[]) => void;
     setAndUpdateColumns: (columns: string[]) => void;
-    setAndUpdateValues: (values: number[][]) => void;
+    setAndUpdateValues: (values: ScenarioTableValue[][]) => void;
     setAndUpdateRowFrequencies: (frequencies: (number | string)[]) => void;
     setAndUpdateColumnFrequencies: (frequencies: (number | string)[]) => void;
     setAndUpdateExpectedValue: (value: number) => void;
-    setDerivedMetrics: (metrics: Record<string, any>) => void;
+    setDerivedMetrics: (metrics: Record<string, unknown>) => void;
 }
 
 interface UseScenarioTableStateProps {
     initialRows: string[];
     initialColumns: string[];
-    initialValues: number[][];
+    initialValues: ScenarioTableValue[][];
     initialRowFrequencies?: (number | string)[];
     initialColumnFrequencies?: (number | string)[];
     initialExpectedValue?: number;
     updateRows: (rows: string[]) => void;
     updateColumns: (columns: string[]) => void;
-    updateValues: (values: number[][]) => void;
+    updateValues: (values: ScenarioTableValue[][]) => void;
     updateRowFrequencies: (frequencies: (number | string)[]) => void;
     updateColumnFrequencies: (frequencies: (number | string)[]) => void;
     updateExpectedValue: (value: number) => void;
@@ -49,7 +51,7 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
         props.initialColumnFrequencies || Array(props.initialColumns.length).fill(1 / props.initialColumns.length)
     );
     const [expectedValue, setExpectedValue] = useState(props.initialExpectedValue || 0);
-    const [derivedMetrics, setDerivedMetricsState] = useState<Record<string, any>>({});
+    const [derivedMetrics, setDerivedMetricsState] = useState<Record<string, unknown>>({});
 
     const setAndUpdateRows = useCallback((rows: string[]) => {
         editor.update(() => {
@@ -65,7 +67,7 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
         });
     }, [editor, props.updateColumns]);
 
-    const setAndUpdateValues = useCallback((values: number[][]) => {
+    const setAndUpdateValues = useCallback((values: ScenarioTableValue[][]) => {
         editor.update(() => {
             setValues(values);
             props.updateValues(values);
@@ -93,7 +95,7 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
         });
     }, [editor, props.updateExpectedValue]);
 
-    const setDerivedMetrics = useCallback((metrics: Record<string, any>) => {
+    const setDerivedMetrics = useCallback((metrics: Record<string, unknown>) => {
         editor.update(() => {
             setDerivedMetricsState(metrics);
         });

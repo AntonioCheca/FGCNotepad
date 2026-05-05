@@ -220,9 +220,11 @@ export function MatrixEditorShell({
         }
     }, [state.selection.activeTarget, linkTargetKey, dynamicComboTargetKey, dismissPanels]);
 
-    const selectTarget = React.useCallback((target: ReturnType<typeof toSelectionTarget>) => {
+    const selectTarget = React.useCallback((target: ReturnType<typeof toSelectionTarget>, shouldFocus = true) => {
         dispatch(actions.setActiveSelection(target));
-        focusContainer();
+        if (shouldFocus) {
+            focusContainer();
+        }
     }, [actions, dispatch, focusContainer]);
 
     const startEditForKey = React.useCallback((key: string) => {
@@ -416,6 +418,19 @@ export function MatrixEditorShell({
         return null;
     }, [linkTargetKey, dynamicComboTargetKey]);
 
+    const shouldBypassMatrixKeyHandling = React.useCallback((eventTarget: EventTarget | null) => {
+        if (!(eventTarget instanceof HTMLElement)) {
+            return false;
+        }
+
+        if (eventTarget.isContentEditable) {
+            return true;
+        }
+
+        const tagName = eventTarget.tagName;
+        return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+    }, []);
+
     return (
         <div
             ref={containerRef}
@@ -445,6 +460,10 @@ export function MatrixEditorShell({
                 }
             }}
             onKeyDown={(event) => {
+                if (shouldBypassMatrixKeyHandling(event.target)) {
+                    return;
+                }
+
                 if (isAnyModalOpen) {
                     return;
                 }
@@ -556,6 +575,8 @@ export function MatrixEditorShell({
                         onRowLayerChange={(rowId, layer) => dispatch(actions.setAxisLayer("rows", rowId, layer))}
                         onColumnLayerChange={(columnId, layer) => dispatch(actions.setAxisLayer("columns", columnId, layer))}
                         onSelectBodyCell={(rowId, columnId) => selectTarget(toSelectionTarget("body", rowId, columnId))}
+                        onSelectRowHeader={(rowId) => selectTarget(toSelectionTarget("rowSummary", rowId), false)}
+                        onSelectColumnHeader={(columnId) => selectTarget(toSelectionTarget("columnSummary", columnId), false)}
                         onSelectRowSummary={(rowId) => selectTarget(toSelectionTarget("rowSummary", rowId))}
                         onSelectColumnSummary={(columnId) => selectTarget(toSelectionTarget("columnSummary", columnId))}
                         onSelectExpectedValue={() => selectTarget(toSelectionTarget("expectedValue"))}

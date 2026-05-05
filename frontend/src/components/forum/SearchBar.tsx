@@ -1,8 +1,19 @@
 import {useState} from "react";
+import type {FormEvent} from "react";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppBox} from "@/src/components/ui/AppBox";
 
-const SearchBar = ({onSubmit}) => {
+interface SearchParams {
+    textQuery: string;
+    includedTags: string[];
+    excludedTags: string[];
+}
+
+interface SearchBarProps {
+    onSubmit: (searchParams: SearchParams) => void | Promise<void>;
+}
+
+const SearchBar = ({onSubmit}: SearchBarProps) => {
     const [query, setQuery] = useState("");
 
     const parseQuery = (query: string) => {
@@ -27,7 +38,7 @@ const SearchBar = ({onSubmit}) => {
         };
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const parsedQuery = parseQuery(query);
         onSubmit(parsedQuery);

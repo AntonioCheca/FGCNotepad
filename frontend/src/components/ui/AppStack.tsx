@@ -1,8 +1,7 @@
 import React from 'react';
 import {Stack as MUIStack, StackProps as MUIStackProps} from '@mui/material';
 
-interface AppStackProps extends MUIStackProps {
-}
+type AppStackProps = MUIStackProps;
 
 export const AppStack: React.FC<AppStackProps> = ({
                                                       ...props

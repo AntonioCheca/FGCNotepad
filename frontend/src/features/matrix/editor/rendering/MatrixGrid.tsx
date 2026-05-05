@@ -35,6 +35,8 @@ interface MatrixGridProps {
     onColumnLabelChange: (columnId: string, label: string) => void;
     onRowLayerChange: (rowId: string, layer: number) => void;
     onColumnLayerChange: (columnId: string, layer: number) => void;
+    onSelectRowHeader: (rowId: string) => void;
+    onSelectColumnHeader: (columnId: string) => void;
     onSelectBodyCell: (rowId: string, columnId: string) => void;
     onSelectRowSummary: (rowId: string) => void;
     onOpenReferenceLink: (key: string) => void;
@@ -77,10 +79,12 @@ export function MatrixGrid({
                                  onRemoveColumn,
                                  onRowLabelChange,
                                  onColumnLabelChange,
-                                 onRowLayerChange,
-                                 onColumnLayerChange,
-                                 onSelectBodyCell,
-                                onSelectRowSummary,
+                                  onRowLayerChange,
+                                  onColumnLayerChange,
+                                  onSelectRowHeader,
+                                  onSelectColumnHeader,
+                                  onSelectBodyCell,
+                                 onSelectRowSummary,
                                 onOpenReferenceLink,
                                 onOpenDynamicCombo,
                                 onSelectColumnSummary,
@@ -126,13 +130,13 @@ export function MatrixGrid({
 
     const handleSelectColumnHeader = React.useCallback((columnId: string) => {
         setStructureSelection({axis: "column", id: columnId});
-        onSelectColumnSummary(columnId);
-    }, [onSelectColumnSummary]);
+        onSelectColumnHeader(columnId);
+    }, [onSelectColumnHeader]);
 
     const handleSelectRowHeader = React.useCallback((rowId: string) => {
         setStructureSelection({axis: "row", id: rowId});
-        onSelectRowSummary(rowId);
-    }, [onSelectRowSummary]);
+        onSelectRowHeader(rowId);
+    }, [onSelectRowHeader]);
 
     const handleSelectBodyCell = React.useCallback((rowId: string, columnId: string) => {
         setStructureSelection(null);

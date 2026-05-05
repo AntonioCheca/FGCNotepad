@@ -201,7 +201,7 @@ export default function ProfilePage() {
             <div style={{display: "grid", gap: 12, border: "1px solid #e5e5e5", borderRadius: 8, padding: 12}}>
                 <AppTypography variant="h6">Combo Knowledge</AppTypography>
                 <AppTypography variant="body2">
-                    Mark combos you can execute today. This powers "My Current Knowledge" mode.
+                    Mark combos you can execute today. This powers &quot;My Current Knowledge&quot; mode.
                 </AppTypography>
 
                 <div style={{display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap"}}>

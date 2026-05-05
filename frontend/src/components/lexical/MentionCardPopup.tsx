@@ -15,19 +15,34 @@ interface MentionCardPopupProps {
     detailsText: string | undefined;
 }
 
+interface FrameData {
+    startup?: string | number | null;
+    active?: string | number | null;
+    recovery?: string | number | null;
+    on_hit?: string | number | null;
+    on_block?: string | number | null;
+}
+
+interface MoveData {
+    character: string;
+    numpad_notation: string;
+    summary_frame_data: FrameData;
+    full_frame_data: Record<string, string | number | boolean | null>;
+}
+
 
 const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}) => {
     const {getSpecificMove} = useMoves();
-    const [moveData, setMoveData] = useState<any>(null); // State to hold move data
+    const [moveData, setMoveData] = useState<MoveData | null>(null); // State to hold move data
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(false);
     const [isHovered, setIsHovered] = useState(false); // State for hover effect
 
     useEffect(() => {
         // Fetch the move data using the moveId
-        const fetchAndSetMoveData = async (moveId) => {
+        const fetchAndSetMoveData = async (moveId: string) => {
             try {
-                const data = await getSpecificMove(moveId);
+                const data = await getSpecificMove(moveId) as MoveData;
                 setMoveData(data);
             } catch (error) {
                 console.error("Error fetching move data", error);
@@ -37,7 +52,7 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
         };
 
         fetchAndSetMoveData(moveId);
-    }, [moveId]);
+    }, [getSpecificMove, moveId]);
 
     if (loading) {
         return (
@@ -51,7 +66,7 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
         return <AppTypography variant="body2" color="error">Move data not found</AppTypography>;
     }
 
-    const formatFrameData = (frameData) => {
+    const formatFrameData = (frameData: FrameData) => {
         const frameEntries = [
             {label: 'St', value: frameData.startup},
             {label: 'Ac', value: frameData.active},
@@ -82,7 +97,7 @@ const MentionCardPopup: React.FC<MentionCardPopupProps> = ({mentionName, moveId}
                 value != null && (
                     <tr key={key}>
                         <td style={{padding: '8px', fontWeight: 'bold'}}>{key}</td>
-                        <td style={{padding: '8px'}}>{value}</td>
+                        <td style={{padding: '8px'}}>{String(value)}</td>
                     </tr>
                 )
             ))}

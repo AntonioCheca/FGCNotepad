@@ -4,8 +4,7 @@ import {
     CircularProgressProps as MUICircularProgressProps
 } from '@mui/material';
 
-interface AppCircularProgressProps extends MUICircularProgressProps {
-}
+type AppCircularProgressProps = MUICircularProgressProps;
 
 export const AppCircularProgress: React.FC<AppCircularProgressProps> = ({
                                                                             ...props

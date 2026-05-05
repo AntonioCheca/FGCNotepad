@@ -116,6 +116,22 @@ local-psql:
 local-test:
 	cd backend && php bin/phpunit
 
+check-frontend:
+	cd frontend && npm run check
+
+check-backend:
+	cd backend && composer check
+
+check: check-frontend check-backend
+
+audit-frontend:
+	cd frontend && npm audit
+
+audit-backend:
+	cd backend && composer audit
+
+audit: audit-frontend audit-backend
+
 # Convenience commands that work for both
 help:
 	@echo "Available commands:"
@@ -144,6 +160,14 @@ help:
 	@echo "  local-stop           - Stop Symfony dev server"
 	@echo "  local-test           - Run PHPUnit tests locally"
 	@echo ""
+	@echo "Validation commands:"
+	@echo "  check                - Run frontend and backend validation"
+	@echo "  check-frontend       - Run frontend typecheck, tests, and lint"
+	@echo "  check-backend        - Run backend PHPUnit and PHPStan"
+	@echo "  audit                - Run frontend and backend security audits"
+	@echo "  audit-frontend       - Run npm audit"
+	@echo "  audit-backend        - Run composer audit"
+	@echo ""
 	@echo "Run 'make help' to see this message"
 
-.PHONY: build up stop logs create-jwt-keys migrate migrate-test create-test-database composer-install bash frontend-bash psql local-setup local-composer-install local-npm-install local-create-jwt-keys local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test help
+.PHONY: build up stop logs create-jwt-keys migrate migrate-test create-test-database composer-install bash frontend-bash psql local-setup local-composer-install local-npm-install local-create-jwt-keys local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit help

@@ -18,7 +18,7 @@ class AdminUserManagementService
     }
 
     /**
-     * @param list<string> $rawRoles
+     * @param array<mixed> $rawRoles
      *
      * @return list<string>
      */
@@ -54,7 +54,7 @@ class AdminUserManagementService
     }
 
     /**
-     * @param list<string> $rawRoles
+     * @param array<mixed> $rawRoles
      *
      * @return list<string>
      */

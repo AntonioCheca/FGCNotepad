@@ -6,9 +6,9 @@ import { AppBox } from '@/src/components/ui/AppBox';
 import Sidebar from '@/src/components/layouts/Sidebar';
 
 export default function SidebarLayout({
-                                          children,
-                                      }: {
-    children: React.ReactNode;
+                                           children,
+                                       }: {
+    children?: React.ReactNode;
 }) {
     const collapsedState = useState(false);
     const collapsed = collapsedState[0];
