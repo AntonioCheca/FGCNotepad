@@ -1,6 +1,7 @@
 import React from "react";
 
 import {MatrixEditorState} from "@/src/features/matrix/model";
+import {useMode} from "@/src/context/ThemeContext";
 import {MatrixDensityProfile} from "./gridDensity";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
 
@@ -27,6 +28,7 @@ export function MatrixGridHeader({
     densityProfile,
     showLayerControls,
 }: MatrixGridHeaderProps) {
+    const {theme} = useMode();
     return (
         <thead>
         <tr>
@@ -38,11 +40,11 @@ export function MatrixGridHeader({
                     top: 0,
                     left: 0,
                     zIndex: 5,
-                    background: "#eef4fb",
-                    borderBottom: "1px solid #c6d5e5",
+                    background: theme.fgc.surface.subtle,
+                    borderBottom: `1px solid ${theme.fgc.border.default}`,
                     minWidth: densityProfile.rowLabelWidth,
                     fontSize: densityProfile.labelFontSize,
-                    color: "#2e4b6d",
+                    color: theme.fgc.text.secondary,
                 }}
             >
                 P1 / P2
@@ -56,8 +58,8 @@ export function MatrixGridHeader({
                             position: "sticky",
                             top: 0,
                             zIndex: 4,
-                            background: activeColumnId === column.id ? "#dfeefe" : "#eef4fb",
-                            borderBottom: activeColumnId === column.id ? "2px solid #3c71a8" : "1px solid #c6d5e5",
+                            background: activeColumnId === column.id ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
+                            borderBottom: activeColumnId === column.id ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.default}`,
                             minWidth: densityProfile.columnLabelWidth,
                         }}
                     >
@@ -73,8 +75,9 @@ export function MatrixGridHeader({
                             fontSize: densityProfile.labelFontSize,
                             padding: "2px 6px",
                             borderRadius: 6,
-                            border: "1px solid #b8c9dc",
-                            background: "#fff",
+                            border: `1px solid ${theme.fgc.border.default}`,
+                            background: theme.fgc.control.default,
+                            color: theme.fgc.text.primary,
                         }}
                     />
                     {showLayerControls ? (
@@ -96,11 +99,11 @@ export function MatrixGridHeader({
                     position: "sticky",
                     top: 0,
                     zIndex: 4,
-                    background: "#eef4fb",
-                    borderBottom: "1px solid #c6d5e5",
+                    background: theme.fgc.surface.subtle,
+                    borderBottom: `1px solid ${theme.fgc.border.default}`,
                     minWidth: densityProfile.valueCellWidth,
                     fontSize: densityProfile.labelFontSize,
-                    color: "#2e4b6d",
+                    color: theme.fgc.text.secondary,
                 }}
             >
                 P1 Freq
@@ -111,8 +114,8 @@ export function MatrixGridHeader({
                     position: "sticky",
                     top: 0,
                     zIndex: 4,
-                    background: "#eef4fb",
-                    borderBottom: "1px solid #c6d5e5",
+                    background: theme.fgc.surface.subtle,
+                    borderBottom: `1px solid ${theme.fgc.border.default}`,
                     minWidth: 72,
                 }}
             />

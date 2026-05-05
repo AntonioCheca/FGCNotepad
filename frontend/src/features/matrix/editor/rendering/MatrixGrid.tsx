@@ -1,6 +1,7 @@
 import React from "react";
 
 import {MatrixDensityMode, MatrixEditorState, MatrixSelectionTarget, MatrixValidationIssue} from "@/src/features/matrix/model";
+import {useMode} from "@/src/context/ThemeContext";
 import {MatrixGridHeader} from "./MatrixGridHeader";
 import {MatrixGridBody} from "./MatrixGridBody";
 import {MatrixSummaryAxes} from "./MatrixSummaryAxes";
@@ -96,7 +97,8 @@ export function MatrixGrid({
                                   onCancelEdit,
                                  density,
                                  showLayerControls,
-                              }: MatrixGridProps) {
+                               }: MatrixGridProps) {
+    const {theme} = useMode();
     const [structureSelection, setStructureSelection] = React.useState<{axis: "row" | "column"; id: string} | null>(null);
 
     const profile = React.useMemo(
@@ -170,11 +172,11 @@ export function MatrixGrid({
                 maxWidth: "100%",
                 minWidth: 0,
                 maxHeight: "62vh",
-                border: "1px solid #d4e0eb",
+                border: `1px solid ${theme.fgc.border.default}`,
                 borderRadius: 10,
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
                 width: "100%",
-                background: "#ffffff",
+                background: theme.fgc.surface.base,
             }}
         >
             <table
@@ -255,8 +257,8 @@ export function MatrixGrid({
                         gap: 8,
                         alignItems: "center",
                         padding: "10px 12px",
-                        borderTop: "1px solid #f0f0f0",
-                        background: "#fafafa",
+                        borderTop: `1px solid ${theme.fgc.border.subtle}`,
+                        background: theme.fgc.surface.subtle,
                         position: "sticky",
                         bottom: 0,
                     }}

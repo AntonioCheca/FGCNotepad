@@ -1,6 +1,7 @@
 import React from "react";
 
 import {MatrixEditorState, MatrixValidationIssue, createColumnSummaryKey} from "@/src/features/matrix/model";
+import {useMode} from "@/src/context/ThemeContext";
 import {MatrixValueCell} from "./MatrixValueCell";
 import {MatrixDensityProfile} from "./gridDensity";
 
@@ -40,9 +41,10 @@ export function MatrixSummaryAxes({
                                         onDraftChange,
                                         onCommitEdit,
                                         onCancelEdit,
-                                       expectedValue,
-                                       densityProfile,
-                                   }: MatrixSummaryAxesProps) {
+                                    expectedValue,
+                                    densityProfile,
+                                    }: MatrixSummaryAxesProps) {
+    const {theme} = useMode();
     return (
         <tfoot>
         <tr>
@@ -53,11 +55,11 @@ export function MatrixSummaryAxes({
                     position: "sticky",
                     left: 0,
                     zIndex: 3,
-                    background: "#eef4fb",
-                    borderTop: "1px solid #c6d5e5",
+                    background: theme.fgc.surface.subtle,
+                    borderTop: `1px solid ${theme.fgc.border.default}`,
                     minWidth: densityProfile.rowLabelWidth,
                     fontSize: densityProfile.labelFontSize,
-                    color: "#2e4b6d",
+                    color: theme.fgc.text.secondary,
                 }}
             >
                 P2 Freq
@@ -67,8 +69,8 @@ export function MatrixSummaryAxes({
                     key={column.id}
                     style={{
                         padding: `${densityProfile.cellPadding}px`,
-                        background: activeColumnId === column.id ? "#dfeefe" : "#fff",
-                        borderTop: activeColumnId === column.id ? "2px solid #3c71a8" : "1px solid #e2e8f0",
+                        background: activeColumnId === column.id ? theme.fgc.selection.hover : theme.fgc.surface.base,
+                        borderTop: activeColumnId === column.id ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.subtle}`,
                     }}
                 >
                     <MatrixValueCell

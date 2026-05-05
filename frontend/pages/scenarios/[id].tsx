@@ -15,6 +15,7 @@ import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 import {useCharacters} from "@/hooks/useCharacters";
+import {useMode} from "@/src/context/ThemeContext";
 
 const DEFAULT_EXECUTION_SELECTION: ScenarioExecutionSelection = {
     mode: "standard",
@@ -49,6 +50,7 @@ export default function ScenarioDetailPage() {
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [personalizedDefenderId, setPersonalizedDefenderId] = React.useState("");
     const [columnVisibilityByLabel, setColumnVisibilityByLabel] = React.useState<Record<string, boolean> | null>(null);
+    const {theme} = useMode();
 
     React.useEffect(() => {
         const authenticated = hasJwtToken();
@@ -226,9 +228,10 @@ export default function ScenarioDetailPage() {
                     gap: 12,
                     flexWrap: "wrap",
                     marginBottom: 16,
-                    border: "1px solid #e3e3e3",
+                    border: `1px solid ${theme.fgc.border.default}`,
                     borderRadius: 8,
                     padding: 10,
+                    background: theme.fgc.surface.base,
                 }}
             >
                 <AppTypography variant="body2">Execution Mode</AppTypography>
@@ -250,7 +253,7 @@ export default function ScenarioDetailPage() {
                             difficultyCap: nextMode === "difficulty_cap" ? current.difficultyCap ?? 3 : null,
                         }));
                     }}
-                    style={{height: 36, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
+                    style={{height: 36, borderRadius: 6, border: `1px solid ${theme.fgc.border.default}`, background: theme.fgc.control.default, color: theme.fgc.text.primary, padding: "0 10px"}}
                 >
                     <option value="standard">Standard</option>
                     <option value="difficulty_cap">Difficulty Cap</option>
@@ -269,7 +272,7 @@ export default function ScenarioDetailPage() {
                                     difficultyCap: Number.isFinite(nextCap) ? nextCap : 3,
                                 }));
                             }}
-                            style={{height: 36, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
+                            style={{height: 36, borderRadius: 6, border: `1px solid ${theme.fgc.border.default}`, background: theme.fgc.control.default, color: theme.fgc.text.primary, padding: "0 10px"}}
                         >
                             {Array.from({length: 7}).map((_, index) => {
                                 const level = index + 1;
@@ -302,7 +305,7 @@ export default function ScenarioDetailPage() {
                     <select
                         value={personalizedDefenderId}
                         onChange={(event) => setPersonalizedDefenderId(event.target.value)}
-                        style={{height: 36, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
+                        style={{height: 36, borderRadius: 6, border: `1px solid ${theme.fgc.border.default}`, background: theme.fgc.control.default, color: theme.fgc.text.primary, padding: "0 10px"}}
                     >
                         <option value="">Generic (All defensive options)</option>
                         {(characters as Array<{id: string; name: string}>).map((character) => (

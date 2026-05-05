@@ -1,5 +1,6 @@
 import React from "react";
 import {MatrixValidationIssue} from "@/src/features/matrix/model";
+import {useMode} from "@/src/context/ThemeContext";
 import {MatrixDensityProfile} from "./gridDensity";
 
 interface MatrixValueCellProps {
@@ -48,9 +49,10 @@ function MatrixValueCellComponent({
                                      onStartOverwriteEdit,
                                       onDraftChange,
                                       onCommitEdit,
-                                      onCancelEdit,
-                                      densityProfile,
-                                   }: MatrixValueCellProps) {
+                                    onCancelEdit,
+                                       densityProfile,
+                                    }: MatrixValueCellProps) {
+    const {theme} = useMode();
     const hasCommittedError = issues.length > 0;
 
     if (isEditing) {
@@ -75,8 +77,9 @@ function MatrixValueCellComponent({
                     minHeight: densityProfile.cellHeight,
                     fontSize: densityProfile.valueFontSize,
                     padding: "1px 6px",
-                    border: draftHasFormatError ? "1px solid #d8642b" : "1px solid #a8c0d8",
-                    background: draftHasFormatError ? "#fff3ea" : "#f8fbff",
+                    border: draftHasFormatError ? `1px solid ${theme.fgc.feedback.warning}` : `1px solid ${theme.fgc.border.default}`,
+                    background: draftHasFormatError ? theme.fgc.chip.warningBg : theme.fgc.control.default,
+                    color: theme.fgc.text.primary,
                     borderRadius: 6,
                 }}
                 aria-invalid={draftHasFormatError}
@@ -87,10 +90,10 @@ function MatrixValueCellComponent({
 
     const chipStyle =
         dynamicChipTone === "punish_counter"
-            ? {background: "#ffe7ba", border: "1px solid #ffd591", color: "#ad4e00"}
+            ? {background: theme.fgc.chip.warningBg, border: `1px solid ${theme.fgc.feedback.warning}`, color: theme.fgc.chip.warningText}
             : dynamicChipTone === "counter_hit"
-                ? {background: "#fffbe6", border: "1px solid #ffe58f", color: "#874d00"}
-                : {background: "#f5f5f5", border: "1px solid #d9d9d9", color: "#434343"};
+                ? {background: theme.fgc.highlight.surface, border: `1px solid ${theme.fgc.accent.warning}`, color: theme.fgc.text.secondary}
+                : {background: theme.fgc.chip.neutralBg, border: `1px solid ${theme.fgc.chip.neutralBorder}`, color: theme.fgc.chip.neutralText};
 
     return (
         <button
@@ -127,17 +130,18 @@ function MatrixValueCellComponent({
                     minHeight: densityProfile.cellHeight,
                     fontSize: densityProfile.valueFontSize,
                     border: hasCommittedError
-                        ? "2px solid #d45454"
+                        ? `2px solid ${theme.fgc.feedback.error}`
                         : isActive
-                            ? "2px solid #3d71a8"
-                            : "1px solid #b6c9dd",
+                            ? `2px solid ${theme.fgc.selection.active}`
+                            : `1px solid ${theme.fgc.border.default}`,
                     background: readOnly
-                        ? "#f2f6fb"
+                        ? theme.fgc.surface.sunken
                         : hasCommittedError
-                            ? "#fff2f2"
+                            ? theme.fgc.chip.warningBg
                             : axisHighlighted
-                                ? "#f1f7ff"
-                                : "#fff",
+                                ? theme.fgc.selection.hover
+                                : theme.fgc.surface.base,
+                    color: theme.fgc.text.primary,
                     cursor: "pointer",
                     borderRadius: 6,
                     fontVariantNumeric: "tabular-nums",
@@ -170,7 +174,7 @@ function MatrixValueCellComponent({
                             </span>
                         ))}
                     </span>
-                    <span style={{fontSize: Math.max(10, densityProfile.valueFontSize - 1), color: "#595959"}}>
+                    <span style={{fontSize: Math.max(10, densityProfile.valueFontSize - 1), color: theme.fgc.text.muted}}>
                         Current: {value === null ? "--" : value}
                     </span>
                 </span>

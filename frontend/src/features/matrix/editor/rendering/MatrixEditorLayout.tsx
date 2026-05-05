@@ -1,4 +1,5 @@
 import React from "react";
+import {useMode} from "@/src/context/ThemeContext";
 
 interface MatrixEditorLayoutProps {
     title?: string | null;
@@ -8,15 +9,20 @@ interface MatrixEditorLayoutProps {
 }
 
 export function MatrixEditorLayout({title, onDelete, warnings = [], children}: MatrixEditorLayoutProps) {
+    const {mode, theme} = useMode();
+    const isDark = mode === "dark";
+
     return (
         <section
             className="matrix-editor-shell"
             style={{
-                border: "1px solid #cfd9e3",
+                border: `1px solid ${theme.fgc.border.default}`,
                 borderRadius: 12,
                 padding: 10,
                 marginTop: 8,
-                background: "linear-gradient(180deg, #ffffff 0%, #f5f8fc 100%)",
+                background: isDark
+                    ? `linear-gradient(180deg, ${theme.fgc.surface.base} 0%, ${theme.fgc.surface.sunken} 100%)`
+                    : `linear-gradient(180deg, ${theme.fgc.surface.base} 0%, ${theme.fgc.background.subtle} 100%)`,
                 width: "100%",
                 maxWidth: "100%",
                 minWidth: 0,
@@ -26,13 +32,13 @@ export function MatrixEditorLayout({title, onDelete, warnings = [], children}: M
         >
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
                 <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                    <strong style={{fontSize: 13, letterSpacing: 0.2, color: "#1f334d"}}>{title ?? "Matrix Editor"}</strong>
+                    <strong style={{fontSize: 13, letterSpacing: 0.2, color: theme.fgc.text.primary}}>{title ?? "Matrix Editor"}</strong>
                     <span
                         style={{
-                            border: "1px solid #b7c9dd",
+                            border: `1px solid ${theme.fgc.border.default}`,
                             borderRadius: 999,
-                            background: "#edf3fb",
-                            color: "#375a84",
+                            background: theme.fgc.surface.interactive,
+                            color: theme.fgc.text.secondary,
                             fontSize: 11,
                             padding: "2px 8px",
                             fontWeight: 600,
@@ -50,9 +56,9 @@ export function MatrixEditorLayout({title, onDelete, warnings = [], children}: M
             {warnings.length > 0 ? (
                 <div
                     style={{
-                        border: "1px solid #ffd591",
-                        background: "#fff7e6",
-                        color: "#8c4a00",
+                        border: `1px solid ${theme.fgc.feedback.warning}`,
+                        background: theme.fgc.chip.warningBg,
+                        color: theme.fgc.chip.warningText,
                         padding: 8,
                         borderRadius: 6,
                         marginBottom: 8,

@@ -1,6 +1,7 @@
 import React from "react";
 
 import {MatrixBodyCell} from "@/src/features/matrix/model";
+import {useMode} from "@/src/context/ThemeContext";
 
 interface MatrixEditorToolbarProps {
     showAllLayers: boolean;
@@ -41,6 +42,7 @@ export function MatrixEditorToolbar({
     showLayerControls,
     onShowLayerControlsChange,
 }: MatrixEditorToolbarProps) {
+    const {theme} = useMode();
     const showCellActions = editable && !!selectedBodyCell && (canEditReferences || canEditDynamicCombos);
 
     return (
@@ -51,10 +53,10 @@ export function MatrixEditorToolbar({
                     gap: 8,
                     alignItems: "center",
                     flexWrap: "wrap",
-                    border: "1px solid #d9e2ec",
+                    border: `1px solid ${theme.fgc.border.default}`,
                     borderRadius: 10,
                     padding: 8,
-                    background: "linear-gradient(180deg, #ffffff 0%, #f7fafc 100%)",
+                    background: `linear-gradient(180deg, ${theme.fgc.surface.base} 0%, ${theme.fgc.surface.subtle} 100%)`,
                 }}
             >
                 <label style={{display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12}}>
@@ -62,7 +64,7 @@ export function MatrixEditorToolbar({
                     <select
                         value={showAllLayers ? "all" : "layer"}
                         onChange={(event) => onShowAllLayersChange(event.target.value === "all")}
-                        style={{height: 30, borderRadius: 6, border: "1px solid #cbd5e1", padding: "0 6px"}}
+                        style={{height: 30, borderRadius: 6, border: `1px solid ${theme.fgc.border.default}`, background: theme.fgc.control.default, color: theme.fgc.text.primary, padding: "0 6px"}}
                     >
                         <option value="layer">Up To Layer</option>
                         <option value="all">All Layers</option>
@@ -80,7 +82,7 @@ export function MatrixEditorToolbar({
                                 const next = Number(event.target.value);
                                 onSelectedLayerChange(Number.isFinite(next) ? Math.max(1, Math.trunc(next)) : 1);
                             }}
-                            style={{width: 72, height: 30, borderRadius: 6, border: "1px solid #cbd5e1", padding: "0 6px"}}
+                            style={{width: 72, height: 30, borderRadius: 6, border: `1px solid ${theme.fgc.border.default}`, background: theme.fgc.control.default, color: theme.fgc.text.primary, padding: "0 6px"}}
                         />
                     </label>
                 ) : null}
@@ -94,19 +96,19 @@ export function MatrixEditorToolbar({
                     style={{
                         height: 30,
                         borderRadius: 6,
-                        border: "1px solid #2c5e93",
-                        background: isSolving ? "#dbe8f6" : "linear-gradient(135deg, #356ba4 0%, #4a80b8 100%)",
-                        color: isSolving ? "#355578" : "#fff",
+                        border: `1px solid ${theme.fgc.action.secondary}`,
+                        background: isSolving ? theme.fgc.action.disabled : `linear-gradient(135deg, ${theme.fgc.action.secondary} 0%, ${theme.fgc.action.secondaryHover} 100%)`,
+                        color: isSolving ? theme.fgc.text.disabled : theme.palette.secondary.contrastText,
                         fontWeight: 600,
                     }}
                 >
                     {isSolving ? "Solving..." : "Solve Game"}
                 </button>
-                <span style={{fontSize: 12, color: "#334155"}}>
+                <span style={{fontSize: 12, color: theme.fgc.text.secondary}}>
                     {rowCount}x{columnCount}
                 </span>
-                <span style={{fontSize: 12, color: "#64748b"}}>{editable ? "Mode: Edit" : "Mode: View"}</span>
-                {selectedReferenceLabel ? <span style={{fontSize: 12, color: "#64748b"}}>Linked: {selectedReferenceLabel}</span> : null}
+                <span style={{fontSize: 12, color: theme.fgc.text.muted}}>{editable ? "Mode: Edit" : "Mode: View"}</span>
+                {selectedReferenceLabel ? <span style={{fontSize: 12, color: theme.fgc.text.muted}}>Linked: {selectedReferenceLabel}</span> : null}
             </div>
 
             {showCellActions ? (
@@ -116,17 +118,17 @@ export function MatrixEditorToolbar({
                         gap: 8,
                         alignItems: "center",
                         flexWrap: "wrap",
-                        border: "1px solid #d5e0ec",
+                        border: `1px solid ${theme.fgc.border.default}`,
                         borderRadius: 10,
-                        background: "#f8fbff",
+                        background: theme.fgc.surface.subtle,
                         padding: 8,
                     }}
                 >
-                    <span style={{fontSize: 12, color: "#4f6d8f", fontWeight: 600}}>Cell Action</span>
+                    <span style={{fontSize: 12, color: theme.fgc.text.secondary, fontWeight: 600}}>Cell Action</span>
                     {canEditReferences ? (
                         <button
                             type="button"
-                            style={{borderRadius: 6, border: "1px solid #9fb8d2", background: "#ffffff", height: 30, padding: "0 10px"}}
+                            style={{borderRadius: 6, border: `1px solid ${theme.fgc.border.default}`, background: theme.fgc.surface.base, color: theme.fgc.text.primary, height: 30, padding: "0 10px"}}
                             onClick={() => {
                                 if (selectedBodyCell) {
                                     onOpenReferenceLink(selectedBodyCell.key);
@@ -139,7 +141,7 @@ export function MatrixEditorToolbar({
                     {canEditDynamicCombos ? (
                         <button
                             type="button"
-                            style={{borderRadius: 6, border: "1px solid #9fb8d2", background: "#ffffff", height: 30, padding: "0 10px"}}
+                            style={{borderRadius: 6, border: `1px solid ${theme.fgc.border.default}`, background: theme.fgc.surface.base, color: theme.fgc.text.primary, height: 30, padding: "0 10px"}}
                             onClick={() => {
                                 if (selectedBodyCell) {
                                     onOpenDynamicCombo(selectedBodyCell.key);

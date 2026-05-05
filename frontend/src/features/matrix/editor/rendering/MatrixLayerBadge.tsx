@@ -1,4 +1,5 @@
 import React from "react";
+import {useMode} from "@/src/context/ThemeContext";
 
 import {MatrixDensityProfile} from "./gridDensity";
 
@@ -27,6 +28,7 @@ export function MatrixLayerBadge({
     onChange,
     densityProfile,
 }: MatrixLayerBadgeProps) {
+    const {theme} = useMode();
     const safeValue = clampLayer(value);
 
     const decrease = React.useCallback(() => {
@@ -54,9 +56,9 @@ export function MatrixLayerBadge({
                     minWidth: 28,
                     padding: "0 6px",
                     borderRadius: 999,
-                    border: "1px solid #d9d9d9",
-                    background: "#fafafa",
-                    color: "#595959",
+                    border: `1px solid ${theme.fgc.border.default}`,
+                    background: theme.fgc.surface.subtle,
+                    color: theme.fgc.text.muted,
                     fontSize: controlFontSize,
                     fontVariantNumeric: "tabular-nums",
                     lineHeight: 1,
@@ -76,10 +78,10 @@ export function MatrixLayerBadge({
                 marginTop: 4,
                 display: "inline-flex",
                 alignItems: "center",
-                border: "1px solid #d9d9d9",
+                border: `1px solid ${theme.fgc.border.default}`,
                 borderRadius: 8,
                 overflow: "hidden",
-                background: "#fff",
+                background: theme.fgc.surface.base,
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
             }}
         >
@@ -99,9 +101,9 @@ export function MatrixLayerBadge({
                 aria-label={`${axisLabel} layer ${safeValue}`}
                 style={{
                     border: "none",
-                    borderRight: "1px solid #ededed",
-                    background: "#fff",
-                    color: "#262626",
+                    borderRight: `1px solid ${theme.fgc.border.subtle}`,
+                    background: theme.fgc.surface.base,
+                    color: theme.fgc.text.primary,
                     minHeight,
                     minWidth: safeValue >= 10 ? 24 : 18,
                     padding: "0 4px",
@@ -126,9 +128,9 @@ export function MatrixLayerBadge({
                     onClick={increase}
                     style={{
                         border: "none",
-                        borderBottom: "1px solid #ededed",
-                        background: "#fafafa",
-                        color: "#595959",
+                        borderBottom: `1px solid ${theme.fgc.border.subtle}`,
+                        background: theme.fgc.surface.subtle,
+                        color: theme.fgc.text.muted,
                         height: buttonHeight,
                         width: 14,
                         cursor: "pointer",
@@ -147,8 +149,8 @@ export function MatrixLayerBadge({
                     onClick={decrease}
                     style={{
                         border: "none",
-                        background: safeValue <= 1 ? "#f5f5f5" : "#fafafa",
-                        color: safeValue <= 1 ? "#bfbfbf" : "#595959",
+                        background: safeValue <= 1 ? theme.fgc.surface.sunken : theme.fgc.surface.subtle,
+                        color: safeValue <= 1 ? theme.fgc.text.disabled : theme.fgc.text.muted,
                         height: buttonHeight,
                         width: 14,
                         cursor: safeValue <= 1 ? "not-allowed" : "pointer",

@@ -1,6 +1,7 @@
 import React from "react";
 
 import {MatrixEditorState, MatrixValidationIssue, createBodyCellKey, createRowSummaryKey, isEditableBodyCell} from "@/src/features/matrix/model";
+import {useMode} from "@/src/context/ThemeContext";
 import {MatrixValueCell} from "./MatrixValueCell";
 import {MatrixDensityProfile} from "./gridDensity";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
@@ -64,8 +65,9 @@ export function MatrixGridBody({
                                        onCommitEdit,
                                        onCancelEdit,
                                        densityProfile,
-                                       showLayerControls,
-                                    }: MatrixGridBodyProps) {
+                                     showLayerControls,
+                                     }: MatrixGridBodyProps) {
+    const {theme} = useMode();
     return (
         <tbody>
         {state.grid.rows.map((row) => {
@@ -79,8 +81,8 @@ export function MatrixGridBody({
                         position: "sticky",
                         left: 0,
                         zIndex: 3,
-                        background: rowIsActive ? "#dfeefe" : "#f5f8fc",
-                        borderRight: rowIsActive ? "2px solid #3c71a8" : "1px solid #d8e2ec",
+                        background: rowIsActive ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
+                        borderRight: rowIsActive ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.default}`,
                         minWidth: densityProfile.rowLabelWidth,
                     }}
                 >
@@ -96,8 +98,9 @@ export function MatrixGridBody({
                             fontSize: densityProfile.labelFontSize,
                             padding: "2px 6px",
                             borderRadius: 6,
-                            border: "1px solid #b8c9dc",
-                            background: "#fff",
+                            border: `1px solid ${theme.fgc.border.default}`,
+                            background: theme.fgc.control.default,
+                            color: theme.fgc.text.primary,
                         }}
                     />
                     {showLayerControls ? (
@@ -120,8 +123,8 @@ export function MatrixGridBody({
                             key={key}
                             style={{
                                 padding: `${densityProfile.cellPadding}px`,
-                                background: axisHighlighted ? "#f1f7ff" : "#fff",
-                                border: axisHighlighted ? "1px solid #c7d9ec" : "1px solid #edf2f7",
+                                background: axisHighlighted ? theme.fgc.selection.hover : theme.fgc.surface.base,
+                                border: axisHighlighted ? `1px solid ${theme.fgc.border.default}` : `1px solid ${theme.fgc.border.subtle}`,
                             }}
                         >
                             <MatrixValueCell
@@ -161,7 +164,7 @@ export function MatrixGridBody({
                         </td>
                     );
                 })}
-                <td style={{padding: `${densityProfile.cellPadding}px`, background: rowIsActive ? "#dfeefe" : "#fff"}}>
+                <td style={{padding: `${densityProfile.cellPadding}px`, background: rowIsActive ? theme.fgc.selection.hover : theme.fgc.surface.base}}>
                     <MatrixValueCell
                         value={state.grid.rowSummaryCells[createRowSummaryKey(row.id)]?.value ?? null}
                         isActive={activeKey === createRowSummaryKey(row.id)}
