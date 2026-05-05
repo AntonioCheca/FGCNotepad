@@ -26,8 +26,10 @@ export interface ScenarioListItem {
     typeLabel: string;
     defenderCharacterId: string | null;
     defenderCharacterName: string | null;
+    defenderCharacterLife?: number | null;
     attackerCharacterId: string | null;
     attackerCharacterName: string | null;
+    attackerCharacterLife?: number | null;
     triggerMoveId: string | null;
     triggerMoveLabel: string | null;
     updatedAt: string;
@@ -69,9 +71,40 @@ interface ScenarioExecutionModePayload {
     difficultyCap: number | null;
 }
 
-function buildExecutionPayload(selection?: ScenarioExecutionSelection): {executionMode?: ScenarioExecutionModePayload} {
+export interface ScenarioResourceContextPayload {
+    attacker: {
+        health: number;
+        drive: number;
+        super: number;
+    };
+    defender: {
+        health: number;
+        drive: number;
+        super: number;
+    };
+}
+
+export interface ScenarioLayerSolveSnapshot {
+    rowAxis: Array<number | null>;
+    columnAxis: Array<number | null>;
+    expectedValue: number | null;
+}
+
+export interface ScenarioLayerSolveResponse {
+    scenarioId: string;
+    executionMode: ScenarioExecutionModePayload;
+    maxLayer: number;
+    layers: Record<string, ScenarioLayerSolveSnapshot>;
+}
+
+function buildExecutionPayload(
+    selection?: ScenarioExecutionSelection,
+    resourceContext?: ScenarioResourceContextPayload
+): {executionMode?: ScenarioExecutionModePayload; resourceContext?: ScenarioResourceContextPayload} {
+    const resourcePayload = resourceContext ? {resourceContext} : {};
+
     if (!selection) {
-        return {};
+        return resourcePayload;
     }
 
     return {
@@ -79,6 +112,7 @@ function buildExecutionPayload(selection?: ScenarioExecutionSelection): {executi
             mode: selection.mode,
             difficultyCap: selection.mode === "difficulty_cap" ? selection.difficultyCap : null,
         },
+        ...resourcePayload,
     };
 }
 
@@ -127,18 +161,20 @@ export function useScenarios() {
 
     const resolveDynamicCells = React.useCallback(async (
         id: string,
-        executionSelection?: ScenarioExecutionSelection
+        executionSelection?: ScenarioExecutionSelection,
+        resourceContext?: ScenarioResourceContextPayload
     ): Promise<ResolveDynamicCellsResponse> => {
-        return request(() => api.post(`/scenarios/${id}/resolve-dynamic-cells`, buildExecutionPayload(executionSelection)));
+        return request(() => api.post(`/scenarios/${id}/resolve-dynamic-cells`, buildExecutionPayload(executionSelection, resourceContext)));
     }, [request]);
 
     const resolveDynamicCellPreview = React.useCallback(async (
         dynamicCombo: MatrixDynamicComboPayload,
-        executionSelection?: ScenarioExecutionSelection
+        executionSelection?: ScenarioExecutionSelection,
+        resourceContext?: ScenarioResourceContextPayload
     ): Promise<ResolveDynamicCellPreviewResponse> => {
         return request(() => api.post('/scenarios/resolve-dynamic-cell', {
             ...dynamicCombo,
-            ...buildExecutionPayload(executionSelection),
+            ...buildExecutionPayload(executionSelection, resourceContext),
         }));
     }, [request]);
 
@@ -154,6 +190,13 @@ export function useScenarios() {
         );
     }, [request]);
 
+    const solveScenarioLayers = React.useCallback(async (
+        id: string,
+        executionSelection?: ScenarioExecutionSelection
+    ): Promise<ScenarioLayerSolveResponse> => {
+        return request(() => api.post(`/scenarios/${id}/solve-layers`, buildExecutionPayload(executionSelection)));
+    }, [request]);
+
     return {
         listScenarios,
         getScenario,
@@ -163,5 +206,6 @@ export function useScenarios() {
         resolveDynamicCells,
         resolveDynamicCellPreview,
         getAggregatedDefenseCapabilities,
+        solveScenarioLayers,
     };
 }

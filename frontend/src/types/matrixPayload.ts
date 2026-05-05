@@ -19,12 +19,23 @@ export interface MatrixDynamicComboStarterContext {
  */
 export interface MatrixDynamicComboPayload {
     attackerCharacterId: string;
+    isComboInitiatorAttacker?: boolean;
     starterMoveIds: string[];
     starterContext: MatrixDynamicComboStarterContext;
 }
 
 export type MatrixCellType = "value" | "reference" | "computed" | "dynamic_combo" | "summary";
 export type MatrixCellDataType = "number" | "text" | "empty";
+export type MatrixResourceOwner = "attacker" | "defender";
+export type MatrixResourceType = "health" | "drive" | "super";
+export type MatrixResourceOperator = ">=";
+
+export interface MatrixResourceRequirementPayload {
+    owner: MatrixResourceOwner;
+    resource: MatrixResourceType;
+    operator: MatrixResourceOperator;
+    threshold: number;
+}
 
 export interface MatrixCellPayload {
     cellType: MatrixCellType;
@@ -40,6 +51,8 @@ export interface MatrixAxesPayload {
     columns: string[];
     rowLayers?: number[];
     columnLayers?: number[];
+    rowRequirements?: MatrixResourceRequirementPayload[][];
+    columnRequirements?: MatrixResourceRequirementPayload[][];
 }
 
 export interface MatrixSummaryPayload {
@@ -72,6 +85,8 @@ export interface MatrixSerializationInput {
     columns: string[];
     rowLayers?: Array<number | string | null | undefined>;
     columnLayers?: Array<number | string | null | undefined>;
+    rowRequirements?: Array<Array<MatrixResourceRequirementPayload | null | undefined> | null | undefined>;
+    columnRequirements?: Array<Array<MatrixResourceRequirementPayload | null | undefined> | null | undefined>;
     values: Array<Array<number | string | null | undefined>>;
     bodyCellTypes?: Array<Array<"value" | "reference" | "computed" | "dynamic_combo" | undefined>>;
     bodyCellMetadata?: Array<Array<Record<string, unknown> | undefined>>;

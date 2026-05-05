@@ -110,6 +110,8 @@ class AggregatedDefenseCatalogService
         $axes = is_array($matrix['axes'] ?? null) ? $matrix['axes'] : [];
         $rows = is_array($axes['rows'] ?? null) ? $axes['rows'] : [];
         $rowLayers = is_array($axes['rowLayers'] ?? null) ? $axes['rowLayers'] : [];
+        $rowRequirements = is_array($axes['rowRequirements'] ?? null) ? $axes['rowRequirements'] : [];
+        $sourceColumnRequirements = is_array($axes['columnRequirements'] ?? null) ? $axes['columnRequirements'] : [];
         $columns = $this->columnLabels();
 
         $cells = is_array($matrix['cells'] ?? null) ? $matrix['cells'] : [];
@@ -146,6 +148,11 @@ class AggregatedDefenseCatalogService
                 'columns' => $columns,
                 'rowLayers' => $rowLayers,
                 'columnLayers' => array_fill(0, count($columns), 1),
+                'rowRequirements' => $rowRequirements,
+                'columnRequirements' => array_map(
+                    static fn (int $index): array => is_array($sourceColumnRequirements[$index] ?? null) ? $sourceColumnRequirements[$index] : [],
+                    array_keys($columns)
+                ),
             ],
             'cells' => $normalizedCells,
             'summary' => array_merge($summary, [

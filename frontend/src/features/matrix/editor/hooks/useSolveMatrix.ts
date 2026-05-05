@@ -13,6 +13,8 @@ interface UseSolveMatrixOptions {
     solveGame: (payoffMatrix: Record<string, Record<string, number>>) => Promise<unknown>;
     resolveDynamicCellsForSolve: () => Promise<Record<string, number | null>>;
     forceSolveColumnIds?: string[] | null;
+    unavailableRowIds?: Set<string>;
+    unavailableColumnIds?: Set<string>;
 }
 
 export function useSolveMatrix({
@@ -24,6 +26,8 @@ export function useSolveMatrix({
     solveGame,
     resolveDynamicCellsForSolve,
     forceSolveColumnIds,
+    unavailableRowIds = new Set<string>(),
+    unavailableColumnIds = new Set<string>(),
 }: UseSolveMatrixOptions) {
     const [isSolving, setIsSolving] = React.useState(false);
 
@@ -38,11 +42,21 @@ export function useSolveMatrix({
             const solveColumns = forcedColumnSet
                 ? candidateColumns.filter((column) => forcedColumnSet.has(column.id))
                 : candidateColumns;
+            const legalRows = solveRows.filter((row) => !unavailableRowIds.has(row.id));
+            const legalColumns = solveColumns.filter((column) => !unavailableColumnIds.has(column.id));
+
+            unavailableRowIds.forEach((rowId) => dispatch(actions.setRowSummaryValue(rowId, 0)));
+            unavailableColumnIds.forEach((columnId) => dispatch(actions.setColumnSummaryValue(columnId, 0)));
+
+            if (legalRows.length === 0 || legalColumns.length === 0) {
+                dispatch(actions.setGlobalValidation([{code: "unknown", message: "No legal resource-available actions remain for solving."}]));
+                return;
+            }
 
             const payoffMatrix = buildPayoffMatrix({
                 state: currentState,
-                rows: solveRows,
-                columns: solveColumns,
+                rows: legalRows,
+                columns: legalColumns,
                 displayedBodyValues,
                 dynamicOverrides,
             });
@@ -57,14 +71,14 @@ export function useSolveMatrix({
                 return;
             }
 
-            const nextRowActions = solveRows.flatMap((row) => {
+            const nextRowActions = legalRows.flatMap((row) => {
                 const rowKey = row.label.trim() || row.id;
                 const p1Value = (equilibrium as Record<string, Record<string, unknown>>).P1?.[rowKey];
                 const numeric = typeof p1Value === "number" && Number.isFinite(p1Value) ? p1Value : 0;
                 return actions.setRowSummaryValue(row.id, numeric);
             });
 
-            const nextColumnActions = solveColumns.flatMap((column) => {
+            const nextColumnActions = legalColumns.flatMap((column) => {
                 const columnKey = column.label.trim() || column.id;
                 const p2Value = (equilibrium as Record<string, Record<string, unknown>>).P2?.[columnKey];
                 const numeric = typeof p2Value === "number" && Number.isFinite(p2Value) ? p2Value : 0;
@@ -78,7 +92,7 @@ export function useSolveMatrix({
         } finally {
             setIsSolving(false);
         }
-    }, [actions, dispatch, displayedBodyValues, effectiveLayerLimit, forceSolveColumnIds, resolveDynamicCellsForSolve, solveGame, stateRef]);
+    }, [actions, dispatch, displayedBodyValues, effectiveLayerLimit, forceSolveColumnIds, resolveDynamicCellsForSolve, solveGame, stateRef, unavailableColumnIds, unavailableRowIds]);
 
     return {
         isSolving,

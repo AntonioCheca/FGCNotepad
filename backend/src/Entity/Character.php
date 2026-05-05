@@ -26,6 +26,10 @@ class Character
     #[Groups(["move:read", "character:read", "combo:read"])]
     private string $name;
 
+    #[ORM\Column(type: Types::INTEGER, options: ['default' => 10000])]
+    #[Groups(["character:read"])]
+    private int $life = 10000;
+
     /**
      * @var Collection<int, Move>
      */
@@ -51,6 +55,18 @@ class Character
     public function setName(string $name): self
     {
         $this->name = $name;
+        return $this;
+    }
+
+    public function getLife(): int
+    {
+        return $this->life;
+    }
+
+    public function setLife(int $life): self
+    {
+        $this->life = $life;
+
         return $this;
     }
 

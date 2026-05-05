@@ -13,6 +13,8 @@ use App\Service\ModerationTransitionService;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioExecutionModeService;
 use App\Service\ScenarioResponseBuilder;
+use App\Service\ScenarioLayerSolveService;
+use App\Service\ScenarioResourceContextService;
 use App\Service\ResolveScenarioDynamicComboCellsService;
 use App\Service\ResolveDynamicComboCellService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -39,10 +41,12 @@ class ScenarioController extends AbstractController
         private readonly MoveRepository $moveRepository,
         private readonly AggregatedDefenseCatalogService $aggregatedDefenseCatalogService,
         private readonly ScenarioResponseBuilder $scenarioResponseBuilder,
+        private readonly ScenarioLayerSolveService $scenarioLayerSolveService,
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
+        private readonly ScenarioResourceContextService $scenarioResourceContextService,
         private readonly EndpointAuthorizationService $endpointAuthorizationService,
         private readonly ModerationTransitionService $moderationTransitionService,
     ) {
@@ -87,13 +91,15 @@ class ScenarioController extends AbstractController
         $data = $this->decodeRequestBody($request);
         $scenario = new Scenario();
 
-        $this->hydrateScenario($scenario, $data, true, $actor);
-        $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
-        $scenario->setAuthor($actor);
-        $this->moderationTransitionService->submitScenarioForReview($scenario);
+        $this->entityManager->getConnection()->transactional(function () use ($scenario, $data, $actor): void {
+            $this->hydrateScenario($scenario, $data, true, $actor);
+            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
+            $scenario->setAuthor($actor);
+            $this->moderationTransitionService->submitScenarioForReview($scenario);
 
-        $this->entityManager->persist($scenario);
-        $this->entityManager->flush();
+            $this->entityManager->persist($scenario);
+            $this->entityManager->flush();
+        });
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_CREATED);
     }
@@ -137,15 +143,17 @@ class ScenarioController extends AbstractController
 
         $data = $this->decodeRequestBody($request);
 
-        $this->hydrateScenario($scenario, $data, false, $actor);
+        $this->entityManager->getConnection()->transactional(function () use ($scenario, $data, $actor): void {
+            $this->hydrateScenario($scenario, $data, false, $actor);
 
-        if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data)) {
-            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
-        }
+            if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data)) {
+                $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
+            }
 
-        $this->moderationTransitionService->submitScenarioForReview($scenario);
+            $this->moderationTransitionService->submitScenarioForReview($scenario);
 
-        $this->entityManager->flush();
+            $this->entityManager->flush();
+        });
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
     }
@@ -218,12 +226,15 @@ class ScenarioController extends AbstractController
         }
 
         $execution = $this->parseExecutionModePayload($request);
+        $requestPayload = $this->decodeOptionalRequestBody($request);
+        $resourceContext = $this->scenarioResourceContextService->parseOptional($requestPayload);
 
         $summary = $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
             $scenario,
             $actor,
             $execution['mode'],
-            $execution['difficultyCap']
+            $execution['difficultyCap'],
+            $resourceContext
         );
         $this->entityManager->flush();
 
@@ -234,6 +245,35 @@ class ScenarioController extends AbstractController
                 'mode' => $execution['mode'],
                 'difficultyCap' => $execution['difficultyCap'],
             ],
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/{id}/solve-layers', name: 'solve_layers', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
+    public function solveLayers(string $id, Request $request): JsonResponse
+    {
+        $scenario = $this->findByPublicId($id);
+        $execution = $this->parseExecutionModePayload($request);
+
+        if ('my_knowledge' === $execution['mode']) {
+            return new JsonResponse([
+                'error' => 'Execution mode my_knowledge is not supported for scenario layer cache.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $solvedLayers = $this->scenarioLayerSolveService->solveByLayer(
+            $scenario,
+            $execution['mode'],
+            $execution['difficultyCap']
+        );
+
+        return new JsonResponse([
+            'scenarioId' => $scenario->getPublicId()->toRfc4122(),
+            'executionMode' => [
+                'mode' => $execution['mode'],
+                'difficultyCap' => $execution['difficultyCap'],
+            ],
+            'maxLayer' => $solvedLayers['maxLayer'],
+            'layers' => $solvedLayers['layers'],
         ], JsonResponse::HTTP_OK);
     }
 
@@ -282,6 +322,8 @@ class ScenarioController extends AbstractController
             : null;
         $requestedDifficultyCap = $this->scenarioExecutionModeService->normalizeDifficultyCap($executionPayload['difficultyCap'] ?? null);
         $normalizedMode = $this->scenarioExecutionModeService->normalizeMode($requestedMode, null !== $this->extractCurrentUser());
+        $resourceContext = $this->scenarioResourceContextService->parseOptional($data);
+        $resourceOwner = true === ($data['isComboInitiatorAttacker'] ?? true) ? 'attacker' : 'defender';
 
         $resolution = $this->resolveDynamicComboCellService->resolve(
             $attackerCharacterId,
@@ -289,7 +331,8 @@ class ScenarioController extends AbstractController
             $hitType,
             $this->extractCurrentUser(),
             $normalizedMode,
-            $requestedDifficultyCap
+            $requestedDifficultyCap,
+            null !== $resourceContext ? $resourceContext[$resourceOwner] : null
         );
 
         return new JsonResponse([
@@ -399,6 +442,24 @@ class ScenarioController extends AbstractController
     private function decodeRequestBody(Request $request): array
     {
         $decoded = json_decode($request->getContent(), true);
+        if (!is_array($decoded)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeOptionalRequestBody(Request $request): array
+    {
+        $content = trim($request->getContent());
+        if ('' === $content) {
+            return [];
+        }
+
+        $decoded = json_decode($content, true);
         if (!is_array($decoded)) {
             throw new BadRequestHttpException('Invalid JSON payload.');
         }

@@ -6,6 +6,7 @@ import {
     MatrixDeserializationResult,
     MatrixEditorState,
     MatrixPayload,
+    MatrixResourceRequirementPayload,
 } from "@/src/types/matrixPayload";
 import {createDefaultMatrixPayload, serializeMatrixPayload} from "@/src/features/matrix/serialization/serializeMatrixPayload";
 
@@ -46,12 +47,65 @@ function coerceDynamicCombo(value: unknown): MatrixDynamicComboPayload | undefin
 
     return {
         attackerCharacterId: value.attackerCharacterId,
+        ...(typeof value.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: value.isComboInitiatorAttacker} : {}),
         starterMoveIds: value.starterMoveIds.filter((moveId): moveId is string => typeof moveId === "string"),
         starterContext: {
             isPunishCounter: starterContext.isPunishCounter,
             isCounterHit: starterContext.isCounterHit,
         },
     };
+}
+
+function coerceRequirement(value: unknown, issues: string[], context: string): MatrixResourceRequirementPayload | null {
+    if (!isRecord(value)) {
+        issues.push(`${context}: requirement is not an object; ignored.`);
+        return null;
+    }
+
+    const owner = value.owner;
+    const resource = value.resource;
+    const threshold = value.threshold;
+
+    if (owner !== "attacker" && owner !== "defender") {
+        issues.push(`${context}.owner must be attacker or defender; ignored.`);
+        return null;
+    }
+    if (resource !== "health" && resource !== "drive" && resource !== "super") {
+        issues.push(`${context}.resource must be health, drive, or super; ignored.`);
+        return null;
+    }
+    if (value.operator !== ">=") {
+        issues.push(`${context}.operator must be >=; ignored.`);
+        return null;
+    }
+    if (typeof threshold !== "number" || !Number.isFinite(threshold) || threshold < 0) {
+        issues.push(`${context}.threshold must be a non-negative number; ignored.`);
+        return null;
+    }
+
+    return {
+        owner,
+        resource,
+        operator: ">=",
+        threshold: resource === "drive" ? threshold : Math.trunc(threshold),
+    };
+}
+
+function coerceRequirements(source: unknown, count: number, issues: string[], context: string): MatrixResourceRequirementPayload[][] {
+    if (!Array.isArray(source)) {
+        return Array.from({length: count}, () => []);
+    }
+
+    return Array.from({length: count}, (_, axisIndex) => {
+        const rawRequirements = source[axisIndex];
+        if (!Array.isArray(rawRequirements)) {
+            return [];
+        }
+
+        return rawRequirements
+            .map((requirement, requirementIndex) => coerceRequirement(requirement, issues, `${context}[${axisIndex}][${requirementIndex}]`))
+            .filter((requirement): requirement is MatrixResourceRequirementPayload => requirement !== null);
+    });
 }
 
 function coerceCell(cell: unknown, issues: string[], context: string): MatrixCellPayload {
@@ -160,6 +214,8 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
     const columnLayers = Array.isArray(axes.columnLayers)
         ? axes.columnLayers.map((value) => asNumberOrFallback(value, 1))
         : [];
+    const rowRequirements = coerceRequirements(axes.rowRequirements, normalizedRows.length, issues, "axes.rowRequirements");
+    const columnRequirements = coerceRequirements(axes.columnRequirements, normalizedColumns.length, issues, "axes.columnRequirements");
 
     const rawCells = Array.isArray(raw.cells) ? raw.cells : [];
     const normalizedBodyCellTypes = normalizedRows.map((_, rowIndex) => {
@@ -212,6 +268,8 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
         columns: normalizedColumns,
         rowLayers,
         columnLayers,
+        rowRequirements,
+        columnRequirements,
         values: normalizedValues,
         bodyCellTypes: normalizedBodyCellTypes,
         bodyCellDynamicCombos: normalizedBodyCellDynamicCombos,

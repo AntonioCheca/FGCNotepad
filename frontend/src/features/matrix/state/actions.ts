@@ -1,4 +1,4 @@
-import {MatrixDynamicComboData, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
+import {MatrixDynamicComboData, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
 
 export type MatrixAction =
     | { type: "grid/replaceState"; payload: { state: import("../model/stateTypes").MatrixEditorState } }
@@ -13,6 +13,9 @@ export type MatrixAction =
     | { type: "grid/setExpectedValue"; payload: { value: number | null } }
     | { type: "grid/setAxisLabel"; payload: { axis: "rows" | "columns"; axisId: string; label: string } }
     | { type: "grid/setAxisLayer"; payload: { axis: "rows" | "columns"; axisId: string; layer: number } }
+    | { type: "grid/addAxisRequirement"; payload: { axis: "rows" | "columns"; axisId: string; requirement: MatrixResourceRequirement } }
+    | { type: "grid/updateAxisRequirement"; payload: { axis: "rows" | "columns"; axisId: string; index: number; requirement: MatrixResourceRequirement } }
+    | { type: "grid/removeAxisRequirement"; payload: { axis: "rows" | "columns"; axisId: string; index: number } }
     | { type: "grid/addRow" }
     | { type: "grid/removeRow"; payload: { rowId: string } }
     | { type: "grid/addColumn" }
@@ -51,6 +54,18 @@ export const matrixActions = {
     setAxisLayer: (axis: "rows" | "columns", axisId: string, layer: number): MatrixAction => ({
         type: "grid/setAxisLayer",
         payload: {axis, axisId, layer},
+    }),
+    addAxisRequirement: (axis: "rows" | "columns", axisId: string, requirement: MatrixResourceRequirement): MatrixAction => ({
+        type: "grid/addAxisRequirement",
+        payload: {axis, axisId, requirement},
+    }),
+    updateAxisRequirement: (axis: "rows" | "columns", axisId: string, index: number, requirement: MatrixResourceRequirement): MatrixAction => ({
+        type: "grid/updateAxisRequirement",
+        payload: {axis, axisId, index, requirement},
+    }),
+    removeAxisRequirement: (axis: "rows" | "columns", axisId: string, index: number): MatrixAction => ({
+        type: "grid/removeAxisRequirement",
+        payload: {axis, axisId, index},
     }),
     linkReferenceCell: (key: string, scenarioId: string, scenarioLabel: string): MatrixAction => ({
         type: "grid/linkReferenceCell",

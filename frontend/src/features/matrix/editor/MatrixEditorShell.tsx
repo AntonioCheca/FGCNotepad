@@ -22,6 +22,7 @@ import {useMoveLabels} from "./hooks/useMoveLabels";
 import {useDynamicComboResolver} from "./hooks/useDynamicComboResolver";
 import {useSolveMatrix} from "./hooks/useSolveMatrix";
 import {useMatrixEditorPanels} from "./hooks/useMatrixEditorPanels";
+import {buildMatrixResourceGating, MatrixResourceContext} from "./services/matrixResourceGating";
 
 interface MatrixEditorShellProps {
     matrix: MatrixPayload;
@@ -38,9 +39,14 @@ interface MatrixEditorShellProps {
     onRefreshDynamicCells?: () => Promise<MatrixPayload>;
     onResolveDynamicComboCell?: (dynamicCombo: {
         attackerCharacterId: string;
+        isComboInitiatorAttacker?: boolean;
         starterMoveIds: string[];
         starterContext: {isPunishCounter: boolean; isCounterHit: boolean};
     }) => Promise<number | null>;
+    layerSolveSnapshots?: Record<number, {rowAxis: Array<number | null>; columnAxis: Array<number | null>; expectedValue: number | null}>;
+    onLayerViewChange?: (layerLimit: number | null) => void;
+    displayFrequenciesAsPercent?: boolean;
+    resourceContext?: MatrixResourceContext | null;
 }
 
 export function MatrixEditorShell({
@@ -57,6 +63,10 @@ export function MatrixEditorShell({
     onDelete,
     onRefreshDynamicCells,
     onResolveDynamicComboCell,
+    layerSolveSnapshots,
+    onLayerViewChange,
+    displayFrequenciesAsPercent = false,
+    resourceContext = null,
 }: MatrixEditorShellProps) {
     const {solveGame} = useSolverGames();
     const isEditorEditable = editable;
@@ -163,6 +173,8 @@ export function MatrixEditorShell({
         };
     }, [columnVisibilitySet, visibleState]);
 
+    const resourceGating = React.useMemo(() => buildMatrixResourceGating(state, resourceContext), [resourceContext, state]);
+
     const forceSolveColumnIds = React.useMemo(() => {
         if (!columnVisibilitySet) {
             return null;
@@ -180,6 +192,72 @@ export function MatrixEditorShell({
 
         return computeExpectedValue(values, rowWeights, columnWeights);
     }, [filteredVisibleState]);
+
+    const summaryValueFormatter = React.useMemo(() => {
+        if (!displayFrequenciesAsPercent) {
+            return undefined;
+        }
+
+        return (value: number | null): string => {
+            if (value === null) {
+                return "";
+            }
+            return `${(value * 100).toFixed(2)}%`;
+        };
+    }, [displayFrequenciesAsPercent]);
+
+    React.useEffect(() => {
+        if (onLayerViewChange) {
+            onLayerViewChange(effectiveLayerLimit);
+        }
+    }, [effectiveLayerLimit, onLayerViewChange]);
+
+    React.useEffect(() => {
+        if (isEditorEditable || showAllLayers || effectiveLayerLimit === null || !layerSolveSnapshots) {
+            return;
+        }
+
+        const snapshot = layerSolveSnapshots[effectiveLayerLimit];
+        if (!snapshot) {
+            return;
+        }
+
+        state.grid.rows.forEach((row, index) => {
+            const value = snapshot.rowAxis[index];
+            if (typeof value === "number" && Number.isFinite(value)) {
+                const current = state.grid.rowSummaryCells[`row-summary::${row.id}`]?.value;
+                if (current !== value) {
+                    dispatch(actions.setRowSummaryValue(row.id, value));
+                }
+            }
+        });
+
+        state.grid.columns.forEach((column, index) => {
+            const value = snapshot.columnAxis[index];
+            if (typeof value === "number" && Number.isFinite(value)) {
+                const current = state.grid.columnSummaryCells[`column-summary::${column.id}`]?.value;
+                if (current !== value) {
+                    dispatch(actions.setColumnSummaryValue(column.id, value));
+                }
+            }
+        });
+
+        if (typeof snapshot.expectedValue === "number" && Number.isFinite(snapshot.expectedValue) && state.grid.expectedValueCell.value !== snapshot.expectedValue) {
+            dispatch(actions.setExpectedValue(snapshot.expectedValue));
+        }
+    }, [
+        actions,
+        dispatch,
+        effectiveLayerLimit,
+        isEditorEditable,
+        layerSolveSnapshots,
+        showAllLayers,
+        state.grid.columns,
+        state.grid.columnSummaryCells,
+        state.grid.expectedValueCell.value,
+        state.grid.rowSummaryCells,
+        state.grid.rows,
+    ]);
 
     React.useEffect(() => {
         if (state.grid.expectedValueCell.value !== expectedValue) {
@@ -387,6 +465,8 @@ export function MatrixEditorShell({
         solveGame,
         resolveDynamicCellsForSolve,
         forceSolveColumnIds,
+        unavailableRowIds: resourceGating.unavailableRowIds,
+        unavailableColumnIds: resourceGating.unavailableColumnIds,
     });
 
     const canMutateActiveSelection = React.useMemo(() => {
@@ -542,6 +622,10 @@ export function MatrixEditorShell({
                         validationByKey={state.validation.byKey}
                         displayedBodyValues={referenceResolution.displayedBodyValues}
                         moveLabelById={moveLabelById}
+                        unavailableRowIds={resourceGating.unavailableRowIds}
+                        unavailableColumnIds={resourceGating.unavailableColumnIds}
+                        unavailableReasonByRowId={resourceGating.reasonByRowId}
+                        unavailableReasonByColumnId={resourceGating.reasonByColumnId}
                         canEditRowStructure={canEditRowStructure}
                         canEditColumnStructure={canEditColumnStructure}
                         canEditRowAxisLabels={canEditRowAxisLabels}
@@ -574,6 +658,12 @@ export function MatrixEditorShell({
                         onColumnLabelChange={(columnId, label) => dispatch(actions.setAxisLabel("columns", columnId, label))}
                         onRowLayerChange={(rowId, layer) => dispatch(actions.setAxisLayer("rows", rowId, layer))}
                         onColumnLayerChange={(columnId, layer) => dispatch(actions.setAxisLayer("columns", columnId, layer))}
+                        onAddRowRequirement={(rowId, requirement) => dispatch(actions.addAxisRequirement("rows", rowId, requirement))}
+                        onUpdateRowRequirement={(rowId, index, requirement) => dispatch(actions.updateAxisRequirement("rows", rowId, index, requirement))}
+                        onRemoveRowRequirement={(rowId, index) => dispatch(actions.removeAxisRequirement("rows", rowId, index))}
+                        onAddColumnRequirement={(columnId, requirement) => dispatch(actions.addAxisRequirement("columns", columnId, requirement))}
+                        onUpdateColumnRequirement={(columnId, index, requirement) => dispatch(actions.updateAxisRequirement("columns", columnId, index, requirement))}
+                        onRemoveColumnRequirement={(columnId, index) => dispatch(actions.removeAxisRequirement("columns", columnId, index))}
                         onSelectBodyCell={(rowId, columnId) => selectTarget(toSelectionTarget("body", rowId, columnId))}
                         onSelectRowHeader={(rowId) => selectTarget(toSelectionTarget("rowSummary", rowId), false)}
                         onSelectColumnHeader={(columnId) => selectTarget(toSelectionTarget("columnSummary", columnId), false)}
@@ -589,6 +679,7 @@ export function MatrixEditorShell({
                         onCancelEdit={cancelEditAndRefocus}
                         density="standard"
                         showLayerControls={showLayerControls}
+                        summaryValueFormatter={summaryValueFormatter}
                     />
                     </div>
 

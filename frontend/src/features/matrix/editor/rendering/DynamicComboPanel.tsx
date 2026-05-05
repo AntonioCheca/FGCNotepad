@@ -383,6 +383,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
                             }, {});
                             onConfirm({
                                 attackerCharacterId: selectedCharacter.id,
+                                ...(typeof initialValue?.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: initialValue.isComboInitiatorAttacker} : {}),
                                 starterMoveIds: starterSelections.map((item) => item.id),
                                 starterContext,
                             }, starterLabels);

@@ -1,11 +1,18 @@
 import React from "react";
 
-import {MatrixDensityMode, MatrixEditorState, MatrixSelectionTarget, MatrixValidationIssue} from "@/src/features/matrix/model";
+import {MatrixDensityMode, MatrixEditorState, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue} from "@/src/features/matrix/model";
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixGridHeader} from "./MatrixGridHeader";
 import {MatrixGridBody} from "./MatrixGridBody";
 import {MatrixSummaryAxes} from "./MatrixSummaryAxes";
 import {resolveDensityProfile} from "./gridDensity";
+import {FloatingAxisRequirementEditor} from "./AxisRequirementEditor";
+
+type RequirementEditorTarget = {
+    axis: "rows" | "columns";
+    axisId: string;
+    anchorRect: DOMRect;
+};
 
 interface MatrixGridProps {
     state: MatrixEditorState;
@@ -20,6 +27,10 @@ interface MatrixGridProps {
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
     moveLabelById: Record<string, string>;
+    unavailableRowIds?: Set<string>;
+    unavailableColumnIds?: Set<string>;
+    unavailableReasonByRowId?: Record<string, string>;
+    unavailableReasonByColumnId?: Record<string, string>;
     canEditRowStructure: boolean;
     canEditColumnStructure: boolean;
     canEditRowAxisLabels: boolean;
@@ -36,6 +47,12 @@ interface MatrixGridProps {
     onColumnLabelChange: (columnId: string, label: string) => void;
     onRowLayerChange: (rowId: string, layer: number) => void;
     onColumnLayerChange: (columnId: string, layer: number) => void;
+    onAddRowRequirement: (rowId: string, requirement: MatrixResourceRequirement) => void;
+    onUpdateRowRequirement: (rowId: string, index: number, requirement: MatrixResourceRequirement) => void;
+    onRemoveRowRequirement: (rowId: string, index: number) => void;
+    onAddColumnRequirement: (columnId: string, requirement: MatrixResourceRequirement) => void;
+    onUpdateColumnRequirement: (columnId: string, index: number, requirement: MatrixResourceRequirement) => void;
+    onRemoveColumnRequirement: (columnId: string, index: number) => void;
     onSelectRowHeader: (rowId: string) => void;
     onSelectColumnHeader: (columnId: string) => void;
     onSelectBodyCell: (rowId: string, columnId: string) => void;
@@ -51,6 +68,7 @@ interface MatrixGridProps {
     onCancelEdit: () => void;
     density: MatrixDensityMode;
     showLayerControls: boolean;
+    summaryValueFormatter?: (value: number | null) => string;
 }
 
 export function MatrixGrid({
@@ -63,10 +81,14 @@ export function MatrixGrid({
                                editingKey,
                                draft,
                                 draftHasFormatError,
-                                 validationByKey,
-                                  displayedBodyValues,
-                                  moveLabelById,
-                                  canEditRowStructure,
+                                   validationByKey,
+                                   displayedBodyValues,
+                                   moveLabelById,
+                                   unavailableRowIds = new Set<string>(),
+                                   unavailableColumnIds = new Set<string>(),
+                                   unavailableReasonByRowId = {},
+                                   unavailableReasonByColumnId = {},
+                                   canEditRowStructure,
                                  canEditColumnStructure,
                                  canEditRowAxisLabels,
                                  canEditColumnAxisLabels,
@@ -80,8 +102,14 @@ export function MatrixGrid({
                                  onRemoveColumn,
                                  onRowLabelChange,
                                  onColumnLabelChange,
-                                  onRowLayerChange,
-                                  onColumnLayerChange,
+                                   onRowLayerChange,
+                                   onColumnLayerChange,
+                                   onAddRowRequirement,
+                                   onUpdateRowRequirement,
+                                   onRemoveRowRequirement,
+                                   onAddColumnRequirement,
+                                   onUpdateColumnRequirement,
+                                   onRemoveColumnRequirement,
                                   onSelectRowHeader,
                                   onSelectColumnHeader,
                                   onSelectBodyCell,
@@ -97,9 +125,11 @@ export function MatrixGrid({
                                   onCancelEdit,
                                  density,
                                  showLayerControls,
-                               }: MatrixGridProps) {
+                                 summaryValueFormatter,
+                                }: MatrixGridProps) {
     const {theme} = useMode();
     const [structureSelection, setStructureSelection] = React.useState<{axis: "row" | "column"; id: string} | null>(null);
+    const [requirementTarget, setRequirementTarget] = React.useState<RequirementEditorTarget | null>(null);
 
     const profile = React.useMemo(
         () => resolveDensityProfile(density, state.grid.rows.length, state.grid.columns.length),
@@ -160,12 +190,29 @@ export function MatrixGrid({
         onSelectExpectedValue();
     }, [onSelectExpectedValue]);
 
+    const handleOpenRowRequirements = React.useCallback((rowId: string, anchor: HTMLElement) => {
+        setStructureSelection({axis: "row", id: rowId});
+        onSelectRowHeader(rowId);
+        setRequirementTarget({axis: "rows", axisId: rowId, anchorRect: anchor.getBoundingClientRect()});
+    }, [onSelectRowHeader]);
+
+    const handleOpenColumnRequirements = React.useCallback((columnId: string, anchor: HTMLElement) => {
+        setStructureSelection({axis: "column", id: columnId});
+        onSelectColumnHeader(columnId);
+        setRequirementTarget({axis: "columns", axisId: columnId, anchorRect: anchor.getBoundingClientRect()});
+    }, [onSelectColumnHeader]);
+
     const selectedColumnHeaderId = structureSelection?.axis === "column" ? structureSelection.id : null;
     const selectedRowHeaderId = structureSelection?.axis === "row" ? structureSelection.id : null;
     const showRemoveColumn = canEditColumnStructure && selectedColumnHeaderId !== null;
     const showRemoveRow = canEditRowStructure && selectedRowHeaderId !== null;
+    const activeRequirementAxis = requirementTarget
+        ? state.grid[requirementTarget.axis].find((axis) => axis.id === requirementTarget.axisId) ?? null
+        : null;
+    const canEditActiveRequirementAxis = requirementTarget?.axis === "rows" ? canEditRowAxisLabels : canEditColumnAxisLabels;
 
     return (
+        <>
         <div
             style={{
                 overflow: "auto",
@@ -192,10 +239,13 @@ export function MatrixGrid({
                 <MatrixGridHeader
                     state={state}
                     activeColumnId={activeColumnId}
+                    unavailableColumnIds={unavailableColumnIds}
+                    unavailableReasonByColumnId={unavailableReasonByColumnId}
                     canEditColumnAxisLabels={canEditColumnAxisLabels}
                     canEditColumnLayers={canEditColumnLayers}
                     onColumnLabelChange={onColumnLabelChange}
                     onColumnLayerChange={onColumnLayerChange}
+                    onOpenColumnRequirements={handleOpenColumnRequirements}
                     onSelectColumnHeader={handleSelectColumnHeader}
                     densityProfile={profile}
                     showLayerControls={showLayerControls}
@@ -205,6 +255,10 @@ export function MatrixGrid({
                     activeKey={activeKey}
                     activeRowId={activeRowId}
                     activeColumnId={activeColumnId}
+                    unavailableRowIds={unavailableRowIds}
+                    unavailableColumnIds={unavailableColumnIds}
+                    unavailableReasonByRowId={unavailableReasonByRowId}
+                    unavailableReasonByColumnId={unavailableReasonByColumnId}
                     editingKey={editingKey}
                     draft={draft}
                     draftHasFormatError={draftHasFormatError}
@@ -217,6 +271,7 @@ export function MatrixGrid({
                     canEditSummaries={canEditSummaries}
                     onRowLabelChange={onRowLabelChange}
                     onRowLayerChange={onRowLayerChange}
+                    onOpenRowRequirements={handleOpenRowRequirements}
                     onSelectRowHeader={handleSelectRowHeader}
                     onSelectBodyCell={handleSelectBodyCell}
                     onSelectRowSummary={handleSelectRowSummary}
@@ -229,11 +284,14 @@ export function MatrixGrid({
                     onCancelEdit={onCancelEdit}
                     densityProfile={profile}
                     showLayerControls={showLayerControls}
+                    summaryValueFormatter={summaryValueFormatter}
                 />
                 <MatrixSummaryAxes
                     state={state}
                     activeKey={activeKey}
                     activeColumnId={activeColumnId}
+                    unavailableColumnIds={unavailableColumnIds}
+                    unavailableReasonByColumnId={unavailableReasonByColumnId}
                     editingKey={editingKey}
                     draft={draft}
                     draftHasFormatError={draftHasFormatError}
@@ -248,6 +306,7 @@ export function MatrixGrid({
                     onCancelEdit={onCancelEdit}
                     expectedValue={expectedValue}
                     densityProfile={profile}
+                    summaryValueFormatter={summaryValueFormatter}
                 />
             </table>
             {canEditRowStructure || canEditColumnStructure ? (
@@ -294,5 +353,36 @@ export function MatrixGrid({
                 </div>
             ) : null}
         </div>
+        {requirementTarget && activeRequirementAxis ? (
+            <FloatingAxisRequirementEditor
+                axisLabel={activeRequirementAxis.label || (requirementTarget.axis === "rows" ? "Row" : "Column")}
+                requirements={activeRequirementAxis.requirements}
+                readOnly={!canEditActiveRequirementAxis}
+                anchorRect={requirementTarget.anchorRect}
+                onAdd={(requirement) => {
+                    if (requirementTarget.axis === "rows") {
+                        onAddRowRequirement(requirementTarget.axisId, requirement);
+                        return;
+                    }
+                    onAddColumnRequirement(requirementTarget.axisId, requirement);
+                }}
+                onUpdate={(index, requirement) => {
+                    if (requirementTarget.axis === "rows") {
+                        onUpdateRowRequirement(requirementTarget.axisId, index, requirement);
+                        return;
+                    }
+                    onUpdateColumnRequirement(requirementTarget.axisId, index, requirement);
+                }}
+                onRemove={(index) => {
+                    if (requirementTarget.axis === "rows") {
+                        onRemoveRowRequirement(requirementTarget.axisId, index);
+                        return;
+                    }
+                    onRemoveColumnRequirement(requirementTarget.axisId, index);
+                }}
+                onClose={() => setRequirementTarget(null)}
+            />
+        ) : null}
+        </>
     );
 }

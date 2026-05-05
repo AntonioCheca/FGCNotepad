@@ -34,6 +34,9 @@ services:
         arguments:
             $driveBarValue: '%app.combo_resource.drive_bar_value%'
             $superBarValue: '%app.combo_resource.super_bar_value%'
+    App\Service\ScenarioLayerSolveService:
+        arguments:
+            $cachePool: '@cache.app'
     App\Serializer\Normalizer\:
         resource: '../src/Serializer/Normalizer'
         tags:

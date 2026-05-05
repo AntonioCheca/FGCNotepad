@@ -282,7 +282,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
         string $hitType,
         ?array $allowedComboIds,
         ?int $maxDifficulty,
-        bool $includeUnratedDifficulty
+        bool $includeUnratedDifficulty,
+        ?float $availableDrive = null,
+        ?float $availableSuper = null,
     ): ?array {
         if ([] === $starterMoveIds) {
             return null;
@@ -323,7 +325,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
             $hitType,
             $allowedComboIds,
             $maxDifficulty,
-            $includeUnratedDifficulty
+            $includeUnratedDifficulty,
+            $availableDrive,
+            $availableSuper
         );
     }
 
@@ -460,7 +464,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
         string $hitType,
         ?array $allowedComboIds,
         ?int $maxDifficulty,
-        bool $includeUnratedDifficulty
+        bool $includeUnratedDifficulty,
+        ?float $availableDrive = null,
+        ?float $availableSuper = null,
     ): ?array {
         if (null !== $allowedComboIds) {
             $qb->andWhere('combo.id IN (:allowedComboIds)')
@@ -475,6 +481,16 @@ class ComboSequencesRepository extends ServiceEntityRepository
             }
 
             $qb->setParameter('maxDifficulty', $maxDifficulty);
+        }
+
+        if (null !== $availableDrive) {
+            $qb->andWhere('(metrics.driveCost IS NULL OR metrics.driveCost <= :availableDrive)')
+                ->setParameter('availableDrive', $availableDrive);
+        }
+
+        if (null !== $availableSuper) {
+            $qb->andWhere('(metrics.superCost IS NULL OR metrics.superCost <= :availableSuper)')
+                ->setParameter('availableSuper', $availableSuper);
         }
 
         if ('normal' === $hitType) {

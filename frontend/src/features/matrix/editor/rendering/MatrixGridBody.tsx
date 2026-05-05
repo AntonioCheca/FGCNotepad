@@ -5,12 +5,17 @@ import {useMode} from "@/src/context/ThemeContext";
 import {MatrixValueCell} from "./MatrixValueCell";
 import {MatrixDensityProfile} from "./gridDensity";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
+import {AxisRequirementTrigger} from "./AxisRequirementEditor";
 
 interface MatrixGridBodyProps {
     state: MatrixEditorState;
     activeKey: string | null;
     activeRowId: string | null;
     activeColumnId: string | null;
+    unavailableRowIds: Set<string>;
+    unavailableColumnIds: Set<string>;
+    unavailableReasonByRowId: Record<string, string>;
+    unavailableReasonByColumnId: Record<string, string>;
     editingKey: string | null;
     draft: string;
     draftHasFormatError: boolean;
@@ -23,6 +28,7 @@ interface MatrixGridBodyProps {
     canEditSummaries: boolean;
     onRowLabelChange: (rowId: string, label: string) => void;
     onRowLayerChange: (rowId: string, layer: number) => void;
+    onOpenRowRequirements: (rowId: string, anchor: HTMLElement) => void;
     onSelectRowHeader: (rowId: string) => void;
     onSelectBodyCell: (rowId: string, columnId: string) => void;
     onSelectRowSummary: (rowId: string) => void;
@@ -35,6 +41,7 @@ interface MatrixGridBodyProps {
     onCancelEdit: () => void;
     densityProfile: MatrixDensityProfile;
     showLayerControls: boolean;
+    summaryValueFormatter?: (value: number | null) => string;
 }
 
 export function MatrixGridBody({
@@ -42,7 +49,11 @@ export function MatrixGridBody({
                                    activeKey,
                                    activeRowId,
                                    activeColumnId,
-                                     editingKey,
+                                   unavailableRowIds,
+                                   unavailableColumnIds,
+                                   unavailableReasonByRowId,
+                                   unavailableReasonByColumnId,
+                                      editingKey,
                                      draft,
                                      draftHasFormatError,
                                        validationByKey,
@@ -52,8 +63,9 @@ export function MatrixGridBody({
                                       canEditRowLayers,
                                        canEditBodyValues,
                                        canEditSummaries,
-                                      onRowLabelChange,
-                                      onRowLayerChange,
+                                        onRowLabelChange,
+                                        onRowLayerChange,
+                                        onOpenRowRequirements,
                                       onSelectRowHeader,
                                      onSelectBodyCell,
                                      onSelectRowSummary,
@@ -65,25 +77,30 @@ export function MatrixGridBody({
                                        onCommitEdit,
                                        onCancelEdit,
                                        densityProfile,
-                                     showLayerControls,
-                                     }: MatrixGridBodyProps) {
+                                      showLayerControls,
+                                      summaryValueFormatter,
+                                      }: MatrixGridBodyProps) {
     const {theme} = useMode();
     return (
         <tbody>
         {state.grid.rows.map((row) => {
             const rowIsActive = activeRowId === row.id;
+            const rowUnavailable = unavailableRowIds.has(row.id);
             return (
             <tr key={row.id}>
                 <th
+                    title={unavailableReasonByRowId[row.id]}
                     style={{
                         textAlign: "left",
                         padding: `${densityProfile.cellPadding}px`,
                         position: "sticky",
                         left: 0,
                         zIndex: 3,
-                        background: rowIsActive ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
+                        background: rowUnavailable ? theme.fgc.surface.sunken : rowIsActive ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
                         borderRight: rowIsActive ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.default}`,
                         minWidth: densityProfile.rowLabelWidth,
+                        height: densityProfile.cellHeight,
+                        opacity: rowUnavailable ? 0.72 : 1,
                     }}
                 >
                     <input
@@ -100,9 +117,14 @@ export function MatrixGridBody({
                             borderRadius: 6,
                             border: `1px solid ${theme.fgc.border.default}`,
                             background: theme.fgc.control.default,
-                            color: theme.fgc.text.primary,
+                            color: rowUnavailable ? theme.fgc.text.disabled : theme.fgc.text.primary,
                         }}
                     />
+                    {rowUnavailable ? (
+                        <span style={{position: "absolute", right: 4, top: 3, fontSize: 9, color: theme.fgc.text.disabled}}>
+                            Unavailable
+                        </span>
+                    ) : null}
                     {showLayerControls ? (
                         <MatrixLayerBadge
                             value={row.layer}
@@ -113,18 +135,30 @@ export function MatrixGridBody({
                             densityProfile={densityProfile}
                         />
                     ) : null}
+                    <AxisRequirementTrigger
+                        axisLabel={row.label || "Row"}
+                        requirements={row.requirements}
+                        readOnly={!canEditRowAxisLabels}
+                        isActive={rowIsActive}
+                        onOpen={(anchor) => onOpenRowRequirements(row.id, anchor)}
+                    />
                 </th>
                 {state.grid.columns.map((column) => {
                     const key = createBodyCellKey(row.id, column.id);
                     const cell = state.grid.bodyCells[key];
                     const axisHighlighted = rowIsActive || activeColumnId === column.id;
+                    const columnUnavailable = unavailableColumnIds.has(column.id);
+                    const cellUnavailable = rowUnavailable || columnUnavailable;
+                    const unavailableReason = rowUnavailable ? unavailableReasonByRowId[row.id] : unavailableReasonByColumnId[column.id];
                     return (
                         <td
                             key={key}
+                            title={unavailableReason}
                             style={{
                                 padding: `${densityProfile.cellPadding}px`,
-                                background: axisHighlighted ? theme.fgc.selection.hover : theme.fgc.surface.base,
+                                background: cellUnavailable ? theme.fgc.surface.sunken : axisHighlighted ? theme.fgc.selection.hover : theme.fgc.surface.base,
                                 border: axisHighlighted ? `1px solid ${theme.fgc.border.default}` : `1px solid ${theme.fgc.border.subtle}`,
+                                opacity: cellUnavailable ? 0.68 : 1,
                             }}
                         >
                             <MatrixValueCell
@@ -150,6 +184,7 @@ export function MatrixGridBody({
                                 draftHasFormatError={editingKey === key ? draftHasFormatError : false}
                                 issues={validationByKey[key] ?? []}
                                 axisHighlighted={axisHighlighted}
+                                unavailable={cellUnavailable}
                                 readOnly={!canEditBodyValues || !isEditableBodyCell(cell)}
                                 onOpenReferenceLink={cell?.kind === "reference" ? () => onOpenReferenceLink(key) : undefined}
                                 onOpenDynamicCombo={cell?.kind === "dynamic_combo" ? () => onOpenDynamicCombo(key) : undefined}
@@ -166,13 +201,15 @@ export function MatrixGridBody({
                 })}
                 <td style={{padding: `${densityProfile.cellPadding}px`, background: rowIsActive ? theme.fgc.selection.hover : theme.fgc.surface.base}}>
                     <MatrixValueCell
-                        value={state.grid.rowSummaryCells[createRowSummaryKey(row.id)]?.value ?? null}
+                        value={rowUnavailable ? 0 : state.grid.rowSummaryCells[createRowSummaryKey(row.id)]?.value ?? null}
+                        valueFormatter={summaryValueFormatter}
                         isActive={activeKey === createRowSummaryKey(row.id)}
                         isEditing={editingKey === createRowSummaryKey(row.id)}
                         draft={draft}
                         draftHasFormatError={editingKey === createRowSummaryKey(row.id) ? draftHasFormatError : false}
                         issues={validationByKey[createRowSummaryKey(row.id)] ?? []}
                         axisHighlighted={rowIsActive}
+                        unavailable={rowUnavailable}
                         readOnly={!canEditSummaries}
                         onSelect={() => onSelectRowSummary(row.id)}
                         onStartEdit={() => onStartEdit(createRowSummaryKey(row.id))}

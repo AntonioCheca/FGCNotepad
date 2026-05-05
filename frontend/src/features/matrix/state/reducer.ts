@@ -1,5 +1,5 @@
 import {createBodyCellKey, createColumnSummaryKey, createExpectedValueKey, createRowSummaryKey, isBodyCellKey, isColumnSummaryKey, isRowSummaryKey} from "../model/keys";
-import {MatrixAxisItem, MatrixEditorState, MatrixSelectionTarget} from "../model/stateTypes";
+import {MatrixAxisItem, MatrixEditorState, MatrixResourceRequirement, MatrixSelectionTarget} from "../model/stateTypes";
 import {validateCommittedNumericDraft} from "../model/numericValidation";
 import {isEditableBodyCell} from "../model/cellGuards";
 import {MatrixAction} from "./actions";
@@ -10,6 +10,43 @@ function createNextAxisItem(axis: MatrixAxisItem[], prefix: "row" | "column"): M
         id: `${prefix}_${nextIndex}`,
         label: `${prefix === "row" ? "Row" : "Column"} ${nextIndex}`,
         layer: 1,
+        requirements: [],
+    };
+}
+
+function normalizeRequirement(requirement: MatrixResourceRequirement): MatrixResourceRequirement {
+    const resource = requirement.resource === "drive" || requirement.resource === "super" ? requirement.resource : "health";
+    const rawThreshold = Number.isFinite(requirement.threshold) ? requirement.threshold : 0;
+
+    return {
+        owner: requirement.owner === "defender" ? "defender" : "attacker",
+        resource,
+        operator: ">=",
+        threshold: Math.max(0, resource === "drive" ? rawThreshold : Math.trunc(rawThreshold)),
+    };
+}
+
+function updateAxisRequirements(
+    state: MatrixEditorState,
+    axis: "rows" | "columns",
+    axisId: string,
+    updater: (requirements: MatrixResourceRequirement[]) => MatrixResourceRequirement[]
+): MatrixEditorState {
+    const currentAxis = state.grid[axis];
+    const nextAxis = currentAxis.map((item) =>
+        item.id === axisId ? {...item, requirements: updater(item.requirements)} : item
+    );
+
+    return {
+        ...state,
+        grid: {
+            ...state.grid,
+            [axis]: nextAxis,
+        },
+        derived: {
+            ...state.derived,
+            isDirty: true,
+        },
     };
 }
 
@@ -230,6 +267,7 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                             reference: null,
                             dynamicCombo: {
                                 attackerCharacterId: action.payload.dynamicCombo.attackerCharacterId,
+                                ...(typeof action.payload.dynamicCombo.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: action.payload.dynamicCombo.isComboInitiatorAttacker} : {}),
                                 starterMoveIds: [...action.payload.dynamicCombo.starterMoveIds],
                                 starterContext: {
                                     isPunishCounter: action.payload.dynamicCombo.starterContext.isPunishCounter,
@@ -383,6 +421,27 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     isDirty: true,
                 },
             };
+        }
+
+        case "grid/addAxisRequirement": {
+            return updateAxisRequirements(state, action.payload.axis, action.payload.axisId, (requirements) => [
+                ...requirements,
+                normalizeRequirement(action.payload.requirement),
+            ]);
+        }
+
+        case "grid/updateAxisRequirement": {
+            return updateAxisRequirements(state, action.payload.axis, action.payload.axisId, (requirements) =>
+                requirements.map((requirement, index) =>
+                    index === action.payload.index ? normalizeRequirement(action.payload.requirement) : requirement
+                )
+            );
+        }
+
+        case "grid/removeAxisRequirement": {
+            return updateAxisRequirements(state, action.payload.axis, action.payload.axisId, (requirements) =>
+                requirements.filter((_, index) => index !== action.payload.index)
+            );
         }
 
         case "grid/addRow": {

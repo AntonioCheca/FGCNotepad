@@ -5,6 +5,7 @@ import {MatrixDensityProfile} from "./gridDensity";
 
 interface MatrixValueCellProps {
     value: number | null;
+    valueFormatter?: (value: number | null) => string;
     dynamicChipLabels?: string[];
     dynamicChipTone?: "normal" | "counter_hit" | "punish_counter";
     bodyCellKind?: "static" | "reference" | "dynamic_combo";
@@ -14,6 +15,7 @@ interface MatrixValueCellProps {
     draftHasFormatError?: boolean;
     issues?: MatrixValidationIssue[];
     axisHighlighted?: boolean;
+    unavailable?: boolean;
     readOnly?: boolean;
     onOpenReferenceLink?: () => void;
     onOpenDynamicCombo?: () => void;
@@ -31,17 +33,19 @@ function isPrintableKey(event: React.KeyboardEvent<HTMLButtonElement>): boolean 
 }
 
 function MatrixValueCellComponent({
-                                      value,
-                                      dynamicChipLabels = [],
+                                       value,
+                                       valueFormatter,
+                                       dynamicChipLabels = [],
                                       dynamicChipTone = "normal",
                                       bodyCellKind,
                                       isActive,
                                      isEditing,
                                     draft,
                                     draftHasFormatError = false,
-                                    issues = [],
-                                     axisHighlighted = false,
-                                     readOnly = false,
+                                     issues = [],
+                                      axisHighlighted = false,
+                                      unavailable = false,
+                                      readOnly = false,
                                      onOpenReferenceLink,
                                       onOpenDynamicCombo,
                                       onSelect,
@@ -95,6 +99,8 @@ function MatrixValueCellComponent({
                 ? {background: theme.fgc.highlight.surface, border: `1px solid ${theme.fgc.accent.warning}`, color: theme.fgc.text.secondary}
                 : {background: theme.fgc.chip.neutralBg, border: `1px solid ${theme.fgc.chip.neutralBorder}`, color: theme.fgc.chip.neutralText};
 
+    const displayValue = valueFormatter ? valueFormatter(value) : value === null ? "" : String(value);
+
     return (
         <button
             type="button"
@@ -134,22 +140,24 @@ function MatrixValueCellComponent({
                         : isActive
                             ? `2px solid ${theme.fgc.selection.active}`
                             : `1px solid ${theme.fgc.border.default}`,
-                    background: readOnly
+                    background: unavailable
+                        ? theme.fgc.surface.sunken
+                        : readOnly
                         ? theme.fgc.surface.sunken
                         : hasCommittedError
                             ? theme.fgc.chip.warningBg
                             : axisHighlighted
                                 ? theme.fgc.selection.hover
                                 : theme.fgc.surface.base,
-                    color: theme.fgc.text.primary,
+                    color: unavailable ? theme.fgc.text.disabled : theme.fgc.text.primary,
                     cursor: "pointer",
                     borderRadius: 6,
                     fontVariantNumeric: "tabular-nums",
                     padding: dynamicChipLabels.length > 0 ? "4px" : undefined,
                     textAlign: "left",
                 }}
-            aria-label={readOnly ? "Read-only cell" : "Editable cell"}
-            title={issues[0]?.message}
+            aria-label={unavailable ? "Unavailable cell" : readOnly ? "Read-only cell" : "Editable cell"}
+            title={issues[0]?.message ?? (unavailable ? "Unavailable due to resource requirements" : undefined)}
         >
             {dynamicChipLabels.length > 0 ? (
                 <span style={{display: "grid", gap: 4}}>
@@ -178,7 +186,7 @@ function MatrixValueCellComponent({
                         Current: {value === null ? "--" : value}
                     </span>
                 </span>
-            ) : value === null ? "" : value}
+            ) : displayValue}
         </button>
     );
 }
@@ -189,6 +197,7 @@ export const MatrixValueCell = React.memo(MatrixValueCellComponent, (previous, n
 
     return (
         previous.value === next.value &&
+        previous.valueFormatter === next.valueFormatter &&
         previous.bodyCellKind === next.bodyCellKind &&
         (previous.dynamicChipLabels?.join("|") ?? "") === (next.dynamicChipLabels?.join("|") ?? "") &&
         previous.dynamicChipTone === next.dynamicChipTone &&
@@ -197,6 +206,7 @@ export const MatrixValueCell = React.memo(MatrixValueCellComponent, (previous, n
         previous.draft === next.draft &&
         previous.draftHasFormatError === next.draftHasFormatError &&
         previous.axisHighlighted === next.axisHighlighted &&
+        previous.unavailable === next.unavailable &&
         previous.readOnly === next.readOnly &&
         (previous.issues?.length ?? 0) === (next.issues?.length ?? 0) &&
         previousFirstIssue?.code === nextFirstIssue?.code &&

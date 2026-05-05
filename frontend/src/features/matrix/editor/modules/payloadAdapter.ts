@@ -28,6 +28,7 @@ function toDynamicComboPayload(value: unknown): MatrixDynamicComboPayload | null
 
     return {
         attackerCharacterId: record.attackerCharacterId,
+        ...(typeof record.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: record.isComboInitiatorAttacker} : {}),
         starterMoveIds: record.starterMoveIds.filter((moveId): moveId is string => typeof moveId === "string"),
         starterContext: {
             isPunishCounter: starterContext.isPunishCounter,
@@ -49,11 +50,13 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
         id: `row_${index + 1}`,
         label,
         layer: typeof safe.axes.rowLayers?.[index] === "number" ? safe.axes.rowLayers[index] : 1,
+        requirements: safe.axes.rowRequirements?.[index] ?? [],
     }));
     runtime.grid.columns = safe.axes.columns.map((label, index) => ({
         id: `column_${index + 1}`,
         label,
         layer: typeof safe.axes.columnLayers?.[index] === "number" ? safe.axes.columnLayers[index] : 1,
+        requirements: safe.axes.columnRequirements?.[index] ?? [],
     }));
 
     safe.axes.rows.forEach((_, rowIndex) => {
@@ -132,6 +135,8 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
     const columns = state.grid.columns.map((column) => column.label);
     const rowLayers = state.grid.rows.map((row) => row.layer);
     const columnLayers = state.grid.columns.map((column) => column.layer);
+    const rowRequirements = state.grid.rows.map((row) => row.requirements);
+    const columnRequirements = state.grid.columns.map((column) => column.requirements);
     const values = state.grid.rows.map((row) =>
         state.grid.columns.map((column) => state.grid.bodyCells[`body::${row.id}::${column.id}`]?.value ?? null)
     );
@@ -171,6 +176,7 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
 
             return {
                 attackerCharacterId: cell.dynamicCombo.attackerCharacterId,
+                ...(typeof cell.dynamicCombo.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: cell.dynamicCombo.isComboInitiatorAttacker} : {}),
                 starterMoveIds: [...cell.dynamicCombo.starterMoveIds],
                 starterContext: {
                     isPunishCounter: cell.dynamicCombo.starterContext.isPunishCounter,
@@ -189,6 +195,8 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
         columns,
         rowLayers,
         columnLayers,
+        rowRequirements,
+        columnRequirements,
         values,
         bodyCellTypes,
         bodyCellMetadata,

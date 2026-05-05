@@ -5,6 +5,7 @@ import api from "@/services/api";
 export interface Character {
     id: string;
     name: string;
+    life?: number;
     game?: string;
     imageUrl?: string;
 }
@@ -14,11 +15,13 @@ let cachedCharacters: Character[] | null = null;
 export function useCharacters() {
     const {request} = useApi();
     const [characters, setCharacters] = useState<Character[]>(cachedCharacters ?? []);
-    const [loading, setLoading] = useState(!cachedCharacters);
+    const hasLifeInCache = cachedCharacters !== null && cachedCharacters.every((character) => typeof character.life === "number");
+    const [loading, setLoading] = useState(!hasLifeInCache);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        if (cachedCharacters) return;
+        const cacheHasLife = cachedCharacters !== null && cachedCharacters.every((character) => typeof character.life === "number");
+        if (cacheHasLife) return;
 
         let canceled = false;
         setLoading(true);

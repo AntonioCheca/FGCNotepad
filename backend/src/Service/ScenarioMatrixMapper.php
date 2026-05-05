@@ -5,8 +5,10 @@ namespace App\Service;
 use App\Entity\Move;
 use App\Entity\Scenario;
 use App\Entity\ScenarioCell;
+use App\Entity\ScenarioColumnResourceRequirement;
 use App\Entity\ScenarioColumn;
 use App\Entity\ScenarioRow;
+use App\Entity\ScenarioRowResourceRequirement;
 use App\Repository\MoveRepository;
 use App\Repository\ScenarioRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +33,8 @@ class ScenarioMatrixMapper
         $columns = is_array($axes['columns'] ?? null) ? $axes['columns'] : null;
         $rowLayers = is_array($axes['rowLayers'] ?? null) ? $axes['rowLayers'] : [];
         $columnLayers = is_array($axes['columnLayers'] ?? null) ? $axes['columnLayers'] : [];
+        $rowRequirements = is_array($axes['rowRequirements'] ?? null) ? $axes['rowRequirements'] : [];
+        $columnRequirements = is_array($axes['columnRequirements'] ?? null) ? $axes['columnRequirements'] : [];
 
         if (null === $rows || null === $columns || [] === $rows || [] === $columns) {
             throw new BadRequestHttpException('Matrix payload must include non-empty axes.rows and axes.columns.');
@@ -58,6 +62,10 @@ class ScenarioMatrixMapper
             $this->entityManager->remove($column);
         }
 
+        if (null !== $scenario->getId()) {
+            $this->entityManager->flush();
+        }
+
         $rowEntities = [];
         foreach ($rows as $index => $rowLabel) {
             $row = (new ScenarioRow())
@@ -66,6 +74,15 @@ class ScenarioMatrixMapper
                 ->setLabel($this->normalizeLabel($rowLabel, sprintf('Row %d', $index + 1)))
                 ->setLayer($this->extractLayerValue($rowLayers[$index] ?? null))
                 ->setSummaryValue($this->extractNumericValue($rowAxis[$index] ?? null));
+
+            foreach ($this->normalizeRequirements($rowRequirements[$index] ?? [], sprintf('axes.rowRequirements[%d]', $index)) as $requirementIndex => $requirement) {
+                $row->addResourceRequirement((new ScenarioRowResourceRequirement())
+                    ->setPosition($requirementIndex)
+                    ->setResourceOwner($requirement['owner'])
+                    ->setResourceType($requirement['resource'])
+                    ->setOperator($requirement['operator'])
+                    ->setThresholdValue($requirement['threshold']));
+            }
 
             $scenario->addRow($row);
             $rowEntities[$index] = $row;
@@ -79,6 +96,15 @@ class ScenarioMatrixMapper
                 ->setLabel($this->normalizeLabel($columnLabel, sprintf('Column %d', $index + 1)))
                 ->setLayer($this->extractLayerValue($columnLayers[$index] ?? null))
                 ->setSummaryValue($this->extractNumericValue($columnAxis[$index] ?? null));
+
+            foreach ($this->normalizeRequirements($columnRequirements[$index] ?? [], sprintf('axes.columnRequirements[%d]', $index)) as $requirementIndex => $requirement) {
+                $column->addResourceRequirement((new ScenarioColumnResourceRequirement())
+                    ->setPosition($requirementIndex)
+                    ->setResourceOwner($requirement['owner'])
+                    ->setResourceType($requirement['resource'])
+                    ->setOperator($requirement['operator'])
+                    ->setThresholdValue($requirement['threshold']));
+            }
 
             $scenario->addColumn($column);
             $columnEntities[$index] = $column;
@@ -134,6 +160,8 @@ class ScenarioMatrixMapper
                 'columns' => array_map(static fn (ScenarioColumn $column): string => $column->getLabel(), $columns),
                 'rowLayers' => array_map(static fn (ScenarioRow $row): int => $row->getLayer(), $rows),
                 'columnLayers' => array_map(static fn (ScenarioColumn $column): int => $column->getLayer(), $columns),
+                'rowRequirements' => array_map(fn (ScenarioRow $row): array => $this->buildRequirementsPayload($row->getResourceRequirements()->toArray()), $rows),
+                'columnRequirements' => array_map(fn (ScenarioColumn $column): array => $this->buildRequirementsPayload($column->getResourceRequirements()->toArray()), $columns),
             ],
             'cells' => $matrixCells,
             'summary' => [
@@ -207,6 +235,7 @@ class ScenarioMatrixMapper
 
             $cell->setKind(ScenarioCell::KIND_DYNAMIC_COMBO)
                 ->setStarterContext($contextValue)
+                ->setIsComboInitiatorAttacker($this->resolveComboInitiator($scenario, $dynamicCombo))
                 ->setCachedValue($this->extractNumericValue($sourceCell));
 
             foreach ($starterMoveIds as $moveId) {
@@ -233,6 +262,79 @@ class ScenarioMatrixMapper
         return $cell
             ->setKind(ScenarioCell::KIND_STATIC)
             ->setStaticValue($this->extractNumericValue($sourceCell));
+    }
+
+    /**
+     * @return list<array{owner: string, resource: string, operator: string, threshold: float}>
+     */
+    private function normalizeRequirements(mixed $requirements, string $path): array
+    {
+        if (!is_array($requirements)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($requirements as $index => $requirement) {
+            if (!is_array($requirement)) {
+                throw new BadRequestHttpException(sprintf('%s[%d] must be an object.', $path, (int) $index));
+            }
+
+            $owner = $requirement['owner'] ?? null;
+            $resource = $requirement['resource'] ?? null;
+            $operator = $requirement['operator'] ?? null;
+            $threshold = $requirement['threshold'] ?? null;
+
+            if (!in_array($owner, ['attacker', 'defender'], true)) {
+                throw new BadRequestHttpException(sprintf('%s[%d].owner must be attacker or defender.', $path, (int) $index));
+            }
+            if (!in_array($resource, ['health', 'drive', 'super'], true)) {
+                throw new BadRequestHttpException(sprintf('%s[%d].resource must be health, drive, or super.', $path, (int) $index));
+            }
+            if ('>=' !== $operator) {
+                throw new BadRequestHttpException(sprintf('%s[%d].operator must be >=.', $path, (int) $index));
+            }
+            if (!is_int($threshold) && !is_float($threshold)) {
+                throw new BadRequestHttpException(sprintf('%s[%d].threshold must be numeric.', $path, (int) $index));
+            }
+
+            $numericThreshold = (float) $threshold;
+            if ($numericThreshold < 0) {
+                throw new BadRequestHttpException(sprintf('%s[%d].threshold must be non-negative.', $path, (int) $index));
+            }
+            if (in_array($resource, ['health', 'super'], true) && floor($numericThreshold) !== $numericThreshold) {
+                throw new BadRequestHttpException(sprintf('%s[%d].threshold must be an integer for %s requirements.', $path, (int) $index, $resource));
+            }
+
+            $normalized[] = [
+                'owner' => $owner,
+                'resource' => $resource,
+                'operator' => '>=',
+                'threshold' => $numericThreshold,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param list<ScenarioRowResourceRequirement|ScenarioColumnResourceRequirement> $requirements
+     *
+     * @return list<array{owner: string, resource: string, operator: string, threshold: float|int}>
+     */
+    private function buildRequirementsPayload(array $requirements): array
+    {
+        usort($requirements, static fn (ScenarioRowResourceRequirement|ScenarioColumnResourceRequirement $a, ScenarioRowResourceRequirement|ScenarioColumnResourceRequirement $b): int => $a->getPosition() <=> $b->getPosition());
+
+        return array_map(static function (ScenarioRowResourceRequirement|ScenarioColumnResourceRequirement $requirement): array {
+            $threshold = $requirement->getThresholdValue();
+
+            return [
+                'owner' => $requirement->getResourceOwner(),
+                'resource' => $requirement->getResourceType(),
+                'operator' => $requirement->getOperator(),
+                'threshold' => in_array($requirement->getResourceType(), ['health', 'super'], true) ? (int) $threshold : $threshold,
+            ];
+        }, $requirements);
     }
 
     /**
@@ -268,17 +370,38 @@ class ScenarioMatrixMapper
         foreach ($cell->getStarterMoves() as $starterMove) {
             $starterMoves[] = $starterMove->getId()?->toRfc4122();
         }
+        $initiatorCharacter = $cell->isComboInitiatorAttacker()
+            ? $cell->getScenario()?->getAttackerCharacter()
+            : $cell->getScenario()?->getDefenderCharacter();
 
         return [
             'cellType' => 'dynamic_combo',
             'dataType' => null !== $cell->getCachedValue() ? 'number' : 'empty',
             'value' => $cell->getCachedValue(),
             'dynamicCombo' => [
-                'attackerCharacterId' => $cell->getScenario()?->getAttackerCharacter()?->getId()?->toRfc4122() ?? '',
+                'attackerCharacterId' => $initiatorCharacter?->getId()?->toRfc4122() ?? '',
+                'isComboInitiatorAttacker' => $cell->isComboInitiatorAttacker(),
                 'starterMoveIds' => array_values(array_filter($starterMoves, static fn (?string $value): bool => null !== $value && '' !== $value)),
                 'starterContext' => $this->toStarterContextPayload($cell->getStarterContext()),
             ],
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $dynamicCombo
+     */
+    private function resolveComboInitiator(Scenario $scenario, array $dynamicCombo): bool
+    {
+        if (array_key_exists('isComboInitiatorAttacker', $dynamicCombo)) {
+            return true === $dynamicCombo['isComboInitiatorAttacker'];
+        }
+
+        $characterId = isset($dynamicCombo['attackerCharacterId']) && is_string($dynamicCombo['attackerCharacterId'])
+            ? trim($dynamicCombo['attackerCharacterId'])
+            : '';
+        $defenderId = $scenario->getDefenderCharacter()?->getId()?->toRfc4122();
+
+        return '' === $characterId || null === $defenderId || $characterId !== $defenderId;
     }
 
     /**

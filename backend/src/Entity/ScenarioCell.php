@@ -52,6 +52,9 @@ class ScenarioCell
     #[ORM\Column(name: 'starter_context', type: Types::STRING, length: 24, nullable: true)]
     private ?string $starterContext = null;
 
+    #[ORM\Column(name: 'is_combo_initiator_attacker', type: Types::BOOLEAN, options: ['default' => true])]
+    private bool $isComboInitiatorAttacker = true;
+
     /**
      * @var Collection<int, Move>
      */
@@ -177,6 +180,18 @@ class ScenarioCell
     public function setStarterContext(?string $starterContext): static
     {
         $this->starterContext = $starterContext;
+
+        return $this;
+    }
+
+    public function isComboInitiatorAttacker(): bool
+    {
+        return $this->isComboInitiatorAttacker;
+    }
+
+    public function setIsComboInitiatorAttacker(bool $isComboInitiatorAttacker): static
+    {
+        $this->isComboInitiatorAttacker = $isComboInitiatorAttacker;
 
         return $this;
     }

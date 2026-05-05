@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Table(name: 'scenario_column', schema: 'sf6')]
@@ -29,6 +31,18 @@ class ScenarioColumn
 
     #[ORM\Column(name: 'summary_value', type: Types::FLOAT, nullable: true)]
     private ?float $summaryValue = null;
+
+    /**
+     * @var Collection<int, ScenarioColumnResourceRequirement>
+     */
+    #[ORM\OneToMany(mappedBy: 'column', targetEntity: ScenarioColumnResourceRequirement::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['position' => 'ASC'])]
+    private Collection $resourceRequirements;
+
+    public function __construct()
+    {
+        $this->resourceRequirements = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -91,6 +105,24 @@ class ScenarioColumn
     public function setSummaryValue(?float $summaryValue): static
     {
         $this->summaryValue = $summaryValue;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ScenarioColumnResourceRequirement>
+     */
+    public function getResourceRequirements(): Collection
+    {
+        return $this->resourceRequirements;
+    }
+
+    public function addResourceRequirement(ScenarioColumnResourceRequirement $requirement): static
+    {
+        if (!$this->resourceRequirements->contains($requirement)) {
+            $this->resourceRequirements->add($requirement);
+            $requirement->setColumn($this);
+        }
 
         return $this;
     }

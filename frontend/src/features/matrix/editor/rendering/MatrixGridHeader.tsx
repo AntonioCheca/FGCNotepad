@@ -4,14 +4,18 @@ import {MatrixEditorState} from "@/src/features/matrix/model";
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixDensityProfile} from "./gridDensity";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
+import {AxisRequirementTrigger} from "./AxisRequirementEditor";
 
 interface MatrixGridHeaderProps {
     state: MatrixEditorState;
     activeColumnId: string | null;
+    unavailableColumnIds: Set<string>;
+    unavailableReasonByColumnId: Record<string, string>;
     canEditColumnAxisLabels: boolean;
     canEditColumnLayers: boolean;
     onColumnLabelChange: (columnId: string, label: string) => void;
     onColumnLayerChange: (columnId: string, layer: number) => void;
+    onOpenColumnRequirements: (columnId: string, anchor: HTMLElement) => void;
     onSelectColumnHeader: (columnId: string) => void;
     densityProfile: MatrixDensityProfile;
     showLayerControls: boolean;
@@ -20,10 +24,13 @@ interface MatrixGridHeaderProps {
 export function MatrixGridHeader({
     state,
     activeColumnId,
+    unavailableColumnIds,
+    unavailableReasonByColumnId,
     canEditColumnAxisLabels,
     canEditColumnLayers,
     onColumnLabelChange,
     onColumnLayerChange,
+    onOpenColumnRequirements,
     onSelectColumnHeader,
     densityProfile,
     showLayerControls,
@@ -50,17 +57,21 @@ export function MatrixGridHeader({
                 P1 / P2
             </th>
             {state.grid.columns.map((column) => {
+                const columnUnavailable = unavailableColumnIds.has(column.id);
                 return (
                     <th
                         key={column.id}
+                        title={unavailableReasonByColumnId[column.id]}
                         style={{
                             padding: `${densityProfile.cellPadding}px`,
                             position: "sticky",
                             top: 0,
                             zIndex: 4,
-                            background: activeColumnId === column.id ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
+                            background: columnUnavailable ? theme.fgc.surface.sunken : activeColumnId === column.id ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
                             borderBottom: activeColumnId === column.id ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.default}`,
                             minWidth: densityProfile.columnLabelWidth,
+                            height: densityProfile.cellHeight + (showLayerControls ? 20 : 0) + densityProfile.cellPadding * 2,
+                            opacity: columnUnavailable ? 0.72 : 1,
                         }}
                     >
                     <input
@@ -77,9 +88,14 @@ export function MatrixGridHeader({
                             borderRadius: 6,
                             border: `1px solid ${theme.fgc.border.default}`,
                             background: theme.fgc.control.default,
-                            color: theme.fgc.text.primary,
+                            color: columnUnavailable ? theme.fgc.text.disabled : theme.fgc.text.primary,
                         }}
                     />
+                    {columnUnavailable ? (
+                        <span style={{position: "absolute", right: 4, top: 3, fontSize: 9, color: theme.fgc.text.disabled}}>
+                            Unavailable
+                        </span>
+                    ) : null}
                     {showLayerControls ? (
                         <MatrixLayerBadge
                             value={column.layer}
@@ -90,6 +106,13 @@ export function MatrixGridHeader({
                             densityProfile={densityProfile}
                         />
                     ) : null}
+                    <AxisRequirementTrigger
+                        axisLabel={column.label || "Column"}
+                        requirements={column.requirements}
+                        readOnly={!canEditColumnAxisLabels}
+                        isActive={activeColumnId === column.id}
+                        onOpen={(anchor) => onOpenColumnRequirements(column.id, anchor)}
+                    />
                     </th>
                 );
             })}

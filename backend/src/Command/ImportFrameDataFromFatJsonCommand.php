@@ -19,6 +19,16 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class ImportFrameDataFromFatJsonCommand extends Command
 {
+    /**
+     * @var array<string, int>
+     */
+    private const CHARACTER_LIFE_BY_NAME = [
+        'Akuma' => 9000,
+        'E.Honda' => 10500,
+        'Marisa' => 10500,
+        'Zangief' => 11000,
+    ];
+
     private EntityManagerInterface $entityManager;
     private string $projectDir;
     private MoveRepository $moveRepository;
@@ -54,13 +64,17 @@ class ImportFrameDataFromFatJsonCommand extends Command
         foreach ($data as $characterName => $charData) {
             $moves = $charData['moves']['normal'] ?? [];
 
-            $character = $this->characterRepository->findBy(['name' => $characterName]);
+            $character = $this->characterRepository->findOneBy(['name' => $characterName]);
+            $life = self::CHARACTER_LIFE_BY_NAME[$characterName] ?? 10000;
 
             if (!$character) {
                 $character = new Character();
                 $character->setName($characterName);
+                $character->setLife($life);
                 $this->entityManager->persist($character);
                 $output->writeln("<info>Created new character: $characterName</info>");
+            } elseif ($character->getLife() !== $life) {
+                $character->setLife($life);
             }
 
             foreach ($moves as $moveName => $record) {

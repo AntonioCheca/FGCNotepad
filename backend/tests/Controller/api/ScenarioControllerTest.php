@@ -80,6 +80,63 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame([5], $created['matrix']['axes']['columnLayers']);
     }
 
+    public function testCreateScenarioPersistsAxisResourceRequirements(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $matrix = $this->buildMatrixPayload();
+        $matrix['axes']['rowRequirements'] = [[[
+            'owner' => 'defender',
+            'resource' => 'super',
+            'operator' => '>=',
+            'threshold' => 3,
+        ]]];
+        $matrix['axes']['columnRequirements'] = [[[
+            'owner' => 'attacker',
+            'resource' => 'drive',
+            'operator' => '>=',
+            'threshold' => 2.5,
+        ]]];
+
+        $this->client->request('POST', '/api/scenarios', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
+            'name' => 'Resource Requirement Test',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $matrix,
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame($matrix['axes']['rowRequirements'], $created['matrix']['axes']['rowRequirements']);
+        self::assertSame($matrix['axes']['columnRequirements'], $created['matrix']['axes']['columnRequirements']);
+    }
+
+    public function testCreateScenarioRejectsInvalidAxisResourceRequirement(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $matrix = $this->buildMatrixPayload();
+        $matrix['axes']['rowRequirements'] = [[[
+            'owner' => 'defender',
+            'resource' => 'meter',
+            'operator' => '>=',
+            'threshold' => 1,
+        ]]];
+
+        $this->client->request('POST', '/api/scenarios', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
+            'name' => 'Invalid Resource Requirement Test',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $matrix,
+        ]));
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('resource must be health, drive, or super', (string) $this->client->getResponse()->getContent());
+    }
+
     public function testListScenariosSupportsFilters(): void
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
@@ -266,6 +323,305 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertNotNull($easyCombo->getId());
     }
 
+    public function testResolveDynamicCellPreviewFiltersByDriveResource(): void
+    {
+        [, $attacker, ] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '5MP', 500);
+        $this->createComboForStarter($attacker, $starterMove, 1200, false, false, null, 1.0, 0.0);
+        $this->createComboForStarter($attacker, $starterMove, 2600, false, false, null, 3.0, 0.0);
+
+        $this->client->request('POST', '/api/scenarios/resolve-dynamic-cell', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
+            'starterContext' => ['isPunishCounter' => false, 'isCounterHit' => false],
+            'resourceContext' => [
+                'attacker' => ['health' => 10000, 'drive' => 2.0, 'super' => 3],
+                'defender' => ['health' => 10000, 'drive' => 6.0, 'super' => 3],
+            ],
+        ]));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(1200, $payload['resolvedDamage']);
+    }
+
+    public function testResolveDynamicCellPreviewFiltersBySuperResource(): void
+    {
+        [, $attacker, ] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '5HP', 800);
+        $this->createComboForStarter($attacker, $starterMove, 1300, false, false, null, 0.0, 1.0);
+        $this->createComboForStarter($attacker, $starterMove, 2800, false, false, null, 0.0, 3.0);
+
+        $this->client->request('POST', '/api/scenarios/resolve-dynamic-cell', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
+            'starterContext' => ['isPunishCounter' => false, 'isCounterHit' => false],
+            'resourceContext' => [
+                'attacker' => ['health' => 10000, 'drive' => 6.0, 'super' => 2],
+                'defender' => ['health' => 10000, 'drive' => 6.0, 'super' => 3],
+            ],
+        ]));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(1300, $payload['resolvedDamage']);
+    }
+
+    public function testResolveDynamicCellPreviewFallsBackWhenNoComboIsAffordable(): void
+    {
+        [, $attacker, ] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2MP', 650);
+        $this->createComboForStarter($attacker, $starterMove, 2000, false, false, null, 2.0, 1.0);
+
+        $this->client->request('POST', '/api/scenarios/resolve-dynamic-cell', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
+            'starterContext' => ['isPunishCounter' => false, 'isCounterHit' => false],
+            'resourceContext' => [
+                'attacker' => ['health' => 10000, 'drive' => 1.0, 'super' => 0],
+                'defender' => ['health' => 10000, 'drive' => 6.0, 'super' => 3],
+            ],
+        ]));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(650, $payload['resolvedDamage']);
+        self::assertNull($payload['resolvedComboId']);
+    }
+
+    public function testResolveDynamicCellsUsesDefenderResourcesForDefenderInitiatedCells(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($defender, '2HP', 700);
+        $this->createComboForStarter($defender, $starterMove, 2200, false, false, null, 2.0, 0.0);
+
+        $matrix = $this->buildDynamicMatrixPayload($defender, $starterMove, 'normal');
+        $matrix['cells'][0][0]['dynamicCombo']['isComboInitiatorAttacker'] = false;
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Defender Dynamic Resource Test',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $matrix,
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->client->request('POST', sprintf('/api/scenarios/%s/resolve-dynamic-cells', $created['id']), [], [], $this->getHeaders(), json_encode([
+            'resourceContext' => [
+                'attacker' => ['health' => 10000, 'drive' => 6.0, 'super' => 3],
+                'defender' => ['health' => 10000, 'drive' => 1.0, 'super' => 3],
+            ],
+        ]));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(700, $payload['scenario']['matrix']['cells'][0][0]['value']);
+        self::assertFalse($payload['scenario']['matrix']['cells'][0][0]['dynamicCombo']['isComboInitiatorAttacker']);
+    }
+
+    public function testSolveLayersEndpointReturnsLayerSnapshots(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $matrix = [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['R1', 'R2'],
+                'columns' => ['C1', 'C2'],
+                'rowLayers' => [1, 2],
+                'columnLayers' => [1, 2],
+            ],
+            'cells' => [
+                [
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 10],
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 2],
+                ],
+                [
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 8],
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 6],
+                ],
+            ],
+            'summary' => [
+                'rowAxis' => [
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                ],
+                'columnAxis' => [
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                ],
+                'expectedValue' => ['cellType' => 'summary', 'dataType' => 'empty', 'value' => null],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx_layered_solve_test',
+                'title' => 'Layered Solve Test',
+            ],
+        ];
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Layer Solve Scenario',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $matrix,
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->client->request(
+            'POST',
+            sprintf('/api/scenarios/%s/solve-layers', $created['id']),
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode(['executionMode' => ['mode' => 'standard']])
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(2, $payload['maxLayer']);
+        self::assertArrayHasKey('1', $payload['layers']);
+        self::assertArrayHasKey('2', $payload['layers']);
+        self::assertCount(2, $payload['layers']['1']['rowAxis']);
+        self::assertCount(2, $payload['layers']['2']['columnAxis']);
+    }
+
+    public function testSolveLayersRejectsMyKnowledgeMode(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Layer Solve Restricted Mode',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildMatrixPayload(),
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->client->request(
+            'POST',
+            sprintf('/api/scenarios/%s/solve-layers', $created['id']),
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode(['executionMode' => ['mode' => 'my_knowledge']])
+        );
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testUpdateScenarioReplacesMatrixWithoutRowPositionConflict(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $initialMatrix = [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['R1', 'R2'],
+                'columns' => ['C1', 'C2'],
+                'rowLayers' => [1, 1],
+                'columnLayers' => [1, 1],
+            ],
+            'cells' => [
+                [
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 1],
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 2],
+                ],
+                [
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 3],
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 4],
+                ],
+            ],
+            'summary' => [
+                'rowAxis' => [
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                ],
+                'columnAxis' => [
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5],
+                ],
+                'expectedValue' => ['cellType' => 'summary', 'dataType' => 'empty', 'value' => null],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx-update-initial',
+                'title' => 'Initial',
+            ],
+        ];
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Update Position Conflict Test',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $initialMatrix,
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $updatedMatrix = [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => [
+                'rows' => ['Wakeup', 'Backdash'],
+                'columns' => ['Shimmy', 'Strike'],
+                'rowLayers' => [2, 3],
+                'columnLayers' => [2, 3],
+            ],
+            'cells' => [
+                [
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 9],
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 8],
+                ],
+                [
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 7],
+                    ['cellType' => 'value', 'dataType' => 'number', 'value' => 6],
+                ],
+            ],
+            'summary' => [
+                'rowAxis' => [
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.6],
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.4],
+                ],
+                'columnAxis' => [
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.7],
+                    ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.3],
+                ],
+                'expectedValue' => ['cellType' => 'summary', 'dataType' => 'empty', 'value' => null],
+            ],
+            'metadata' => [
+                'matrixId' => 'mx-update-final',
+                'title' => 'Updated',
+            ],
+        ];
+
+        $this->client->request(
+            'PATCH',
+            sprintf('/api/scenarios/%s', $created['id']),
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode(['matrix' => $updatedMatrix])
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame(['Wakeup', 'Backdash'], $payload['matrix']['axes']['rows']);
+        self::assertSame(['Shimmy', 'Strike'], $payload['matrix']['axes']['columns']);
+        self::assertSame(9, $payload['matrix']['cells'][0][0]['value']);
+    }
+
     public function testCreateAggregatedScenarioLocksDefensiveColumns(): void
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
@@ -418,6 +774,8 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         bool $counterHit,
         bool $punishCounter,
         ?int $difficultyLevel = null,
+        ?float $driveCost = null,
+        ?float $superCost = null,
     ): ComboSequences
     {
         $leafType = $this->em->getRepository(ComboSequenceType::class)->findOneBy(['name' => 'leaf'])
@@ -458,7 +816,9 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         $metrics = (new ComboMetrics())
             ->setSequence($combo)
             ->setDamage($damage)
-            ->setDifficultyLevel($difficultyLevel);
+            ->setDifficultyLevel($difficultyLevel)
+            ->setDriveCost($driveCost)
+            ->setSuperCost($superCost);
         $this->em->persist($metrics);
 
         $step = (new Step())

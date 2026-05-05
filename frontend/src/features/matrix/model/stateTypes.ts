@@ -3,11 +3,22 @@ export type MatrixReferenceKind = "reference" | "computed";
 export type MatrixEditorMode = "view" | "edit";
 export type MatrixDensityMode = "standard" | "compact";
 export type MatrixFocusedRegion = "none" | "grid" | "toolbar";
+export type MatrixResourceOwner = "attacker" | "defender";
+export type MatrixResourceType = "health" | "drive" | "super";
+export type MatrixResourceOperator = ">=";
+
+export interface MatrixResourceRequirement {
+    owner: MatrixResourceOwner;
+    resource: MatrixResourceType;
+    operator: MatrixResourceOperator;
+    threshold: number;
+}
 
 export interface MatrixAxisItem {
     id: string;
     label: string;
     layer: number;
+    requirements: MatrixResourceRequirement[];
 }
 
 export interface MatrixReferenceData {
@@ -24,6 +35,7 @@ export interface MatrixDynamicComboStarterContext {
 
 export interface MatrixDynamicComboData {
     attackerCharacterId: string;
+    isComboInitiatorAttacker?: boolean;
     starterMoveIds: string[];
     starterContext: MatrixDynamicComboStarterContext;
 }

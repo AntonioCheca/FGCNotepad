@@ -10,6 +10,8 @@ test("serialize + deserialize preserves matrix data", () => {
         columns: ["Backdash", "Mash"],
         rowLayers: [1, 3],
         columnLayers: [2, 4],
+        rowRequirements: [[{owner: "defender", resource: "super", operator: ">=", threshold: 3}], []],
+        columnRequirements: [[], [{owner: "attacker", resource: "drive", operator: ">=", threshold: 2.5}]],
         values: [
             [2, -1],
             [3, 0],
@@ -28,6 +30,8 @@ test("serialize + deserialize preserves matrix data", () => {
     assert.equal(deserialized.isValid, true);
     assert.deepEqual(deserialized.payload.axes.rowLayers, [1, 3]);
     assert.deepEqual(deserialized.payload.axes.columnLayers, [2, 4]);
+    assert.deepEqual(deserialized.payload.axes.rowRequirements, [[{owner: "defender", resource: "super", operator: ">=", threshold: 3}], []]);
+    assert.deepEqual(deserialized.payload.axes.columnRequirements, [[], [{owner: "attacker", resource: "drive", operator: ">=", threshold: 2.5}]]);
     assert.deepEqual(editorState.rows, ["2MK", "Throw"]);
     assert.deepEqual(editorState.columns, ["Backdash", "Mash"]);
     assert.deepEqual(editorState.values, [

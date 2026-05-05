@@ -1,11 +1,16 @@
 // hooks/useApi.js
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {useRouter} from "next/router";
 import {clearStoredAuthToken} from "@/services/api";
 
 const useApi = () => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const routerPushRef = useRef(router.push);
+
+    useEffect(() => {
+        routerPushRef.current = router.push;
+    }, [router.push]);
 
     /**
      * Executes an API call and always returns the normalized payload.
@@ -25,13 +30,13 @@ const useApi = () => {
             if (error.response?.status === 401) {
                 clearStoredAuthToken();
                 window.dispatchEvent(new Event("auth:unauthorized"));
-                router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                routerPushRef.current(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
             }
             throw error;
         } finally {
             setLoading(false);
         }
-    }, [router]);
+    }, []);
 
     return {request, loading};
 };

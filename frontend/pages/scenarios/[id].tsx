@@ -8,9 +8,10 @@ import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
 import {AppTooltip} from "@/src/components/ui/AppTooltip";
+import {AppSlider} from "@/src/components/ui/AppSlider";
 import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
-import {useScenarios, ScenarioDetail} from "@/hooks/useScenarios";
+import {useScenarios, ScenarioDetail, ScenarioLayerSolveSnapshot} from "@/hooks/useScenarios";
 import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
@@ -21,6 +22,32 @@ const DEFAULT_EXECUTION_SELECTION: ScenarioExecutionSelection = {
     mode: "standard",
     difficultyCap: null,
 };
+
+interface PlayerResourceState {
+    health: number;
+    drive: number;
+    super: number;
+}
+
+interface ScenarioResourceState {
+    attacker: PlayerResourceState;
+    defender: PlayerResourceState;
+}
+
+const DEFAULT_SCENARIO_RESOURCES: ScenarioResourceState = {
+    attacker: {
+        health: 10000,
+        drive: 6,
+        super: 0,
+    },
+    defender: {
+        health: 10000,
+        drive: 6,
+        super: 0,
+    },
+};
+
+const DEFAULT_CHARACTER_LIFE = 10000;
 
 function getExecutionModeBadgeLabel(selection: ScenarioExecutionSelection): string {
     if (selection.mode === "my_knowledge") {
@@ -39,7 +66,7 @@ export default function ScenarioDetailPage() {
     const {id} = router.query;
     const scenarioId = typeof id === "string" ? id : null;
 
-    const {getScenario, resolveDynamicCells, getAggregatedDefenseCapabilities} = useScenarios();
+    const {getScenario, resolveDynamicCells, getAggregatedDefenseCapabilities, solveScenarioLayers} = useScenarios();
     const {getExecutionPreference} = useExecutionProfile();
     const {characters} = useCharacters();
     const [scenario, setScenario] = React.useState<ScenarioDetail | null>(null);
@@ -50,7 +77,70 @@ export default function ScenarioDetailPage() {
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [personalizedDefenderId, setPersonalizedDefenderId] = React.useState("");
     const [columnVisibilityByLabel, setColumnVisibilityByLabel] = React.useState<Record<string, boolean> | null>(null);
+    const [layerSolveSnapshots, setLayerSolveSnapshots] = React.useState<Record<number, ScenarioLayerSolveSnapshot>>({});
+    const [scenarioResources, setScenarioResources] = React.useState<ScenarioResourceState>(DEFAULT_SCENARIO_RESOURCES);
     const {theme} = useMode();
+
+    const characterById = React.useMemo(() => {
+        const map = new Map<string, {id: string; name: string; life?: number}>();
+        characters.forEach((character) => {
+            map.set(character.id, character);
+        });
+        return map;
+    }, [characters]);
+
+    const characterByName = React.useMemo(() => {
+        const map = new Map<string, {id: string; name: string; life?: number}>();
+        characters.forEach((character) => {
+            map.set(character.name.trim().toLowerCase(), character);
+        });
+        return map;
+    }, [characters]);
+
+    const attackerLifeMax = React.useMemo(() => {
+        if (typeof scenario?.attackerCharacterLife === "number") {
+            return scenario.attackerCharacterLife;
+        }
+
+        if (!scenario?.attackerCharacterId) {
+            return scenario?.attackerCharacterName
+                ? characterByName.get(scenario.attackerCharacterName.trim().toLowerCase())?.life ?? DEFAULT_CHARACTER_LIFE
+                : DEFAULT_CHARACTER_LIFE;
+        }
+
+        return characterById.get(scenario.attackerCharacterId)?.life
+            ?? (scenario.attackerCharacterName ? characterByName.get(scenario.attackerCharacterName.trim().toLowerCase())?.life : undefined)
+            ?? DEFAULT_CHARACTER_LIFE;
+    }, [characterById, characterByName, scenario?.attackerCharacterId, scenario?.attackerCharacterLife, scenario?.attackerCharacterName]);
+
+    const defenderLifeMax = React.useMemo(() => {
+        if (typeof scenario?.defenderCharacterLife === "number") {
+            return scenario.defenderCharacterLife;
+        }
+
+        if (!scenario?.defenderCharacterId) {
+            return scenario?.defenderCharacterName
+                ? characterByName.get(scenario.defenderCharacterName.trim().toLowerCase())?.life ?? DEFAULT_CHARACTER_LIFE
+                : DEFAULT_CHARACTER_LIFE;
+        }
+
+        return characterById.get(scenario.defenderCharacterId)?.life
+            ?? (scenario.defenderCharacterName ? characterByName.get(scenario.defenderCharacterName.trim().toLowerCase())?.life : undefined)
+            ?? DEFAULT_CHARACTER_LIFE;
+    }, [characterById, characterByName, scenario?.defenderCharacterId, scenario?.defenderCharacterLife, scenario?.defenderCharacterName]);
+
+    React.useEffect(() => {
+        setScenarioResources((current) => ({
+            attacker: {
+                ...current.attacker,
+                health: attackerLifeMax,
+            },
+            defender: {
+                ...current.defender,
+                health: defenderLifeMax,
+            },
+        }));
+    }, [scenarioId, attackerLifeMax, defenderLifeMax]);
 
     React.useEffect(() => {
         const authenticated = hasJwtToken();
@@ -96,6 +186,7 @@ export default function ScenarioDetailPage() {
             .then((data) => {
                 if (!canceled) {
                     setScenario(data);
+                    setLayerSolveSnapshots({});
                 }
             })
             .catch(() => {
@@ -115,6 +206,39 @@ export default function ScenarioDetailPage() {
     }, [scenarioId, getScenario]);
 
     React.useEffect(() => {
+        if (!scenarioId || !scenario || executionSelection.mode === "my_knowledge") {
+            setLayerSolveSnapshots({});
+            return;
+        }
+
+        let canceled = false;
+        solveScenarioLayers(scenarioId, executionSelection)
+            .then((response) => {
+                if (canceled) {
+                    return;
+                }
+
+                const mapped = Object.entries(response.layers).reduce<Record<number, ScenarioLayerSolveSnapshot>>((acc, [layer, snapshot]) => {
+                    const numericLayer = Number.parseInt(layer, 10);
+                    if (Number.isFinite(numericLayer)) {
+                        acc[numericLayer] = snapshot;
+                    }
+                    return acc;
+                }, {});
+                setLayerSolveSnapshots(mapped);
+            })
+            .catch(() => {
+                if (!canceled) {
+                    setLayerSolveSnapshots({});
+                }
+            });
+
+        return () => {
+            canceled = true;
+        };
+    }, [executionSelection, scenario, scenarioId, solveScenarioLayers]);
+
+    React.useEffect(() => {
         if (!scenarioId || loading || error) {
             return;
         }
@@ -122,7 +246,7 @@ export default function ScenarioDetailPage() {
         let canceled = false;
         setRefreshingDynamicCombos(true);
 
-        resolveDynamicCells(scenarioId, executionSelection)
+        resolveDynamicCells(scenarioId, executionSelection, scenarioResources)
             .then((response) => {
                 if (!canceled) {
                     setScenario(response.scenario);
@@ -139,7 +263,7 @@ export default function ScenarioDetailPage() {
         return () => {
             canceled = true;
         };
-    }, [executionSelection, resolveDynamicCells, scenarioId, loading, error]);
+    }, [executionSelection, resolveDynamicCells, scenarioId, loading, error, scenarioResources]);
 
     React.useEffect(() => {
         if (!scenario || scenario.scenarioType !== "aggregated_oki") {
@@ -205,7 +329,7 @@ export default function ScenarioDetailPage() {
                         onClick={async () => {
                             setRefreshingDynamicCombos(true);
                             try {
-                                const response = await resolveDynamicCells(scenarioId, executionSelection);
+                                const response = await resolveDynamicCells(scenarioId, executionSelection, scenarioResources);
                                 setScenario(response.scenario);
                             } catch {
                             } finally {
@@ -299,6 +423,138 @@ export default function ScenarioDetailPage() {
                 <AppTypography variant="body2">Trigger Move: {scenario.triggerMoveLabel ?? "Unknown"}</AppTypography>
             </div>
 
+            <div
+                style={{
+                    display: "grid",
+                    gap: 12,
+                    marginBottom: 16,
+                    border: `1px solid ${theme.fgc.border.default}`,
+                    borderRadius: 8,
+                    padding: 12,
+                    background: theme.fgc.surface.base,
+                }}
+            >
+                <AppTypography variant="h6">Resources</AppTypography>
+                <div
+                    style={{
+                        display: "grid",
+                        gap: 12,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                    }}
+                >
+                    {([
+                        {key: "attacker", label: "Attacker Resources", lifeMax: attackerLifeMax},
+                        {key: "defender", label: "Defender Resources", lifeMax: defenderLifeMax},
+                    ] as const).map((player) => {
+                        const values = scenarioResources[player.key];
+                        return (
+                            <div
+                                key={player.key}
+                                style={{
+                                    border: `1px solid ${theme.fgc.border.default}`,
+                                    borderRadius: 8,
+                                    padding: 12,
+                                    display: "grid",
+                                    gap: 10,
+                                    background: theme.fgc.surface.subtle,
+                                    minWidth: 0,
+                                }}
+                            >
+                                <AppTypography variant="body1" sx={{fontWeight: 700}}>{player.label}</AppTypography>
+
+                                <div style={{display: "grid", gap: 4}}>
+                                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8}}>
+                                        <AppTypography variant="body2">Health</AppTypography>
+                                        <AppTypography variant="body2">{values.health} / {player.lifeMax}</AppTypography>
+                                    </div>
+                                    <AppSlider
+                                        value={values.health}
+                                        min={0}
+                                        max={player.lifeMax}
+                                        step={100}
+                                        onChange={(_, nextValue) => {
+                                            const normalized = typeof nextValue === "number" ? nextValue : values.health;
+                                            setScenarioResources((current) => ({
+                                                ...current,
+                                                [player.key]: {
+                                                    ...current[player.key],
+                                                    health: Math.min(normalized, player.lifeMax),
+                                                },
+                                            }));
+                                        }}
+                                        sx={{
+                                            color: theme.fgc.action.primary,
+                                            "& .MuiSlider-rail": {opacity: 1, backgroundColor: theme.fgc.surface.sunken},
+                                            "& .MuiSlider-track": {border: "none"},
+                                        }}
+                                        aria-label={`${player.label} health`}
+                                    />
+                                </div>
+
+                                <div style={{display: "grid", gap: 4}}>
+                                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8}}>
+                                        <AppTypography variant="body2">Drive</AppTypography>
+                                        <AppTypography variant="body2">{values.drive.toFixed(1)}</AppTypography>
+                                    </div>
+                                    <AppSlider
+                                        value={values.drive}
+                                        min={0}
+                                        max={6}
+                                        step={0.5}
+                                        onChange={(_, nextValue) => {
+                                            const normalized = typeof nextValue === "number" ? nextValue : values.drive;
+                                            setScenarioResources((current) => ({
+                                                ...current,
+                                                [player.key]: {
+                                                    ...current[player.key],
+                                                    drive: normalized,
+                                                },
+                                            }));
+                                        }}
+                                        sx={{
+                                            color: theme.fgc.action.secondary,
+                                            "& .MuiSlider-rail": {opacity: 1, backgroundColor: theme.fgc.surface.sunken},
+                                            "& .MuiSlider-track": {border: "none"},
+                                        }}
+                                        aria-label={`${player.label} drive`}
+                                    />
+                                </div>
+
+                                <div style={{display: "grid", gap: 4}}>
+                                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8}}>
+                                        <AppTypography variant="body2">Super</AppTypography>
+                                        <AppTypography variant="body2">{values.super}</AppTypography>
+                                    </div>
+                                    <AppSlider
+                                        value={values.super}
+                                        min={0}
+                                        max={3}
+                                        step={1}
+                                        marks
+                                        onChange={(_, nextValue) => {
+                                            const normalized = typeof nextValue === "number" ? nextValue : values.super;
+                                            setScenarioResources((current) => ({
+                                                ...current,
+                                                [player.key]: {
+                                                    ...current[player.key],
+                                                    super: normalized,
+                                                },
+                                            }));
+                                        }}
+                                        sx={{
+                                            color: theme.fgc.action.primaryHover,
+                                            "& .MuiSlider-rail": {opacity: 1, backgroundColor: theme.fgc.surface.sunken},
+                                            "& .MuiSlider-track": {border: "none"},
+                                        }}
+                                        aria-label={`${player.label} super`}
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
             {scenario.scenarioType === "aggregated_oki" ? (
                 <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap"}}>
                     <AppTypography variant="body2">Personalize Defender</AppTypography>
@@ -318,14 +574,17 @@ export default function ScenarioDetailPage() {
             <MatrixEditorShell
                 matrix={scenario.matrix}
                 editable={false}
+                displayFrequenciesAsPercent
                 columnVisibilityByLabel={columnVisibilityByLabel}
                 onMatrixChange={() => {
                 }}
                 onRefreshDynamicCells={async () => {
-                    const response = await resolveDynamicCells(scenarioId, executionSelection);
+                    const response = await resolveDynamicCells(scenarioId, executionSelection, scenarioResources);
                     setScenario(response.scenario);
                     return response.scenario.matrix;
                 }}
+                layerSolveSnapshots={layerSolveSnapshots}
+                resourceContext={scenarioResources}
             />
         </AppContainer>
     );

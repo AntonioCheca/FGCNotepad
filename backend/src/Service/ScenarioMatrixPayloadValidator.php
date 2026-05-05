@@ -54,6 +54,10 @@ class ScenarioMatrixPayloadValidator
      */
     private function validateMatrixPayload(array $matrix, array &$errors, string $path): void
     {
+        $axes = is_array($matrix['axes'] ?? null) ? $matrix['axes'] : [];
+        $this->validateAxisRequirements($axes['rowRequirements'] ?? null, $errors, sprintf('%s.matrix.axes.rowRequirements', $path));
+        $this->validateAxisRequirements($axes['columnRequirements'] ?? null, $errors, sprintf('%s.matrix.axes.columnRequirements', $path));
+
         $cells = $matrix['cells'] ?? null;
         if (!is_array($cells)) {
             return;
@@ -76,6 +80,70 @@ class ScenarioMatrixPayloadValidator
     }
 
     /**
+     * @param list<string> $errors
+     */
+    private function validateAxisRequirements(mixed $axisRequirements, array &$errors, string $path): void
+    {
+        if (null === $axisRequirements) {
+            return;
+        }
+        if (!is_array($axisRequirements)) {
+            $errors[] = sprintf('%s must be an array.', $path);
+
+            return;
+        }
+
+        foreach ($axisRequirements as $axisIndex => $requirements) {
+            if (!is_array($requirements)) {
+                $errors[] = sprintf('%s[%d] must be an array.', $path, (int) $axisIndex);
+                continue;
+            }
+
+            foreach ($requirements as $requirementIndex => $requirement) {
+                $this->validateAxisRequirement($requirement, $errors, sprintf('%s[%d][%d]', $path, (int) $axisIndex, (int) $requirementIndex));
+            }
+        }
+    }
+
+    /**
+     * @param list<string> $errors
+     */
+    private function validateAxisRequirement(mixed $requirement, array &$errors, string $path): void
+    {
+        if (!is_array($requirement)) {
+            $errors[] = sprintf('%s must be an object.', $path);
+
+            return;
+        }
+
+        $owner = $requirement['owner'] ?? null;
+        $resource = $requirement['resource'] ?? null;
+        $operator = $requirement['operator'] ?? null;
+        $threshold = $requirement['threshold'] ?? null;
+
+        if (!in_array($owner, ['attacker', 'defender'], true)) {
+            $errors[] = sprintf('%s.owner must be attacker or defender.', $path);
+        }
+        if (!in_array($resource, ['health', 'drive', 'super'], true)) {
+            $errors[] = sprintf('%s.resource must be health, drive, or super.', $path);
+        }
+        if ('>=' !== $operator) {
+            $errors[] = sprintf('%s.operator must be >=.', $path);
+        }
+        if (!is_int($threshold) && !is_float($threshold)) {
+            $errors[] = sprintf('%s.threshold must be numeric.', $path);
+
+            return;
+        }
+        if ((float) $threshold < 0) {
+            $errors[] = sprintf('%s.threshold must be non-negative.', $path);
+        }
+        if (in_array($resource, ['health', 'super'], true) && floor((float) $threshold) !== (float) $threshold) {
+            $errors[] = sprintf('%s.threshold must be an integer for %s requirements.', $path, (string) $resource);
+        }
+    }
+
+    /**
      * @param array<string, mixed> $cell
      * @param list<string>         $errors
      */
@@ -91,6 +159,10 @@ class ScenarioMatrixPayloadValidator
         $attackerCharacterId = $dynamicCombo['attackerCharacterId'] ?? null;
         if (!is_string($attackerCharacterId) || '' === trim($attackerCharacterId)) {
             $errors[] = sprintf('%s.dynamicCombo.attackerCharacterId must be a non-empty string.', $cellPath);
+        }
+
+        if (array_key_exists('isComboInitiatorAttacker', $dynamicCombo) && !is_bool($dynamicCombo['isComboInitiatorAttacker'])) {
+            $errors[] = sprintf('%s.dynamicCombo.isComboInitiatorAttacker must be a boolean.', $cellPath);
         }
 
         $starterMoveIds = $dynamicCombo['starterMoveIds'] ?? null;

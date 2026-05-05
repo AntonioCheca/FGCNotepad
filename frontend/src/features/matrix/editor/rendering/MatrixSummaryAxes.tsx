@@ -9,6 +9,8 @@ interface MatrixSummaryAxesProps {
     state: MatrixEditorState;
     activeKey: string | null;
     activeColumnId: string | null;
+    unavailableColumnIds: Set<string>;
+    unavailableReasonByColumnId: Record<string, string>;
     editingKey: string | null;
     draft: string;
     draftHasFormatError: boolean;
@@ -23,12 +25,15 @@ interface MatrixSummaryAxesProps {
     onCancelEdit: () => void;
     expectedValue: number | null;
     densityProfile: MatrixDensityProfile;
+    summaryValueFormatter?: (value: number | null) => string;
 }
 
 export function MatrixSummaryAxes({
                                        state,
-                                       activeKey,
-                                       activeColumnId,
+                                        activeKey,
+                                        activeColumnId,
+                                        unavailableColumnIds,
+                                        unavailableReasonByColumnId,
                                        editingKey,
                                        draft,
                                        draftHasFormatError,
@@ -41,9 +46,10 @@ export function MatrixSummaryAxes({
                                         onDraftChange,
                                         onCommitEdit,
                                         onCancelEdit,
-                                    expectedValue,
-                                    densityProfile,
-                                    }: MatrixSummaryAxesProps) {
+                                     expectedValue,
+                                     densityProfile,
+                                     summaryValueFormatter,
+                                     }: MatrixSummaryAxesProps) {
     const {theme} = useMode();
     return (
         <tfoot>
@@ -64,23 +70,29 @@ export function MatrixSummaryAxes({
             >
                 P2 Freq
             </th>
-            {state.grid.columns.map((column) => (
-                <td
-                    key={column.id}
-                    style={{
-                        padding: `${densityProfile.cellPadding}px`,
-                        background: activeColumnId === column.id ? theme.fgc.selection.hover : theme.fgc.surface.base,
-                        borderTop: activeColumnId === column.id ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.subtle}`,
-                    }}
-                >
+            {state.grid.columns.map((column) => {
+                const columnUnavailable = unavailableColumnIds.has(column.id);
+                return (
+                    <td
+                        key={column.id}
+                        title={unavailableReasonByColumnId[column.id]}
+                        style={{
+                            padding: `${densityProfile.cellPadding}px`,
+                            background: columnUnavailable ? theme.fgc.surface.sunken : activeColumnId === column.id ? theme.fgc.selection.hover : theme.fgc.surface.base,
+                            borderTop: activeColumnId === column.id ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.subtle}`,
+                            opacity: columnUnavailable ? 0.72 : 1,
+                        }}
+                    >
                     <MatrixValueCell
-                        value={state.grid.columnSummaryCells[createColumnSummaryKey(column.id)]?.value ?? null}
+                        value={columnUnavailable ? 0 : state.grid.columnSummaryCells[createColumnSummaryKey(column.id)]?.value ?? null}
+                        valueFormatter={summaryValueFormatter}
                         isActive={activeKey === createColumnSummaryKey(column.id)}
                         isEditing={editingKey === createColumnSummaryKey(column.id)}
                         draft={draft}
                         draftHasFormatError={editingKey === createColumnSummaryKey(column.id) ? draftHasFormatError : false}
                         issues={validationByKey[createColumnSummaryKey(column.id)] ?? []}
                         axisHighlighted={activeColumnId === column.id}
+                        unavailable={columnUnavailable}
                         readOnly={!canEditSummaries}
                         onSelect={() => onSelectColumnSummary(column.id)}
                         onStartEdit={() => onStartEdit(createColumnSummaryKey(column.id))}
@@ -91,7 +103,8 @@ export function MatrixSummaryAxes({
                         densityProfile={densityProfile}
                     />
                 </td>
-            ))}
+                );
+            })}
             <td style={{padding: `${densityProfile.cellPadding}px`, fontWeight: 600}}>
                 <MatrixValueCell
                     value={expectedValue}
@@ -109,7 +122,16 @@ export function MatrixSummaryAxes({
                     densityProfile={densityProfile}
                 />
             </td>
-            <td/>
+            <td
+                style={{
+                    padding: `${densityProfile.cellPadding}px`,
+                    fontSize: densityProfile.labelFontSize,
+                    color: theme.fgc.text.secondary,
+                    whiteSpace: "nowrap",
+                }}
+            >
+                EV
+            </td>
         </tr>
         </tfoot>
     );

@@ -10,9 +10,12 @@ class CharacterNormalizer implements NormalizerInterface
     public function normalize(mixed $object, ?string $format = null, array $context = []): array
     {
         /** @var Character $object */
+        $id = $object->getId();
+
         return [
-            'id' => $object->getId(),
+            'id' => $id?->toRfc4122(),
             'name' => $object->getName(),
+            'life' => $object->getLife(),
         ];
     }
 

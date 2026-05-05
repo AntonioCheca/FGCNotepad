@@ -5,6 +5,7 @@ import {
     MatrixDynamicComboPayload,
     MatrixMetadataPayload,
     MatrixPayload,
+    MatrixResourceRequirementPayload,
     MatrixSerializationInput,
 } from "@/src/types/matrixPayload";
 
@@ -36,6 +37,40 @@ function normalizeLayerValue(value: unknown): number {
     }
 
     return 1;
+}
+
+function normalizeRequirement(value: unknown): MatrixResourceRequirementPayload | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+
+    const requirement = value as Partial<MatrixResourceRequirementPayload>;
+    const resource = requirement.resource === "drive" || requirement.resource === "super" ? requirement.resource : requirement.resource === "health" ? "health" : null;
+    const threshold = typeof requirement.threshold === "number" && Number.isFinite(requirement.threshold) ? requirement.threshold : null;
+    if (!resource || threshold === null || threshold < 0) {
+        return null;
+    }
+
+    return {
+        owner: requirement.owner === "defender" ? "defender" : "attacker",
+        resource,
+        operator: ">=",
+        threshold: resource === "drive" ? threshold : Math.trunc(threshold),
+    };
+}
+
+function normalizeRequirements(
+    source: Array<Array<MatrixResourceRequirementPayload | null | undefined> | null | undefined> | undefined,
+    count: number
+): MatrixResourceRequirementPayload[][] {
+    return Array.from({length: count}, (_, index) => {
+        const requirements = source?.[index];
+        if (!Array.isArray(requirements)) {
+            return [];
+        }
+
+        return requirements.map(normalizeRequirement).filter((requirement): requirement is MatrixResourceRequirementPayload => requirement !== null);
+    });
 }
 
 function toCellPayload(
@@ -179,6 +214,8 @@ export function serializeMatrixPayload(input: MatrixSerializationInput): MatrixP
     const columnAxis = normalized.columns.map((_, index) =>
         toCellPayload(input.columnFrequencies?.[index], "summary")
     );
+    const rowRequirements = normalizeRequirements(input.rowRequirements, normalized.rows.length);
+    const columnRequirements = normalizeRequirements(input.columnRequirements, normalized.columns.length);
 
     return {
         kind: MATRIX_PAYLOAD_KIND,
@@ -188,6 +225,8 @@ export function serializeMatrixPayload(input: MatrixSerializationInput): MatrixP
             columns: normalized.columns,
             rowLayers: normalized.rowLayers,
             columnLayers: normalized.columnLayers,
+            rowRequirements,
+            columnRequirements,
         },
         cells,
         summary: {
