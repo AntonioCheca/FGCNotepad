@@ -32,6 +32,26 @@ when@test:
         dbal:
             # "TEST_TOKEN" is typically set by ParaTest
             dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+        orm:
+            metadata_cache_driver:
+                type: pool
+                pool: doctrine.test_metadata_cache_pool
+            query_cache_driver:
+                type: pool
+                pool: doctrine.test_query_cache_pool
+            result_cache_driver:
+                type: pool
+                pool: doctrine.test_result_cache_pool
+
+    framework:
+        cache:
+            pools:
+                doctrine.test_metadata_cache_pool:
+                    adapter: cache.adapter.array
+                doctrine.test_query_cache_pool:
+                    adapter: cache.adapter.array
+                doctrine.test_result_cache_pool:
+                    adapter: cache.adapter.array
 
 when@prod:
     doctrine:

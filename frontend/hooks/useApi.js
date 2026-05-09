@@ -6,11 +6,12 @@ import {clearStoredAuthToken} from "@/services/api";
 const useApi = () => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const routerPushRef = useRef(router.push);
+    const routerReplaceRef = useRef(router.replace);
+    const redirectingRef = useRef(false);
 
     useEffect(() => {
-        routerPushRef.current = router.push;
-    }, [router.push]);
+        routerReplaceRef.current = router.replace;
+    }, [router.replace]);
 
     /**
      * Executes an API call and always returns the normalized payload.
@@ -30,7 +31,15 @@ const useApi = () => {
             if (error.response?.status === 401) {
                 clearStoredAuthToken();
                 window.dispatchEvent(new Event("auth:unauthorized"));
-                routerPushRef.current(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+
+                const currentPath = `${window.location.pathname}${window.location.search}`;
+                const isAuthRoute = window.location.pathname.startsWith('/auth/');
+
+                if (!isAuthRoute && !redirectingRef.current) {
+                    redirectingRef.current = true;
+                    localStorage.setItem('redirectAfterLogin', currentPath);
+                    routerReplaceRef.current('/auth/login');
+                }
             }
             throw error;
         } finally {

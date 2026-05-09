@@ -27,6 +27,12 @@ abstract class DatabaseTestCase extends WebTestCase
         $connection = $this->entityManager->getConnection();
         $databasePlatform = $connection->getDatabasePlatform();
         $allMetadata = $this->entityManager->getMetadataFactory()->getAllMetadata();
+        $schemaManager = $connection->createSchemaManager();
+        $existingTables = array_map(
+            static fn (string $name): string => mb_strtolower($name),
+            $schemaManager->listTableNames()
+        );
+        $existingTableLookup = array_fill_keys($existingTables, true);
 
         $this->entityManager->clear();
         $connection->executeStatement("SET synchronous_commit = OFF");
@@ -37,6 +43,10 @@ abstract class DatabaseTestCase extends WebTestCase
                 $tableName = $classMetadata->getSchemaName()
                     ? sprintf('%s.%s', $classMetadata->getSchemaName(), $classMetadata->getTableName())
                     : $classMetadata->getTableName();
+
+                if (!isset($existingTableLookup[mb_strtolower($tableName)])) {
+                    continue;
+                }
 
                 $connection->executeStatement(
                     $databasePlatform->getTruncateTableSQL($tableName, true)

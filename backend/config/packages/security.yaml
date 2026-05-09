@@ -53,10 +53,6 @@ security:
         - { path: ^/api/admin, roles: ROLE_ADMIN }
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
-        - { path: '^/api/scenarios/aggregated-defense-capabilities', roles: PUBLIC_ACCESS }
-        - { path: '^/api/scenarios/resolve-dynamic-cell$', roles: PUBLIC_ACCESS }
-        - { path: '^/api/scenarios/?$', methods: [GET], roles: PUBLIC_ACCESS }
-        - { path: '^/api/scenarios/[0-9a-fA-F-]{36}$', methods: [GET], roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: ROLE_USER }
 
 # ========================

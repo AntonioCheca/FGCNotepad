@@ -54,6 +54,30 @@ class FrameData
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $scaling = null;
 
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $scalingStartPercent = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $scalingImmediatePercent = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $scalingMinimumPercent = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $scalingComboHits = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $scalingComboExtraPercent = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $scalingMultiplierPercent = null;
+
+    #[ORM\Column(type: Types::STRING, length: 32, options: ['default' => 'parsed'])]
+    private string $scalingParseStatus = 'parsed';
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $scalingParseNote = null;
+
     #[ORM\Column(nullable: true)]
     private ?int $chipDamage = null;
 
@@ -318,6 +342,102 @@ class FrameData
     public function setScaling(?string $scaling): static
     {
         $this->scaling = $scaling;
+
+        return $this;
+    }
+
+    public function getScalingStartPercent(): ?int
+    {
+        return $this->scalingStartPercent;
+    }
+
+    public function setScalingStartPercent(?int $scalingStartPercent): static
+    {
+        $this->scalingStartPercent = $scalingStartPercent;
+
+        return $this;
+    }
+
+    public function getScalingImmediatePercent(): ?int
+    {
+        return $this->scalingImmediatePercent;
+    }
+
+    public function setScalingImmediatePercent(?int $scalingImmediatePercent): static
+    {
+        $this->scalingImmediatePercent = $scalingImmediatePercent;
+
+        return $this;
+    }
+
+    public function getScalingMinimumPercent(): ?int
+    {
+        return $this->scalingMinimumPercent;
+    }
+
+    public function setScalingMinimumPercent(?int $scalingMinimumPercent): static
+    {
+        $this->scalingMinimumPercent = $scalingMinimumPercent;
+
+        return $this;
+    }
+
+    public function getScalingComboHits(): ?int
+    {
+        return $this->scalingComboHits;
+    }
+
+    public function setScalingComboHits(?int $scalingComboHits): static
+    {
+        $this->scalingComboHits = $scalingComboHits;
+
+        return $this;
+    }
+
+    public function getScalingComboExtraPercent(): ?int
+    {
+        return $this->scalingComboExtraPercent;
+    }
+
+    public function setScalingComboExtraPercent(?int $scalingComboExtraPercent): static
+    {
+        $this->scalingComboExtraPercent = $scalingComboExtraPercent;
+
+        return $this;
+    }
+
+    public function getScalingMultiplierPercent(): ?int
+    {
+        return $this->scalingMultiplierPercent;
+    }
+
+    public function setScalingMultiplierPercent(?int $scalingMultiplierPercent): static
+    {
+        $this->scalingMultiplierPercent = $scalingMultiplierPercent;
+
+        return $this;
+    }
+
+    public function getScalingParseStatus(): string
+    {
+        return $this->scalingParseStatus;
+    }
+
+    public function setScalingParseStatus(string $scalingParseStatus): static
+    {
+        $this->scalingParseStatus = $scalingParseStatus;
+
+        return $this;
+    }
+
+    public function getScalingParseNote(): ?string
+    {
+        return $this->scalingParseNote;
+    }
+
+    public function setScalingParseNote(?string $scalingParseNote): static
+    {
+        $this->scalingParseNote = $scalingParseNote;
 
         return $this;
     }
@@ -623,6 +743,14 @@ class FrameData
         $dataAsArray['cancels_to'] = $this->cancelsTo;
         $dataAsArray['damage'] = $this->damage;
         $dataAsArray['scaling'] = $this->scaling;
+        $dataAsArray['scaling_start_percent'] = $this->scalingStartPercent;
+        $dataAsArray['scaling_immediate_percent'] = $this->scalingImmediatePercent;
+        $dataAsArray['scaling_minimum_percent'] = $this->scalingMinimumPercent;
+        $dataAsArray['scaling_combo_hits'] = $this->scalingComboHits;
+        $dataAsArray['scaling_combo_extra_percent'] = $this->scalingComboExtraPercent;
+        $dataAsArray['scaling_multiplier_percent'] = $this->scalingMultiplierPercent;
+        $dataAsArray['scaling_parse_status'] = $this->scalingParseStatus;
+        $dataAsArray['scaling_parse_note'] = $this->scalingParseNote;
         $dataAsArray['chip_damage'] = $this->chipDamage;
         $dataAsArray['attack_level'] = $this->attackLevel;
         $dataAsArray['on_hit_after_drive_rush'] = $this->onHitAfterDriveRush;

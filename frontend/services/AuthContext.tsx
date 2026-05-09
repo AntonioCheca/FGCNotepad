@@ -137,6 +137,14 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
         const handleUnauthorized = () => {
             clearSession();
+
+            if (window.location.pathname.startsWith('/auth/')) {
+                return;
+            }
+
+            const currentPath = `${window.location.pathname}${window.location.search}`;
+            localStorage.setItem('redirectAfterLogin', currentPath);
+            router.replace('/auth/login');
         };
 
         window.addEventListener("storage", handleStorage);
@@ -146,7 +154,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
             window.removeEventListener("storage", handleStorage);
             window.removeEventListener("auth:unauthorized", handleUnauthorized);
         };
-    }, [clearSession, hydrateUserFromToken]);
+    }, [clearSession, hydrateUserFromToken, router]);
 
     const login = (token: string) => {
         setStoredAuthToken(token);
@@ -157,7 +165,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
         const redirectPath = localStorage.getItem("redirectAfterLogin");
         localStorage.removeItem("redirectAfterLogin");
-        router.push(redirectPath || "/");
+        router.push(redirectPath || "/home");
     };
 
     const logout = () => {

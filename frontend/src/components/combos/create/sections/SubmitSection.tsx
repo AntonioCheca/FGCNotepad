@@ -28,7 +28,6 @@ interface SubmitSectionProps {
     description: string;
     notes: string;
     canSubmit: boolean;
-    showOptionalDetails: boolean;
     showAdvancedConditions: boolean;
     requirements: ComboRequirementsPayload;
     activeRequirementsCount: number;
@@ -45,7 +44,6 @@ interface SubmitSectionProps {
     onSuperGainChange: (value: string) => void;
     onDescriptionChange: (value: string) => void;
     onNotesChange: (value: string) => void;
-    onToggleOptionalDetails: () => void;
     onToggleAdvancedConditions: () => void;
     onResetDraft: () => void;
     onRequirementToggle: (key: RequirementToggleKey, checked: boolean) => void;
@@ -63,7 +61,6 @@ export function SubmitSection({
     description,
     notes,
     canSubmit,
-    showOptionalDetails,
     showAdvancedConditions,
     requirements,
     activeRequirementsCount,
@@ -80,7 +77,6 @@ export function SubmitSection({
     onSuperGainChange,
     onDescriptionChange,
     onNotesChange,
-    onToggleOptionalDetails,
     onToggleAdvancedConditions,
     onResetDraft,
     onRequirementToggle,
@@ -112,34 +108,45 @@ export function SubmitSection({
                     type="button"
                     variant="text"
                     color="secondary"
-                    onClick={onToggleOptionalDetails}
-                    sx={{color: "text.secondary"}}
-                >
-                    {showOptionalDetails ? "Hide Optional Details" : "Optional Details"}
-                </AppButton>
-                <AppButton
-                    type="button"
-                    variant="text"
-                    color="secondary"
                     onClick={onToggleAdvancedConditions}
                     sx={{color: "text.secondary"}}
                 >
-                    {showAdvancedConditions ? "Hide Advanced Conditions" : "Advanced Conditions"}
+                    {showAdvancedConditions ? "Hide Advanced" : "Advanced"}
                 </AppButton>
                 <AppButton type="button" variant="text" color="secondary" onClick={onResetDraft} sx={{color: "text.secondary"}}>
                     Reset Draft
                 </AppButton>
             </ActionBar>
 
-            {showOptionalDetails ? (
+            <AppBox sx={{display: "grid", gap: 1, pt: 0.5}}>
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "160px minmax(220px, 1fr)"}, gap: 1, alignItems: "center"}}>
+                    <AppTextField
+                        label="Estimated Damage"
+                        value={damage}
+                        onChange={(event) => onDamageChange(event.target.value)}
+                        inputMode="numeric"
+                        required
+                    />
+                    <AppTypography variant="body2" color="text.secondary">
+                        Auto-filled from Fill Details and visible before creation.
+                    </AppTypography>
+                </AppBox>
+                <AppTextField
+                    label="Description"
+                    value={description}
+                    onChange={(event) => onDescriptionChange(event.target.value)}
+                />
+                <AppTextField
+                    label="Notes"
+                    value={notes}
+                    onChange={(event) => onNotesChange(event.target.value)}
+                    helperText="Local notes only."
+                />
+            </AppBox>
+
+            {showAdvancedConditions ? (
                 <AppBox sx={{display: "grid", gap: 1, pt: 0.5}}>
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr 1fr", md: "120px repeat(4, 96px) minmax(220px, 1fr)"}, gap: 1}}>
-                        <AppTextField
-                            label="Damage"
-                            value={damage}
-                            onChange={(event) => onDamageChange(event.target.value)}
-                            inputMode="numeric"
-                        />
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr 1fr", md: "repeat(4, minmax(110px, 1fr))"}, gap: 1}}>
                         <AppTextField
                             label="Drive Cost"
                             value={driveCost}
@@ -164,23 +171,7 @@ export function SubmitSection({
                             onChange={(event) => onSuperGainChange(event.target.value)}
                             inputMode="decimal"
                         />
-                        <AppTextField
-                            label="Description"
-                            value={description}
-                            onChange={(event) => onDescriptionChange(event.target.value)}
-                        />
                     </AppBox>
-                    <AppTextField
-                        label="Notes"
-                        value={notes}
-                        onChange={(event) => onNotesChange(event.target.value)}
-                        helperText="Local notes only."
-                    />
-                </AppBox>
-            ) : null}
-
-            {showAdvancedConditions ? (
-                <AppBox sx={{display: "grid", gap: 1, pt: 0.5}}>
                     <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 1}}>
                         {requirementToggles.map(({key, label}) => (
                             <ToggleRow

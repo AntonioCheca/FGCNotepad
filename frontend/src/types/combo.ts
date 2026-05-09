@@ -122,6 +122,16 @@ export interface TranslateComboNotationResponse {
     errors: TranslateErrorToken[];
 }
 
+export interface EstimateComboDamageResponse extends TranslateComboNotationResponse {
+    estimatedDamage: number;
+    stepDamages: number[];
+    input?: {
+        rawNotation?: string;
+        canonicalNotation?: string;
+        tokenMap?: Array<{ raw?: string; canonical?: string }>;
+    };
+}
+
 // types/combo.ts
 export interface ComboRow {
     id: number;

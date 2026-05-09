@@ -72,7 +72,6 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 description={controller.description}
                 notes={controller.notes}
                 canSubmit={controller.canSubmit}
-                showOptionalDetails={controller.showOptionalDetails}
                 showAdvancedConditions={controller.showAdvancedConditions}
                 requirements={controller.requirements}
                 activeRequirementsCount={controller.activeRequirements.length}
@@ -89,7 +88,6 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 onSuperGainChange={controller.setSuperGain}
                 onDescriptionChange={controller.setDescription}
                 onNotesChange={controller.setNotes}
-                onToggleOptionalDetails={() => controller.setShowOptionalDetails((prev) => !prev)}
                 onToggleAdvancedConditions={() => controller.setShowAdvancedConditions((prev) => !prev)}
                 onResetDraft={controller.clearDraft}
                 onRequirementToggle={controller.handleRequirementToggle}

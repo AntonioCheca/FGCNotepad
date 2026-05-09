@@ -7,6 +7,7 @@ use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
+use App\Service\FrameDataScalingNormalizerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -33,14 +34,16 @@ class ImportFrameDataFromFatJsonCommand extends Command
     private string $projectDir;
     private MoveRepository $moveRepository;
     private CharacterRepository $characterRepository;
+    private FrameDataScalingNormalizerService $scalingNormalizer;
 
-    public function __construct(EntityManagerInterface $entityManager, string $projectDir, MoveRepository $moveRepository, CharacterRepository $characterRepository)
+    public function __construct(EntityManagerInterface $entityManager, string $projectDir, MoveRepository $moveRepository, CharacterRepository $characterRepository, FrameDataScalingNormalizerService $scalingNormalizer)
     {
         parent::__construct();
         $this->entityManager = $entityManager;
         $this->projectDir = $projectDir;
         $this->moveRepository = $moveRepository;
         $this->characterRepository = $characterRepository;
+        $this->scalingNormalizer = $scalingNormalizer;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -60,6 +63,10 @@ class ImportFrameDataFromFatJsonCommand extends Command
         }
 
         $count = 0;
+        /**
+         * @var array<int, array{character:string,move:string,message:string}>
+         */
+        $scalingWarnings = [];
 
         foreach ($data as $characterName => $charData) {
             $moves = $charData['moves']['normal'] ?? [];
@@ -107,7 +114,17 @@ class ImportFrameDataFromFatJsonCommand extends Command
                 $frameData->setMoveType($record['moveType'] ?? 'normal');
                 $frameData->setCancelsTo(json_encode($record['xx'] ?? []));
                 $frameData->setDamage((int)($record['dmg'] ?? 0));
-                $frameData->setScaling($record['dmgScaling'] ?? null);
+                $rawScaling = isset($record['dmgScaling']) && is_string($record['dmgScaling']) ? $record['dmgScaling'] : null;
+                $frameData->setScaling($rawScaling);
+                $scaling = $this->scalingNormalizer->normalize($rawScaling);
+                $frameData->setScalingStartPercent($scaling->startPercent);
+                $frameData->setScalingImmediatePercent($scaling->immediatePercent);
+                $frameData->setScalingMinimumPercent($scaling->minimumPercent);
+                $frameData->setScalingComboHits($scaling->comboHits);
+                $frameData->setScalingComboExtraPercent($scaling->comboExtraPercent);
+                $frameData->setScalingMultiplierPercent($scaling->multiplierPercent);
+                $frameData->setScalingParseStatus($scaling->parseStatus);
+                $frameData->setScalingParseNote($scaling->parseNote);
                 $frameData->setChipDamage((int)($record['chp'] ?? 0));
                 $frameData->setAttackLevel($record['atkLvl'] ?? 'Unknown');
                 $frameData->setOnHitAfterDriveRush((int)($record['DRoH'] ?? 0));
@@ -130,14 +147,43 @@ class ImportFrameDataFromFatJsonCommand extends Command
                 $frameData->setHitstop((int)($record['hitstop'] ?? 0));
                 $frameData->setExtraInformation(json_encode($record['extraInfo'] ?? []));
 
+                foreach ($scaling->warnings as $warning) {
+                    $scalingWarnings[] = [
+                        'character' => $characterName,
+                        'move' => $moveName,
+                        'message' => $warning,
+                    ];
+                    $output->writeln(sprintf('<comment>Scaling parse warning [%s - %s]: %s</comment>', $characterName, $moveName, $warning));
+                }
+
                 $move->setFrameData($frameData);
                 $this->entityManager->persist($frameData);
+                $count++;
 
                 $output->writeln("<info>Processed move: {$moveName}</info>");
             }
         }
 
         $this->entityManager->flush();
+
+        if ([] !== $scalingWarnings) {
+            $output->writeln('');
+            $output->writeln(sprintf('<comment>Scaling warnings summary: %d warning(s).</comment>', count($scalingWarnings)));
+
+            $warningsByCharacter = [];
+            foreach ($scalingWarnings as $entry) {
+                $warningsByCharacter[$entry['character']][] = $entry;
+            }
+
+            ksort($warningsByCharacter);
+
+            foreach ($warningsByCharacter as $character => $entries) {
+                $output->writeln(sprintf('<comment>- %s: %d warning(s)</comment>', $character, count($entries)));
+                foreach ($entries as $entry) {
+                    $output->writeln(sprintf('<comment>  * %s => %s</comment>', $entry['move'], $entry['message']));
+                }
+            }
+        }
 
         $output->writeln("<info>Imported $count moves into the database.</info>");
         return Command::SUCCESS;

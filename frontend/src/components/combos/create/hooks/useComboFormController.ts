@@ -12,6 +12,7 @@ import type {
     TranslateErrorToken,
     TranslateParsedToken,
     TranslateComboNotationResponse,
+    EstimateComboDamageResponse,
 } from "@/src/types/combo";
 import {
     buildCreateFullComboPayload,
@@ -53,10 +54,9 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [notice, setNotice] = useState<FormNotice | null>(null);
     const [parseSuccessToastOpen, setParseSuccessToastOpen] = useState(false);
     const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
-    const [showOptionalDetails, setShowOptionalDetails] = useState<boolean>(false);
     const [showAdvancedConditions, setShowAdvancedConditions] = useState<boolean>(false);
 
-    const {fetchLeafs, createFullCombo, translateComboNotation, fetchRequirementObjects} = useCombos();
+    const {fetchLeafs, createFullCombo, translateComboNotation, estimateComboDamage, fetchRequirementObjects} = useCombos();
     const [leafs, setLeafs] = useState<LeafSequenceOption[]>([]);
 
     const {characters: characterOptions, loading: charactersLoading} = useCharacters();
@@ -195,6 +195,25 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 }
             }
 
+            try {
+                const estimation = (await estimateComboDamage({
+                    characterId,
+                    notation: notationInput,
+                    options: {
+                        perfectParry: false,
+                        driveRushMidCombo: false,
+                        driveImpactState: "none",
+                        specialCancelIntoSa3: false,
+                    },
+                })) as EstimateComboDamageResponse;
+
+                if (Number.isFinite(estimation.estimatedDamage)) {
+                    setDamage(String(Math.trunc(estimation.estimatedDamage)));
+                }
+            } catch {
+                setNotice({severity: "warning", message: "Notation parsed but damage estimate is currently unavailable."});
+            }
+
             if (translatedSteps.length === 0) {
                 setNotice({severity: "warning", message: "No valid steps were parsed for this character."});
                 return;
@@ -315,7 +334,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         notice,
         parseSuccessToastOpen,
         selectedStepIndex,
-        showOptionalDetails,
         showAdvancedConditions,
         leafs,
         characterOptions,
@@ -347,7 +365,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setSpecificRequirementStatus,
         setParseSuccessToastOpen,
         setSelectedStepIndex,
-        setShowOptionalDetails,
         setShowAdvancedConditions,
         clearDraft,
         handleChangeStep,

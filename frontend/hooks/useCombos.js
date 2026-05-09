@@ -89,6 +89,17 @@ const useCombos = () => {
         }
     }, [request]);
 
+    const estimateComboDamage = useCallback(async (payload) => {
+        try {
+            return await request(() =>
+                api.post("/combo-sequences/estimate-damage", payload)
+            );
+        } catch (error) {
+            console.error("Error estimating combo damage", error);
+            throw error;
+        }
+    }, [request]);
+
     const fetchRequirementObjects = useCallback(async () => {
         try {
             return await request(() =>
@@ -157,6 +168,7 @@ const useCombos = () => {
         createCombo,
         createFullCombo,
         translateComboNotation,
+        estimateComboDamage,
         fetchRequirementObjects,
         getCombo,
         updateCombo,

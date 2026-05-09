@@ -1,4 +1,5 @@
 import {useContext, useState} from "react";
+import Link from "next/link";
 import LoginForm from "@/src/components/forms/LoginForm";
 import useAuth from "@/hooks/useAuth";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -49,6 +50,10 @@ const LoginPage = () => {
                         Login
                     </AppTypography>
                     <LoginForm onSubmit={handleLogin} error={error}/>
+                    <AppTypography variant="body2" align="center" sx={{mt: 2}}>
+                        You don&apos;t have an account?{' '}
+                        <Link href="/auth/register">Register here</Link>
+                    </AppTypography>
                 </AppCardContent>
             </AppCard>
         </AppContainer>
