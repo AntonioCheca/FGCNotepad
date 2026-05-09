@@ -18,6 +18,7 @@ test("inspector builds source info for selected reference cell", () => {
             scenarioId: "77",
             scenarioLabel: "Corner Trap",
             cachedValue: 5,
+            preValue: {kind: "none"},
         },
         dynamicCombo: null,
     };

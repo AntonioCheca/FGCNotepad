@@ -10,6 +10,8 @@ use App\Repository\ComboSequencesRepository;
 use App\Repository\UserComboRepository;
 use App\Repository\UserScenarioPreferenceRepository;
 use App\Service\ComboRecommendationService;
+use App\Service\ComboNotationDictionaryTranslator;
+use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ScenarioExecutionModeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,6 +34,8 @@ class ProfileController extends AbstractController
         private readonly UserScenarioPreferenceRepository $userScenarioPreferenceRepository,
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
         private readonly ComboRecommendationService $comboRecommendationService,
+        private readonly NotationDictionaryPreferenceService $notationDictionaryPreferenceService,
+        private readonly ComboNotationDictionaryTranslator $comboNotationDictionaryTranslator,
     ) {
     }
 
@@ -45,6 +49,47 @@ class ProfileController extends AbstractController
             'username' => $user->getUsername(),
             'roles' => $user->getRoles(),
             'isActive' => $user->isActive(),
+            'notationDictionary' => $this->notationDictionaryPreferenceService->resolveForUser($user),
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/notation-preference', name: 'notation_preference_get', methods: ['GET'])]
+    public function getNotationPreference(): JsonResponse
+    {
+        $user = $this->requireUser();
+
+        return new JsonResponse([
+            'notationDictionary' => $this->notationDictionaryPreferenceService->resolveForUser($user),
+            'supportedDictionaries' => $this->comboNotationDictionaryTranslator->supportedDictionaries(),
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/notation-preference', name: 'notation_preference_update', methods: ['PUT'])]
+    public function updateNotationPreference(Request $request): JsonResponse
+    {
+        $user = $this->requireUser();
+        $data = json_decode((string) $request->getContent(), true);
+
+        if (!is_array($data)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
+
+        $dictionary = isset($data['notationDictionary']) && is_string($data['notationDictionary'])
+            ? $this->comboNotationDictionaryTranslator->normalizeDictionary($data['notationDictionary'])
+            : ComboNotationDictionaryTranslator::DICTIONARY_NUMPAD;
+
+        $preference = $this->userScenarioPreferenceRepository->findOneByUser($user);
+        if (null === $preference) {
+            $preference = (new UserScenarioPreference())->setUser($user);
+            $this->entityManager->persist($preference);
+        }
+
+        $preference->setNotationDictionary($dictionary);
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'notationDictionary' => $dictionary,
+            'supportedDictionaries' => $this->comboNotationDictionaryTranslator->supportedDictionaries(),
         ], JsonResponse::HTTP_OK);
     }
 

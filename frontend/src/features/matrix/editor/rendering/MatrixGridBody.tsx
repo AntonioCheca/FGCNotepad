@@ -21,6 +21,7 @@ interface MatrixGridBodyProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
+    displayLabelsByKey?: Record<string, string>;
     moveLabelById: Record<string, string>;
     canEditRowAxisLabels: boolean;
     canEditRowLayers: boolean;
@@ -56,9 +57,10 @@ export function MatrixGridBody({
                                       editingKey,
                                      draft,
                                      draftHasFormatError,
-                                       validationByKey,
-                                       displayedBodyValues,
-                                       moveLabelById,
+                                        validationByKey,
+                                        displayedBodyValues,
+                                        displayLabelsByKey = {},
+                                        moveLabelById,
                                       canEditRowAxisLabels,
                                       canEditRowLayers,
                                        canEditBodyValues,
@@ -163,6 +165,7 @@ export function MatrixGridBody({
                         >
                             <MatrixValueCell
                                 value={displayedBodyValues[key] ?? cell?.value ?? null}
+                                displayLabel={displayLabelsByKey[key]}
                                 bodyCellKind={cell?.kind}
                                 dynamicChipLabels={
                                     cell?.kind === "dynamic_combo" && cell.dynamicCombo

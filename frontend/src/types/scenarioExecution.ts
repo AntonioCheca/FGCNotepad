@@ -5,6 +5,13 @@ export interface ScenarioExecutionPreference {
     difficultyCap: number | null;
 }
 
+export type NotationDictionary = "numpad" | "sf_short";
+
+export interface NotationPreference {
+    notationDictionary: NotationDictionary;
+    supportedDictionaries: NotationDictionary[];
+}
+
 export interface ScenarioExecutionSelection {
     mode: ScenarioExecutionMode;
     difficultyCap: number | null;

@@ -3,7 +3,7 @@ import {deserializeMatrixPayload} from "@/src/features/matrix/serialization/dese
 import {createColumnSummaryKey, createExpectedValueKey, createRowSummaryKey} from "@/src/features/matrix/model";
 import {createInitialMatrixEditorState} from "@/src/features/matrix/state";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
-import {MatrixEditorState} from "@/src/features/matrix/model";
+import {MatrixEditorState, MatrixReferencePreValue} from "@/src/features/matrix/model";
 
 function toDynamicComboPayload(value: unknown): MatrixDynamicComboPayload | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -35,6 +35,47 @@ function toDynamicComboPayload(value: unknown): MatrixDynamicComboPayload | null
             isCounterHit: starterContext.isCounterHit,
         },
     };
+}
+
+function toReferencePreValue(value: unknown): MatrixReferencePreValue {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {kind: "none"};
+    }
+
+    const record = value as Record<string, unknown>;
+    if (record.kind === "static" && typeof record.staticValue === "number" && Number.isFinite(record.staticValue)) {
+        return {kind: "static", staticValue: record.staticValue};
+    }
+
+    if (record.kind === "dynamic_combo") {
+        const dynamicCombo = toDynamicComboPayload(record.dynamicCombo);
+        return dynamicCombo ? {kind: "dynamic_combo", dynamicCombo} : {kind: "none"};
+    }
+
+    return {kind: "none"};
+}
+
+function toReferencePreValuePayload(value: MatrixReferencePreValue): Record<string, unknown> {
+    if (value.kind === "static") {
+        return {kind: "static", staticValue: value.staticValue};
+    }
+
+    if (value.kind === "dynamic_combo") {
+        return {
+            kind: "dynamic_combo",
+            dynamicCombo: {
+                attackerCharacterId: value.dynamicCombo.attackerCharacterId,
+                ...(typeof value.dynamicCombo.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: value.dynamicCombo.isComboInitiatorAttacker} : {}),
+                starterMoveIds: [...value.dynamicCombo.starterMoveIds],
+                starterContext: {
+                    isPunishCounter: value.dynamicCombo.starterContext.isPunishCounter,
+                    isCounterHit: value.dynamicCombo.starterContext.isCounterHit,
+                },
+            },
+        };
+    }
+
+    return {kind: "none"};
 }
 
 export function matrixPayloadToEditorState(matrix: MatrixPayload) {
@@ -97,6 +138,7 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
                                     : typeof cell.value === "number"
                                         ? cell.value
                                         : null,
+                            preValue: toReferencePreValue(cell.metadata?.preValue),
                         }
                         : null,
             };
@@ -138,7 +180,14 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
     const rowRequirements = state.grid.rows.map((row) => row.requirements);
     const columnRequirements = state.grid.columns.map((column) => column.requirements);
     const values = state.grid.rows.map((row) =>
-        state.grid.columns.map((column) => state.grid.bodyCells[`body::${row.id}::${column.id}`]?.value ?? null)
+        state.grid.columns.map((column) => {
+            const cell = state.grid.bodyCells[`body::${row.id}::${column.id}`];
+            if (cell?.kind === "reference") {
+                return cell.reference?.cachedValue ?? cell.value ?? null;
+            }
+
+            return cell?.value ?? null;
+        })
     );
     const bodyCellTypes = state.grid.rows.map((row) =>
         state.grid.columns.map((column) => {
@@ -164,6 +213,7 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
                 scenarioLabel: cell.reference.scenarioLabel,
                 cachedValue: cell.reference.cachedValue,
                 referenceKind: cell.reference.kind,
+                preValue: toReferencePreValuePayload(cell.reference.preValue),
             };
         })
     );

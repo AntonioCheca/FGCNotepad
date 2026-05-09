@@ -18,6 +18,7 @@ class ResolveDynamicComboCellService
     /**
      * @param list<string> $starterMoveIds
      * @param array{health:float,drive:float,super:float}|null $availableResources
+     * @param array{allowedPositions:list<string>,characterStatuses:array<string,string>}|null $comboContext
      *
      * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
      */
@@ -29,6 +30,7 @@ class ResolveDynamicComboCellService
         ?string $executionMode = null,
         ?int $difficultyCap = null,
         ?array $availableResources = null,
+        ?array $comboContext = null,
     ): array
     {
         $normalizedStarterMoveIds = array_values(array_filter(
@@ -61,7 +63,8 @@ class ResolveDynamicComboCellService
             $filter['maxDifficulty'],
             $filter['includeUnratedDifficulty'],
             $availableResources['drive'] ?? null,
-            $availableResources['super'] ?? null
+            $availableResources['super'] ?? null,
+            $comboContext
         );
 
         return $this->buildResolutionFromComboMatch(
@@ -75,6 +78,7 @@ class ResolveDynamicComboCellService
      * @param list<string> $starterMoveIds
      * @param list<int>|null $allowedComboIds
      * @param array{health:float,drive:float,super:float}|null $availableResources
+     * @param array{allowedPositions:list<string>,characterStatuses:array<string,string>}|null $comboContext
      *
      * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
      */
@@ -86,6 +90,7 @@ class ResolveDynamicComboCellService
         ?int $maxDifficulty,
         bool $includeUnratedDifficulty,
         ?array $availableResources = null,
+        ?array $comboContext = null,
     ): array {
         $normalizedStarterMoveIds = array_values(array_filter(
             $starterMoveIds,
@@ -110,7 +115,8 @@ class ResolveDynamicComboCellService
             $maxDifficulty,
             $includeUnratedDifficulty,
             $availableResources['drive'] ?? null,
-            $availableResources['super'] ?? null
+            $availableResources['super'] ?? null,
+            $comboContext
         );
 
         return $this->buildResolutionFromComboMatch(

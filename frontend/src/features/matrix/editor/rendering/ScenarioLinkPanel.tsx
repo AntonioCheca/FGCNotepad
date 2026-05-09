@@ -1,22 +1,46 @@
 import React from "react";
 
+import {MatrixReferencePreValue} from "@/src/features/matrix/model";
 import {fetchScenarioItems, ScenarioSearchError, ScenarioSearchItem} from "../services/scenarioSearchService";
+import {DynamicComboPanel} from "./DynamicComboPanel";
 
 interface ScenarioLinkPanelProps {
     open: boolean;
     initialScenarioId?: string;
+    initialScenarioLabel?: string;
+    initialPreValue?: MatrixReferencePreValue;
+    moveLabelById: Record<string, string>;
     presentation?: "modal" | "inline";
     onClose: () => void;
-    onConfirm: (item: ScenarioSearchItem) => void;
+    onConfirm: (item: ScenarioSearchItem, preValue: MatrixReferencePreValue, starterLabels: Record<string, string>) => void;
+    onRemove?: () => void;
 }
 
-export function ScenarioLinkPanel({open, initialScenarioId, presentation = "modal", onClose, onConfirm}: ScenarioLinkPanelProps) {
+type PreValueKind = MatrixReferencePreValue["kind"];
+
+export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel, initialPreValue, moveLabelById, presentation = "modal", onClose, onConfirm, onRemove}: ScenarioLinkPanelProps) {
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [query, setQuery] = React.useState("");
     const [items, setItems] = React.useState<ScenarioSearchItem[]>([]);
     const [selectedId, setSelectedId] = React.useState<string | null>(initialScenarioId ?? null);
     const [debouncedQuery, setDebouncedQuery] = React.useState("");
+    const [preValueKind, setPreValueKind] = React.useState<PreValueKind>(initialPreValue?.kind ?? "none");
+    const [staticPreValue, setStaticPreValue] = React.useState(initialPreValue?.kind === "static" ? String(initialPreValue.staticValue) : "");
+    const [dynamicPreValue, setDynamicPreValue] = React.useState(initialPreValue?.kind === "dynamic_combo" ? initialPreValue.dynamicCombo : null);
+    const [dynamicStarterLabels, setDynamicStarterLabels] = React.useState<Record<string, string>>({});
+
+    React.useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        setSelectedId(initialScenarioId ?? null);
+        setPreValueKind(initialPreValue?.kind ?? "none");
+        setStaticPreValue(initialPreValue?.kind === "static" ? String(initialPreValue.staticValue) : "");
+        setDynamicPreValue(initialPreValue?.kind === "dynamic_combo" ? initialPreValue.dynamicCombo : null);
+        setDynamicStarterLabels({});
+    }, [open, initialScenarioId, initialPreValue]);
 
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -142,6 +166,53 @@ export function ScenarioLinkPanel({open, initialScenarioId, presentation = "moda
                     ) : null}
                 </div>
 
+                <div style={{display: "grid", gap: 8, border: "1px solid #cfdeec", borderRadius: 8, padding: 10, background: "#fff"}}>
+                    <label style={{display: "grid", gap: 4}}>
+                        <span style={{fontSize: 12, color: "#595959"}}>Pre-value Added Before Linked EV</span>
+                        <select
+                            value={preValueKind}
+                            onChange={(event) => {
+                                setPreValueKind(event.target.value as PreValueKind);
+                                setError(null);
+                            }}
+                        >
+                            <option value="none">None</option>
+                            <option value="static">Static value</option>
+                            <option value="dynamic_combo">Dynamic combo</option>
+                        </select>
+                    </label>
+
+                    {preValueKind === "static" ? (
+                        <label style={{display: "grid", gap: 4}}>
+                            <span style={{fontSize: 12, color: "#595959"}}>Static Pre-value</span>
+                            <input
+                                type="number"
+                                value={staticPreValue}
+                                onChange={(event) => {
+                                    setStaticPreValue(event.target.value);
+                                    setError(null);
+                                }}
+                                style={{height: 34, border: "1px solid #b8c9dc", borderRadius: 8, padding: "0 10px", background: "#fff"}}
+                            />
+                        </label>
+                    ) : null}
+
+                    {preValueKind === "dynamic_combo" ? (
+                        <DynamicComboPanel
+                            open
+                            presentation="inline"
+                            initialValue={dynamicPreValue}
+                            moveLabelById={moveLabelById}
+                            onClose={() => setPreValueKind("none")}
+                            onConfirm={(value, starterLabels) => {
+                                setDynamicPreValue(value);
+                                setDynamicStarterLabels(starterLabels);
+                                setError(null);
+                            }}
+                        />
+                    ) : null}
+                </div>
+
                 <div style={{display: "flex", justifyContent: "flex-end", gap: 8}}>
                     <button type="button" onClick={onClose} style={{height: 30}}>Cancel</button>
                     <button
@@ -156,14 +227,58 @@ export function ScenarioLinkPanel({open, initialScenarioId, presentation = "moda
                             fontWeight: 600,
                         }}
                         onClick={() => {
-                            const selected = items.find((item) => item.id === selectedId);
+                            const selected = items.find((item) => item.id === selectedId)
+                                ?? (selectedId && selectedId === initialScenarioId
+                                    ? {
+                                        id: selectedId,
+                                        label: initialScenarioLabel ?? selectedId,
+                                        typeLabel: "Scenario",
+                                    }
+                                    : null);
                             if (selected) {
-                                onConfirm(selected);
+                                if (preValueKind === "static") {
+                                    const numeric = Number(staticPreValue);
+                                    if (!Number.isFinite(numeric)) {
+                                        setError("Static pre-value must be numeric.");
+                                        return;
+                                    }
+
+                                    onConfirm(selected, {kind: "static", staticValue: numeric}, {});
+                                    return;
+                                }
+
+                                if (preValueKind === "dynamic_combo") {
+                                    if (!dynamicPreValue) {
+                                        setError("Save the dynamic combo pre-value first.");
+                                        return;
+                                    }
+
+                                    onConfirm(selected, {kind: "dynamic_combo", dynamicCombo: dynamicPreValue}, dynamicStarterLabels);
+                                    return;
+                                }
+
+                                onConfirm(selected, {kind: "none"}, {});
                             }
                         }}
                     >
                         Confirm Link
                     </button>
+                    {initialScenarioId && onRemove ? (
+                        <button
+                            type="button"
+                            onClick={onRemove}
+                            style={{
+                                height: 30,
+                                borderRadius: 6,
+                                border: "1px solid #cf1322",
+                                background: "#fff1f0",
+                                color: "#a8071a",
+                                fontWeight: 600,
+                            }}
+                        >
+                            Remove Link
+                        </button>
+                    ) : null}
                 </div>
             </div>
     );

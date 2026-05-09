@@ -12,11 +12,14 @@ use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioExecutionModeService;
+use App\Service\ScenarioLinkedExpectedValueResolverService;
 use App\Service\ScenarioResponseBuilder;
 use App\Service\ScenarioLayerSolveService;
 use App\Service\ScenarioResourceContextService;
+use App\Service\ScenarioComboContextService;
 use App\Service\ResolveScenarioDynamicComboCellsService;
 use App\Service\ResolveDynamicComboCellService;
+use App\Service\RequirementSpecificCharacterCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -42,11 +45,14 @@ class ScenarioController extends AbstractController
         private readonly AggregatedDefenseCatalogService $aggregatedDefenseCatalogService,
         private readonly ScenarioResponseBuilder $scenarioResponseBuilder,
         private readonly ScenarioLayerSolveService $scenarioLayerSolveService,
+        private readonly ScenarioLinkedExpectedValueResolverService $scenarioLinkedExpectedValueResolverService,
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
         private readonly ScenarioResourceContextService $scenarioResourceContextService,
+        private readonly ScenarioComboContextService $scenarioComboContextService,
+        private readonly RequirementSpecificCharacterCatalog $requirementSpecificCharacterCatalog,
         private readonly EndpointAuthorizationService $endpointAuthorizationService,
         private readonly ModerationTransitionService $moderationTransitionService,
     ) {
@@ -93,7 +99,14 @@ class ScenarioController extends AbstractController
 
         $this->entityManager->getConnection()->transactional(function () use ($scenario, $data, $actor): void {
             $this->hydrateScenario($scenario, $data, true, $actor);
-            $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
+            $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
+                $scenario,
+                $actor,
+                null,
+                null,
+                null,
+                $this->scenarioComboContextService->buildEffectiveContext($scenario, $data)
+            );
             $scenario->setAuthor($actor);
             $this->moderationTransitionService->submitScenarioForReview($scenario);
 
@@ -146,8 +159,15 @@ class ScenarioController extends AbstractController
         $this->entityManager->getConnection()->transactional(function () use ($scenario, $data, $actor): void {
             $this->hydrateScenario($scenario, $data, false, $actor);
 
-            if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data)) {
-                $this->resolveScenarioDynamicComboCellsService->resolveForScenario($scenario, $actor);
+            if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data) || array_key_exists('comboContext', $data)) {
+                $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
+                    $scenario,
+                    $actor,
+                    null,
+                    null,
+                    null,
+                    $this->scenarioComboContextService->buildEffectiveContext($scenario, $data)
+                );
             }
 
             $this->moderationTransitionService->submitScenarioForReview($scenario);
@@ -228,13 +248,15 @@ class ScenarioController extends AbstractController
         $execution = $this->parseExecutionModePayload($request);
         $requestPayload = $this->decodeOptionalRequestBody($request);
         $resourceContext = $this->scenarioResourceContextService->parseOptional($requestPayload);
+        $comboContext = $this->scenarioComboContextService->buildEffectiveContext($scenario, $requestPayload);
 
         $summary = $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
             $scenario,
             $actor,
             $execution['mode'],
             $execution['difficultyCap'],
-            $resourceContext
+            $resourceContext,
+            $comboContext
         );
         $this->entityManager->flush();
 
@@ -274,6 +296,43 @@ class ScenarioController extends AbstractController
             ],
             'maxLayer' => $solvedLayers['maxLayer'],
             'layers' => $solvedLayers['layers'],
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/{id}/solve-linked-ev', name: 'solve_linked_ev', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
+    public function solveLinkedExpectedValue(string $id, Request $request): JsonResponse
+    {
+        $scenario = $this->findByPublicId($id);
+        $execution = $this->parseExecutionModePayload($request);
+        $requestPayload = $this->decodeOptionalRequestBody($request);
+        $resourceContext = $this->scenarioResourceContextService->parseOptional($requestPayload);
+
+        if ('my_knowledge' === $execution['mode']) {
+            return new JsonResponse([
+                'error' => 'Execution mode my_knowledge is not supported for linked scenario EV solving.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $solution = $this->scenarioLinkedExpectedValueResolverService->resolve(
+            $scenario,
+            $this->extractCurrentUser(),
+            $execution['mode'],
+            $execution['difficultyCap'],
+            $resourceContext,
+            $requestPayload,
+        );
+
+        return new JsonResponse([
+            'scenarioId' => $scenario->getPublicId()->toRfc4122(),
+            'executionMode' => [
+                'mode' => $execution['mode'],
+                'difficultyCap' => $execution['difficultyCap'],
+            ],
+            'depth' => $solution['depth'],
+            'expectedValue' => $solution['expectedValue'],
+            'rowAxis' => $solution['rowAxis'],
+            'columnAxis' => $solution['columnAxis'],
+            'resolvedCells' => $solution['resolvedCells'],
         ], JsonResponse::HTTP_OK);
     }
 
@@ -323,6 +382,10 @@ class ScenarioController extends AbstractController
         $requestedDifficultyCap = $this->scenarioExecutionModeService->normalizeDifficultyCap($executionPayload['difficultyCap'] ?? null);
         $normalizedMode = $this->scenarioExecutionModeService->normalizeMode($requestedMode, null !== $this->extractCurrentUser());
         $resourceContext = $this->scenarioResourceContextService->parseOptional($data);
+        $comboContext = null;
+        if (isset($data['scenarioId']) && is_string($data['scenarioId']) && '' !== trim($data['scenarioId'])) {
+            $comboContext = $this->scenarioComboContextService->buildEffectiveContext($this->findByPublicId(trim($data['scenarioId'])), $data);
+        }
         $resourceOwner = true === ($data['isComboInitiatorAttacker'] ?? true) ? 'attacker' : 'defender';
 
         $resolution = $this->resolveDynamicComboCellService->resolve(
@@ -332,7 +395,8 @@ class ScenarioController extends AbstractController
             $this->extractCurrentUser(),
             $normalizedMode,
             $requestedDifficultyCap,
-            null !== $resourceContext ? $resourceContext[$resourceOwner] : null
+            null !== $resourceContext ? $resourceContext[$resourceOwner] : null,
+            $comboContext
         );
 
         return new JsonResponse([
@@ -361,6 +425,19 @@ class ScenarioController extends AbstractController
             'capabilities' => $this->aggregatedDefenseCatalogService->capabilitiesForCharacter($character),
             'characterId' => $character?->getId()?->toRfc4122(),
             'characterName' => $character?->getName(),
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/combo-context/catalog', name: 'combo_context_catalog', methods: ['GET'])]
+    public function comboContextCatalog(): JsonResponse
+    {
+        return new JsonResponse([
+            'positionLocks' => [
+                ['value' => 'viewer_default_midscreen', 'label' => 'Viewer decides, default midscreen'],
+                ['value' => 'corner', 'label' => 'Always corner'],
+                ['value' => 'midscreen', 'label' => 'Always midscreen'],
+            ],
+            'characterStatuses' => $this->requirementSpecificCharacterCatalog->listForApi(),
         ], JsonResponse::HTTP_OK);
     }
 
@@ -416,6 +493,8 @@ class ScenarioController extends AbstractController
 
             $this->scenarioMatrixMapper->replaceScenarioMatrixFromPayload($scenario, $matrix);
         }
+
+        $this->scenarioComboContextService->hydrateScenarioContext($scenario, $data);
 
         if (array_key_exists('isEssential', $data)) {
             try {

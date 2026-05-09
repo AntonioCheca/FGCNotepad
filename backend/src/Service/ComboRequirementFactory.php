@@ -40,7 +40,9 @@ class ComboRequirementFactory
             throw new InvalidArgumentException('requirement_specific_character.status_required requires requirement_specific_character.object_name.');
         }
 
-        $statusRequired = $this->normalizeStatusRequired($objectName, $specificCharacterData['status_required'] ?? null);
+        $statusRequired = null !== $objectName
+            ? $this->catalog->normalizeStatusRequired($objectName, $specificCharacterData['status_required'] ?? null)
+            : null;
         $hasSpecificCharacterRequirement = null !== $objectName && null !== $statusRequired;
 
         $hasBooleanRequirement =
@@ -67,73 +69,11 @@ class ComboRequirementFactory
         if ($hasSpecificCharacterRequirement) {
             $specificRequirement = new RequirementSpecificCharacter();
             $specificRequirement->setObjectName($objectName)
-                ->setStatusRequired($statusRequired)
-                ->setRequirement($comboRequirement);
+                ->setStatusRequired($statusRequired);
 
             $comboRequirement->setRequirementSpecificCharacter($specificRequirement);
         }
 
         return $comboRequirement;
-    }
-
-    private function normalizeStatusRequired(?string $objectName, mixed $statusRequired): ?string
-    {
-        if (null === $objectName) {
-            return null;
-        }
-
-        if (!$this->catalog->supportsObject($objectName)) {
-            throw new InvalidArgumentException(sprintf('Unsupported requirement_specific_character.object_name: %s', $objectName));
-        }
-
-        $statusType = $this->catalog->statusType($objectName);
-
-        if ('integer' === $statusType) {
-            if (is_string($statusRequired) && '' === trim($statusRequired)) {
-                return null;
-            }
-
-            if (is_string($statusRequired)) {
-                if (!preg_match('/^\d+$/', trim($statusRequired))) {
-                    throw new InvalidArgumentException(sprintf('%s requires an integer status_required value.', $objectName));
-                }
-
-                $statusRequired = (int) trim($statusRequired);
-            }
-
-            if (!is_int($statusRequired)) {
-                throw new InvalidArgumentException(sprintf('%s requires an integer status_required value.', $objectName));
-            }
-
-            $maxStatus = $this->catalog->maxStatus($objectName);
-            if (null !== $maxStatus && ($statusRequired < 1 || $statusRequired > $maxStatus)) {
-                throw new InvalidArgumentException(sprintf('%s status_required must be between 1 and %d.', $objectName, $maxStatus));
-            }
-
-            return (string) $statusRequired;
-        }
-
-        if (null === $statusRequired) {
-            return null;
-        }
-
-        if (is_string($statusRequired)) {
-            $normalizedValue = strtolower(trim($statusRequired));
-            if ('' === $normalizedValue) {
-                return null;
-            }
-
-            if (in_array($normalizedValue, ['true', '1', 'yes'], true)) {
-                return 'true';
-            }
-
-            throw new InvalidArgumentException(sprintf('%s requires a boolean status_required value.', $objectName));
-        }
-
-        if (true === $statusRequired || 1 === $statusRequired) {
-            return 'true';
-        }
-
-        throw new InvalidArgumentException(sprintf('%s requires a boolean status_required value.', $objectName));
     }
 }

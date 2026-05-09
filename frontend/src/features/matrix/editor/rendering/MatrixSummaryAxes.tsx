@@ -7,6 +7,7 @@ import {MatrixDensityProfile} from "./gridDensity";
 
 interface MatrixSummaryAxesProps {
     state: MatrixEditorState;
+    defenderCharacterName?: string | null;
     activeKey: string | null;
     activeColumnId: string | null;
     unavailableColumnIds: Set<string>;
@@ -30,7 +31,8 @@ interface MatrixSummaryAxesProps {
 
 export function MatrixSummaryAxes({
                                        state,
-                                        activeKey,
+                                       defenderCharacterName,
+                                       activeKey,
                                         activeColumnId,
                                         unavailableColumnIds,
                                         unavailableReasonByColumnId,
@@ -68,7 +70,7 @@ export function MatrixSummaryAxes({
                     color: theme.fgc.text.secondary,
                 }}
             >
-                P2 Freq
+                {defenderCharacterName ?? "P2"} Freq
             </th>
             {state.grid.columns.map((column) => {
                 const columnUnavailable = unavailableColumnIds.has(column.id);

@@ -212,11 +212,15 @@ class ScenarioMatrixMapper
 
             $referenceKind = isset($metadata['referenceKind']) && is_string($metadata['referenceKind']) ? $metadata['referenceKind'] : 'reference';
 
-            return $cell
+            $cell
                 ->setKind(ScenarioCell::KIND_REFERENCE)
                 ->setReferenceScenario($referenceScenario)
                 ->setReferenceKind('computed' === $referenceKind ? 'computed' : 'reference')
-                ->setCachedValue($this->extractNumericValue($sourceCell));
+                ->setCachedValue($this->extractReferenceCachedValue($sourceCell, $metadata));
+
+            $this->applyReferencePreValuePayload($scenario, $cell, $metadata);
+
+            return $cell;
         }
 
         if ('dynamic_combo' === $cellType) {
@@ -362,6 +366,7 @@ class ScenarioMatrixMapper
                     'scenarioLabel' => $reference?->getName(),
                     'cachedValue' => $cell->getCachedValue(),
                     'referenceKind' => $cell->getReferenceKind() ?? 'reference',
+                    'preValue' => $this->buildReferencePreValuePayload($cell),
                 ],
             ];
         }
@@ -402,6 +407,99 @@ class ScenarioMatrixMapper
         $defenderId = $scenario->getDefenderCharacter()?->getId()?->toRfc4122();
 
         return '' === $characterId || null === $defenderId || $characterId !== $defenderId;
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    private function applyReferencePreValuePayload(Scenario $scenario, ScenarioCell $cell, array $metadata): void
+    {
+        $preValue = is_array($metadata['preValue'] ?? null) ? $metadata['preValue'] : [];
+        $kind = isset($preValue['kind']) && is_string($preValue['kind']) ? $preValue['kind'] : 'none';
+
+        if ('static' === $kind) {
+            $staticValue = $preValue['staticValue'] ?? null;
+            if (!is_int($staticValue) && !is_float($staticValue)) {
+                throw new BadRequestHttpException('Reference preValue.staticValue must be numeric.');
+            }
+
+            $cell->setStaticValue((float) $staticValue);
+
+            return;
+        }
+
+        if ('dynamic_combo' !== $kind) {
+            return;
+        }
+
+        $dynamicCombo = is_array($preValue['dynamicCombo'] ?? null) ? $preValue['dynamicCombo'] : null;
+        if (null === $dynamicCombo) {
+            throw new BadRequestHttpException('Reference dynamic preValue requires dynamicCombo payload.');
+        }
+
+        $starterMoveIds = is_array($dynamicCombo['starterMoveIds'] ?? null) ? $dynamicCombo['starterMoveIds'] : [];
+        if ([] === $starterMoveIds) {
+            throw new BadRequestHttpException('Reference dynamic preValue requires at least one starter move id.');
+        }
+
+        $starterContext = is_array($dynamicCombo['starterContext'] ?? null) ? $dynamicCombo['starterContext'] : [];
+        $cell
+            ->setStarterContext($this->resolveStarterContext($starterContext))
+            ->setIsComboInitiatorAttacker($this->resolveComboInitiator($scenario, $dynamicCombo));
+
+        foreach ($starterMoveIds as $moveId) {
+            if (!is_string($moveId) || '' === trim($moveId)) {
+                continue;
+            }
+
+            /** @var Move|null $move */
+            $move = $this->moveRepository->find(trim($moveId));
+            if (null === $move) {
+                throw new BadRequestHttpException(sprintf('Starter move %s was not found.', (string) $moveId));
+            }
+
+            $cell->addStarterMove($move);
+        }
+
+        if (0 === $cell->getStarterMoves()->count()) {
+            throw new BadRequestHttpException('Reference dynamic preValue requires at least one valid starter move id.');
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildReferencePreValuePayload(ScenarioCell $cell): array
+    {
+        if ($cell->getStarterMoves()->count() > 0) {
+            $starterMoves = [];
+            foreach ($cell->getStarterMoves() as $starterMove) {
+                $starterMoves[] = $starterMove->getId()?->toRfc4122();
+            }
+
+            $initiatorCharacter = $cell->isComboInitiatorAttacker()
+                ? $cell->getScenario()?->getAttackerCharacter()
+                : $cell->getScenario()?->getDefenderCharacter();
+
+            return [
+                'kind' => 'dynamic_combo',
+                'dynamicCombo' => [
+                    'attackerCharacterId' => $initiatorCharacter?->getId()?->toRfc4122() ?? '',
+                    'isComboInitiatorAttacker' => $cell->isComboInitiatorAttacker(),
+                    'starterMoveIds' => array_values(array_filter($starterMoves, static fn (?string $value): bool => null !== $value && '' !== $value)),
+                    'starterContext' => $this->toStarterContextPayload($cell->getStarterContext()),
+                ],
+            ];
+        }
+
+        if (null !== $cell->getStaticValue()) {
+            return [
+                'kind' => 'static',
+                'staticValue' => $cell->getStaticValue(),
+            ];
+        }
+
+        return ['kind' => 'none'];
     }
 
     /**
@@ -473,6 +571,20 @@ class ScenarioMatrixMapper
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, mixed> $sourceCell
+     * @param array<string, mixed> $metadata
+     */
+    private function extractReferenceCachedValue(array $sourceCell, array $metadata): ?float
+    {
+        $cachedValue = $metadata['cachedValue'] ?? null;
+        if (is_numeric($cachedValue)) {
+            return (float) $cachedValue;
+        }
+
+        return $this->extractNumericValue($sourceCell);
     }
 
     private function extractLayerValue(mixed $value): int

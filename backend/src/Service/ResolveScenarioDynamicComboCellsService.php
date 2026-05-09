@@ -14,6 +14,8 @@ class ResolveScenarioDynamicComboCellsService
     }
 
     /**
+     * @param array{allowedPositions:list<string>,characterStatuses:array<string,string>}|null $comboContext
+     *
      * @return array{totalDynamicCells:int,resolvedCells:int,unresolvedCells:int}
      */
     public function resolveForScenario(
@@ -22,6 +24,7 @@ class ResolveScenarioDynamicComboCellsService
         ?string $executionMode = null,
         ?int $difficultyCap = null,
         ?array $resourceContext = null,
+        ?array $comboContext = null,
     ): array
     {
         $attackerCharacterId = $scenario->getAttackerCharacter()?->getId()?->toRfc4122();
@@ -62,7 +65,8 @@ class ResolveScenarioDynamicComboCellsService
                 $user,
                 $executionMode,
                 $difficultyCap,
-                null !== $resourceContext ? $resourceContext[$isAttackerInitiated ? 'attacker' : 'defender'] : null
+                null !== $resourceContext ? $resourceContext[$isAttackerInitiated ? 'attacker' : 'defender'] : null,
+                $comboContext
             );
 
             $cell->setCachedValue($resolution['resolvedDamage']);

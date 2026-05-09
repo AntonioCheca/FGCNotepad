@@ -6,6 +6,7 @@ import {MatrixDensityProfile} from "./gridDensity";
 interface MatrixValueCellProps {
     value: number | null;
     valueFormatter?: (value: number | null) => string;
+    displayLabel?: string;
     dynamicChipLabels?: string[];
     dynamicChipTone?: "normal" | "counter_hit" | "punish_counter";
     bodyCellKind?: "static" | "reference" | "dynamic_combo";
@@ -33,9 +34,10 @@ function isPrintableKey(event: React.KeyboardEvent<HTMLButtonElement>): boolean 
 }
 
 function MatrixValueCellComponent({
-                                       value,
-                                       valueFormatter,
-                                       dynamicChipLabels = [],
+                                        value,
+                                        valueFormatter,
+                                        displayLabel,
+                                        dynamicChipLabels = [],
                                       dynamicChipTone = "normal",
                                       bodyCellKind,
                                       isActive,
@@ -99,7 +101,7 @@ function MatrixValueCellComponent({
                 ? {background: theme.fgc.highlight.surface, border: `1px solid ${theme.fgc.accent.warning}`, color: theme.fgc.text.secondary}
                 : {background: theme.fgc.chip.neutralBg, border: `1px solid ${theme.fgc.chip.neutralBorder}`, color: theme.fgc.chip.neutralText};
 
-    const displayValue = valueFormatter ? valueFormatter(value) : value === null ? "" : String(value);
+    const displayValue = displayLabel ?? (valueFormatter ? valueFormatter(value) : value === null ? "" : String(value));
 
     return (
         <button
@@ -159,7 +161,26 @@ function MatrixValueCellComponent({
             aria-label={unavailable ? "Unavailable cell" : readOnly ? "Read-only cell" : "Editable cell"}
             title={issues[0]?.message ?? (unavailable ? "Unavailable due to resource requirements" : undefined)}
         >
-            {dynamicChipLabels.length > 0 ? (
+            {bodyCellKind === "reference" ? (
+                <span style={{display: "grid", gap: 3}}>
+                    <span
+                        style={{
+                            display: "inline-block",
+                            width: "fit-content",
+                            borderRadius: 999,
+                            padding: "1px 6px",
+                            fontSize: Math.max(10, densityProfile.valueFontSize - 2),
+                            lineHeight: 1.3,
+                            background: theme.fgc.chip.neutralBg,
+                            border: `1px solid ${theme.fgc.chip.neutralBorder}`,
+                            color: theme.fgc.chip.neutralText,
+                        }}
+                    >
+                        Linked
+                    </span>
+                    <span style={{color: theme.fgc.text.primary}}>{displayValue}</span>
+                </span>
+            ) : dynamicChipLabels.length > 0 ? (
                 <span style={{display: "grid", gap: 4}}>
                     <span style={{display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center"}}>
                         {dynamicChipLabels.map((label, index) => (
@@ -198,6 +219,7 @@ export const MatrixValueCell = React.memo(MatrixValueCellComponent, (previous, n
     return (
         previous.value === next.value &&
         previous.valueFormatter === next.valueFormatter &&
+        previous.displayLabel === next.displayLabel &&
         previous.bodyCellKind === next.bodyCellKind &&
         (previous.dynamicChipLabels?.join("|") ?? "") === (next.dynamicChipLabels?.join("|") ?? "") &&
         previous.dynamicChipTone === next.dynamicChipTone &&

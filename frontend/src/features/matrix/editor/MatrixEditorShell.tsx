@@ -1,7 +1,7 @@
 import React from "react";
 
 import {MatrixPayload} from "@/src/types/matrixPayload";
-import {isTemporarilyValidNumericDraft, selectCellValueByKey, selectGridValues, selectIsCellEditableByKey} from "@/src/features/matrix/model";
+import {isTemporarilyValidNumericDraft, MatrixLinkedCellResolution, selectCellValueByKey, selectGridValues, selectIsCellEditableByKey} from "@/src/features/matrix/model";
 import useSolverGames from "@/hooks/useSolverGame";
 import useMoves from "@/hooks/useMoves";
 import {computeExpectedValue} from "./services/matrixComputationService";
@@ -23,9 +23,12 @@ import {useDynamicComboResolver} from "./hooks/useDynamicComboResolver";
 import {useSolveMatrix} from "./hooks/useSolveMatrix";
 import {useMatrixEditorPanels} from "./hooks/useMatrixEditorPanels";
 import {buildMatrixResourceGating, MatrixResourceContext} from "./services/matrixResourceGating";
+import {resolveEditorLinkedReferences} from "./services/linkedReferenceResolutionService";
 
 interface MatrixEditorShellProps {
     matrix: MatrixPayload;
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
     onMatrixChange: (next: MatrixPayload) => void;
     editable?: boolean;
     allowRowStructureEdit?: boolean;
@@ -47,10 +50,14 @@ interface MatrixEditorShellProps {
     onLayerViewChange?: (layerLimit: number | null) => void;
     displayFrequenciesAsPercent?: boolean;
     resourceContext?: MatrixResourceContext | null;
+    currentScenarioId?: string | null;
+    linkedCellResolutions?: Record<string, MatrixLinkedCellResolution>;
 }
 
 export function MatrixEditorShell({
     matrix,
+    attackerCharacterName,
+    defenderCharacterName,
     onMatrixChange,
     editable = true,
     allowRowStructureEdit,
@@ -67,6 +74,8 @@ export function MatrixEditorShell({
     onLayerViewChange,
     displayFrequenciesAsPercent = false,
     resourceContext = null,
+    currentScenarioId = null,
+    linkedCellResolutions = {},
 }: MatrixEditorShellProps) {
     const {solveGame} = useSolverGames();
     const isEditorEditable = editable;
@@ -86,6 +95,7 @@ export function MatrixEditorShell({
     const canEditRowLayers = isEditorEditable && (allowRowLayerEdit ?? true);
     const canEditColumnLayers = isEditorEditable && (allowColumnLayerEdit ?? true);
     const [showLayerControls, setShowLayerControls] = React.useState(false);
+    const [editorLinkedCellResolutions, setEditorLinkedCellResolutions] = React.useState<Record<string, MatrixLinkedCellResolution>>({});
     const canEditBodyValues = isEditorEditable;
     const canEditReferences = isEditorEditable;
     const canEditDynamicCombos = isEditorEditable;
@@ -175,6 +185,10 @@ export function MatrixEditorShell({
 
     const resourceGating = React.useMemo(() => buildMatrixResourceGating(state, resourceContext), [resourceContext, state]);
 
+    const hasResourceRequirements = React.useMemo(() => {
+        return state.grid.rows.some((row) => row.requirements.length > 0) || state.grid.columns.some((column) => column.requirements.length > 0);
+    }, [state.grid.columns, state.grid.rows]);
+
     const forceSolveColumnIds = React.useMemo(() => {
         if (!columnVisibilitySet) {
             return null;
@@ -213,7 +227,7 @@ export function MatrixEditorShell({
     }, [effectiveLayerLimit, onLayerViewChange]);
 
     React.useEffect(() => {
-        if (isEditorEditable || showAllLayers || effectiveLayerLimit === null || !layerSolveSnapshots) {
+        if (isEditorEditable || showAllLayers || effectiveLayerLimit === null || !layerSolveSnapshots || (resourceContext && hasResourceRequirements)) {
             return;
         }
 
@@ -251,6 +265,8 @@ export function MatrixEditorShell({
         effectiveLayerLimit,
         isEditorEditable,
         layerSolveSnapshots,
+        hasResourceRequirements,
+        resourceContext,
         showAllLayers,
         state.grid.columns,
         state.grid.columnSummaryCells,
@@ -397,10 +413,38 @@ export function MatrixEditorShell({
         return {};
     }, [matrix.extensions]);
 
+    const effectiveLinkedCellResolutions = React.useMemo(() => ({
+        ...linkedCellResolutions,
+        ...editorLinkedCellResolutions,
+    }), [editorLinkedCellResolutions, linkedCellResolutions]);
+
     const referenceResolution = React.useMemo(() => {
         const resolver = createMapReferenceResolver(referenceSourceMap);
-        return resolveReferenceDisplayValues(state, resolver);
-    }, [state, referenceSourceMap]);
+        const cellValueByKey = Object.entries(effectiveLinkedCellResolutions).reduce<Record<string, number>>((acc, [key, resolution]) => {
+            acc[key] = resolution.finalValue;
+            return acc;
+        }, {});
+
+        return resolveReferenceDisplayValues(state, resolver, {
+            cellValueByKey,
+            resolverExpected: Object.keys(referenceSourceMap).length > 0 || Object.keys(cellValueByKey).length > 0,
+        });
+    }, [state, referenceSourceMap, effectiveLinkedCellResolutions]);
+
+    const referenceDisplayLabels = React.useMemo(() => {
+        return Object.entries(effectiveLinkedCellResolutions).reduce<Record<string, string>>((acc, [key, resolution]) => {
+            acc[key] = resolution.displayFormula;
+            return acc;
+        }, {});
+    }, [effectiveLinkedCellResolutions]);
+
+    const resolveLinkedCellsForSolve = React.useCallback(() => resolveEditorLinkedReferences({
+        state: stateRef.current,
+        currentScenarioId,
+        baseDisplayedBodyValues: referenceResolution.displayedBodyValues,
+        existingResolutions: effectiveLinkedCellResolutions,
+        solveGame,
+    }), [currentScenarioId, effectiveLinkedCellResolutions, referenceResolution.displayedBodyValues, solveGame]);
 
     React.useEffect(() => {
         if (referenceResolution.cacheUpdates.length === 0) {
@@ -464,6 +508,8 @@ export function MatrixEditorShell({
         displayedBodyValues: referenceResolution.displayedBodyValues,
         solveGame,
         resolveDynamicCellsForSolve,
+        resolveLinkedCellsForSolve,
+        onLinkedCellsResolved: setEditorLinkedCellResolutions,
         forceSolveColumnIds,
         unavailableRowIds: resourceGating.unavailableRowIds,
         unavailableColumnIds: resourceGating.unavailableColumnIds,
@@ -611,6 +657,8 @@ export function MatrixEditorShell({
                     <div style={{flex: "1 1 560px", minWidth: 0, width: "100%"}}>
                         <MatrixGrid
                         state={filteredVisibleState}
+                        attackerCharacterName={attackerCharacterName}
+                        defenderCharacterName={defenderCharacterName}
                         expectedValue={displayedExpectedValue}
                         activeTarget={state.selection.activeTarget}
                         activeKey={state.selection.activeTarget?.key ?? null}
@@ -621,6 +669,7 @@ export function MatrixEditorShell({
                         draftHasFormatError={draftHasFormatError}
                         validationByKey={state.validation.byKey}
                         displayedBodyValues={referenceResolution.displayedBodyValues}
+                        displayLabelsByKey={referenceDisplayLabels}
                         moveLabelById={moveLabelById}
                         unavailableRowIds={resourceGating.unavailableRowIds}
                         unavailableColumnIds={resourceGating.unavailableColumnIds}
@@ -709,13 +758,34 @@ export function MatrixEditorShell({
                                             ? state.grid.bodyCells[linkTargetKey].reference?.scenarioId
                                             : undefined
                                     }
+                                    initialScenarioLabel={
+                                        linkTargetKey && state.grid.bodyCells[linkTargetKey]?.kind === "reference"
+                                            ? state.grid.bodyCells[linkTargetKey].reference?.scenarioLabel
+                                            : undefined
+                                    }
+                                    initialPreValue={
+                                        linkTargetKey && state.grid.bodyCells[linkTargetKey]?.kind === "reference"
+                                            ? state.grid.bodyCells[linkTargetKey].reference?.preValue
+                                            : {kind: "none"}
+                                    }
+                                    moveLabelById={moveLabelById}
                                     onClose={closeLinkPanel}
-                                    onConfirm={(item) => {
+                                    onConfirm={(item, preValue, starterLabels) => {
                                         if (!linkTargetKey) {
                                             return;
                                         }
 
+                                        mergeMoveLabels(starterLabels);
                                         dispatch(actions.linkReferenceCell(linkTargetKey, item.id, item.label));
+                                        dispatch(actions.setReferencePreValue(linkTargetKey, preValue));
+                                        closeLinkPanel();
+                                    }}
+                                    onRemove={() => {
+                                        if (!linkTargetKey) {
+                                            return;
+                                        }
+
+                                        dispatch(actions.unlinkReferenceCell(linkTargetKey));
                                         closeLinkPanel();
                                     }}
                                 />

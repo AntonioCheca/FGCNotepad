@@ -8,7 +8,7 @@ final class ComboNotationTranslator
     private const CONNECTOR_TARGET_COMBO = 'TC';
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
      * @param array<int, array{id:int, name:string}> $connectionTypes
      *
      * @return array{
@@ -25,6 +25,7 @@ final class ComboNotationTranslator
         $parsedTokens = [];
 
         $leafIndex = $this->buildLeafIndex($leafOptions, $warnings);
+        $leafAliases = $this->buildLeafAliases($leafOptions, $warnings);
         $connectionIndex = $this->buildConnectionIndex($connectionTypes);
 
         $tokens = $this->tokenizeNotation($notation);
@@ -32,24 +33,53 @@ final class ComboNotationTranslator
         $resolvedMoves = [];
         $pendingConnector = null;
 
-        foreach ($tokens as $index => $token) {
+        $cursor = 0;
+        while ($cursor < count($tokens)) {
+            $segment = $this->matchLongestAliasAtCursor($tokens, $cursor, $leafAliases);
+            if (null !== $segment) {
+                $resolvedMoves[] = [
+                    'token' => $segment['rawToken'],
+                    'normalizedToken' => $segment['normalizedToken'],
+                    'leafId' => $segment['leaf']['id'],
+                    'moveType' => $segment['leaf']['moveType'],
+                    'connector' => $pendingConnector,
+                    'cancelTypeCodes' => $segment['leaf']['cancelTypeCodes'],
+                ];
+
+                $parsedTokens[] = [
+                    'index' => $cursor + 1,
+                    'token' => $segment['rawToken'],
+                    'normalizedToken' => $segment['normalizedToken'],
+                    'status' => 'parsed',
+                    'child_sequence_id' => $segment['leaf']['id'],
+                    'reason' => null,
+                ];
+
+                $pendingConnector = null;
+                $cursor += $segment['tokenCount'];
+                continue;
+            }
+
+            $token = $tokens[$cursor];
             $normalizedToken = $this->normalizeNotationToken($token);
             $connector = $this->normalizeConnector($normalizedToken);
 
             if (null !== $connector) {
                 if ([] === $resolvedMoves) {
-                    $warnings[] = sprintf('Connector "%s" at token %d was ignored because it appears before any move.', $token, $index + 1);
+                    $warnings[] = sprintf('Connector "%s" at token %d was ignored because it appears before any move.', $token, $cursor + 1);
+                    ++$cursor;
                     continue;
                 }
 
                 $pendingConnector = $connector;
+                ++$cursor;
                 continue;
             }
 
             $leaf = $leafIndex[$normalizedToken] ?? null;
             if (null === $leaf) {
                 $errors[] = [
-                    'index' => $index + 1,
+                    'index' => $cursor + 1,
                     'token' => $token,
                     'normalizedToken' => $normalizedToken,
                     'code' => 'unknown_move',
@@ -57,7 +87,7 @@ final class ComboNotationTranslator
                 ];
 
                 $parsedTokens[] = [
-                    'index' => $index + 1,
+                    'index' => $cursor + 1,
                     'token' => $token,
                     'normalizedToken' => $normalizedToken,
                     'status' => 'invalid',
@@ -66,6 +96,7 @@ final class ComboNotationTranslator
                 ];
 
                 $pendingConnector = null;
+                ++$cursor;
                 continue;
             }
 
@@ -79,7 +110,7 @@ final class ComboNotationTranslator
             ];
 
             $parsedTokens[] = [
-                'index' => $index + 1,
+                'index' => $cursor + 1,
                 'token' => $token,
                 'normalizedToken' => $normalizedToken,
                 'status' => 'parsed',
@@ -88,6 +119,7 @@ final class ComboNotationTranslator
             ];
 
             $pendingConnector = null;
+            ++$cursor;
         }
 
         if (null !== $pendingConnector) {
@@ -131,7 +163,7 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
      * @param array<int, array{id:int, name:string}> $connectionTypes
      *
      * @return array{
@@ -185,7 +217,7 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
      * @param array<int, string> $warnings
      *
      * @return array<string, array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}>
@@ -229,6 +261,108 @@ final class ComboNotationTranslator
         }
 
         return $index;
+    }
+
+    /**
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
+     * @param array<int, string> $warnings
+     *
+     * @return array<int, array{normalizedAlias:string, tokenCount:int, rawAlias:string, leaf:array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}}>
+     */
+    private function buildLeafAliases(array $leafOptions, array &$warnings): array
+    {
+        $aliases = [];
+        foreach ($leafOptions as $leaf) {
+            $leafMeta = [
+                'id' => $leaf['id'],
+                'moveType' => $leaf['moveType'],
+                'cancelTypeCodes' => $this->normalizeCancelTypeCodes($leaf['cancelTypeCodes'] ?? []),
+            ];
+
+            $rawAliases = [$leaf['notation']];
+            foreach ($leaf['aliases'] ?? [] as $extraAlias) {
+                if (is_string($extraAlias)) {
+                    $rawAliases[] = $extraAlias;
+                }
+            }
+
+            foreach ($rawAliases as $rawAlias) {
+                $normalizedAlias = $this->normalizeNotationToken($rawAlias);
+                if ('' === $normalizedAlias) {
+                    continue;
+                }
+
+                $aliases[] = [
+                    'normalizedAlias' => $normalizedAlias,
+                    'tokenCount' => $this->countAliasTokens($rawAlias),
+                    'rawAlias' => (string) $rawAlias,
+                    'leaf' => $leafMeta,
+                ];
+            }
+        }
+
+        usort(
+            $aliases,
+            static function (array $a, array $b): int {
+                $lengthComparison = strlen($b['normalizedAlias']) <=> strlen($a['normalizedAlias']);
+                if (0 !== $lengthComparison) {
+                    return $lengthComparison;
+                }
+
+                $tokenCountComparison = $b['tokenCount'] <=> $a['tokenCount'];
+                if (0 !== $tokenCountComparison) {
+                    return $tokenCountComparison;
+                }
+
+                return strcmp($b['normalizedAlias'], $a['normalizedAlias']);
+            }
+        );
+
+        return $aliases;
+    }
+
+    /**
+     * @return array{tokenCount:int, rawToken:string, normalizedToken:string, leaf:array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}}|null
+     */
+    private function matchLongestAliasAtCursor(array $tokens, int $cursor, array $leafAliases): ?array
+    {
+        foreach ($leafAliases as $alias) {
+            $tokenCount = $alias['tokenCount'];
+            if ($tokenCount < 1) {
+                continue;
+            }
+
+            $segmentTokens = array_slice($tokens, $cursor, $tokenCount);
+            if (count($segmentTokens) !== $tokenCount) {
+                continue;
+            }
+
+            $normalizedSegment = $this->normalizeNotationToken(implode(' ', $segmentTokens));
+            if ($this->normalizeForAliasComparison($normalizedSegment) !== $this->normalizeForAliasComparison($alias['normalizedAlias'])) {
+                continue;
+            }
+
+            return [
+                'tokenCount' => $tokenCount,
+                'rawToken' => implode(' ', $segmentTokens),
+                'normalizedToken' => $normalizedSegment,
+                'leaf' => $alias['leaf'],
+            ];
+        }
+
+        return null;
+    }
+
+    private function countAliasTokens(string $alias): int
+    {
+        $tokens = $this->tokenizeNotation($alias);
+
+        return count($tokens);
+    }
+
+    private function normalizeForAliasComparison(string $normalizedToken): string
+    {
+        return str_replace('>', self::CONNECTOR_CANCEL, $normalizedToken);
     }
 
     /**

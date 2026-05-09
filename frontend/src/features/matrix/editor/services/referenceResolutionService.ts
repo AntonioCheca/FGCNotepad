@@ -10,13 +10,19 @@ export interface ReferenceResolutionResult {
     issues: MatrixValidationIssue[];
 }
 
+interface ResolveReferenceDisplayValuesOptions {
+    cellValueByKey?: Record<string, number>;
+    resolverExpected?: boolean;
+}
+
 function issue(message: string): MatrixValidationIssue {
     return {code: "unknown", message};
 }
 
 export function resolveReferenceDisplayValues(
     state: MatrixEditorState,
-    resolver: MatrixReferenceResolver
+    resolver: MatrixReferenceResolver,
+    options: ResolveReferenceDisplayValuesOptions = {}
 ): ReferenceResolutionResult {
     const displayedBodyValues: Record<string, number | null> = {};
     const cacheUpdates: Array<{ key: string; cachedValue: number | null }> = [];
@@ -25,6 +31,15 @@ export function resolveReferenceDisplayValues(
     Object.values(state.grid.bodyCells).forEach((cell) => {
         if (cell.kind !== "reference" || !cell.reference) {
             displayedBodyValues[cell.key] = cell.value;
+            return;
+        }
+
+        const cellResolvedValue = options.cellValueByKey?.[cell.key];
+        if (typeof cellResolvedValue === "number" && Number.isFinite(cellResolvedValue)) {
+            displayedBodyValues[cell.key] = cellResolvedValue;
+            if (cell.reference.cachedValue !== cellResolvedValue || cell.value !== cellResolvedValue) {
+                cacheUpdates.push({key: cell.key, cachedValue: cellResolvedValue});
+            }
             return;
         }
 
@@ -40,11 +55,15 @@ export function resolveReferenceDisplayValues(
 
             const fallback = cell.reference.cachedValue ?? cell.value ?? null;
             displayedBodyValues[cell.key] = fallback;
-            issues.push(issue(`Reference ${cell.reference.scenarioId} is unavailable; showing cached value.`));
+            if (options.resolverExpected) {
+                issues.push(issue(`Reference ${cell.reference.scenarioId} is unavailable; showing cached value.`));
+            }
         } catch {
             const fallback = cell.reference.cachedValue ?? cell.value ?? null;
             displayedBodyValues[cell.key] = fallback;
-            issues.push(issue(`Reference ${cell.reference.scenarioId} failed to resolve; showing cached value.`));
+            if (options.resolverExpected) {
+                issues.push(issue(`Reference ${cell.reference.scenarioId} failed to resolve; showing cached value.`));
+            }
         }
     });
 

@@ -21,13 +21,6 @@ export interface MatrixAxisItem {
     requirements: MatrixResourceRequirement[];
 }
 
-export interface MatrixReferenceData {
-    kind: MatrixReferenceKind;
-    scenarioId: string;
-    scenarioLabel?: string;
-    cachedValue: number | null;
-}
-
 export interface MatrixDynamicComboStarterContext {
     isPunishCounter: boolean;
     isCounterHit: boolean;
@@ -38,6 +31,26 @@ export interface MatrixDynamicComboData {
     isComboInitiatorAttacker?: boolean;
     starterMoveIds: string[];
     starterContext: MatrixDynamicComboStarterContext;
+}
+
+export interface MatrixLinkedCellResolution {
+    basePreValue: number;
+    linkedExpectedValue: number;
+    finalValue: number;
+    displayFormula: string;
+}
+
+export type MatrixReferencePreValue =
+    | { kind: "none" }
+    | { kind: "static"; staticValue: number }
+    | { kind: "dynamic_combo"; dynamicCombo: MatrixDynamicComboData };
+
+export interface MatrixReferenceData {
+    kind: MatrixReferenceKind;
+    scenarioId: string;
+    scenarioLabel?: string;
+    cachedValue: number | null;
+    preValue: MatrixReferencePreValue;
 }
 
 export interface MatrixBodyCell {

@@ -107,6 +107,9 @@ class Scenario
     #[ORM\OneToMany(mappedBy: 'scenario', targetEntity: ScenarioCell::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $cells;
 
+    #[ORM\OneToOne(mappedBy: 'scenario', targetEntity: ScenarioComboContext::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private ?ScenarioComboContext $comboContext = null;
+
     public function __construct()
     {
         $this->layers = new ArrayCollection();
@@ -217,6 +220,22 @@ class Scenario
     public function setTriggerMove(?Move $triggerMove): static
     {
         $this->triggerMove = $triggerMove;
+
+        return $this;
+    }
+
+    public function getComboContext(): ?ScenarioComboContext
+    {
+        return $this->comboContext;
+    }
+
+    public function setComboContext(?ScenarioComboContext $comboContext): static
+    {
+        if (null !== $comboContext && $comboContext->getScenario() !== $this) {
+            $comboContext->setScenario($this);
+        }
+
+        $this->comboContext = $comboContext;
 
         return $this;
     }

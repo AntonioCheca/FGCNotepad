@@ -10,7 +10,12 @@ import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ComboKnowledgeItem, ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 
 export default function ProfilePage() {
-    const {getComboKnowledge, updateComboKnowledge, getExecutionPreference, updateExecutionPreference} = useExecutionProfile();
+    const {
+        getComboKnowledge,
+        updateComboKnowledge,
+        getExecutionPreference,
+        updateExecutionPreference,
+    } = useExecutionProfile();
 
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [loading, setLoading] = React.useState(true);

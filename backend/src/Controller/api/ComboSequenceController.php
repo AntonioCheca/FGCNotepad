@@ -11,6 +11,9 @@ use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
 use App\Service\ComboNotationTranslator;
+use App\Service\ComboNotationDictionaryTranslator;
+use App\Service\NotationCanonicalizer;
+use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ComboSequenceCreationService;
 use App\Service\ComboValueEstimator;
 use App\Service\EndpointAuthorizationService;
@@ -42,6 +45,9 @@ class ComboSequenceController extends AbstractController
         private EndpointAuthorizationService $endpointAuthorizationService,
         private Security $security,
         private ModerationTransitionService $moderationTransitionService,
+        private NotationDictionaryPreferenceService $notationDictionaryPreferenceService,
+        private ComboNotationDictionaryTranslator $comboNotationDictionaryTranslator,
+        private NotationCanonicalizer $notationCanonicalizer,
     )
     {
     }
@@ -271,7 +277,7 @@ class ComboSequenceController extends AbstractController
     public function translate(
         Request $request,
         CharacterRepository $characterRepository,
-        ComboNotationTranslator $comboNotationTranslator
+        ComboNotationTranslator $comboNotationTranslator,
     ): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -293,6 +299,8 @@ class ComboSequenceController extends AbstractController
         if (!is_string($notation) || '' === trim($notation)) {
             throw new BadRequestHttpException('notation must be a non-empty string.');
         }
+
+        $canonicalization = $this->notationCanonicalizer->canonicalize($notation);
 
         $character = $characterRepository->find($characterId);
         if (null === $character) {
@@ -322,13 +330,23 @@ class ComboSequenceController extends AbstractController
             $this->connectionTypeRepository->findAll()
         );
 
-        $translated = $comboNotationTranslator->translateNotationToInternalSteps($notation, $leafOptions, $connectionTypes);
+        $translated = $comboNotationTranslator->translateNotationToInternalSteps(
+            $canonicalization['canonicalNotation'],
+            $leafOptions,
+            $connectionTypes
+        );
+
+        $translated['input'] = [
+            'rawNotation' => $notation,
+            'canonicalNotation' => $canonicalization['canonicalNotation'],
+            'tokenMap' => $canonicalization['tokenMap'],
+        ];
 
         return new JsonResponse($translated, JsonResponse::HTTP_OK);
     }
 
     #[Route('/{id}', name: 'read', requirements: ['id' => '\\d+'], methods: ['GET'])]
-    public function read(ComboSequences $sequence): JsonResponse
+    public function read(Request $request, ComboSequences $sequence): JsonResponse
     {
         if (!in_array($sequence->getType()?->getName(), ['combo', 'sequence'])) {
             throw new NotFoundHttpException('Not accessible');

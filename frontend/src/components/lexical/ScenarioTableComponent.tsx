@@ -14,6 +14,8 @@ interface ScenarioTableComponentProps {
     initialRowFrequencies?: (number | string)[];
     initialColumnFrequencies?: (number | string)[];
     initialExpectedValue?: number;
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
     updateRows: (rows: string[]) => void;
     updateColumns: (columns: string[]) => void;
     updateValues: (values: ScenarioTableValue[][]) => void;
@@ -42,6 +44,8 @@ function ScenarioTableComponent(props: ScenarioTableComponentProps) {
             <ScenarioTable
                 state={state}
                 tableService={tableService}
+                attackerCharacterName={props.attackerCharacterName}
+                defenderCharacterName={props.defenderCharacterName}
             />
         </ScenarioTableLayout>
     );

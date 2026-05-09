@@ -38,8 +38,31 @@ export interface ScenarioListItem {
 export interface ScenarioDetail extends ScenarioListItem {
     searchLabel: string;
     matrix: MatrixPayload;
+    comboContext: ScenarioComboContextPayload;
     createdAt: string;
     author: string | null;
+}
+
+export type ScenarioPositionLock = "viewer_default_midscreen" | "corner" | "midscreen";
+
+export interface ScenarioCharacterStatusPayload {
+    id?: number | null;
+    object_name: string;
+    status_required: string | number | boolean;
+}
+
+export interface ScenarioComboContextPayload {
+    positionLock: ScenarioPositionLock;
+    characterStatuses: ScenarioCharacterStatusPayload[];
+}
+
+export interface ScenarioComboContextViewerPayload {
+    includeCornerSpecific?: boolean;
+}
+
+export interface ScenarioComboContextCatalog {
+    positionLocks: Array<{value: ScenarioPositionLock; label: string}>;
+    characterStatuses: Array<{name: string; status_type: "integer" | "boolean"; max_status: number | null}>;
 }
 
 export interface ScenarioSavePayload {
@@ -49,6 +72,7 @@ export interface ScenarioSavePayload {
     attackerCharacterId: string;
     triggerMoveId: string;
     matrix: MatrixPayload;
+    comboContext?: ScenarioComboContextPayload;
 }
 
 interface ResolveDynamicCellsResponse {
@@ -97,14 +121,33 @@ export interface ScenarioLayerSolveResponse {
     layers: Record<string, ScenarioLayerSolveSnapshot>;
 }
 
+export interface ScenarioResolvedLinkedCell {
+    row: number;
+    column: number;
+    scenarioId: string | null;
+    basePreValue: number;
+    linkedExpectedValue: number;
+    finalValue: number;
+    depth: number;
+}
+
+export interface ScenarioLinkedExpectedValueResponse extends ScenarioLayerSolveSnapshot {
+    scenarioId: string;
+    executionMode: ScenarioExecutionModePayload;
+    depth: number;
+    resolvedCells: ScenarioResolvedLinkedCell[];
+}
+
 function buildExecutionPayload(
     selection?: ScenarioExecutionSelection,
-    resourceContext?: ScenarioResourceContextPayload
-): {executionMode?: ScenarioExecutionModePayload; resourceContext?: ScenarioResourceContextPayload} {
+    resourceContext?: ScenarioResourceContextPayload,
+    comboContext?: ScenarioComboContextViewerPayload
+): {executionMode?: ScenarioExecutionModePayload; resourceContext?: ScenarioResourceContextPayload; comboContext?: ScenarioComboContextViewerPayload} {
     const resourcePayload = resourceContext ? {resourceContext} : {};
+    const comboPayload = comboContext ? {comboContext} : {};
 
     if (!selection) {
-        return resourcePayload;
+        return {...resourcePayload, ...comboPayload};
     }
 
     return {
@@ -113,6 +156,7 @@ function buildExecutionPayload(
             difficultyCap: selection.mode === "difficulty_cap" ? selection.difficultyCap : null,
         },
         ...resourcePayload,
+        ...comboPayload,
     };
 }
 
@@ -162,9 +206,10 @@ export function useScenarios() {
     const resolveDynamicCells = React.useCallback(async (
         id: string,
         executionSelection?: ScenarioExecutionSelection,
-        resourceContext?: ScenarioResourceContextPayload
+        resourceContext?: ScenarioResourceContextPayload,
+        comboContext?: ScenarioComboContextViewerPayload
     ): Promise<ResolveDynamicCellsResponse> => {
-        return request(() => api.post(`/scenarios/${id}/resolve-dynamic-cells`, buildExecutionPayload(executionSelection, resourceContext)));
+        return request(() => api.post(`/scenarios/${id}/resolve-dynamic-cells`, buildExecutionPayload(executionSelection, resourceContext, comboContext)));
     }, [request]);
 
     const resolveDynamicCellPreview = React.useCallback(async (
@@ -176,6 +221,10 @@ export function useScenarios() {
             ...dynamicCombo,
             ...buildExecutionPayload(executionSelection, resourceContext),
         }));
+    }, [request]);
+
+    const getComboContextCatalog = React.useCallback(async (): Promise<ScenarioComboContextCatalog> => {
+        return request(() => api.get('/scenarios/combo-context/catalog'));
     }, [request]);
 
     const getAggregatedDefenseCapabilities = React.useCallback(async (
@@ -197,6 +246,15 @@ export function useScenarios() {
         return request(() => api.post(`/scenarios/${id}/solve-layers`, buildExecutionPayload(executionSelection)));
     }, [request]);
 
+    const solveScenarioLinkedExpectedValue = React.useCallback(async (
+        id: string,
+        executionSelection?: ScenarioExecutionSelection,
+        resourceContext?: ScenarioResourceContextPayload,
+        comboContext?: ScenarioComboContextViewerPayload
+    ): Promise<ScenarioLinkedExpectedValueResponse> => {
+        return request(() => api.post(`/scenarios/${id}/solve-linked-ev`, buildExecutionPayload(executionSelection, resourceContext, comboContext)));
+    }, [request]);
+
     return {
         listScenarios,
         getScenario,
@@ -205,7 +263,9 @@ export function useScenarios() {
         deleteScenario,
         resolveDynamicCells,
         resolveDynamicCellPreview,
+        getComboContextCatalog,
         getAggregatedDefenseCapabilities,
         solveScenarioLayers,
+        solveScenarioLinkedExpectedValue,
     };
 }

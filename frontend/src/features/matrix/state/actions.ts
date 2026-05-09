@@ -1,4 +1,4 @@
-import {MatrixDynamicComboData, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
+import {MatrixDynamicComboData, MatrixReferencePreValue, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
 
 export type MatrixAction =
     | { type: "grid/replaceState"; payload: { state: import("../model/stateTypes").MatrixEditorState } }
@@ -6,6 +6,8 @@ export type MatrixAction =
     | { type: "grid/updateReferenceCache"; payload: { key: string; cachedValue: number | null } }
     | { type: "grid/batchUpdateReferenceCache"; payload: { updates: Array<{ key: string; cachedValue: number | null }> } }
     | { type: "grid/linkReferenceCell"; payload: { key: string; scenarioId: string; scenarioLabel: string } }
+    | { type: "grid/unlinkReferenceCell"; payload: { key: string } }
+    | { type: "grid/setReferencePreValue"; payload: { key: string; preValue: MatrixReferencePreValue } }
     | { type: "grid/setDynamicComboCell"; payload: { key: string; dynamicCombo: MatrixDynamicComboData } }
     | { type: "grid/setDynamicComboResolvedValue"; payload: { key: string; value: number | null } }
     | { type: "grid/setRowSummaryValue"; payload: { rowId: string; value: number | null } }
@@ -70,6 +72,14 @@ export const matrixActions = {
     linkReferenceCell: (key: string, scenarioId: string, scenarioLabel: string): MatrixAction => ({
         type: "grid/linkReferenceCell",
         payload: {key, scenarioId, scenarioLabel},
+    }),
+    unlinkReferenceCell: (key: string): MatrixAction => ({
+        type: "grid/unlinkReferenceCell",
+        payload: {key},
+    }),
+    setReferencePreValue: (key: string, preValue: MatrixReferencePreValue): MatrixAction => ({
+        type: "grid/setReferencePreValue",
+        payload: {key, preValue},
     }),
     setDynamicComboCell: (key: string, dynamicCombo: MatrixDynamicComboData): MatrixAction => ({
         type: "grid/setDynamicComboCell",

@@ -11,6 +11,8 @@ export interface ScenarioTableState {
     columnFrequencies: (number | string)[];
     expectedValue: number;
     derivedMetrics?: Record<string, unknown>;
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
 }
 
 export interface ScenarioTableActions {
@@ -30,6 +32,8 @@ interface UseScenarioTableStateProps {
     initialRowFrequencies?: (number | string)[];
     initialColumnFrequencies?: (number | string)[];
     initialExpectedValue?: number;
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
     updateRows: (rows: string[]) => void;
     updateColumns: (columns: string[]) => void;
     updateValues: (values: ScenarioTableValue[][]) => void;
@@ -52,6 +56,8 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
     );
     const [expectedValue, setExpectedValue] = useState(props.initialExpectedValue || 0);
     const [derivedMetrics, setDerivedMetricsState] = useState<Record<string, unknown>>({});
+    const attackerCharacterName = props.attackerCharacterName ?? null;
+    const defenderCharacterName = props.defenderCharacterName ?? null;
 
     const setAndUpdateRows = useCallback((rows: string[]) => {
         editor.update(() => {
@@ -108,7 +114,9 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
         rowFrequencies,
         columnFrequencies,
         expectedValue,
-        derivedMetrics
+        derivedMetrics,
+        attackerCharacterName,
+        defenderCharacterName
     };
 
     const actions: ScenarioTableActions = {

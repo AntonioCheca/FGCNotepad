@@ -11,7 +11,8 @@ import {AppTooltip} from "@/src/components/ui/AppTooltip";
 import {AppSlider} from "@/src/components/ui/AppSlider";
 import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
-import {useScenarios, ScenarioDetail, ScenarioLayerSolveSnapshot} from "@/hooks/useScenarios";
+import {MatrixLinkedCellResolution} from "@/src/features/matrix/model";
+import {useScenarios, ScenarioDetail, ScenarioLayerSolveSnapshot, ScenarioResolvedLinkedCell} from "@/hooks/useScenarios";
 import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
@@ -49,6 +50,27 @@ const DEFAULT_SCENARIO_RESOURCES: ScenarioResourceState = {
 
 const DEFAULT_CHARACTER_LIFE = 10000;
 
+function formatLinkedFormula(value: number): string {
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function linkedResolutionKey(cell: Pick<ScenarioResolvedLinkedCell, "row" | "column">): string {
+    return `body::row_${cell.row + 1}::column_${cell.column + 1}`;
+}
+
+function buildLinkedCellResolutionMap(cells: ScenarioResolvedLinkedCell[]): Record<string, MatrixLinkedCellResolution> {
+    return cells.reduce<Record<string, MatrixLinkedCellResolution>>((acc, cell) => {
+        acc[linkedResolutionKey(cell)] = {
+            basePreValue: cell.basePreValue,
+            linkedExpectedValue: cell.linkedExpectedValue,
+            finalValue: cell.finalValue,
+            displayFormula: `${formatLinkedFormula(cell.basePreValue)}+${formatLinkedFormula(cell.linkedExpectedValue)}`,
+        };
+
+        return acc;
+    }, {});
+}
+
 function getExecutionModeBadgeLabel(selection: ScenarioExecutionSelection): string {
     if (selection.mode === "my_knowledge") {
         return "Execution: My Knowledge";
@@ -66,19 +88,22 @@ export default function ScenarioDetailPage() {
     const {id} = router.query;
     const scenarioId = typeof id === "string" ? id : null;
 
-    const {getScenario, resolveDynamicCells, getAggregatedDefenseCapabilities, solveScenarioLayers} = useScenarios();
+    const {getScenario, resolveDynamicCells, getAggregatedDefenseCapabilities, solveScenarioLayers, solveScenarioLinkedExpectedValue} = useScenarios();
     const {getExecutionPreference} = useExecutionProfile();
     const {characters} = useCharacters();
     const [scenario, setScenario] = React.useState<ScenarioDetail | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const [refreshingDynamicCombos, setRefreshingDynamicCombos] = React.useState(false);
+    const [dynamicRefreshQueued, setDynamicRefreshQueued] = React.useState(false);
     const [executionSelection, setExecutionSelection] = React.useState<ScenarioExecutionSelection>(DEFAULT_EXECUTION_SELECTION);
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [personalizedDefenderId, setPersonalizedDefenderId] = React.useState("");
     const [columnVisibilityByLabel, setColumnVisibilityByLabel] = React.useState<Record<string, boolean> | null>(null);
     const [layerSolveSnapshots, setLayerSolveSnapshots] = React.useState<Record<number, ScenarioLayerSolveSnapshot>>({});
+    const [linkedCellResolutions, setLinkedCellResolutions] = React.useState<Record<string, MatrixLinkedCellResolution>>({});
     const [scenarioResources, setScenarioResources] = React.useState<ScenarioResourceState>(DEFAULT_SCENARIO_RESOURCES);
+    const [includeCornerSpecific, setIncludeCornerSpecific] = React.useState(false);
     const {theme} = useMode();
 
     const characterById = React.useMemo(() => {
@@ -186,7 +211,9 @@ export default function ScenarioDetailPage() {
             .then((data) => {
                 if (!canceled) {
                     setScenario(data);
+                    setIncludeCornerSpecific(false);
                     setLayerSolveSnapshots({});
+                    setLinkedCellResolutions({});
                 }
             })
             .catch(() => {
@@ -208,12 +235,13 @@ export default function ScenarioDetailPage() {
     React.useEffect(() => {
         if (!scenarioId || !scenario || executionSelection.mode === "my_knowledge") {
             setLayerSolveSnapshots({});
+            setLinkedCellResolutions({});
             return;
         }
 
         let canceled = false;
         solveScenarioLayers(scenarioId, executionSelection)
-            .then((response) => {
+            .then(async (response) => {
                 if (canceled) {
                     return;
                 }
@@ -225,18 +253,39 @@ export default function ScenarioDetailPage() {
                     }
                     return acc;
                 }, {});
+
+                try {
+                    const linked = await solveScenarioLinkedExpectedValue(scenarioId, executionSelection, scenarioResources, {includeCornerSpecific});
+                    if (canceled) {
+                        return;
+                    }
+
+                    setLinkedCellResolutions(buildLinkedCellResolutionMap(linked.resolvedCells));
+
+                    mapped[response.maxLayer] = {
+                        rowAxis: linked.rowAxis,
+                        columnAxis: linked.columnAxis,
+                        expectedValue: linked.expectedValue,
+                    };
+                } catch {
+                    if (!canceled) {
+                        setLinkedCellResolutions({});
+                    }
+                }
+
                 setLayerSolveSnapshots(mapped);
             })
             .catch(() => {
                 if (!canceled) {
                     setLayerSolveSnapshots({});
+                    setLinkedCellResolutions({});
                 }
             });
 
         return () => {
             canceled = true;
         };
-    }, [executionSelection, scenario, scenarioId, solveScenarioLayers]);
+    }, [executionSelection, includeCornerSpecific, scenario, scenarioId, scenarioResources, solveScenarioLayers, solveScenarioLinkedExpectedValue]);
 
     React.useEffect(() => {
         if (!scenarioId || loading || error) {
@@ -244,26 +293,36 @@ export default function ScenarioDetailPage() {
         }
 
         let canceled = false;
-        setRefreshingDynamicCombos(true);
+        setDynamicRefreshQueued(true);
 
-        resolveDynamicCells(scenarioId, executionSelection, scenarioResources)
-            .then((response) => {
-                if (!canceled) {
-                    setScenario(response.scenario);
-                }
-            })
-            .catch(() => {
-            })
-            .finally(() => {
-                if (!canceled) {
-                    setRefreshingDynamicCombos(false);
-                }
-            });
+        const timeoutId = window.setTimeout(() => {
+            if (canceled) {
+                return;
+            }
+
+            setDynamicRefreshQueued(false);
+            setRefreshingDynamicCombos(true);
+
+            resolveDynamicCells(scenarioId, executionSelection, scenarioResources, {includeCornerSpecific})
+                .then((response) => {
+                    if (!canceled) {
+                        setScenario(response.scenario);
+                    }
+                })
+                .catch(() => {
+                })
+                .finally(() => {
+                    if (!canceled) {
+                        setRefreshingDynamicCombos(false);
+                    }
+                });
+        }, 1000);
 
         return () => {
             canceled = true;
+            window.clearTimeout(timeoutId);
         };
-    }, [executionSelection, resolveDynamicCells, scenarioId, loading, error, scenarioResources]);
+    }, [executionSelection, includeCornerSpecific, resolveDynamicCells, scenarioId, loading, error, scenarioResources]);
 
     React.useEffect(() => {
         if (!scenario || scenario.scenarioType !== "aggregated_oki") {
@@ -327,9 +386,10 @@ export default function ScenarioDetailPage() {
                         type="button"
                         disabled={refreshingDynamicCombos}
                         onClick={async () => {
+                            setDynamicRefreshQueued(false);
                             setRefreshingDynamicCombos(true);
                             try {
-                                const response = await resolveDynamicCells(scenarioId, executionSelection, scenarioResources);
+                                const response = await resolveDynamicCells(scenarioId, executionSelection, scenarioResources, {includeCornerSpecific});
                                 setScenario(response.scenario);
                             } catch {
                             } finally {
@@ -343,6 +403,43 @@ export default function ScenarioDetailPage() {
                         <AppButton type="button">Edit Scenario</AppButton>
                     </Link>
                 </div>
+            </div>
+
+            <div
+                style={{
+                    display: "grid",
+                    gap: 8,
+                    marginBottom: 16,
+                    border: `1px solid ${theme.fgc.border.default}`,
+                    borderRadius: 8,
+                    padding: 12,
+                    background: theme.fgc.surface.base,
+                }}
+            >
+                <AppTypography variant="h6">Combo Environment</AppTypography>
+                {scenario.comboContext.positionLock === "corner" ? (
+                    <AppChip size="small" label="Position locked: Corner" />
+                ) : scenario.comboContext.positionLock === "midscreen" ? (
+                    <AppChip size="small" label="Position locked: Midscreen" />
+                ) : (
+                    <label style={{display: "flex", alignItems: "center", gap: 8, color: theme.fgc.text.primary}}>
+                        <input
+                            type="checkbox"
+                            checked={includeCornerSpecific}
+                            onChange={(event) => setIncludeCornerSpecific(event.target.checked)}
+                        />
+                        <span>Include corner-specific combos</span>
+                    </label>
+                )}
+                {scenario.comboContext.characterStatuses.length > 0 ? (
+                    <div style={{display: "flex", gap: 6, flexWrap: "wrap"}}>
+                        {scenario.comboContext.characterStatuses.map((status) => (
+                            <AppChip key={status.object_name} size="small" variant="outlined" label={`${status.object_name}: ${String(status.status_required)}`} />
+                        ))}
+                    </div>
+                ) : (
+                    <AppTypography variant="body2" color="text.secondary">No character status locks.</AppTypography>
+                )}
             </div>
 
             <div
@@ -435,6 +532,10 @@ export default function ScenarioDetailPage() {
                 }}
             >
                 <AppTypography variant="h6">Resources</AppTypography>
+                <AppTypography variant="body2" color="text.secondary">
+                    Resource changes update option availability immediately. Dynamic combos refresh automatically after 1 second of no slider input.
+                    {dynamicRefreshQueued ? " Refresh queued..." : refreshingDynamicCombos ? " Refreshing dynamic combos..." : ""}
+                </AppTypography>
                 <div
                     style={{
                         display: "grid",
@@ -573,17 +674,22 @@ export default function ScenarioDetailPage() {
 
             <MatrixEditorShell
                 matrix={scenario.matrix}
+                attackerCharacterName={scenario.attackerCharacterName}
+                defenderCharacterName={scenario.defenderCharacterName}
                 editable={false}
                 displayFrequenciesAsPercent
                 columnVisibilityByLabel={columnVisibilityByLabel}
                 onMatrixChange={() => {
                 }}
                 onRefreshDynamicCells={async () => {
-                    const response = await resolveDynamicCells(scenarioId, executionSelection, scenarioResources);
+                    setDynamicRefreshQueued(false);
+                    const response = await resolveDynamicCells(scenarioId, executionSelection, scenarioResources, {includeCornerSpecific});
                     setScenario(response.scenario);
                     return response.scenario.matrix;
                 }}
                 layerSolveSnapshots={layerSolveSnapshots}
+                currentScenarioId={scenarioId}
+                linkedCellResolutions={linkedCellResolutions}
                 resourceContext={scenarioResources}
             />
         </AppContainer>

@@ -16,8 +16,9 @@ import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {useCharacters} from "@/hooks/useCharacters";
 import useMoves from "@/hooks/useMoves";
-import {ScenarioSavePayload, ScenarioType} from "@/hooks/useScenarios";
+import {ScenarioCharacterStatusPayload, ScenarioComboContextPayload, ScenarioPositionLock, ScenarioSavePayload, ScenarioType, useScenarios} from "@/hooks/useScenarios";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
+import {MatrixLinkedCellResolution} from "@/src/features/matrix/model";
 import {createDefaultMatrixPayload} from "@/src/features/matrix/serialization/serializeMatrixPayload";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
 import {enforceAggregatedDefenseColumns} from "@/src/features/matrix/aggregation/aggregatedDefenseCatalog";
@@ -34,11 +35,114 @@ interface CharacterOption {
 }
 
 interface ScenarioEditorFormProps {
-    initialValue?: Partial<ScenarioSavePayload>;
+    initialValue?: Partial<ScenarioSavePayload> & {triggerMoveLabel?: string | null};
     submitLabel: string;
     onSubmit: (payload: ScenarioSavePayload) => Promise<void>;
     onResolveDynamicCells?: () => Promise<MatrixPayload>;
     onResolveDynamicComboCell?: (dynamicCombo: MatrixDynamicComboPayload) => Promise<number | null>;
+    currentScenarioId?: string | null;
+    linkedCellResolutions?: Record<string, MatrixLinkedCellResolution>;
+}
+
+interface ScenarioFormDraft {
+    name: string;
+    scenarioType: ScenarioType;
+    defenderCharacterId: string;
+    attackerCharacterId: string;
+    triggerMove: MoveOption | null;
+    triggerMoveQuery: string;
+    matrix: MatrixPayload;
+    comboContext: ScenarioComboContextPayload;
+}
+
+const DEFAULT_COMBO_CONTEXT: ScenarioComboContextPayload = {
+    positionLock: "viewer_default_midscreen",
+    characterStatuses: [],
+};
+
+function isScenarioType(value: unknown): value is ScenarioType {
+    return value === "oki" || value === "blockstun" || value === "aggregated_oki";
+}
+
+function isMoveOption(value: unknown): value is MoveOption {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return false;
+    }
+
+    const record = value as Record<string, unknown>;
+    return typeof record.id === "string" && typeof record.summary === "string" && typeof record.characterId === "string";
+}
+
+function isMatrixPayload(value: unknown): value is MatrixPayload {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return false;
+    }
+
+    const record = value as Record<string, unknown>;
+    const axes = record.axes as {rows?: unknown} | undefined;
+
+    return record.kind === "matrix-editor" && Array.isArray(axes?.rows) && Array.isArray(record.cells);
+}
+
+function isPositionLock(value: unknown): value is ScenarioPositionLock {
+    return value === "viewer_default_midscreen" || value === "corner" || value === "midscreen";
+}
+
+function parseComboContext(value: unknown): ScenarioComboContextPayload {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return DEFAULT_COMBO_CONTEXT;
+    }
+
+    const record = value as Record<string, unknown>;
+    const statuses = Array.isArray(record.characterStatuses)
+        ? record.characterStatuses
+            .map((status) => {
+                if (!status || typeof status !== "object" || Array.isArray(status)) {
+                    return null;
+                }
+
+                const statusRecord = status as Record<string, unknown>;
+                const objectName = statusRecord.object_name;
+                const statusRequired = statusRecord.status_required;
+                if (typeof objectName !== "string" || (typeof statusRequired !== "string" && typeof statusRequired !== "number" && typeof statusRequired !== "boolean")) {
+                    return null;
+                }
+
+                return {object_name: objectName, status_required: statusRequired} satisfies ScenarioCharacterStatusPayload;
+            })
+            .filter((status): status is ScenarioCharacterStatusPayload => status !== null)
+        : [];
+
+    return {
+        positionLock: isPositionLock(record.positionLock) ? record.positionLock : "viewer_default_midscreen",
+        characterStatuses: statuses,
+    };
+}
+
+function parseScenarioFormDraft(value: string | null): ScenarioFormDraft | null {
+    if (!value) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(value) as Record<string, unknown>;
+        if (!isScenarioType(parsed.scenarioType) || !isMatrixPayload(parsed.matrix)) {
+            return null;
+        }
+
+        return {
+            name: typeof parsed.name === "string" ? parsed.name : "",
+            scenarioType: parsed.scenarioType,
+            defenderCharacterId: typeof parsed.defenderCharacterId === "string" ? parsed.defenderCharacterId : "",
+            attackerCharacterId: typeof parsed.attackerCharacterId === "string" ? parsed.attackerCharacterId : "",
+            triggerMove: isMoveOption(parsed.triggerMove) ? parsed.triggerMove : null,
+            triggerMoveQuery: typeof parsed.triggerMoveQuery === "string" ? parsed.triggerMoveQuery : "",
+            matrix: parsed.matrix,
+            comboContext: parseComboContext(parsed.comboContext),
+        };
+    } catch {
+        return null;
+    }
 }
 
 function normalizeMoveListResults(value: unknown): MoveOption[] {
@@ -79,9 +183,12 @@ export function ScenarioEditorForm({
     onSubmit,
     onResolveDynamicCells,
     onResolveDynamicComboCell,
+    currentScenarioId = null,
+    linkedCellResolutions,
 }: ScenarioEditorFormProps) {
     const {characters, loading: charactersLoading} = useCharacters();
     const {searchMoves, getSpecificMove} = useMoves();
+    const {getComboContextCatalog} = useScenarios();
     const searchMovesRef = React.useRef(searchMoves);
     const getSpecificMoveRef = React.useRef(getSpecificMove);
 
@@ -94,9 +201,76 @@ export function ScenarioEditorForm({
     const [moveOptions, setMoveOptions] = React.useState<MoveOption[]>([]);
     const [isSearchingMoves, setIsSearchingMoves] = React.useState(false);
     const [matrix, setMatrix] = React.useState<MatrixPayload>(initialValue?.matrix ?? createDefaultMatrixPayload());
+    const [comboContext, setComboContext] = React.useState<ScenarioComboContextPayload>(initialValue?.comboContext ?? DEFAULT_COMBO_CONTEXT);
+    const [statusObjectName, setStatusObjectName] = React.useState("");
+    const [statusRequired, setStatusRequired] = React.useState("");
+    const [statusCatalog, setStatusCatalog] = React.useState<Array<{name: string; status_type: "integer" | "boolean"; max_status: number | null}>>([]);
     const [error, setError] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
     const [resolvingDynamicCells, setResolvingDynamicCells] = React.useState(false);
+    const draftStorageKey = React.useMemo(() => `scenarioDraft:${currentScenarioId ?? "new"}`, [currentScenarioId]);
+    const draftLoadedRef = React.useRef(false);
+
+    React.useEffect(() => {
+        if (draftLoadedRef.current) {
+            return;
+        }
+
+        draftLoadedRef.current = true;
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        const draft = parseScenarioFormDraft(window.localStorage.getItem(draftStorageKey));
+        if (!draft) {
+            return;
+        }
+
+        setName(draft.name);
+        setScenarioType(draft.scenarioType);
+        setDefenderCharacterId(draft.defenderCharacterId);
+        setAttackerCharacterId(draft.attackerCharacterId);
+        setTriggerMove(draft.triggerMove);
+        setTriggerMoveQuery(draft.triggerMoveQuery);
+        setMatrix(draft.matrix);
+        setComboContext(draft.comboContext);
+    }, [draftStorageKey]);
+
+    React.useEffect(() => {
+        let canceled = false;
+        getComboContextCatalog()
+            .then((catalog) => {
+                if (!canceled) {
+                    setStatusCatalog(catalog.characterStatuses);
+                }
+            })
+            .catch(() => {
+                if (!canceled) {
+                    setStatusCatalog([]);
+                }
+            });
+
+        return () => {
+            canceled = true;
+        };
+    }, [getComboContextCatalog]);
+
+    React.useEffect(() => {
+        if (!draftLoadedRef.current || typeof window === "undefined") {
+            return;
+        }
+
+        window.localStorage.setItem(draftStorageKey, JSON.stringify({
+            name,
+            scenarioType,
+            defenderCharacterId,
+            attackerCharacterId,
+            triggerMove,
+            triggerMoveQuery,
+            matrix,
+            comboContext,
+        } satisfies ScenarioFormDraft));
+    }, [attackerCharacterId, comboContext, defenderCharacterId, draftStorageKey, matrix, name, scenarioType, triggerMove, triggerMoveQuery]);
 
     React.useEffect(() => {
         if (scenarioType !== "aggregated_oki") {
@@ -126,30 +300,40 @@ export function ScenarioEditorForm({
         [characterOptions, defenderCharacterId]
     );
 
+    const selectedStatusDefinition = React.useMemo(
+        () => statusCatalog.find((status) => status.name === statusObjectName) ?? null,
+        [statusCatalog, statusObjectName]
+    );
+
     React.useEffect(() => {
-        if (!initialValue?.triggerMoveId || !initialValue?.matrix) {
+        if (!initialValue?.triggerMoveId) {
             return;
         }
 
-        if (!initialValue.triggerMoveId) {
-            return;
-        }
+        const fallbackSummary = initialValue.triggerMoveLabel?.trim() || initialValue.triggerMoveId;
 
         getSpecificMoveRef.current(initialValue.triggerMoveId)
             .then((result) => {
                 const record = result as Record<string, unknown>;
-                const notation = typeof record.numpad_notation === "string" ? record.numpad_notation : initialValue.triggerMoveId ?? "";
+                const notation = typeof record.numpad_notation === "string" ? record.numpad_notation : fallbackSummary;
                 const character = typeof record.character === "string" ? record.character : "";
+                const summary = character ? `${character} ${notation}` : notation;
                 setTriggerMove({
                     id: initialValue.triggerMoveId as string,
-                    summary: character ? `${character} ${notation}` : notation,
+                    summary,
                     characterId: "",
                 });
+                setTriggerMoveQuery(summary);
             })
             .catch(() => {
-                setTriggerMove(null);
+                setTriggerMove({
+                    id: initialValue.triggerMoveId as string,
+                    summary: fallbackSummary,
+                    characterId: "",
+                });
+                setTriggerMoveQuery(fallbackSummary);
             });
-    }, [initialValue?.triggerMoveId, initialValue?.matrix]);
+    }, [initialValue?.triggerMoveId, initialValue?.triggerMoveLabel]);
 
     React.useEffect(() => {
         if (!attackerCharacterId) {
@@ -195,17 +379,6 @@ export function ScenarioEditorForm({
             canceled = true;
         };
     }, [attackerCharacterId, selectedAttacker, triggerMoveQuery]);
-
-    React.useEffect(() => {
-        if (!attackerCharacterId || !triggerMove) {
-            return;
-        }
-
-        const stillValid = moveOptions.some((option) => option.id === triggerMove.id);
-        if (!stillValid) {
-            setTriggerMove(null);
-        }
-    }, [attackerCharacterId, moveOptions, triggerMove]);
 
     const canSubmit = Boolean(name.trim()) && Boolean(defenderCharacterId) && Boolean(attackerCharacterId) && Boolean(triggerMove?.id);
 
@@ -270,6 +443,7 @@ export function ScenarioEditorForm({
                             isOptionEqualToValue={(option, value) => option.id === value.id}
                             onChange={(value) => {
                                 setTriggerMove(value);
+                                setTriggerMoveQuery(value?.summary ?? "");
                                 setError(null);
                             }}
                             disabled={!attackerCharacterId}
@@ -298,6 +472,102 @@ export function ScenarioEditorForm({
                             }}
                         />
                     </AppBox>
+                </AppBox>
+            </SectionCard>
+
+            <SectionCard
+                title="Combo Environment"
+                description="Lock only scenario-wide combo assumptions that are part of the setup. Leave normal cases viewer-controlled."
+                tone="default"
+                variant="input"
+            >
+                <AppBox sx={{display: "grid", gap: 1}}>
+                    <AppFormControl size="small">
+                        <AppInputLabel id="combo-position-lock-label">Position Lock</AppInputLabel>
+                        <AppSelect
+                            labelId="combo-position-lock-label"
+                            label="Position Lock"
+                            value={comboContext.positionLock}
+                            onChange={(event) => setComboContext((current) => ({...current, positionLock: event.target.value as ScenarioPositionLock}))}
+                        >
+                            <AppMenuItem value="viewer_default_midscreen">Viewer decides, default midscreen</AppMenuItem>
+                            <AppMenuItem value="corner">Always corner</AppMenuItem>
+                            <AppMenuItem value="midscreen">Always midscreen</AppMenuItem>
+                        </AppSelect>
+                    </AppFormControl>
+
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 1fr) minmax(160px, 0.6fr) auto"}, gap: 1, alignItems: "center"}}>
+                        <AppFormControl size="small">
+                            <AppInputLabel id="combo-status-object-label">Character Status Lock</AppInputLabel>
+                            <AppSelect
+                                labelId="combo-status-object-label"
+                                label="Character Status Lock"
+                                value={statusObjectName}
+                                onChange={(event) => {
+                                    setStatusObjectName(event.target.value as string);
+                                    setStatusRequired("");
+                                }}
+                            >
+                                <AppMenuItem value="">None</AppMenuItem>
+                                {statusCatalog.map((status) => (
+                                    <AppMenuItem key={status.name} value={status.name}>{status.name}</AppMenuItem>
+                                ))}
+                            </AppSelect>
+                        </AppFormControl>
+                        <AppTextField
+                            label={selectedStatusDefinition?.status_type === "boolean" ? "Required" : "Count"}
+                            size="small"
+                            type={selectedStatusDefinition?.status_type === "integer" ? "number" : undefined}
+                            value={selectedStatusDefinition?.status_type === "boolean" ? "true" : statusRequired}
+                            disabled={!selectedStatusDefinition || selectedStatusDefinition.status_type === "boolean"}
+                            inputProps={selectedStatusDefinition?.max_status ? {min: 1, max: selectedStatusDefinition.max_status} : undefined}
+                            onChange={(event) => setStatusRequired(event.target.value)}
+                        />
+                        <AppButton
+                            type="button"
+                            variant="outlined"
+                            color="secondary"
+                            disabled={!selectedStatusDefinition || comboContext.characterStatuses.some((status) => status.object_name === statusObjectName)}
+                            onClick={() => {
+                                if (!selectedStatusDefinition) {
+                                    return;
+                                }
+
+                                const nextValue = selectedStatusDefinition.status_type === "boolean" ? true : Number.parseInt(statusRequired, 10);
+                                if (selectedStatusDefinition.status_type === "integer" && (typeof nextValue !== "number" || !Number.isFinite(nextValue) || nextValue < 1)) {
+                                    setError("Character status count must be at least 1.");
+                                    return;
+                                }
+
+                                setComboContext((current) => ({
+                                    ...current,
+                                    characterStatuses: [...current.characterStatuses, {object_name: selectedStatusDefinition.name, status_required: nextValue}],
+                                }));
+                                setStatusObjectName("");
+                                setStatusRequired("");
+                                setError(null);
+                            }}
+                        >
+                            Add Lock
+                        </AppButton>
+                    </AppBox>
+
+                    {comboContext.characterStatuses.length > 0 ? (
+                        <AppBox sx={{display: "flex", flexWrap: "wrap", gap: 0.75}}>
+                            {comboContext.characterStatuses.map((status) => (
+                                <AppChip
+                                    key={status.object_name}
+                                    label={`${status.object_name}: ${String(status.status_required)}`}
+                                    onDelete={() => setComboContext((current) => ({
+                                        ...current,
+                                        characterStatuses: current.characterStatuses.filter((entry) => entry.object_name !== status.object_name),
+                                    }))}
+                                />
+                            ))}
+                        </AppBox>
+                    ) : (
+                        <AppTypography variant="body2" color="text.secondary">No character status locks.</AppTypography>
+                    )}
                 </AppBox>
             </SectionCard>
 
@@ -340,6 +610,8 @@ export function ScenarioEditorForm({
                 <AppBox sx={{p: {xs: 0.75, md: 0.9}, borderRadius: 1.5, border: "1px solid", borderColor: "fgc.border.default", backgroundColor: "fgc.surface.sunken"}}>
                     <MatrixEditorShell
                         matrix={matrix}
+                        attackerCharacterName={selectedAttacker?.name ?? null}
+                        defenderCharacterName={selectedDefender?.name ?? null}
                         onMatrixChange={setMatrix}
                         editable={true}
                         allowColumnStructureEdit={scenarioType !== "aggregated_oki"}
@@ -347,6 +619,9 @@ export function ScenarioEditorForm({
                         allowColumnLayerEdit={scenarioType !== "aggregated_oki"}
                         onRefreshDynamicCells={onResolveDynamicCells}
                         onResolveDynamicComboCell={onResolveDynamicComboCell}
+                        displayFrequenciesAsPercent
+                        currentScenarioId={currentScenarioId}
+                        linkedCellResolutions={linkedCellResolutions}
                     />
                 </AppBox>
             </SectionCard>
@@ -396,7 +671,11 @@ export function ScenarioEditorForm({
                                     attackerCharacterId,
                                     triggerMoveId: triggerMove.id,
                                     matrix,
+                                    comboContext,
                                 });
+                                if (typeof window !== "undefined") {
+                                    window.localStorage.removeItem(draftStorageKey);
+                                }
                             } catch (err) {
                                 const message =
                                     typeof err === "object" && err !== null && "response" in err

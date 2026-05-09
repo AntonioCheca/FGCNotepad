@@ -10,6 +10,7 @@ use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\FrameData;
 use App\Entity\Move;
+use App\Entity\RequirementSpecificCharacter;
 use App\Entity\Scenario;
 use App\Entity\Step;
 use App\Entity\User;
@@ -222,6 +223,89 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame(1, $payload['resolution']['resolvedCells']);
         self::assertSame(0, $payload['resolution']['unresolvedCells']);
         self::assertSame(1700, $payload['scenario']['matrix']['cells'][0][0]['value']);
+    }
+
+    public function testScenarioComboContextDefaultsToMidscreenAndViewerCanIncludeCorner(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2LK', 260);
+        $this->createComboForStarter($attacker, $starterMove, 1200, false, false);
+        $this->createComboForStarter($attacker, $starterMove, 1900, false, false, null, null, null, true);
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Viewer Corner Context',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildDynamicMatrixPayload($attacker, $starterMove, 'normal'),
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(1200, $created['matrix']['cells'][0][0]['value']);
+
+        $this->client->request(
+            'POST',
+            sprintf('/api/scenarios/%s/resolve-dynamic-cells', $created['id']),
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode(['comboContext' => ['includeCornerSpecific' => true]])
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(1900, $payload['scenario']['matrix']['cells'][0][0]['value']);
+    }
+
+    public function testScenarioFixedCornerContextAppliesWithoutViewerOverride(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2LK', 260);
+        $this->createComboForStarter($attacker, $starterMove, 1200, false, false);
+        $this->createComboForStarter($attacker, $starterMove, 1900, false, false, null, null, null, true);
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Locked Corner Context',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'comboContext' => ['positionLock' => 'corner', 'characterStatuses' => []],
+            'matrix' => $this->buildDynamicMatrixPayload($attacker, $starterMove, 'normal'),
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame('corner', $created['comboContext']['positionLock']);
+        self::assertSame(1900, $created['matrix']['cells'][0][0]['value']);
+    }
+
+    public function testScenarioCharacterStatusContextUnlocksMatchingCombo(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '2LK', 260);
+        $this->createComboForStarter($attacker, $starterMove, 1000, false, false);
+        $this->createComboForStarter($attacker, $starterMove, 1800, false, false, null, null, null, false, 'Drinks', '2');
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Drink Context',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'comboContext' => [
+                'positionLock' => 'viewer_default_midscreen',
+                'characterStatuses' => [['object_name' => 'Drinks', 'status_required' => 2]],
+            ],
+            'matrix' => $this->buildDynamicMatrixPayload($attacker, $starterMove, 'normal'),
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(1800, $created['matrix']['cells'][0][0]['value']);
+        self::assertSame('Drinks', $created['comboContext']['characterStatuses'][0]['object_name']);
     }
 
     public function testResolveDynamicCellPreviewEndpointReturnsBestComboDamage(): void
@@ -518,6 +602,97 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testSolveLinkedExpectedValueAddsStaticPreValueToLinkedScenarioEv(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $linkedScenario = $this->createScenario('Linked Reward', 'oki', $defender, $attacker, $triggerMove);
+
+        $matrix = $this->buildMatrixPayload();
+        $matrix['cells'][0][0] = [
+            'cellType' => 'reference',
+            'dataType' => 'empty',
+            'value' => null,
+            'metadata' => [
+                'scenarioId' => $linkedScenario->getPublicId()->toRfc4122(),
+                'scenarioLabel' => 'Linked Reward',
+                'referenceKind' => 'reference',
+                'preValue' => [
+                    'kind' => 'static',
+                    'staticValue' => 1200,
+                ],
+            ],
+        ];
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Static Linked EV Source',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $matrix,
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->client->request('POST', sprintf('/api/scenarios/%s/solve-linked-ev', $created['id']), [], [], $this->getHeaders(), json_encode([
+            'executionMode' => ['mode' => 'standard'],
+        ]));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertEqualsWithDelta(1220.0, $payload['expectedValue'], 0.001);
+        self::assertEqualsWithDelta(1200.0, $payload['resolvedCells'][0]['basePreValue'], 0.001);
+        self::assertEqualsWithDelta(20.0, $payload['resolvedCells'][0]['linkedExpectedValue'], 0.001);
+        self::assertEqualsWithDelta(1220.0, $payload['resolvedCells'][0]['finalValue'], 0.001);
+    }
+
+    public function testSolveLinkedExpectedValueLimitsSelfRecursiveReferencesToDepthThree(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $scenario = (new Scenario())
+            ->setName('Self Recursive Throw Loop')
+            ->setScenarioType('oki')
+            ->setDefenderCharacter($defender)
+            ->setAttackerCharacter($attacker)
+            ->setTriggerMove($triggerMove);
+
+        $row = (new \App\Entity\ScenarioRow())
+            ->setScenario($scenario)
+            ->setPosition(0)
+            ->setLabel('Block')
+            ->setLayer(1);
+        $column = (new \App\Entity\ScenarioColumn())
+            ->setScenario($scenario)
+            ->setPosition(0)
+            ->setLabel('Throw')
+            ->setLayer(1);
+        $cell = (new \App\Entity\ScenarioCell())
+            ->setScenario($scenario)
+            ->setRow($row)
+            ->setColumn($column)
+            ->setKind(\App\Entity\ScenarioCell::KIND_REFERENCE)
+            ->setReferenceScenario($scenario)
+            ->setReferenceKind('reference')
+            ->setStaticValue(1200.0);
+
+        $scenario->addRow($row);
+        $scenario->addColumn($column);
+        $scenario->addCell($cell);
+        $this->em->persist($scenario);
+        $this->em->flush();
+
+        $this->client->request('POST', sprintf('/api/scenarios/%s/solve-linked-ev', $scenario->getPublicId()->toRfc4122()), [], [], $this->getHeaders(), json_encode([
+            'executionMode' => ['mode' => 'standard'],
+        ]));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertEqualsWithDelta(3600.0, $payload['expectedValue'], 0.001);
+        self::assertEqualsWithDelta(2400.0, $payload['resolvedCells'][0]['linkedExpectedValue'], 0.001);
+        self::assertEqualsWithDelta(3600.0, $payload['resolvedCells'][0]['finalValue'], 0.001);
+    }
+
     public function testUpdateScenarioReplacesMatrixWithoutRowPositionConflict(): void
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
@@ -776,6 +951,9 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         ?int $difficultyLevel = null,
         ?float $driveCost = null,
         ?float $superCost = null,
+        bool $cornerRequired = false,
+        ?string $statusObjectName = null,
+        ?string $statusRequired = null,
     ): ComboSequences
     {
         $leafType = $this->em->getRepository(ComboSequenceType::class)->findOneBy(['name' => 'leaf'])
@@ -832,10 +1010,17 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
             ->setSequence($combo)
             ->setCounterHitRequired($counterHit)
             ->setPunishCounterRequired($punishCounter)
-            ->setCornerRequired(false)
+            ->setCornerRequired($cornerRequired)
             ->setAirborneRequired(false)
             ->setMidScreenRequired(false)
             ->setNotCrouchingRequired(false);
+        if (null !== $statusObjectName && null !== $statusRequired) {
+            $requirement->setRequirementSpecificCharacter(
+                (new RequirementSpecificCharacter())
+                    ->setObjectName($statusObjectName)
+                    ->setStatusRequired($statusRequired)
+            );
+        }
         $this->em->persist($requirement);
 
         $this->em->flush();

@@ -23,9 +23,12 @@ import {useMode} from '@/src/context/ThemeContext';
 interface ScenarioTableProps {
     state: ScenarioTableState;
     tableService: ScenarioTableService;
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
 }
 
 interface FrequencyRowProps {
+    defenderCharacterName?: string | null;
     columns: string[];
     columnFrequencies: (number | string)[];
     handleColumnFrequencyChange: (colIndex: number, newValue: string) => void;
@@ -33,6 +36,8 @@ interface FrequencyRowProps {
 }
 
 interface TableHeaderProps {
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
     columns: string[];
     addColumn: () => void;
     setColumns: (columns: string[]) => void;
@@ -141,10 +146,13 @@ function toNumberFieldValue(value: number | string): number | null {
     return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
-export function ScenarioTable({state, tableService}: ScenarioTableProps) {
+export function ScenarioTable({state, tableService, attackerCharacterName, defenderCharacterName}: ScenarioTableProps) {
     const {theme} = useMode();
     const scrollRef = React.useRef<HTMLDivElement>(null);
     const topScrollRef = React.useRef<HTMLDivElement>(null);
+
+    const effectiveAttackerName = attackerCharacterName ?? state.attackerCharacterName ?? null;
+    const effectiveDefenderName = defenderCharacterName ?? state.defenderCharacterName ?? null;
 
     React.useEffect(() => {
         const handleScroll = () => {
@@ -193,6 +201,8 @@ export function ScenarioTable({state, tableService}: ScenarioTableProps) {
             >
                 <AppTable>
                     <TableHeader
+                        attackerCharacterName={effectiveAttackerName}
+                        defenderCharacterName={effectiveDefenderName}
                         columns={state.columns}
                         addColumn={() => tableService.addColumn()}
                         setColumns={(columns: string[]) => tableService.setColumns(columns)}/>
@@ -215,7 +225,8 @@ export function ScenarioTable({state, tableService}: ScenarioTableProps) {
                         ))}
                     </AppTableBody>
                     <AppTableFooter>
-                        <FrequencyRow
+<FrequencyRow
+                            defenderCharacterName={effectiveDefenderName}
                             columns={state.columns}
                             columnFrequencies={state.columnFrequencies}
                             handleColumnFrequencyChange={(colIndex: number, newValue: string) => tableService.updateColumnFrequency(colIndex, newValue)}
@@ -235,11 +246,11 @@ export function ScenarioTable({state, tableService}: ScenarioTableProps) {
     );
 }
 
-function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, expectedValue}: FrequencyRowProps) {
+function FrequencyRow({defenderCharacterName, columns, columnFrequencies, handleColumnFrequencyChange, expectedValue}: FrequencyRowProps) {
     return (
         <AppTableRow className="frozen-last-row" component="tr">
             <AppTableCell className="frozen-frequency-cell" sx={{fontWeight: "bold"}}>
-                P2 Frequencies
+                {defenderCharacterName ?? "P2"} Frequencies
             </AppTableCell>
             {columns.map((_, colIndex) => (
                 <AppTableCell key={colIndex} sx={{textAlign: "center"}}>
@@ -263,7 +274,7 @@ function FrequencyRow({columns, columnFrequencies, handleColumnFrequencyChange, 
     );
 }
 
-function TableHeader({columns, addColumn, setColumns}: TableHeaderProps) {
+function TableHeader({attackerCharacterName, defenderCharacterName, columns, addColumn, setColumns}: TableHeaderProps) {
     const handleColumnNameChange = (colIndex: number, newName: string) => {
         const updatedColumns = [...columns];
         updatedColumns[colIndex] = newName;
@@ -274,7 +285,7 @@ function TableHeader({columns, addColumn, setColumns}: TableHeaderProps) {
         <AppTableHead>
             <AppTableRow>
                 <AppTableCell className="frozen-corner-cell" sx={{fontWeight: "bold"}}>
-                    Moves (P1 \ P2)
+                    Moves ({attackerCharacterName ?? "P1"} \ {defenderCharacterName ?? "P2"})
                 </AppTableCell>
                 {columns.map((col, colIndex) => (
                     <EditableTextCell

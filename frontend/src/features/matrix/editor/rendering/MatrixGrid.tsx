@@ -16,6 +16,8 @@ type RequirementEditorTarget = {
 
 interface MatrixGridProps {
     state: MatrixEditorState;
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
     expectedValue: number | null;
     activeTarget: MatrixSelectionTarget | null;
     activeKey: string | null;
@@ -26,6 +28,7 @@ interface MatrixGridProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
+    displayLabelsByKey?: Record<string, string>;
     moveLabelById: Record<string, string>;
     unavailableRowIds?: Set<string>;
     unavailableColumnIds?: Set<string>;
@@ -73,6 +76,8 @@ interface MatrixGridProps {
 
 export function MatrixGrid({
                                 state,
+                                attackerCharacterName,
+                                defenderCharacterName,
                                 expectedValue,
                                 activeTarget,
                                 activeKey,
@@ -81,9 +86,10 @@ export function MatrixGrid({
                                editingKey,
                                draft,
                                 draftHasFormatError,
-                                   validationByKey,
-                                   displayedBodyValues,
-                                   moveLabelById,
+                                    validationByKey,
+                                    displayedBodyValues,
+                                    displayLabelsByKey = {},
+                                    moveLabelById,
                                    unavailableRowIds = new Set<string>(),
                                    unavailableColumnIds = new Set<string>(),
                                    unavailableReasonByRowId = {},
@@ -238,6 +244,8 @@ export function MatrixGrid({
             >
                 <MatrixGridHeader
                     state={state}
+                    attackerCharacterName={attackerCharacterName}
+                    defenderCharacterName={defenderCharacterName}
                     activeColumnId={activeColumnId}
                     unavailableColumnIds={unavailableColumnIds}
                     unavailableReasonByColumnId={unavailableReasonByColumnId}
@@ -264,6 +272,7 @@ export function MatrixGrid({
                     draftHasFormatError={draftHasFormatError}
                     validationByKey={validationByKey}
                     displayedBodyValues={displayedBodyValues}
+                    displayLabelsByKey={displayLabelsByKey}
                     moveLabelById={moveLabelById}
                     canEditRowAxisLabels={canEditRowAxisLabels}
                     canEditRowLayers={canEditRowLayers}
@@ -288,6 +297,7 @@ export function MatrixGrid({
                 />
                 <MatrixSummaryAxes
                     state={state}
+                    defenderCharacterName={defenderCharacterName}
                     activeKey={activeKey}
                     activeColumnId={activeColumnId}
                     unavailableColumnIds={unavailableColumnIds}

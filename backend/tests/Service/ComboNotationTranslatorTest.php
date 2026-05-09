@@ -31,6 +31,9 @@ class ComboNotationTranslatorTest extends TestCase
             ['id' => 105, 'notation' => '5MP', 'moveType' => 'normal', 'cancelTypeCodes' => []],
             ['id' => 106, 'notation' => '4HP', 'moveType' => 'follow-up', 'cancelTypeCodes' => ['tc']],
             ['id' => 107, 'notation' => '63214P', 'moveType' => 'command-grab', 'cancelTypeCodes' => []],
+            ['id' => 108, 'notation' => '214PPXX6P', 'moveType' => 'follow-up', 'cancelTypeCodes' => ['tc'], 'aliases' => ['214PP XX 6P', '214PP > 6P']],
+            ['id' => 109, 'notation' => '214PP', 'moveType' => 'special', 'cancelTypeCodes' => ['sp']],
+            ['id' => 110, 'notation' => '6P', 'moveType' => 'normal', 'cancelTypeCodes' => []],
         ];
 
         $this->connectionTypes = [
@@ -135,6 +138,15 @@ class ComboNotationTranslatorTest extends TestCase
         self::assertSame(4, $result['steps'][3]['connection_type_id']);
         self::assertSame(5, $result['steps'][4]['connection_type_id']);
         self::assertSame(6, $result['steps'][5]['connection_type_id']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslatePrioritizesLongestCompositeAliasFirst(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('214PP XX 6P', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(1, $result['steps']);
+        self::assertSame(108, $result['steps'][0]['child_sequence_id']);
         self::assertSame([], $result['errors']);
     }
 }

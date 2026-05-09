@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ComboRequirementRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ComboRequirementRepository::class)]
@@ -36,8 +38,21 @@ class ComboRequirement
     #[ORM\Column]
     private ?bool $not_crouching_required = null;
 
-    #[ORM\OneToOne(mappedBy: 'requirement', cascade: ['persist', 'remove'])]
-    private ?RequirementSpecificCharacter $requirementSpecificCharacter = null;
+    /**
+     * @var Collection<int, RequirementSpecificCharacter>
+     */
+    #[ORM\ManyToMany(targetEntity: RequirementSpecificCharacter::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinTable(
+        name: 'sf6.combo_requirement_specific_character',
+        joinColumns: [new ORM\JoinColumn(name: 'combo_requirement_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')],
+        inverseJoinColumns: [new ORM\JoinColumn(name: 'requirement_specific_character_id', referencedColumnName: 'id', unique: true, nullable: false, onDelete: 'CASCADE')]
+    )]
+    private Collection $requirementSpecificCharacters;
+
+    public function __construct()
+    {
+        $this->requirementSpecificCharacters = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -130,17 +145,32 @@ class ComboRequirement
 
     public function getRequirementSpecificCharacter(): ?RequirementSpecificCharacter
     {
-        return $this->requirementSpecificCharacter;
+        $first = $this->requirementSpecificCharacters->first();
+
+        return false === $first ? null : $first;
+    }
+
+    /**
+     * @return Collection<int, RequirementSpecificCharacter>
+     */
+    public function getRequirementSpecificCharacters(): Collection
+    {
+        return $this->requirementSpecificCharacters;
     }
 
     public function setRequirementSpecificCharacter(RequirementSpecificCharacter $requirementSpecificCharacter): static
     {
-        // set the owning side of the relation if necessary
-        if ($requirementSpecificCharacter->getRequirement() !== $this) {
-            $requirementSpecificCharacter->setRequirement($this);
-        }
+        $this->requirementSpecificCharacters->clear();
+        $this->requirementSpecificCharacters->add($requirementSpecificCharacter);
 
-        $this->requirementSpecificCharacter = $requirementSpecificCharacter;
+        return $this;
+    }
+
+    public function addRequirementSpecificCharacter(RequirementSpecificCharacter $requirementSpecificCharacter): static
+    {
+        if (!$this->requirementSpecificCharacters->contains($requirementSpecificCharacter)) {
+            $this->requirementSpecificCharacters->add($requirementSpecificCharacter);
+        }
 
         return $this;
     }

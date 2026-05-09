@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {serializeMatrixPayload} from "../../serialization/serializeMatrixPayload";
+import {matrixActions, matrixEditorReducer} from "../../state";
 import {matrixEditorStateToPayload, matrixPayloadToEditorState} from "./payloadAdapter";
 
 test("payload adapter keeps matrix dimensions and core values", () => {
@@ -52,6 +53,67 @@ test("payload adapter preserves reference/computed cell types", () => {
     const roundTrip = matrixEditorStateToPayload(state, payload);
     assert.equal(roundTrip.cells[0][0].cellType, "reference");
     assert.equal(roundTrip.cells[0][1].cellType, "computed");
+});
+
+test("payload adapter preserves reference pre-value metadata", () => {
+    const payload = serializeMatrixPayload({
+        rows: ["R1"],
+        columns: ["C1"],
+        values: [[null]],
+        bodyCellTypes: [["reference"]],
+        bodyCellMetadata: [[{
+            scenarioId: "scn_loop",
+            scenarioLabel: "Throw Loop",
+            cachedValue: null,
+            referenceKind: "reference",
+            preValue: {
+                kind: "static",
+                staticValue: 1200,
+            },
+        }]],
+        metadata: {matrixId: "mx_reference_pre_value"},
+    });
+
+    const state = matrixPayloadToEditorState(payload);
+    const cell = state.grid.bodyCells["body::row_1::column_1"];
+
+    assert.equal(cell.kind, "reference");
+    assert.deepEqual(cell.reference?.preValue, {kind: "static", staticValue: 1200});
+
+    const roundTrip = matrixEditorStateToPayload(state, payload);
+    assert.deepEqual(roundTrip.cells[0][0].metadata?.preValue, {kind: "static", staticValue: 1200});
+});
+
+test("payload adapter keeps linked scenario metadata after solve cache updates", () => {
+    const payload = serializeMatrixPayload({
+        rows: ["R1"],
+        columns: ["C1"],
+        values: [[1200]],
+        bodyCellTypes: [["reference"]],
+        bodyCellMetadata: [[{
+            scenarioId: "scn_loop",
+            scenarioLabel: "Throw Loop",
+            cachedValue: 1200,
+            referenceKind: "reference",
+            preValue: {
+                kind: "static",
+                staticValue: 1200,
+            },
+        }]],
+        metadata: {matrixId: "mx_reference_solved"},
+    });
+
+    const state = matrixEditorReducer(
+        matrixPayloadToEditorState(payload),
+        matrixActions.updateReferenceCache("body::row_1::column_1", 1800)
+    );
+    const roundTrip = matrixEditorStateToPayload(state, payload);
+
+    assert.equal(roundTrip.cells[0][0].cellType, "reference");
+    assert.equal(roundTrip.cells[0][0].value, 1800);
+    assert.equal(roundTrip.cells[0][0].metadata?.scenarioId, "scn_loop");
+    assert.equal(roundTrip.cells[0][0].metadata?.cachedValue, 1800);
+    assert.deepEqual(roundTrip.cells[0][0].metadata?.preValue, {kind: "static", staticValue: 1200});
 });
 
 test("payload adapter preserves dynamic combo cells", () => {

@@ -24,6 +24,11 @@ export interface MatrixDynamicComboPayload {
     starterContext: MatrixDynamicComboStarterContext;
 }
 
+export type MatrixReferencePreValuePayload =
+    | { kind: "none" }
+    | { kind: "static"; staticValue: number }
+    | { kind: "dynamic_combo"; dynamicCombo: MatrixDynamicComboPayload };
+
 export type MatrixCellType = "value" | "reference" | "computed" | "dynamic_combo" | "summary";
 export type MatrixCellDataType = "number" | "text" | "empty";
 export type MatrixResourceOwner = "attacker" | "defender";

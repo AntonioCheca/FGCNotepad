@@ -9,6 +9,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'user_scenario_preference', schema: 'forum')]
 class UserScenarioPreference
 {
+    public const NOTATION_DICTIONARY_NUMPAD = 'numpad';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -23,6 +25,9 @@ class UserScenarioPreference
 
     #[ORM\Column(name: 'difficulty_cap', nullable: true)]
     private ?int $difficultyCap = null;
+
+    #[ORM\Column(name: 'notation_dictionary', length: 32, options: ['default' => self::NOTATION_DICTIONARY_NUMPAD])]
+    private string $notationDictionary = self::NOTATION_DICTIONARY_NUMPAD;
 
     public function getId(): ?int
     {
@@ -65,6 +70,18 @@ class UserScenarioPreference
     public function setDifficultyCap(?int $difficultyCap): static
     {
         $this->difficultyCap = $difficultyCap;
+
+        return $this;
+    }
+
+    public function getNotationDictionary(): string
+    {
+        return $this->notationDictionary;
+    }
+
+    public function setNotationDictionary(string $notationDictionary): static
+    {
+        $this->notationDictionary = $notationDictionary;
 
         return $this;
     }

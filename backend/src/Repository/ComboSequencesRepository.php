@@ -285,6 +285,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
         bool $includeUnratedDifficulty,
         ?float $availableDrive = null,
         ?float $availableSuper = null,
+        ?array $comboContext = null,
     ): ?array {
         if ([] === $starterMoveIds) {
             return null;
@@ -307,6 +308,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->innerJoin('starterSequence.move', 'starterMove')
             ->innerJoin('starterMove.character', 'attackerCharacter')
             ->leftJoin('combo.comboRequirement', 'comboRequirement')
+            ->leftJoin('comboRequirement.requirementSpecificCharacters', 'requirementSpecificCharacter')
             ->where('comboType.name = :comboTypeName')
             ->andWhere('combo.moderationState = :approvedState')
             ->andWhere('attackerCharacter.id = :attackerCharacterId')
@@ -327,7 +329,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
             $maxDifficulty,
             $includeUnratedDifficulty,
             $availableDrive,
-            $availableSuper
+            $availableSuper,
+            $comboContext
         );
     }
 
@@ -467,6 +470,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
         bool $includeUnratedDifficulty,
         ?float $availableDrive = null,
         ?float $availableSuper = null,
+        ?array $comboContext = null,
     ): ?array {
         if (null !== $allowedComboIds) {
             $qb->andWhere('combo.id IN (:allowedComboIds)')
@@ -500,6 +504,38 @@ class ComboSequencesRepository extends ServiceEntityRepository
             );
         } elseif ('counter_hit' === $hitType) {
             $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.punish_counter_required = false)');
+        }
+
+        if (null !== $comboContext) {
+            $allowedPositions = is_array($comboContext['allowedPositions'] ?? null) ? $comboContext['allowedPositions'] : ['midscreen'];
+            if (!in_array('corner', $allowedPositions, true)) {
+                $qb->andWhere('(comboRequirement.id IS NULL OR comboRequirement.corner_required = false)');
+            }
+            if (!in_array('midscreen', $allowedPositions, true)) {
+                $qb->andWhere('(comboRequirement.id IS NULL OR comboRequirement.mid_screen_required = false)');
+            }
+
+            $characterStatuses = is_array($comboContext['characterStatuses'] ?? null) ? $comboContext['characterStatuses'] : [];
+            if ([] === $characterStatuses) {
+                $qb->andWhere('requirementSpecificCharacter.id IS NULL');
+            } else {
+                $statusExpressions = ['requirementSpecificCharacter.id IS NULL'];
+                $statusIndex = 0;
+                foreach ($characterStatuses as $objectName => $statusRequired) {
+                    if (!is_string($objectName) || !is_string($statusRequired)) {
+                        continue;
+                    }
+
+                    $objectParameter = sprintf('statusObject%d', $statusIndex);
+                    $valueParameter = sprintf('statusValue%d', $statusIndex);
+                    $statusExpressions[] = sprintf('(requirementSpecificCharacter.object_name = :%s AND requirementSpecificCharacter.status_required <= :%s)', $objectParameter, $valueParameter);
+                    $qb->setParameter($objectParameter, $objectName)
+                        ->setParameter($valueParameter, $statusRequired);
+                    ++$statusIndex;
+                }
+
+                $qb->andWhere(sprintf('(%s)', implode(' OR ', $statusExpressions)));
+            }
         }
 
         $result = $qb->getQuery()->getOneOrNullResult();

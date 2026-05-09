@@ -1,5 +1,6 @@
 import React from "react";
 
+import {useMode} from "@/src/context/ThemeContext";
 import {ReferenceInspectorData} from "../services/referenceInspector";
 
 interface ReferenceInspectorProps {
@@ -7,18 +8,21 @@ interface ReferenceInspectorProps {
 }
 
 export function ReferenceInspector({data}: ReferenceInspectorProps) {
+    const {theme} = useMode();
+
     return (
         <section
             style={{
-                border: "1px solid #d9d9d9",
+                border: `1px solid ${theme.fgc.border.default}`,
                 borderRadius: 6,
-                background: "#fafafa",
+                background: theme.fgc.surface.subtle,
+                color: theme.fgc.text.primary,
                 padding: 10,
                 marginBottom: 8,
             }}
         >
-            <div style={{fontWeight: 600, marginBottom: 6}}>Reference Inspector</div>
-            <div style={{fontSize: 13, display: "grid", gap: 4}}>
+            <div style={{fontWeight: 600, marginBottom: 6, color: theme.fgc.text.primary}}>Reference Inspector</div>
+            <div style={{fontSize: 13, display: "grid", gap: 4, color: theme.fgc.text.secondary}}>
                 <div><strong>Name:</strong> {data.scenarioName}</div>
                 <div><strong>ID:</strong> {data.scenarioId}</div>
                 <div><strong>Kind:</strong> {data.referenceKind}</div>

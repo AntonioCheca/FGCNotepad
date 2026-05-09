@@ -21,10 +21,6 @@ class RequirementSpecificCharacter
     #[ORM\Column(type: Types::TEXT)]
     private ?string $status_required = null;
 
-    #[ORM\OneToOne(inversedBy: 'requirementSpecificCharacter', cascade: ['persist', 'remove'])]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?ComboRequirement $requirement = null;
-
     public function getId(): ?int
     {
         return $this->id;
@@ -54,15 +50,4 @@ class RequirementSpecificCharacter
         return $this;
     }
 
-    public function getRequirement(): ?ComboRequirement
-    {
-        return $this->requirement;
-    }
-
-    public function setRequirement(ComboRequirement $requirement): static
-    {
-        $this->requirement = $requirement;
-
-        return $this;
-    }
 }

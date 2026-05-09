@@ -56,7 +56,6 @@ class ComboRequirementDenormalizer implements DenormalizerInterface
                 $charReq->setStatusRequired($data['requirement_specific_character']['status_required']);
             }
 
-            $charReq->setRequirement($requirement);
             $requirement->setRequirementSpecificCharacter($charReq);
         }
 

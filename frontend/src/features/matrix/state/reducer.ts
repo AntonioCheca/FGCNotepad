@@ -156,7 +156,6 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                         ...state.grid.bodyCells,
                         [action.payload.key]: {
                             ...cell,
-                            value: action.payload.cachedValue,
                             reference: {
                                 ...cell.reference,
                                 cachedValue: action.payload.cachedValue,
@@ -181,14 +180,13 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                     return;
                 }
 
-                if (cell.reference.cachedValue === update.cachedValue && cell.value === update.cachedValue) {
+                if (cell.reference.cachedValue === update.cachedValue) {
                     return;
                 }
 
                 hasChanges = true;
                 nextBodyCells[update.key] = {
                     ...cell,
-                    value: update.cachedValue,
                     reference: {
                         ...cell.reference,
                         cachedValue: update.cachedValue,
@@ -230,7 +228,71 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
                                 scenarioId: action.payload.scenarioId,
                                 scenarioLabel: action.payload.scenarioLabel,
                                 cachedValue: cell.value,
+                                preValue: cell.kind === "reference" && cell.reference ? cell.reference.preValue : {kind: "none"},
                             },
+                        },
+                    },
+                },
+                validation: {
+                    ...state.validation,
+                    byKey: {
+                        ...state.validation.byKey,
+                        [action.payload.key]: [],
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setReferencePreValue": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            if (!cell || cell.kind !== "reference" || !cell.reference) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {
+                            ...cell,
+                            reference: {
+                                ...cell.reference,
+                                preValue: action.payload.preValue,
+                            },
+                        },
+                    },
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/unlinkReferenceCell": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            if (!cell || cell.kind !== "reference") {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {
+                            ...cell,
+                            kind: "static",
+                            value: cell.value ?? cell.reference?.cachedValue ?? null,
+                            reference: null,
+                            dynamicCombo: null,
                         },
                     },
                 },

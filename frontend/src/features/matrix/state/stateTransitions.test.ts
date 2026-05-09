@@ -179,6 +179,7 @@ test("reference/computed cells are guarded from direct mutation", () => {
             kind: "computed",
             scenarioId: "calc_1",
             cachedValue: 11,
+            preValue: {kind: "none"},
         },
         dynamicCombo: null,
     };
@@ -200,6 +201,21 @@ test("linkReferenceCell converts static cell to reference metadata", () => {
     assert.equal(state.grid.bodyCells[firstCell.key].reference?.scenarioId, "42");
     assert.equal(state.grid.bodyCells[firstCell.key].reference?.scenarioLabel, "Corner Escape");
     assert.equal(state.grid.bodyCells[firstCell.key].reference?.cachedValue, 4);
+});
+
+test("unlinkReferenceCell restores linked cell to static metadata", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const firstCell = selectBodyCellByIndex(state, 0, 0);
+    assert.ok(firstCell);
+
+    state = matrixEditorReducer(state, matrixActions.setCellValue(firstCell.key, 9));
+    state = matrixEditorReducer(state, matrixActions.linkReferenceCell(firstCell.key, "42", "Corner Escape"));
+    state = matrixEditorReducer(state, matrixActions.unlinkReferenceCell(firstCell.key));
+
+    assert.equal(state.grid.bodyCells[firstCell.key].kind, "static");
+    assert.equal(state.grid.bodyCells[firstCell.key].value, 9);
+    assert.equal(state.grid.bodyCells[firstCell.key].reference, null);
+    assert.equal(state.grid.bodyCells[firstCell.key].dynamicCombo, null);
 });
 
 test("setDynamicComboCell converts body cell to dynamic combo metadata", () => {

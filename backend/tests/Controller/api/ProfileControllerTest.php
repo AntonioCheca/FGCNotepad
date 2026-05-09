@@ -68,6 +68,39 @@ class ProfileControllerTest extends AuthenticatedWebTestCase
         self::assertSame(4, $fetched['difficultyCap']);
     }
 
+    public function testGetNotationPreferenceDefaultsToNumpad(): void
+    {
+        $this->client->request('GET', '/api/profile/notation-preference', [], [], $this->getHeaders());
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame('numpad', $payload['notationDictionary']);
+        self::assertContains('sf_short', $payload['supportedDictionaries']);
+    }
+
+    public function testUpdateNotationPreferencePersistsDictionary(): void
+    {
+        $this->client->request(
+            'PUT',
+            '/api/profile/notation-preference',
+            [],
+            [],
+            $this->getHeaders(),
+            json_encode([
+                'notationDictionary' => 'sf_short',
+            ])
+        );
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame('sf_short', $payload['notationDictionary']);
+
+        $this->client->request('GET', '/api/profile/notation-preference', [], [], $this->getHeaders());
+        $fetched = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame('sf_short', $fetched['notationDictionary']);
+    }
+
     public function testUpdateComboKnowledgeStoresKnownComboIdsForCharacter(): void
     {
         [$character, $comboOne, $comboTwo] = $this->seedCharacterCombos();

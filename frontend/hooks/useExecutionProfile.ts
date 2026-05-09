@@ -5,6 +5,7 @@ import api, {getStoredAuthToken} from "@/services/api";
 import {
     ComboKnowledgeResponse,
     ComboRecommendationResponse,
+    NotationPreference,
     ScenarioExecutionPreference,
     ScenarioExecutionSelection,
 } from "@/src/types/scenarioExecution";
@@ -74,11 +75,28 @@ export function useExecutionProfile() {
         [request]
     );
 
+    const getNotationPreference = React.useCallback(async (): Promise<NotationPreference> => {
+        return request(() => api.get("/profile/notation-preference"));
+    }, [request]);
+
+    const updateNotationPreference = React.useCallback(
+        async (notationDictionary: NotationPreference["notationDictionary"]): Promise<NotationPreference> => {
+            return request(() =>
+                api.put("/profile/notation-preference", {
+                    notationDictionary,
+                })
+            );
+        },
+        [request]
+    );
+
     return {
         getExecutionPreference,
         updateExecutionPreference,
         getComboKnowledge,
         updateComboKnowledge,
         getComboRecommendations,
+        getNotationPreference,
+        updateNotationPreference,
     };
 }

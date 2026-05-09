@@ -240,6 +240,14 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
         });
     });
 
+    const normalizedBodyCellMetadata = normalizedRows.map((_, rowIndex) => {
+        const rawRow = Array.isArray(rawCells[rowIndex]) ? rawCells[rowIndex] : [];
+        return normalizedColumns.map((_, columnIndex) => {
+            const cell = coerceCell(rawRow[columnIndex], issues, `cells[${rowIndex}][${columnIndex}]`);
+            return cell.metadata;
+        });
+    });
+
     const normalizedValues = normalizedRows.map((_, rowIndex) => {
         const rawRow = Array.isArray(rawCells[rowIndex]) ? rawCells[rowIndex] : [];
         return normalizedColumns.map((_, columnIndex) => {
@@ -272,6 +280,7 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
         columnRequirements,
         values: normalizedValues,
         bodyCellTypes: normalizedBodyCellTypes,
+        bodyCellMetadata: normalizedBodyCellMetadata,
         bodyCellDynamicCombos: normalizedBodyCellDynamicCombos,
         rowFrequencies,
         columnFrequencies,

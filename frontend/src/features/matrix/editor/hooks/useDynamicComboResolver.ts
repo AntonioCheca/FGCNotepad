@@ -15,6 +15,28 @@ interface UseDynamicComboResolverOptions {
     onResolveDynamicComboCell?: (dynamicCombo: MatrixDynamicComboData) => Promise<number | null>;
 }
 
+export function extractDynamicComboRefreshOverrides(
+    currentState: MatrixEditorState,
+    refreshedState: MatrixEditorState
+): Record<string, number | null> {
+    const overrides: Record<string, number | null> = {};
+
+    Object.entries(currentState.grid.bodyCells).forEach(([key, currentCell]) => {
+        if (currentCell.kind !== "dynamic_combo") {
+            return;
+        }
+
+        const refreshedCell = refreshedState.grid.bodyCells[key];
+        if (!refreshedCell || refreshedCell.kind !== "dynamic_combo") {
+            return;
+        }
+
+        overrides[key] = refreshedCell.value;
+    });
+
+    return overrides;
+}
+
 export function useDynamicComboResolver({
     stateRef,
     dispatch,
@@ -76,13 +98,10 @@ export function useDynamicComboResolver({
             try {
                 const refreshedMatrix = await onRefreshDynamicCells();
                 const refreshedState = matrixPayloadToEditorState(refreshedMatrix);
-                dispatch(actions.replaceState(refreshedState));
+                const overrides = extractDynamicComboRefreshOverrides(stateRef.current, refreshedState);
 
-                const overrides: Record<string, number | null> = {};
-                Object.values(refreshedState.grid.bodyCells).forEach((cell) => {
-                    if (cell.kind === "dynamic_combo") {
-                        overrides[cell.key] = cell.value;
-                    }
+                Object.entries(overrides).forEach(([key, value]) => {
+                    dispatch(actions.setDynamicComboResolvedValue(key, value));
                 });
 
                 return overrides;

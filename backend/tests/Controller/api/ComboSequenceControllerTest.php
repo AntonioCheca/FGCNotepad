@@ -384,6 +384,35 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('unknown_move', $payload['errors'][0]['code']);
     }
 
+    public function testTranslateNotationAutoCanonicalizesSfShortInput(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/translate',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'cr. lp > cr. lp xx qcf+mk',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(3, $payload['steps']);
+        $this->assertSame('Initial Move', $payload['steps'][0]['connection_type_name']);
+        $this->assertSame('Chain', $payload['steps'][1]['connection_type_name']);
+        $this->assertSame('Special', $payload['steps'][2]['connection_type_name']);
+        $this->assertSame([], $payload['errors']);
+        $this->assertSame('cr. lp > cr. lp xx qcf+mk', $payload['input']['rawNotation']);
+        $this->assertSame('2LP XX 2LP XX 236MK', $payload['input']['canonicalNotation']);
+    }
+
     public function testCreateFullComboPersistsRequirementsAndSpecificCharacter(): void
     {
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();

@@ -17,6 +17,7 @@ test("reference resolver returns resolved display values and cache updates", () 
             kind: "reference",
             scenarioId: "scn_1",
             cachedValue: null,
+            preValue: {kind: "none"},
         },
         dynamicCombo: null,
     };
@@ -43,6 +44,7 @@ test("reference resolver gracefully falls back to cached value when missing", ()
             kind: "computed",
             scenarioId: "scn_missing",
             cachedValue: 3,
+            preValue: {kind: "none"},
         },
         dynamicCombo: null,
     };
@@ -51,5 +53,31 @@ test("reference resolver gracefully falls back to cached value when missing", ()
 
     assert.equal(result.displayedBodyValues[refKey], 3);
     assert.equal(result.cacheUpdates.length, 0);
-    assert.equal(result.issues.length, 1);
+    assert.equal(result.issues.length, 0);
+});
+
+test("reference resolver prefers per-cell linked EV values", () => {
+    const state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const refKey = createBodyCellKey("row_1", "column_1");
+
+    state.grid.bodyCells[refKey] = {
+        ...state.grid.bodyCells[refKey],
+        kind: "reference",
+        value: 1200,
+        reference: {
+            kind: "reference",
+            scenarioId: "scn_loop",
+            cachedValue: 1200,
+            preValue: {kind: "static", staticValue: 1200},
+        },
+        dynamicCombo: null,
+    };
+
+    const result = resolveReferenceDisplayValues(state, createMapReferenceResolver({}), {
+        cellValueByKey: {[refKey]: 1800},
+    });
+
+    assert.equal(result.displayedBodyValues[refKey], 1800);
+    assert.equal(result.cacheUpdates.length, 1);
+    assert.equal(result.cacheUpdates[0].cachedValue, 1800);
 });

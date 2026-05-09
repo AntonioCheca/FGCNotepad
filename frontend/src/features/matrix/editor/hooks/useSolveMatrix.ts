@@ -1,6 +1,6 @@
 import React from "react";
 
-import {MatrixEditorState} from "@/src/features/matrix/model";
+import {MatrixEditorState, MatrixLinkedCellResolution} from "@/src/features/matrix/model";
 import {MatrixAction, matrixActions} from "@/src/features/matrix/state/actions";
 import {buildPayoffMatrix, toSolveRowsAndColumns} from "../services/matrixSolveService";
 
@@ -12,6 +12,8 @@ interface UseSolveMatrixOptions {
     displayedBodyValues: Record<string, number | null>;
     solveGame: (payoffMatrix: Record<string, Record<string, number>>) => Promise<unknown>;
     resolveDynamicCellsForSolve: () => Promise<Record<string, number | null>>;
+    resolveLinkedCellsForSolve?: () => Promise<Record<string, MatrixLinkedCellResolution>>;
+    onLinkedCellsResolved?: (resolutions: Record<string, MatrixLinkedCellResolution>) => void;
     forceSolveColumnIds?: string[] | null;
     unavailableRowIds?: Set<string>;
     unavailableColumnIds?: Set<string>;
@@ -25,6 +27,8 @@ export function useSolveMatrix({
     displayedBodyValues,
     solveGame,
     resolveDynamicCellsForSolve,
+    resolveLinkedCellsForSolve,
+    onLinkedCellsResolved,
     forceSolveColumnIds,
     unavailableRowIds = new Set<string>(),
     unavailableColumnIds = new Set<string>(),
@@ -36,7 +40,13 @@ export function useSolveMatrix({
 
         try {
             const dynamicOverrides = await resolveDynamicCellsForSolve();
+            const linkedResolutions = resolveLinkedCellsForSolve ? await resolveLinkedCellsForSolve() : {};
+            onLinkedCellsResolved?.(linkedResolutions);
             const currentState = stateRef.current;
+            const linkedDisplayedValues = Object.entries(linkedResolutions).reduce<Record<string, number>>((acc, [key, resolution]) => {
+                acc[key] = resolution.finalValue;
+                return acc;
+            }, {});
             const {rows: solveRows, columns: candidateColumns} = toSolveRowsAndColumns(currentState, effectiveLayerLimit);
             const forcedColumnSet = forceSolveColumnIds && forceSolveColumnIds.length > 0 ? new Set(forceSolveColumnIds) : null;
             const solveColumns = forcedColumnSet
@@ -57,7 +67,7 @@ export function useSolveMatrix({
                 state: currentState,
                 rows: legalRows,
                 columns: legalColumns,
-                displayedBodyValues,
+                displayedBodyValues: {...displayedBodyValues, ...linkedDisplayedValues},
                 dynamicOverrides,
             });
 
@@ -92,7 +102,7 @@ export function useSolveMatrix({
         } finally {
             setIsSolving(false);
         }
-    }, [actions, dispatch, displayedBodyValues, effectiveLayerLimit, forceSolveColumnIds, resolveDynamicCellsForSolve, solveGame, stateRef, unavailableColumnIds, unavailableRowIds]);
+    }, [actions, dispatch, displayedBodyValues, effectiveLayerLimit, forceSolveColumnIds, onLinkedCellsResolved, resolveDynamicCellsForSolve, resolveLinkedCellsForSolve, solveGame, stateRef, unavailableColumnIds, unavailableRowIds]);
 
     return {
         isSolving,

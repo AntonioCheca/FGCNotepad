@@ -8,6 +8,8 @@ import {AxisRequirementTrigger} from "./AxisRequirementEditor";
 
 interface MatrixGridHeaderProps {
     state: MatrixEditorState;
+    attackerCharacterName?: string | null;
+    defenderCharacterName?: string | null;
     activeColumnId: string | null;
     unavailableColumnIds: Set<string>;
     unavailableReasonByColumnId: Record<string, string>;
@@ -23,6 +25,8 @@ interface MatrixGridHeaderProps {
 
 export function MatrixGridHeader({
     state,
+    attackerCharacterName,
+    defenderCharacterName,
     activeColumnId,
     unavailableColumnIds,
     unavailableReasonByColumnId,
@@ -54,7 +58,7 @@ export function MatrixGridHeader({
                     color: theme.fgc.text.secondary,
                 }}
             >
-                P1 / P2
+                {attackerCharacterName ?? "P1"} / {defenderCharacterName ?? "P2"}
             </th>
             {state.grid.columns.map((column) => {
                 const columnUnavailable = unavailableColumnIds.has(column.id);
@@ -129,7 +133,7 @@ export function MatrixGridHeader({
                     color: theme.fgc.text.secondary,
                 }}
             >
-                P1 Freq
+                {attackerCharacterName ?? "P1"} Freq
             </th>
             <th
                 style={{
