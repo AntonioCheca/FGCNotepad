@@ -7,6 +7,7 @@ use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
+use App\Service\FrameDataScalingNormalizationResult;
 use App\Service\FrameDataScalingNormalizerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -63,6 +64,7 @@ class ImportFrameDataFromFatJsonCommand extends Command
         }
 
         $count = 0;
+        $updatedExistingCount = 0;
         /**
          * @var array<int, array{character:string,move:string,message:string}>
          */
@@ -103,49 +105,21 @@ class ImportFrameDataFromFatJsonCommand extends Command
                     $this->entityManager->persist($move);
                 }
 
-                $frameData = new FrameData();
-                $frameData->setStartup((int)($record['startup'] ?? 0));
-                $frameData->setActive((int)($record['active'] ?? 0));
-                $frameData->setRecovery((int)($record['recovery'] ?? 0));
-                $frameData->setTotal((int)($record['total'] ?? 0));
-                $frameData->setOnHit((int)($record['onHit'] ?? 0));
-                $frameData->setOnBlock((int)($record['onBlock'] ?? 0));
-                $frameData->setOnPunishCounter((int)($record['onPC'] ?? 0));
-                $frameData->setMoveType($record['moveType'] ?? 'normal');
-                $frameData->setCancelsTo(json_encode($record['xx'] ?? []));
-                $frameData->setDamage((int)($record['dmg'] ?? 0));
+                $frameData = $move->getFrameData();
+                $isExistingFrameData = $frameData instanceof FrameData;
+                if (!$isExistingFrameData) {
+                    $frameData = new FrameData();
+                    $move->setFrameData($frameData);
+                    $this->entityManager->persist($frameData);
+                }
+
                 $rawScaling = isset($record['dmgScaling']) && is_string($record['dmgScaling']) ? $record['dmgScaling'] : null;
-                $frameData->setScaling($rawScaling);
                 $scaling = $this->scalingNormalizer->normalize($rawScaling);
-                $frameData->setScalingStartPercent($scaling->startPercent);
-                $frameData->setScalingImmediatePercent($scaling->immediatePercent);
-                $frameData->setScalingMinimumPercent($scaling->minimumPercent);
-                $frameData->setScalingComboHits($scaling->comboHits);
-                $frameData->setScalingComboExtraPercent($scaling->comboExtraPercent);
-                $frameData->setScalingMultiplierPercent($scaling->multiplierPercent);
-                $frameData->setScalingParseStatus($scaling->parseStatus);
-                $frameData->setScalingParseNote($scaling->parseNote);
-                $frameData->setChipDamage((int)($record['chp'] ?? 0));
-                $frameData->setAttackLevel($record['atkLvl'] ?? 'Unknown');
-                $frameData->setOnHitAfterDriveRush((int)($record['DRoH'] ?? 0));
-                $frameData->setOnBlockAfterDriveRush((int)($record['DRoB'] ?? 0));
-                $frameData->setOnPerfectParry((int)($record['onPP'] ?? 0));
-                $frameData->setDriveDamageOnHit((int)($record['DDoH'] ?? 0));
-                $frameData->setDriveDamageOnBlock((int)($record['DDoB'] ?? 0));
-                $frameData->setDriveGain((int)($record['DGain'] ?? 0));
-                $frameData->setOnHitSelfSuperMeterGain((int)($record['SelfSoH'] ?? 0));
-                $frameData->setOnBlockSelfSuperMeterGain((int)($record['SelfSoB'] ?? 0));
-                $frameData->setOnHitOpponentSuperMeterGain((int)($record['OppSoH'] ?? 0));
-                $frameData->setOnBlockOpponentSuperMeterGain((int)($record['OppSoB'] ?? 0));
-                $frameData->setHitConfirmSpecialsAndSupers((int)($record['hcWinSpCa'] ?? 0));
-                $frameData->setHitConfirmTargetCombos((int)($record['hcWinTc'] ?? 0));
-                $frameData->setJuggleLimit((int)($record['jugLimit'] ?? 0));
-                $frameData->setJuggleIncrease((int)($record['jugIncr'] ?? 0));
-                $frameData->setJuggleStart((int)($record['jugStart'] ?? 0));
-                $frameData->setHitstun((int)($record['hitstun'] ?? 0));
-                $frameData->setBlockstun((int)($record['blockstun'] ?? 0));
-                $frameData->setHitstop((int)($record['hitstop'] ?? 0));
-                $frameData->setExtraInformation(json_encode($record['extraInfo'] ?? []));
+                $changed = $this->applyFrameDataRecord($frameData, $record, $rawScaling, $scaling);
+                if ($isExistingFrameData && $changed) {
+                    $this->entityManager->persist($frameData);
+                    ++$updatedExistingCount;
+                }
 
                 foreach ($scaling->warnings as $warning) {
                     $scalingWarnings[] = [
@@ -156,8 +130,6 @@ class ImportFrameDataFromFatJsonCommand extends Command
                     $output->writeln(sprintf('<comment>Scaling parse warning [%s - %s]: %s</comment>', $characterName, $moveName, $warning));
                 }
 
-                $move->setFrameData($frameData);
-                $this->entityManager->persist($frameData);
                 $count++;
 
                 $output->writeln("<info>Processed move: {$moveName}</info>");
@@ -186,6 +158,123 @@ class ImportFrameDataFromFatJsonCommand extends Command
         }
 
         $output->writeln("<info>Imported $count moves into the database.</info>");
+        $output->writeln(sprintf('<info>Existing moves updated due to differences: %d.</info>', $updatedExistingCount));
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     */
+    private function applyFrameDataRecord(
+        FrameData $frameData,
+        array $record,
+        ?string $rawScaling,
+        FrameDataScalingNormalizationResult $scaling
+    ): bool {
+        $changed = false;
+
+        $changed = $this->setIfChanged($frameData->getStartup(), (int) ($record['startup'] ?? 0), $frameData->setStartup(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getActive(), (int) ($record['active'] ?? 0), $frameData->setActive(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getRecovery(), (int) ($record['recovery'] ?? 0), $frameData->setRecovery(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getTotal(), (int) ($record['total'] ?? 0), $frameData->setTotal(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnHit(), (int) ($record['onHit'] ?? 0), $frameData->setOnHit(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnBlock(), (int) ($record['onBlock'] ?? 0), $frameData->setOnBlock(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnPunishCounter(), (int) ($record['onPC'] ?? 0), $frameData->setOnPunishCounter(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getMoveType(), (string) ($record['moveType'] ?? 'normal'), $frameData->setMoveType(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getCancelsTo(), json_encode($record['xx'] ?? []) ?: '[]', $frameData->setCancelsTo(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getDamage(), $this->parseDamageValue($record['fullDmg'] ?? $record['dmg'] ?? null), $frameData->setDamage(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScaling(), $rawScaling, $frameData->setScaling(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingStartPercent(), $scaling->startPercent, $frameData->setScalingStartPercent(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingImmediatePercent(), $scaling->immediatePercent, $frameData->setScalingImmediatePercent(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingMinimumPercent(), $scaling->minimumPercent, $frameData->setScalingMinimumPercent(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingComboHits(), $scaling->comboHits, $frameData->setScalingComboHits(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingComboExtraPercent(), $scaling->comboExtraPercent, $frameData->setScalingComboExtraPercent(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingMultiplierPercent(), $scaling->multiplierPercent, $frameData->setScalingMultiplierPercent(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingParseStatus(), $scaling->parseStatus, $frameData->setScalingParseStatus(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getScalingParseNote(), $scaling->parseNote, $frameData->setScalingParseNote(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getChipDamage(), (int) ($record['chp'] ?? 0), $frameData->setChipDamage(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getAttackLevel(), (string) ($record['atkLvl'] ?? 'Unknown'), $frameData->setAttackLevel(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnHitAfterDriveRush(), (int) ($record['DRoH'] ?? 0), $frameData->setOnHitAfterDriveRush(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnBlockAfterDriveRush(), (int) ($record['DRoB'] ?? 0), $frameData->setOnBlockAfterDriveRush(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnPerfectParry(), (int) ($record['onPP'] ?? 0), $frameData->setOnPerfectParry(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getDriveDamageOnHit(), (int) ($record['DDoH'] ?? 0), $frameData->setDriveDamageOnHit(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getDriveDamageOnBlock(), (int) ($record['DDoB'] ?? 0), $frameData->setDriveDamageOnBlock(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getDriveGain(), (int) ($record['DGain'] ?? 0), $frameData->setDriveGain(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnHitSelfSuperMeterGain(), (int) ($record['SelfSoH'] ?? 0), $frameData->setOnHitSelfSuperMeterGain(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnBlockSelfSuperMeterGain(), (int) ($record['SelfSoB'] ?? 0), $frameData->setOnBlockSelfSuperMeterGain(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnHitOpponentSuperMeterGain(), (int) ($record['OppSoH'] ?? 0), $frameData->setOnHitOpponentSuperMeterGain(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getOnBlockOpponentSuperMeterGain(), (int) ($record['OppSoB'] ?? 0), $frameData->setOnBlockOpponentSuperMeterGain(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getHitConfirmSpecialsAndSupers(), (int) ($record['hcWinSpCa'] ?? 0), $frameData->setHitConfirmSpecialsAndSupers(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getHitConfirmTargetCombos(), (int) ($record['hcWinTc'] ?? 0), $frameData->setHitConfirmTargetCombos(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getJuggleLimit(), (int) ($record['jugLimit'] ?? 0), $frameData->setJuggleLimit(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getJuggleIncrease(), (int) ($record['jugIncr'] ?? 0), $frameData->setJuggleIncrease(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getJuggleStart(), (int) ($record['jugStart'] ?? 0), $frameData->setJuggleStart(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getHitstun(), (int) ($record['hitstun'] ?? 0), $frameData->setHitstun(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getBlockstun(), (int) ($record['blockstun'] ?? 0), $frameData->setBlockstun(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getHitstop(), (int) ($record['hitstop'] ?? 0), $frameData->setHitstop(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getExtraInformation(), $this->buildExtraInformation($record), $frameData->setExtraInformation(...)) || $changed;
+
+        return $changed;
+    }
+
+    private function setIfChanged(mixed $currentValue, mixed $nextValue, callable $setter): bool
+    {
+        if ($currentValue === $nextValue) {
+            return false;
+        }
+
+        $setter($nextValue);
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     */
+    private function buildExtraInformation(array $record): string
+    {
+        $extraInfo = is_array($record['extraInfo'] ?? null) ? $record['extraInfo'] : [];
+        $damageParts = $this->parseDamageParts($record['fullDmg'] ?? null);
+        if ([] !== $damageParts) {
+            $extraInfo[] = ['fatDamageParts' => $damageParts];
+        }
+
+        return json_encode($extraInfo) ?: '[]';
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function parseDamageParts(mixed $value): array
+    {
+        if (!is_string($value) || preg_match('/\(([^)]*)\)/', $value, $matches) !== 1) {
+            return [];
+        }
+
+        preg_match_all('/\d+/', $matches[1], $partMatches);
+        $parts = array_map('intval', $partMatches[0] ?? []);
+
+        return count($parts) > 1 ? $parts : [];
+    }
+
+    private function parseDamageValue(mixed $value): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value)) {
+            return (int) $value;
+        }
+
+        if (!is_string($value)) {
+            return 0;
+        }
+
+        if (preg_match('/\d+/', trim($value), $matches) !== 1) {
+            return 0;
+        }
+
+        return (int) $matches[0];
     }
 }

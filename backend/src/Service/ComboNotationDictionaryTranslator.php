@@ -102,6 +102,10 @@ final class ComboNotationDictionaryTranslator
 
     private function toNumpadToken(string $token): string
     {
+        if (preg_match('/^([lmh][pk])$/i', $token, $matches)) {
+            return '5' . $this->normalizeButton($matches[1]);
+        }
+
         if (preg_match('/^(st|cr|j)\.([lmh][pk]|[pk])$/i', $token, $matches)) {
             $direction = match (strtolower($matches[1])) {
                 'st' => '5',

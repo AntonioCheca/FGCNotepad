@@ -81,4 +81,64 @@ final class Sf6ComboDamageEstimatorServiceTest extends TestCase
         self::assertSame([500, 200, 800], $result['stepDamages']);
         self::assertSame(1500, $result['estimatedDamage']);
     }
+
+    public function testEstimateScalesCompositeDamagePartsIndividually(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 600, 'moveType' => 'normal', 'notation' => '2MP'],
+            ['damage' => 1300, 'moveType' => 'normal', 'notation' => '5MP > MP', 'scalingComboHits' => 2, 'damageParts' => [600, 700]],
+            ['damage' => 1500, 'moveType' => 'special', 'notation' => '623HP', 'scalingStartPercent' => 20],
+        ]);
+
+        self::assertSame([600, 1160, 900], $result['stepDamages']);
+        self::assertSame(2660, $result['estimatedDamage']);
+    }
+
+    public function testEstimateDoesNotApplyExtraComboHitPenaltyFromStarter(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 800, 'moveType' => 'normal', 'notation' => '5HK', 'scalingComboHits' => 2],
+            ['damage' => 700, 'moveType' => 'normal', 'notation' => '5MK'],
+            ['damage' => 600, 'moveType' => 'special', 'notation' => '214LK', 'scalingComboHits' => 2],
+            ['damage' => 900, 'moveType' => 'normal', 'notation' => '2HK'],
+        ]);
+
+        self::assertSame([800, 700, 480, 540], $result['stepDamages']);
+        self::assertSame(2520, $result['estimatedDamage']);
+    }
+
+    public function testEstimateDoesNotSplitNormalDamageParentheticalParts(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 800, 'moveType' => 'normal', 'notation' => '5HK', 'scalingComboHits' => 2],
+            ['damage' => 700, 'moveType' => 'normal', 'notation' => '5MK'],
+            ['damage' => 600, 'moveType' => 'special', 'notation' => '214LK', 'scalingComboHits' => 2],
+            ['damage' => 1500, 'moveType' => 'special', 'notation' => '623HP', 'scalingStartPercent' => 20],
+        ]);
+
+        self::assertSame([800, 700, 480, 900], $result['stepDamages']);
+        self::assertSame(2880, $result['estimatedDamage']);
+    }
+
+    public function testEstimateAdvancesScalingForCompositeStarterDamageParts(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 1400, 'moveType' => 'normal', 'notation' => '6HP > 6HP', 'damageParts' => [800, 600]],
+            ['damage' => 1300, 'moveType' => 'special', 'notation' => '623MP', 'scalingStartPercent' => 20],
+        ]);
+
+        self::assertSame([1400, 1040], $result['stepDamages']);
+        self::assertSame(2440, $result['estimatedDamage']);
+    }
+
+    public function testEstimateAppliesStarterScalingPenaltyToFollowingMove(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 800, 'moveType' => 'normal', 'notation' => '4HK', 'scalingStartPercent' => 20],
+            ['damage' => 1300, 'moveType' => 'special', 'notation' => '236K > P'],
+        ]);
+
+        self::assertSame([800, 1040], $result['stepDamages']);
+        self::assertSame(1840, $result['estimatedDamage']);
+    }
 }

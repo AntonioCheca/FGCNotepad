@@ -34,6 +34,16 @@ class ComboNotationTranslatorTest extends TestCase
             ['id' => 108, 'notation' => '214PPXX6P', 'moveType' => 'follow-up', 'cancelTypeCodes' => ['tc'], 'aliases' => ['214PP XX 6P', '214PP > 6P']],
             ['id' => 109, 'notation' => '214PP', 'moveType' => 'special', 'cancelTypeCodes' => ['sp']],
             ['id' => 110, 'notation' => '6P', 'moveType' => 'normal', 'cancelTypeCodes' => []],
+            ['id' => 111, 'notation' => '2MP', 'moveType' => 'normal', 'cancelTypeCodes' => ['tc']],
+            ['id' => 112, 'notation' => '2MP>MP', 'moveType' => 'normal', 'cancelTypeCodes' => ['sp']],
+            ['id' => 113, 'notation' => '5MP>MP', 'moveType' => 'normal', 'cancelTypeCodes' => ['sp']],
+            ['id' => 114, 'notation' => '5HP', 'moveType' => 'normal', 'cancelTypeCodes' => []],
+            ['id' => 115, 'notation' => '5HK', 'moveType' => 'normal', 'cancelTypeCodes' => ['tc']],
+            ['id' => 116, 'notation' => '5HK>HK', 'moveType' => 'normal', 'cancelTypeCodes' => ['sp']],
+            ['id' => 117, 'notation' => '6HP', 'moveType' => 'normal', 'cancelTypeCodes' => ['tc']],
+            ['id' => 118, 'notation' => '6HP>6HP', 'moveType' => 'normal', 'cancelTypeCodes' => []],
+            ['id' => 119, 'notation' => '236K', 'moveType' => 'special', 'cancelTypeCodes' => []],
+            ['id' => 120, 'notation' => '236K>P', 'moveType' => 'special', 'cancelTypeCodes' => []],
         ];
 
         $this->connectionTypes = [
@@ -147,6 +157,66 @@ class ComboNotationTranslatorTest extends TestCase
 
         self::assertCount(1, $result['steps']);
         self::assertSame(108, $result['steps'][0]['child_sequence_id']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslatePrefersContextualTargetComboCompositeLeaf(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('2MP, MP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(1, $result['steps']);
+        self::assertSame(112, $result['steps'][0]['child_sequence_id']);
+        self::assertSame('2MP > MP', $result['steps'][0]['token']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateDoesNotMergeTargetComboWhenPreviousMoveLacksTc(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('5MP, 5MP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(105, $result['steps'][0]['child_sequence_id']);
+        self::assertSame(105, $result['steps'][1]['child_sequence_id']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateDoesNotMergeTargetComboWhenNoCompositeMoveMatches(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('2MP, 5HP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(111, $result['steps'][0]['child_sequence_id']);
+        self::assertSame(114, $result['steps'][1]['child_sequence_id']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateMergesTargetComboAcrossExplicitCancelConnector(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('5HK XX HK', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(1, $result['steps']);
+        self::assertSame(116, $result['steps'][0]['child_sequence_id']);
+        self::assertSame('5HK > HK', $result['steps'][0]['token']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateMergesDirectionalTargetComboFollowUp(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('6HP XX 6HP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(1, $result['steps']);
+        self::assertSame(118, $result['steps'][0]['child_sequence_id']);
+        self::assertSame('6HP > 6HP', $result['steps'][0]['token']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateFallsBackSpecificStrengthToGenericSpecialAndMergesFollowUp(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('236HK XX P', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(1, $result['steps']);
+        self::assertSame(120, $result['steps'][0]['child_sequence_id']);
+        self::assertSame('236K > P', $result['steps'][0]['token']);
         self::assertSame([], $result['errors']);
     }
 }

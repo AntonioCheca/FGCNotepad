@@ -13,6 +13,7 @@ import type {
     TranslateParsedToken,
     TranslateComboNotationResponse,
     EstimateComboDamageResponse,
+    EstimateComboResourcesResponse,
 } from "@/src/types/combo";
 import {
     buildCreateFullComboPayload,
@@ -56,7 +57,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
     const [showAdvancedConditions, setShowAdvancedConditions] = useState<boolean>(false);
 
-    const {fetchLeafs, createFullCombo, translateComboNotation, estimateComboDamage, fetchRequirementObjects} = useCombos();
+    const {fetchLeafs, createFullCombo, translateComboNotation, estimateComboDamage, estimateComboResources, fetchRequirementObjects} = useCombos();
     const [leafs, setLeafs] = useState<LeafSequenceOption[]>([]);
 
     const {characters: characterOptions, loading: charactersLoading} = useCharacters();
@@ -212,6 +213,28 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 }
             } catch {
                 setNotice({severity: "warning", message: "Notation parsed but damage estimate is currently unavailable."});
+            }
+
+            try {
+                const resources = (await estimateComboResources({
+                    characterId,
+                    notation: notationInput,
+                })) as EstimateComboResourcesResponse;
+
+                if (Number.isFinite(resources.driveUsed)) {
+                    setDriveCost(String(resources.driveUsed));
+                }
+                if (Number.isFinite(resources.driveGain)) {
+                    setDriveGain(String(resources.driveGain));
+                }
+                if (Number.isFinite(resources.superUsed)) {
+                    setSuperCost(String(resources.superUsed));
+                }
+                if (Number.isFinite(resources.superGain)) {
+                    setSuperGain(String(resources.superGain));
+                }
+            } catch {
+                setNotice({severity: "warning", message: "Notation parsed but resource estimate is currently unavailable."});
             }
 
             if (translatedSteps.length === 0) {

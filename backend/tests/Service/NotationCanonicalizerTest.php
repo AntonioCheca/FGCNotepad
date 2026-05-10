@@ -27,4 +27,13 @@ final class NotationCanonicalizerTest extends TestCase
 
         self::assertSame('5LP 2LK 2LP 214LP XX 6P', $result['canonicalNotation']);
     }
+
+    public function testCanonicalizeBareNormalButtonsAsStanding(): void
+    {
+        $canonicalizer = new NotationCanonicalizer(new ComboNotationDictionaryTranslator());
+
+        $result = $canonicalizer->canonicalize('cr. mp, mp xx mp xx srk+hp');
+
+        self::assertSame('2MP 5MP XX 5MP XX 623HP', $result['canonicalNotation']);
+    }
 }

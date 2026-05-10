@@ -16,7 +16,8 @@ final class Sf6ComboDamageEstimatorService
      *   scalingMinimumPercent?:int|null,
      *   scalingComboHits?:int|null,
      *   scalingComboExtraPercent?:int|null,
-     *   scalingMultiplierPercent?:int|null
+     *   scalingMultiplierPercent?:int|null,
+     *   damageParts?:list<int>
      * }> $moves
      * @param array{perfectParry?:bool,driveRushMidCombo?:bool,driveImpactState?:string,specialCancelIntoSa3?:bool,superArtLevels?:array<int,int>} $options
      *
@@ -35,7 +36,7 @@ final class Sf6ComboDamageEstimatorService
         $superArtLevels = is_array($options['superArtLevels'] ?? null) ? $options['superArtLevels'] : [];
 
         $isLightStarter = $this->isLightOr2MkStarter($moves[0]['notation']);
-        $baseScales = $this->buildBaseScales(count($moves) + 10, $isLightStarter);
+        $baseScales = $this->buildBaseScales(count($moves) + 10, $isLightStarter, $this->readOptionalPercent($moves[0], 'scalingStartPercent'));
 
         $warnings = [];
         if ('none' !== $driveImpactState && !in_array($driveImpactState, ['none', 'blocked_wallsplat', 'hit_crumple'], true)) {
@@ -47,63 +48,67 @@ final class Sf6ComboDamageEstimatorService
         $stepDamages = [];
         $comboPenaltyRemainingHits = 0;
         $comboPenaltyExtraPercent = 0;
-        $extraScaleStepsFromComboRules = 0;
+        $hitCursor = 0;
 
         foreach ($moves as $index => $move) {
-            $effectiveIndex = $index + $extraScaleStepsFromComboRules;
-            $scale = (float) ($baseScales[$effectiveIndex] ?? 10);
-
-            if ('blocked_wallsplat' === $driveImpactState || 'hit_crumple' === $driveImpactState) {
-                $scale *= 0.8;
-            }
-
-            if ($perfectParry) {
-                $scale *= 0.5;
-            }
-
-            if ($driveRushMidCombo) {
-                $scale *= 0.85;
-            }
-
-            if ($driveRushMidCombo || $perfectParry) {
-                $scale = floor($scale);
-            }
-
-            if ($index > 0 && $this->isThrowMove($move['moveType'], $move['notation'])) {
-                $scale *= 0.8;
-            }
-
             $moveType = mb_strtolower(trim($move['moveType']));
             $isSuper = str_contains($moveType, 'super');
+            $damageParts = $this->readDamageParts($move);
+            $damageValues = [] === $damageParts ? [(int) $move['damage']] : $damageParts;
+            $scaledDamage = 0;
 
-            if ($isSuper && $specialCancelIntoSa3 && $this->resolveSuperArtLevel($index, $move, $superArtLevels) === 3) {
-                $scale *= 0.9;
+            foreach ($damageValues as $partIndex => $damageValue) {
+                $scale = (float) ($baseScales[$hitCursor + $partIndex] ?? 10);
+
+                if ('blocked_wallsplat' === $driveImpactState || 'hit_crumple' === $driveImpactState) {
+                    $scale *= 0.8;
+                }
+
+                if ($perfectParry) {
+                    $scale *= 0.5;
+                }
+
+                if ($driveRushMidCombo) {
+                    $scale *= 0.85;
+                }
+
+                if ($driveRushMidCombo || $perfectParry) {
+                    $scale = floor($scale);
+                }
+
+                if ($index > 0 && $this->isThrowMove($move['moveType'], $move['notation'])) {
+                    $scale *= 0.8;
+                }
+
+                if ($isSuper && $specialCancelIntoSa3 && $this->resolveSuperArtLevel($index, $move, $superArtLevels) === 3) {
+                    $scale *= 0.9;
+                }
+
+                $immediatePercent = $this->readOptionalPercent($move, 'scalingImmediatePercent');
+                if (null !== $immediatePercent) {
+                    $scale = min($scale, (float) max(0, min(100, $immediatePercent)));
+                }
+
+                $multiplierPercent = $this->readOptionalPercent($move, 'scalingMultiplierPercent');
+                if (null !== $multiplierPercent) {
+                    $scale *= max(0.0, min(100.0, (float) $multiplierPercent)) / 100.0;
+                }
+
+                if ($comboPenaltyRemainingHits > 0) {
+                    $scale -= $comboPenaltyExtraPercent;
+                    $comboPenaltyRemainingHits--;
+                }
+
+                if ($scale < 4.0 && $perfectParry && $driveRushMidCombo) {
+                    $scale = 4.0;
+                }
+
+                if ($scale < 10.0 && !($perfectParry || $driveRushMidCombo)) {
+                    $scale = 10.0;
+                }
+
+                $scaledDamage += (int) floor($damageValue * ($scale / 100.0));
             }
-
-            $immediatePercent = $this->readOptionalPercent($move, 'scalingImmediatePercent');
-            if (null !== $immediatePercent) {
-                $scale = min($scale, (float) max(0, min(100, $immediatePercent)));
-            }
-
-            $multiplierPercent = $this->readOptionalPercent($move, 'scalingMultiplierPercent');
-            if (null !== $multiplierPercent) {
-                $scale *= max(0.0, min(100.0, (float) $multiplierPercent)) / 100.0;
-            }
-
-            if ($comboPenaltyRemainingHits > 0) {
-                $scale -= $comboPenaltyExtraPercent;
-                $comboPenaltyRemainingHits--;
-            }
-
-            if ($scale < 4.0 && $perfectParry && $driveRushMidCombo) {
-                $scale = 4.0;
-            }
-
-            if ($scale < 10.0 && !($perfectParry || $driveRushMidCombo)) {
-                $scale = 10.0;
-            }
-
-            $scaledDamage = (int) floor(((int) $move['damage']) * ($scale / 100.0));
 
             $minimumPercent = $this->readOptionalPercent($move, 'scalingMinimumPercent');
             if (null !== $minimumPercent) {
@@ -129,7 +134,12 @@ final class Sf6ComboDamageEstimatorService
                 $comboExtraPercent = $this->readOptionalPercent($move, 'scalingComboExtraPercent');
                 $comboPenaltyExtraPercent = $comboExtraPercent ?? 0;
 
-                $extraScaleStepsFromComboRules += max(0, $comboHits - self::COMBO_HITS_DEFAULT_EXTRA_STEP_PENALTY);
+            }
+
+            if (0 === $index) {
+                $hitCursor += [] === $damageParts ? 1 : count($damageParts);
+            } else {
+                $hitCursor += count($damageValues) + max(0, ($comboHits ?? 0) - self::COMBO_HITS_DEFAULT_EXTRA_STEP_PENALTY);
             }
 
             $stepDamages[] = $scaledDamage;
@@ -146,11 +156,14 @@ final class Sf6ComboDamageEstimatorService
     /**
      * @return list<int>
      */
-    private function buildBaseScales(int $count, bool $isLightStarter): array
+    private function buildBaseScales(int $count, bool $isLightStarter, ?int $starterScalingPercent = null): array
     {
         $normal = [100, 100, 80, 70, 60, 50, 40, 30, 20, 10];
         $light = [100, 80, 70, 60, 50, 40, 30, 20, 10, 10];
         $table = $isLightStarter ? $light : $normal;
+        if (null !== $starterScalingPercent) {
+            $table[1] = min($table[1], max(10, 100 - $starterScalingPercent));
+        }
 
         $result = [];
         for ($i = 0; $i < $count; $i++) {
@@ -232,5 +245,26 @@ final class Sf6ComboDamageEstimatorService
         }
 
         return $value;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function readDamageParts(array $move): array
+    {
+        if (!isset($move['damageParts']) || !is_array($move['damageParts'])) {
+            return [];
+        }
+
+        $parts = [];
+        foreach ($move['damageParts'] as $part) {
+            if (!is_int($part) || $part <= 0) {
+                return [];
+            }
+
+            $parts[] = $part;
+        }
+
+        return $parts;
     }
 }

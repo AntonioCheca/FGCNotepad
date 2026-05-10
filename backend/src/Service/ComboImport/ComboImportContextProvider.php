@@ -4,6 +4,7 @@ namespace App\Service\ComboImport;
 
 use App\Entity\Character;
 use App\Entity\ConnectionType;
+use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
@@ -61,7 +62,7 @@ class ComboImportContextProvider
                 'id' => (int) $leafId,
                 'notation' => (string) $move->getNumpadNotation(),
                 'moveType' => $move->getFrameData()?->getMoveType(),
-                'cancelTypeCodes' => $move->getFrameData()?->getCancelTypeCodes() ?? [],
+                'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
             ];
         }
 
@@ -87,5 +88,22 @@ class ComboImportContextProvider
         $normalized = strtolower(trim($value));
 
         return preg_replace('/[^a-z0-9]/', '', $normalized) ?? $normalized;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getCancelTypeCodesForTranslation(?FrameData $frameData): array
+    {
+        if (null === $frameData) {
+            return [];
+        }
+
+        $codes = $frameData->getCancelTypeCodes();
+        if (($frameData->getHitConfirmTargetCombos() ?? 0) > 0 && !in_array('tc', $codes, true)) {
+            $codes[] = 'tc';
+        }
+
+        return $codes;
     }
 }

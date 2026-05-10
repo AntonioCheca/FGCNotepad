@@ -100,6 +100,17 @@ const useCombos = () => {
         }
     }, [request]);
 
+    const estimateComboResources = useCallback(async (payload) => {
+        try {
+            return await request(() =>
+                api.post("/combo-sequences/estimate-resources", payload)
+            );
+        } catch (error) {
+            console.error("Error estimating combo resources", error);
+            throw error;
+        }
+    }, [request]);
+
     const fetchRequirementObjects = useCallback(async () => {
         try {
             return await request(() =>
@@ -169,6 +180,7 @@ const useCombos = () => {
         createFullCombo,
         translateComboNotation,
         estimateComboDamage,
+        estimateComboResources,
         fetchRequirementObjects,
         getCombo,
         updateCombo,

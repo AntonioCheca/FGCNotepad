@@ -26,6 +26,7 @@ final class ComboNotationTranslator
 
         $leafIndex = $this->buildLeafIndex($leafOptions, $warnings);
         $leafAliases = $this->buildLeafAliases($leafOptions, $warnings);
+        $leafAliasIndex = $this->buildLeafAliasIndex($leafAliases);
         $connectionIndex = $this->buildConnectionIndex($connectionTypes);
 
         $tokens = $this->tokenizeNotation($notation);
@@ -35,6 +36,36 @@ final class ComboNotationTranslator
 
         $cursor = 0;
         while ($cursor < count($tokens)) {
+            $token = $tokens[$cursor];
+            $normalizedToken = $this->normalizeNotationToken($token);
+            $connector = $this->normalizeConnector($normalizedToken);
+
+            if (null === $connector) {
+                $composite = $this->resolveContextualTargetComboComposite(
+                    $resolvedMoves,
+                    $normalizedToken,
+                    $pendingConnector,
+                    $leafAliasIndex
+                );
+                if (null !== $composite) {
+                    $previousIndex = count($resolvedMoves) - 1;
+                    $parsedTokenIndex = $resolvedMoves[$previousIndex]['parsedTokenIndex'];
+                    $resolvedMoves[$previousIndex] = $composite['move'];
+                    $parsedTokens[$parsedTokenIndex] = [
+                        'index' => $parsedTokens[$parsedTokenIndex]['index'],
+                        'token' => $composite['token'],
+                        'normalizedToken' => $composite['normalizedToken'],
+                        'status' => 'parsed',
+                        'child_sequence_id' => $composite['move']['leafId'],
+                        'reason' => null,
+                    ];
+
+                    $pendingConnector = null;
+                    ++$cursor;
+                    continue;
+                }
+            }
+
             $segment = $this->matchLongestAliasAtCursor($tokens, $cursor, $leafAliases);
             if (null !== $segment) {
                 $resolvedMoves[] = [
@@ -44,6 +75,8 @@ final class ComboNotationTranslator
                     'moveType' => $segment['leaf']['moveType'],
                     'connector' => $pendingConnector,
                     'cancelTypeCodes' => $segment['leaf']['cancelTypeCodes'],
+                    'notation' => $segment['leaf']['notation'],
+                    'parsedTokenIndex' => count($parsedTokens),
                 ];
 
                 $parsedTokens[] = [
@@ -60,10 +93,6 @@ final class ComboNotationTranslator
                 continue;
             }
 
-            $token = $tokens[$cursor];
-            $normalizedToken = $this->normalizeNotationToken($token);
-            $connector = $this->normalizeConnector($normalizedToken);
-
             if (null !== $connector) {
                 if ([] === $resolvedMoves) {
                     $warnings[] = sprintf('Connector "%s" at token %d was ignored because it appears before any move.', $token, $cursor + 1);
@@ -76,7 +105,7 @@ final class ComboNotationTranslator
                 continue;
             }
 
-            $leaf = $leafIndex[$normalizedToken] ?? null;
+            $leaf = $this->findLeafByNormalizedToken($normalizedToken, $leafIndex);
             if (null === $leaf) {
                 $errors[] = [
                     'index' => $cursor + 1,
@@ -107,6 +136,8 @@ final class ComboNotationTranslator
                 'moveType' => $leaf['moveType'],
                 'connector' => $pendingConnector,
                 'cancelTypeCodes' => $leaf['cancelTypeCodes'],
+                'notation' => $leaf['notation'],
+                'parsedTokenIndex' => count($parsedTokens),
             ];
 
             $parsedTokens[] = [
@@ -220,7 +251,7 @@ final class ComboNotationTranslator
      * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
      * @param array<int, string> $warnings
      *
-     * @return array<string, array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}>
+     * @return array<string, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}>
      */
     private function buildLeafIndex(array $leafOptions, array &$warnings): array
     {
@@ -239,6 +270,7 @@ final class ComboNotationTranslator
 
             $index[$normalizedNotation] = [
                 'id' => $leaf['id'],
+                'notation' => $leaf['notation'],
                 'moveType' => $leaf['moveType'],
                 'cancelTypeCodes' => $this->normalizeCancelTypeCodes($leaf['cancelTypeCodes'] ?? []),
             ];
@@ -267,7 +299,7 @@ final class ComboNotationTranslator
      * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
      * @param array<int, string> $warnings
      *
-     * @return array<int, array{normalizedAlias:string, tokenCount:int, rawAlias:string, leaf:array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}}>
+     * @return array<int, array{normalizedAlias:string, tokenCount:int, rawAlias:string, leaf:array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}}>
      */
     private function buildLeafAliases(array $leafOptions, array &$warnings): array
     {
@@ -275,6 +307,7 @@ final class ComboNotationTranslator
         foreach ($leafOptions as $leaf) {
             $leafMeta = [
                 'id' => $leaf['id'],
+                'notation' => $leaf['notation'],
                 'moveType' => $leaf['moveType'],
                 'cancelTypeCodes' => $this->normalizeCancelTypeCodes($leaf['cancelTypeCodes'] ?? []),
             ];
@@ -322,7 +355,9 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @return array{tokenCount:int, rawToken:string, normalizedToken:string, leaf:array{id:int, moveType:string|null, cancelTypeCodes:array<int, string>}}|null
+     * @param array<int, array{normalizedAlias:string, tokenCount:int, rawAlias:string, leaf:array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}}> $leafAliases
+     *
+     * @return array{tokenCount:int, rawToken:string, normalizedToken:string, leaf:array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}}|null
      */
     private function matchLongestAliasAtCursor(array $tokens, int $cursor, array $leafAliases): ?array
     {
@@ -363,6 +398,127 @@ final class ComboNotationTranslator
     private function normalizeForAliasComparison(string $normalizedToken): string
     {
         return str_replace('>', self::CONNECTOR_CANCEL, $normalizedToken);
+    }
+
+    /**
+     * @param array<int, array{normalizedAlias:string, leaf:array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}}> $leafAliases
+     *
+     * @return array<string, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}>
+     */
+    private function buildLeafAliasIndex(array $leafAliases): array
+    {
+        $index = [];
+        foreach ($leafAliases as $alias) {
+            $normalizedAlias = $this->normalizeForAliasComparison($alias['normalizedAlias']);
+            $index[$normalizedAlias] ??= $alias['leaf'];
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param array<int, array{token:string, normalizedToken:string, leafId:int, moveType:string|null, connector:string|null, cancelTypeCodes:array<int, string>, notation:string, parsedTokenIndex:int}> $resolvedMoves
+     * @param array<string, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}> $leafAliasIndex
+     *
+     * @return array{token:string, normalizedToken:string, move:array{token:string, normalizedToken:string, leafId:int, moveType:string|null, connector:string|null, cancelTypeCodes:array<int, string>, notation:string, parsedTokenIndex:int}}|null
+     */
+    private function resolveContextualTargetComboComposite(
+        array $resolvedMoves,
+        string $normalizedToken,
+        ?string $pendingConnector,
+        array $leafAliasIndex
+    ): ?array {
+        if ([] === $resolvedMoves) {
+            return null;
+        }
+
+        $previousMove = $resolvedMoves[count($resolvedMoves) - 1];
+        $button = $this->extractTargetComboFollowUpButton($normalizedToken);
+        if (null === $button) {
+            return null;
+        }
+
+        if ($this->isNormalMoveType($previousMove['moveType']) && !in_array('tc', $previousMove['cancelTypeCodes'], true)) {
+            return null;
+        }
+
+        foreach ($this->buildCompositeAliasCandidates($previousMove['notation'], $normalizedToken, $button) as $candidate) {
+            $normalizedCandidate = $this->normalizeForAliasComparison($this->normalizeNotationToken($candidate));
+            $leaf = $leafAliasIndex[$normalizedCandidate] ?? null;
+            if (null === $leaf) {
+                continue;
+            }
+
+            return [
+                'token' => $candidate,
+                'normalizedToken' => $this->normalizeNotationToken($candidate),
+                'move' => [
+                    'token' => $candidate,
+                    'normalizedToken' => $this->normalizeNotationToken($candidate),
+                    'leafId' => $leaf['id'],
+                    'moveType' => $leaf['moveType'],
+                    'connector' => $previousMove['connector'],
+                    'cancelTypeCodes' => $leaf['cancelTypeCodes'],
+                    'notation' => $leaf['notation'],
+                    'parsedTokenIndex' => $previousMove['parsedTokenIndex'],
+                ],
+            ];
+        }
+
+        return null;
+    }
+
+    private function extractTargetComboFollowUpButton(string $normalizedToken): ?string
+    {
+        if (preg_match('/^[1-9]?(LP|MP|HP|LK|MK|HK|P|K|PP|KK|PPP|KKK)$/', $normalizedToken, $matches) !== 1) {
+            return null;
+        }
+
+        return $matches[1];
+    }
+
+    /**
+     * @param array<string, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}> $leafIndex
+     *
+     * @return array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}|null
+     */
+    private function findLeafByNormalizedToken(string $normalizedToken, array $leafIndex): ?array
+    {
+        if (isset($leafIndex[$normalizedToken])) {
+            return $leafIndex[$normalizedToken];
+        }
+
+        foreach ($this->buildGenericStrengthCandidates($normalizedToken) as $candidate) {
+            if (isset($leafIndex[$candidate])) {
+                return $leafIndex[$candidate];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function buildGenericStrengthCandidates(string $normalizedToken): array
+    {
+        $candidates = [];
+        if (preg_match('/^(.*)(L|M|H)(P|K)$/', $normalizedToken, $matches) === 1) {
+            $candidates[] = $matches[1] . $matches[3];
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function buildCompositeAliasCandidates(string $previousNotation, string $normalizedToken, string $button): array
+    {
+        return array_values(array_unique([
+            sprintf('%s > %s', $previousNotation, $button),
+            sprintf('%s > %s', $previousNotation, $normalizedToken),
+        ]));
     }
 
     /**

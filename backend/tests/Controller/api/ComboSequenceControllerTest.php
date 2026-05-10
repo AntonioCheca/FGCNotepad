@@ -406,11 +406,117 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertCount(3, $payload['steps']);
         $this->assertSame('Initial Move', $payload['steps'][0]['connection_type_name']);
-        $this->assertSame('Chain', $payload['steps'][1]['connection_type_name']);
+        $this->assertSame('Special', $payload['steps'][1]['connection_type_name']);
         $this->assertSame('Special', $payload['steps'][2]['connection_type_name']);
         $this->assertSame([], $payload['errors']);
         $this->assertSame('cr. lp > cr. lp xx qcf+mk', $payload['input']['rawNotation']);
         $this->assertSame('2LP XX 2LP XX 236MK', $payload['input']['canonicalNotation']);
+    }
+
+    public function testTranslateNotationResolvesContextualTargetComboComposite(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/translate',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'cr. mp, mp xx mp xx srk+hp',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(3, $payload['steps']);
+        $this->assertSame([], $payload['errors']);
+        $this->assertSame('2MP', $payload['steps'][0]['token']);
+        $this->assertSame('5MP > MP', $payload['steps'][1]['token']);
+        $this->assertSame('623HP', $payload['steps'][2]['token']);
+        $this->assertSame('2MP 5MP XX 5MP XX 623HP', $payload['input']['canonicalNotation']);
+    }
+
+    public function testEstimateDamageUsesContextualTargetComboComposite(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-damage',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'cr. mp, mp xx mp xx srk+hp',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame(2660, $payload['estimatedDamage']);
+        $this->assertSame([600, 1160, 900], $payload['stepDamages']);
+        $this->assertSame('5MP > MP', $payload['steps'][1]['token']);
+        $this->assertSame([], $payload['errors']);
+    }
+
+    public function testEstimateDamageUsesDirectionalTargetComboComposite(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-damage',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'f+hp xx f+hp, srk+mp',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame(2440, $payload['estimatedDamage']);
+        $this->assertSame([1400, 1040], $payload['stepDamages']);
+        $this->assertSame('6HP XX 6HP', $payload['steps'][0]['token']);
+        $this->assertSame([], $payload['errors']);
+    }
+
+    public function testEstimateDamageUsesGenericStrengthFallbackForSpecialFollowUp(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-damage',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'b+hk xx qcf+hk xx p',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame(1840, $payload['estimatedDamage']);
+        $this->assertSame([800, 1040], $payload['stepDamages']);
+        $this->assertSame('236K > P', $payload['steps'][1]['token']);
+        $this->assertSame([], $payload['errors']);
     }
 
     public function testEstimateDamageReturnsDeterministicDamage(): void
@@ -437,6 +543,33 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(890, $payload['estimatedDamage']);
     }
 
+    public function testEstimateResourcesReturnsDerivedMetricsFromOnHitData(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-resources',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => '2LP, 2LP XX 236MK',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertEquals(0.0, $payload['driveUsed']);
+        $this->assertEquals(0.338, $payload['driveGain']);
+        $this->assertEquals(0.0, $payload['superUsed']);
+        $this->assertEquals(0.09, $payload['superGain']);
+        $this->assertSame(72, $payload['totalFrames']);
+    }
+
     public function testEstimateDamageAppliesScalingComboHitsFromFrameData(): void
     {
         $character = $this->seedScalingEstimateData();
@@ -459,6 +592,30 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertSame([300, 240, 210, 360, 360], $payload['stepDamages']);
         $this->assertSame(1470, $payload['estimatedDamage']);
+    }
+
+    public function testEstimateResourcesUsesSuperMeterDeltaForSuperCostAndDoesNotUseDriveDamageAsDriveCost(): void
+    {
+        $character = $this->seedAkumaResourceEstimateData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-resources',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => '2LK, 2LP, 5LK XX 214LK, 236236P',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertEquals(0.0, $payload['driveUsed']);
+        $this->assertEquals(1.0, $payload['superUsed']);
     }
 
     public function testCreateFullComboPersistsRequirementsAndSpecificCharacter(): void
@@ -942,8 +1099,18 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->persistConnectionType('Target Combo');
         $this->persistConnectionType('Link');
 
-        $this->persistLeafSequence($character, $leafType, $visibility, '2LP', 'normal', '["ch","sp","su"]', 300);
-        $this->persistLeafSequence($character, $leafType, $visibility, '236MK', 'special', '["su"]', 500);
+        $this->persistLeafSequence($character, $leafType, $visibility, '2LP', 'normal', '["ch","sp","su"]', 300, null, null, null, null, null, null, 4, 2, 8, 10, 200, 100, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '2MP', 'normal', '["sp","su"]', 600, null, null, null, null, null, null, 6, 3, 10, 14, 200, 100, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '5MP', 'normal', '["sp","su"]', 600, null, null, null, null, null, null, 5, 3, 9, 12, 200, 100, 300, 16);
+        $this->persistLeafSequence($character, $leafType, $visibility, '5MP > MP', 'normal', '["sp","su"]', 1300, null, null, null, 2, null, null, 11, 5, 12, 20, 300, 200, 500, null, '[{"fatDamageParts":[600,700]}]');
+        $this->persistLeafSequence($character, $leafType, $visibility, '6HP', 'normal', '["tc"]', 800, null, null, null, null, null, null, 12, 3, 12, 18, 300, 200, 500);
+        $this->persistLeafSequence($character, $leafType, $visibility, '6HP > 6HP', 'normal', '["tc"]', 1400, null, null, null, null, null, null, 12, 3, 12, 18, 300, 200, 500, null, '[{"fatDamageParts":[800,600]}]');
+        $this->persistLeafSequence($character, $leafType, $visibility, '4HK', 'normal', '["sp","su"]', 800, 20, null, null, null, null, null, 12, 3, 12, 18, 300, 200, 500);
+        $this->persistLeafSequence($character, $leafType, $visibility, '236K', 'special', '[]', 0, null, null, null, null, null, null, 12, 3, 12, 18, 300, 200, 500);
+        $this->persistLeafSequence($character, $leafType, $visibility, '236K > P', 'special', '[]', 1300, null, null, null, null, null, null, 12, 3, 12, 18, 300, 200, 500);
+        $this->persistLeafSequence($character, $leafType, $visibility, '236MK', 'special', '["su"]', 500, null, null, null, null, null, null, 10, 3, 10, 15, 100, 100, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '623MP', 'special', '["su"]', 1300, 20, null, null, null, null, null, 7, 6, 12, 18, 100, 100, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '623HP', 'special', '["su"]', 1500, null, null, null, null, null, null, 8, 6, 14, 20, 100, 100, 300);
 
         $this->entityManager->flush();
 
@@ -980,6 +1147,38 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         return $character;
     }
 
+    private function seedAkumaResourceEstimateData(): Character
+    {
+        $character = new Character();
+        $character->setName('Akuma');
+        $this->entityManager->persist($character);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $this->persistConnectionType('Initial Move');
+        $this->persistConnectionType('Chain');
+        $this->persistConnectionType('Special');
+        $this->persistConnectionType('Super');
+        $this->persistConnectionType('Target Combo');
+        $this->persistConnectionType('Link');
+
+        $this->persistLeafSequence($character, $leafType, $visibility, '2LK', 'normal', '["ch","sp","su"]', 250, null, null, null, null, null, null, 5, 2, 8, 9, 150, 300, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '2LP', 'normal', '["ch","sp","su"]', 300, null, null, null, null, null, null, 4, 2, 8, 10, 150, 300, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '5LK', 'normal', '["sp","su"]', 300, null, null, null, null, null, null, 6, 2, 8, 11, 150, 300, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '214LK', 'special', '["su"]', 600, null, null, null, null, null, null, 12, 3, 10, 16, 250, 400, 400);
+        $this->persistLeafSequence($character, $leafType, $visibility, '236236P', 'super', null, 2000, null, null, null, null, null, null, 8, 8, 20, 30, 0, 500, -10000);
+
+        $this->entityManager->flush();
+
+        return $character;
+    }
+
     private function persistConnectionType(string $name): ConnectionType
     {
         $connectionType = new ConnectionType();
@@ -1003,6 +1202,15 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         ?int $scalingComboHits = null,
         ?int $scalingComboExtraPercent = null,
         ?int $scalingMultiplierPercent = null,
+        ?int $startup = null,
+        ?int $active = null,
+        ?int $hitstop = null,
+        ?int $recovery = null,
+        ?int $driveGain = null,
+        ?int $driveDamageOnHit = null,
+        ?int $onHitSelfSuperMeterGain = null,
+        ?int $hitConfirmTargetCombos = null,
+        ?string $extraInformation = null,
     ): void
     {
         $move = new Move();
@@ -1021,6 +1229,33 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $frameData->setScalingComboHits($scalingComboHits);
         $frameData->setScalingComboExtraPercent($scalingComboExtraPercent);
         $frameData->setScalingMultiplierPercent($scalingMultiplierPercent);
+        if (null !== $startup) {
+            $frameData->setStartup($startup);
+        }
+        if (null !== $active) {
+            $frameData->setActive($active);
+        }
+        if (null !== $hitstop) {
+            $frameData->setHitstop($hitstop);
+        }
+        if (null !== $recovery) {
+            $frameData->setRecovery($recovery);
+        }
+        if (null !== $driveGain) {
+            $frameData->setDriveGain($driveGain);
+        }
+        if (null !== $driveDamageOnHit) {
+            $frameData->setDriveDamageOnHit($driveDamageOnHit);
+        }
+        if (null !== $onHitSelfSuperMeterGain) {
+            $frameData->setOnHitSelfSuperMeterGain($onHitSelfSuperMeterGain);
+        }
+        if (null !== $hitConfirmTargetCombos) {
+            $frameData->setHitConfirmTargetCombos($hitConfirmTargetCombos);
+        }
+        if (null !== $extraInformation) {
+            $frameData->setExtraInformation($extraInformation);
+        }
         $move->setFrameData($frameData);
 
         $sequence = new ComboSequences();

@@ -6,6 +6,7 @@ use App\Entity\ComboSequences;
 use App\Entity\User;
 use App\Util\Enum\MoveType;
 use App\Entity\ConnectionType;
+use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
@@ -16,6 +17,7 @@ use App\Service\NotationCanonicalizer;
 use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ComboSequenceCreationService;
 use App\Service\Sf6ComboDamageEstimatorService;
+use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\ComboValueEstimator;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
@@ -50,6 +52,7 @@ class ComboSequenceController extends AbstractController
         private ComboNotationDictionaryTranslator $comboNotationDictionaryTranslator,
         private NotationCanonicalizer $notationCanonicalizer,
         private Sf6ComboDamageEstimatorService $sf6ComboDamageEstimatorService,
+        private Sf6ComboResourceEstimatorService $sf6ComboResourceEstimatorService,
     )
     {
     }
@@ -320,7 +323,7 @@ class ComboSequenceController extends AbstractController
                 'id' => (int) $leafSequence->getId(),
                 'notation' => $move->getNumpadNotation(),
                 'moveType' => $move->getFrameData()?->getMoveType(),
-                'cancelTypeCodes' => $move->getFrameData()?->getCancelTypeCodes() ?? [],
+                'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
             ];
         }
 
@@ -390,7 +393,7 @@ class ComboSequenceController extends AbstractController
                 'id' => (int) $leafSequence->getId(),
                 'notation' => $move->getNumpadNotation(),
                 'moveType' => $move->getFrameData()?->getMoveType(),
-                'cancelTypeCodes' => $move->getFrameData()?->getCancelTypeCodes() ?? [],
+                'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
             ];
         }
 
@@ -431,6 +434,7 @@ class ComboSequenceController extends AbstractController
                 'scalingComboHits' => $frameData?->getScalingComboHits(),
                 'scalingComboExtraPercent' => $frameData?->getScalingComboExtraPercent(),
                 'scalingMultiplierPercent' => $frameData?->getScalingMultiplierPercent(),
+                'damageParts' => $this->getDamageParts($frameData?->getExtraInformation()),
             ];
         }
 
@@ -456,6 +460,130 @@ class ComboSequenceController extends AbstractController
         return new JsonResponse([
             'estimatedDamage' => $estimation['estimatedDamage'],
             'stepDamages' => $estimation['stepDamages'],
+            'warnings' => array_values(array_unique(array_merge($translated['warnings'] ?? [], $estimation['warnings']))),
+            'errors' => $translated['errors'] ?? [],
+            'parsedTokens' => $translated['parsedTokens'] ?? [],
+            'steps' => $translated['steps'] ?? [],
+            'input' => [
+                'rawNotation' => $notation,
+                'canonicalNotation' => $canonicalization['canonicalNotation'],
+                'tokenMap' => $canonicalization['tokenMap'],
+            ],
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/estimate-resources', name: 'estimate_resources', methods: ['POST'])]
+    public function estimateResources(
+        Request $request,
+        CharacterRepository $characterRepository,
+        ComboNotationTranslator $comboNotationTranslator,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            throw new BadRequestHttpException('Invalid JSON payload.');
+        }
+
+        $characterId = $data['characterId'] ?? null;
+        if (!is_string($characterId) && !is_int($characterId)) {
+            throw new BadRequestHttpException('characterId must be a string or integer.');
+        }
+
+        $characterId = trim((string) $characterId);
+        if ('' === $characterId) {
+            throw new BadRequestHttpException('characterId must not be empty.');
+        }
+
+        $notation = $data['notation'] ?? null;
+        if (!is_string($notation) || '' === trim($notation)) {
+            throw new BadRequestHttpException('notation must be a non-empty string.');
+        }
+
+        $character = $characterRepository->find($characterId);
+        if (null === $character) {
+            throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
+        }
+
+        $canonicalization = $this->notationCanonicalizer->canonicalize($notation);
+        $leafOptions = [];
+        foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
+            $move = $leafSequence->getMove();
+            if (!$move instanceof Move) {
+                continue;
+            }
+
+            $leafOptions[] = [
+                'id' => (int) $leafSequence->getId(),
+                'notation' => $move->getNumpadNotation(),
+                'moveType' => $move->getFrameData()?->getMoveType(),
+                'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
+            ];
+        }
+
+        $connectionTypes = array_map(
+            static fn (ConnectionType $connectionType): array => [
+                'id' => (int) $connectionType->getId(),
+                'name' => (string) $connectionType->getName(),
+            ],
+            $this->connectionTypeRepository->findAll()
+        );
+
+        $translated = $comboNotationTranslator->translateNotationToInternalSteps(
+            $canonicalization['canonicalNotation'],
+            $leafOptions,
+            $connectionTypes
+        );
+
+        $moveByLeafId = [];
+        foreach ($this->comboSequencesRepository->findBy(['id' => array_column($leafOptions, 'id')]) as $leafSequence) {
+            if (!$leafSequence instanceof ComboSequences) {
+                continue;
+            }
+
+            $leafId = $leafSequence->getId();
+            $move = $leafSequence->getMove();
+            $frameData = $move?->getFrameData();
+            if (null === $leafId || !$move instanceof Move || null === $frameData) {
+                continue;
+            }
+
+            $moveByLeafId[$leafId] = [
+                'moveType' => (string) $frameData->getMoveType(),
+                'notation' => (string) $move->getNumpadNotation(),
+                'driveGain' => $frameData->getDriveGain(),
+                'onHitSelfSuperMeterGain' => $frameData->getOnHitSelfSuperMeterGain(),
+                'startup' => $frameData->getStartup(),
+                'active' => $frameData->getActive(),
+                'hitstop' => $frameData->getHitstop(),
+                'recovery' => $frameData->getRecovery(),
+            ];
+        }
+
+        $resolvedMoves = [];
+        foreach ($translated['steps'] as $step) {
+            if (!is_array($step)) {
+                continue;
+            }
+
+            $childSequenceId = isset($step['child_sequence_id']) ? (int) $step['child_sequence_id'] : 0;
+            if ($childSequenceId <= 0 || !isset($moveByLeafId[$childSequenceId])) {
+                continue;
+            }
+
+            $move = $moveByLeafId[$childSequenceId];
+            $move['connectionTypeName'] = isset($step['connection_type_name']) && is_string($step['connection_type_name'])
+                ? $step['connection_type_name']
+                : null;
+            $resolvedMoves[] = $move;
+        }
+
+        $estimation = $this->sf6ComboResourceEstimatorService->estimate($resolvedMoves);
+
+        return new JsonResponse([
+            'driveUsed' => $estimation['driveUsed'],
+            'driveGain' => $estimation['driveGain'],
+            'superUsed' => $estimation['superUsed'],
+            'superGain' => $estimation['superGain'],
+            'totalFrames' => $estimation['totalFrames'],
             'warnings' => array_values(array_unique(array_merge($translated['warnings'] ?? [], $estimation['warnings']))),
             'errors' => $translated['errors'] ?? [],
             'parsedTokens' => $translated['parsedTokens'] ?? [],
@@ -592,5 +720,56 @@ class ComboSequenceController extends AbstractController
         }
 
         return $value;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function getCancelTypeCodesForTranslation(?FrameData $frameData): array
+    {
+        if (null === $frameData) {
+            return [];
+        }
+
+        $codes = $frameData->getCancelTypeCodes();
+        if (($frameData->getHitConfirmTargetCombos() ?? 0) > 0 && !in_array('tc', $codes, true)) {
+            $codes[] = 'tc';
+        }
+
+        return $codes;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function getDamageParts(?string $extraInformation): array
+    {
+        if (null === $extraInformation) {
+            return [];
+        }
+
+        $decoded = json_decode($extraInformation, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        foreach ($decoded as $item) {
+            if (!is_array($item) || !isset($item['fatDamageParts']) || !is_array($item['fatDamageParts'])) {
+                continue;
+            }
+
+            $parts = [];
+            foreach ($item['fatDamageParts'] as $part) {
+                if (!is_int($part) || $part <= 0) {
+                    return [];
+                }
+
+                $parts[] = $part;
+            }
+
+            return $parts;
+        }
+
+        return [];
     }
 }

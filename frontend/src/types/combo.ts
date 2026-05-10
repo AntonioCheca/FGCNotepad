@@ -132,6 +132,19 @@ export interface EstimateComboDamageResponse extends TranslateComboNotationRespo
     };
 }
 
+export interface EstimateComboResourcesResponse extends TranslateComboNotationResponse {
+    driveUsed: number;
+    driveGain: number;
+    superUsed: number;
+    superGain: number;
+    totalFrames: number;
+    input?: {
+        rawNotation?: string;
+        canonicalNotation?: string;
+        tokenMap?: Array<{ raw?: string; canonical?: string }>;
+    };
+}
+
 // types/combo.ts
 export interface ComboRow {
     id: number;
