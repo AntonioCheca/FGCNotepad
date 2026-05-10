@@ -673,9 +673,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertTrue($persistedRequirement->isMidScreenRequired());
         $this->assertTrue($persistedRequirement->isNotCrouchingRequired());
 
-        $specificRequirement = $this->entityManager->getRepository(RequirementSpecificCharacter::class)->findOneBy([
-            'requirement' => $persistedRequirement,
-        ]);
+        $specificRequirement = $persistedRequirement->getRequirementSpecificCharacter();
         $this->assertInstanceOf(RequirementSpecificCharacter::class, $specificRequirement);
         $this->assertSame('Drinks', $specificRequirement->getObjectName());
         $this->assertSame('2', $specificRequirement->getStatusRequired());

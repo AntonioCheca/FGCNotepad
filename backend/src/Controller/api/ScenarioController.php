@@ -94,25 +94,29 @@ class ScenarioController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        $data = $this->decodeRequestBody($request);
-        $scenario = new Scenario();
+        try {
+            $data = $this->decodeRequestBody($request);
+            $scenario = new Scenario();
 
-        $this->entityManager->getConnection()->transactional(function () use ($scenario, $data, $actor): void {
-            $this->hydrateScenario($scenario, $data, true, $actor);
-            $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
-                $scenario,
-                $actor,
-                null,
-                null,
-                null,
-                $this->scenarioComboContextService->buildEffectiveContext($scenario, $data)
-            );
-            $scenario->setAuthor($actor);
-            $this->moderationTransitionService->submitScenarioForReview($scenario);
+            $this->entityManager->getConnection()->transactional(function () use ($scenario, $data, $actor): void {
+                $this->hydrateScenario($scenario, $data, true, $actor);
+                $this->resolveScenarioDynamicComboCellsService->resolveForScenario(
+                    $scenario,
+                    $actor,
+                    null,
+                    null,
+                    null,
+                    $this->scenarioComboContextService->buildEffectiveContext($scenario, $data)
+                );
+                $scenario->setAuthor($actor);
+                $this->moderationTransitionService->submitScenarioForReview($scenario);
 
-            $this->entityManager->persist($scenario);
-            $this->entityManager->flush();
-        });
+                $this->entityManager->persist($scenario);
+                $this->entityManager->flush();
+            });
+        } catch (BadRequestHttpException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_CREATED);
     }

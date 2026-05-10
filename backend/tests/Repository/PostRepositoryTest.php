@@ -5,7 +5,6 @@ namespace App\Tests\Repository;
 use App\Entity\Post;
 use App\Repository\PostRepository;
 use App\Tests\DatabaseTestCase;
-use PHPUnit\Framework\TestCase;
 
 class PostRepositoryTest extends DatabaseTestCase
 {
@@ -27,9 +26,17 @@ class PostRepositoryTest extends DatabaseTestCase
         LEFT JOIN forum.post_tag fpt ON fp.id = fpt.post_id
         LEFT JOIN forum.tag tagg ON fpt.tag_id = tagg.id
         LEFT JOIN forum.user fu ON fp.author_id = fu.id
-        WHERE 1 = 1 GROUP BY fp.id, fu.username, fp.title, fp.created_at ORDER BY fp.created_at DESC LIMIT :limit OFFSET :offset
+        WHERE 1 = 1
+        AND fp.moderation_state = :approvedState GROUP BY fp.id, fu.username, fp.title, fp.created_at ORDER BY fp.created_at DESC LIMIT :limit OFFSET :offset
         SQL;
 
-        self::assertEquals($expectedSql, $this->postRepository->getSqlAndElementsForPreparedStatement('', [], [], 10, 50)[1]);
+        $actualSql = $this->postRepository->getSqlAndElementsForPreparedStatement('', [], [], 10, 50)[1];
+
+        self::assertEquals($this->normalizeLineEndings($expectedSql), $this->normalizeLineEndings($actualSql));
+    }
+
+    private function normalizeLineEndings(string $value): string
+    {
+        return str_replace("\r\n", "\n", $value);
     }
 }

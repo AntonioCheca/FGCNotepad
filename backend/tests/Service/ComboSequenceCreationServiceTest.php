@@ -91,9 +91,7 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         self::assertTrue($persistedRequirement->isMidScreenRequired());
         self::assertTrue($persistedRequirement->isNotCrouchingRequired());
 
-        $specificRequirement = $this->entityManager->getRepository(RequirementSpecificCharacter::class)->findOneBy([
-            'requirement' => $persistedRequirement,
-        ]);
+        $specificRequirement = $persistedRequirement->getRequirementSpecificCharacter();
         self::assertInstanceOf(RequirementSpecificCharacter::class, $specificRequirement);
         self::assertSame('Drinks', $specificRequirement->getObjectName());
         self::assertSame('2', $specificRequirement->getStatusRequired());

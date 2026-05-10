@@ -13,10 +13,14 @@ class AuthControllerTest extends DatabaseTestCase
     private const TEST_USER_PASSWORD = 'testpassword';
     private UserPasswordHasherInterface $passwordHasher;
     private UserRepository $userRepository;
+    private string $usernameSeed;
+    private int $usernameSeq = 1;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->usernameSeed = bin2hex(random_bytes(4));
+        $this->usernameSeq = 1;
         $this->passwordHasher = static::getContainer()->get(UserPasswordHasherInterface::class);
         $this->userRepository = $this->entityManager->getRepository(User::class);
 
@@ -57,8 +61,9 @@ class AuthControllerTest extends DatabaseTestCase
 
     public function testRegisterReturnsDefaultUserRoleMetadata(): void
     {
+        $username = $this->nextUsername('newuser');
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => 'newuser',
+            'username' => $username,
             'password' => 'newpassword',
         ]));
 
@@ -66,30 +71,32 @@ class AuthControllerTest extends DatabaseTestCase
 
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
         $this->assertSame('User registered successfully.', $payload['message'] ?? null);
-        $this->assertSame('newuser', $payload['username'] ?? null);
+        $this->assertSame($username, $payload['username'] ?? null);
         $this->assertSame(['ROLE_USER'], $payload['roles'] ?? null);
 
-        $createdUser = $this->userRepository->findOneBy(['username' => 'newuser']);
+        $createdUser = $this->userRepository->findOneBy(['username' => $username]);
         $this->assertNotNull($createdUser);
         $this->assertSame(['ROLE_USER'], $createdUser->getRoles());
     }
 
     public function testRegisterDoesNotBootstrapAdminAcrossMultipleUsers(): void
     {
+        $firstUsername = $this->nextUsername('firstuser');
+        $secondUsername = $this->nextUsername('seconduser');
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => 'firstuser',
+            'username' => $firstUsername,
             'password' => 'firstpassword',
         ]));
         $this->assertResponseStatusCodeSame(201);
 
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => 'seconduser',
+            'username' => $secondUsername,
             'password' => 'secondpassword',
         ]));
         $this->assertResponseStatusCodeSame(201);
 
-        $first = $this->userRepository->findOneBy(['username' => 'firstuser']);
-        $second = $this->userRepository->findOneBy(['username' => 'seconduser']);
+        $first = $this->userRepository->findOneBy(['username' => $firstUsername]);
+        $second = $this->userRepository->findOneBy(['username' => $secondUsername]);
 
         $this->assertNotNull($first);
         $this->assertNotNull($second);
@@ -99,14 +106,15 @@ class AuthControllerTest extends DatabaseTestCase
 
     public function testRegisterDuplicateUsernameReturnsConflict(): void
     {
+        $username = $this->nextUsername('dupuser');
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => 'dupuser',
+            'username' => $username,
             'password' => 'password1',
         ]));
         $this->assertResponseStatusCodeSame(201);
 
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => 'dupuser',
+            'username' => $username,
             'password' => 'password2',
         ]));
 
@@ -117,12 +125,18 @@ class AuthControllerTest extends DatabaseTestCase
 
     public function testRegisterRejectsInvalidPayload(): void
     {
+        $username = $this->nextUsername('onlyusername');
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'username' => 'onlyusername',
+            'username' => $username,
         ]));
 
         $this->assertResponseStatusCodeSame(400);
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
         $this->assertSame('Username and password are required.', $payload['message'] ?? null);
+    }
+
+    private function nextUsername(string $prefix): string
+    {
+        return sprintf('%s_%s_%d', $prefix, $this->usernameSeed, $this->usernameSeq++);
     }
 }

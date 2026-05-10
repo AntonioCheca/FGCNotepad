@@ -10,6 +10,13 @@ use Symfony\Component\HttpFoundation\Response;
 class AdminUserManagementControllerTest extends DatabaseTestCase
 {
     private int $userSeq = 1;
+    private string $usernameSeed;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->usernameSeed = bin2hex(random_bytes(4));
+    }
 
     public function testAdminCanListUsersWithPagination(): void
     {
@@ -190,7 +197,7 @@ class AdminUserManagementControllerTest extends DatabaseTestCase
     private function createUser(array $roles): User
     {
         $user = new User();
-        $user->setUsername(sprintf('user_%d', $this->userSeq++));
+        $user->setUsername(sprintf('user_%s_%d', $this->usernameSeed, $this->userSeq++));
         $user->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
         $user->setRoles(array_map(static fn (UserRole $role): string => $role->value, $roles));
         $user->setIsActive(true);

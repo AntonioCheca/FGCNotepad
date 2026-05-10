@@ -17,10 +17,15 @@ abstract class AuthenticatedWebTestCase extends DatabaseTestCase
         if (!$user) {
             $user = new User();
             $user->setUsername('testuser');
-            $user->setPassword(password_hash('testpassword', PASSWORD_BCRYPT)); // Hash password
+            $user->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
+            $user->setIsActive(true);
             $this->entityManager->persist($user);
-            $this->entityManager->flush();
+        } else {
+            $user->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
+            $user->setIsActive(true);
         }
+
+        $this->entityManager->flush();
 
         $this->client->request('POST', '/api/login_check', [], [],
             ['CONTENT_TYPE' => 'application/json'],

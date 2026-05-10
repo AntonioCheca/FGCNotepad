@@ -39,19 +39,14 @@ when@test:
             query_cache_driver:
                 type: pool
                 pool: doctrine.test_query_cache_pool
-            result_cache_driver:
-                type: pool
-                pool: doctrine.test_result_cache_pool
 
     framework:
         cache:
             pools:
                 doctrine.test_metadata_cache_pool:
-                    adapter: cache.adapter.array
+                    adapter: cache.adapter.filesystem
                 doctrine.test_query_cache_pool:
-                    adapter: cache.adapter.array
-                doctrine.test_result_cache_pool:
-                    adapter: cache.adapter.array
+                    adapter: cache.adapter.filesystem
 
 when@prod:
     doctrine:
