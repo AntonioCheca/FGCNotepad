@@ -71,11 +71,6 @@ export const navigationSections: NavigationSection[] = [
                 href: "/profile/recommend-combo",
                 icon: <SportsMartialArtsOutlinedIcon/>,
                 requiresAuth: true,
-            },
-            {
-                label: "Settings",
-                href: "/settings",
-                icon: <SettingsOutlinedIcon/> // gear icon for settings
             }
         ]
     },
