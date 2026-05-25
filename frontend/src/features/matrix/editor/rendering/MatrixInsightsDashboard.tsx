@@ -30,7 +30,6 @@ export function MatrixInsightsDashboard({insights}: MatrixInsightsDashboardProps
             <div style={{minWidth: 0}}>
                 <ExpectedValueRangeChart
                     expectedValue={insights.expectedValue}
-                    expectedValueHpPercent={insights.expectedValueHpPercent}
                     histogram={insights.evHistogram}
                 />
             </div>

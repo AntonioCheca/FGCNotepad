@@ -2,6 +2,9 @@ import {MatrixOptionColorTag} from "@/src/features/matrix/model";
 
 type ThemeWithFgc = {
     fgc: {
+        icon: {
+            primary: string;
+        };
         accent: {
             primary: string;
             selected: string;
@@ -32,9 +35,8 @@ export function buildChartPalette(theme: ThemeWithFgc, count: number): string[] 
     const base = [
         theme.fgc.accent.primary,
         theme.fgc.accent.selected,
-        theme.fgc.accent.warning,
-        theme.fgc.accent.success,
         theme.fgc.accent.parser,
+        theme.fgc.accent.success,
         theme.fgc.feedback.error,
         theme.fgc.feedback.info,
     ];

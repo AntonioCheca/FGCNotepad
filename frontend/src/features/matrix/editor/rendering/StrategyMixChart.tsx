@@ -42,12 +42,12 @@ export function StrategyMixChart({title, data}: StrategyMixChartProps) {
                     );
                 })}
             </div>
-            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 6, marginTop: 8}}>
+            <div style={{display: "grid", gridTemplateColumns: "1fr", gap: 6, marginTop: 8}}>
                 {segments.slice(0, 5).map((segment, index) => (
-                    <div key={segment.label} style={{display: "flex", alignItems: "center", gap: 6, minWidth: 0}}>
-                        <span style={{width: 10, height: 10, borderRadius: 999, background: palette[index], flexShrink: 0}} />
-                        <span style={{fontSize: 12, color: theme.fgc.text.secondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>
-                            {segment.label} {`${(segment.frequency * 100).toFixed(1)}%`}
+                    <div key={segment.label} style={{display: "flex", alignItems: "center", gap: 8, minWidth: 0}}>
+                        <span style={{width: 8, height: 8, borderRadius: 999, background: palette[index], flexShrink: 0}} />
+                        <span style={{fontSize: 12, color: theme.fgc.text.secondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                            {segment.label} {(segment.frequency * 100).toFixed(1)}%
                         </span>
                     </div>
                 ))}

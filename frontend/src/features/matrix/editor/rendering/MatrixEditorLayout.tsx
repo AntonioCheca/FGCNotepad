@@ -31,22 +31,7 @@ export function MatrixEditorLayout({title, onDelete, warnings = [], children}: M
             }}
         >
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
-                <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                    <strong style={{fontSize: 13, letterSpacing: 0.2, color: theme.fgc.text.primary}}>{title ?? "Matrix Editor"}</strong>
-                    <span
-                        style={{
-                            border: `1px solid ${theme.fgc.border.default}`,
-                            borderRadius: 999,
-                            background: theme.fgc.surface.interactive,
-                            color: theme.fgc.text.secondary,
-                            fontSize: 11,
-                            padding: "2px 8px",
-                            fontWeight: 600,
-                        }}
-                    >
-                        Segmented
-                    </span>
-                </div>
+                <strong style={{fontSize: 13, letterSpacing: 0.2, color: theme.fgc.text.primary}}>{title ?? "Matrix Editor"}</strong>
                 {onDelete ? (
                     <button type="button" onClick={onDelete} aria-label="Delete matrix" style={{fontSize: 12}}>
                         Delete
