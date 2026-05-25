@@ -6,6 +6,7 @@ export type MatrixFocusedRegion = "none" | "grid" | "toolbar";
 export type MatrixResourceOwner = "attacker" | "defender";
 export type MatrixResourceType = "health" | "drive" | "super";
 export type MatrixResourceOperator = ">=";
+export type MatrixOptionColorTag = "tag1" | "tag2" | "tag3" | "tag4" | "tag5";
 
 export interface MatrixResourceRequirement {
     owner: MatrixResourceOwner;
@@ -19,6 +20,7 @@ export interface MatrixAxisItem {
     label: string;
     layer: number;
     requirements: MatrixResourceRequirement[];
+    colorTag: MatrixOptionColorTag | null;
 }
 
 export interface MatrixDynamicComboStarterContext {

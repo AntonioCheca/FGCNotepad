@@ -141,4 +141,28 @@ final class Sf6ComboDamageEstimatorServiceTest extends TestCase
         self::assertSame([800, 1040], $result['stepDamages']);
         self::assertSame(1840, $result['estimatedDamage']);
     }
+
+    public function testEstimateUsesStarterScalingTableBeyondSecondHit(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 800, 'moveType' => 'normal', 'notation' => '4HK', 'scalingStartPercent' => 20],
+            ['damage' => 700, 'moveType' => 'special', 'notation' => '236K > K', 'scalingStartPercent' => 30, 'scalingComboHits' => 2],
+            ['damage' => 1500, 'moveType' => 'special', 'notation' => '623HP', 'scalingStartPercent' => 20],
+        ]);
+
+        self::assertSame([800, 560, 900], $result['stepDamages']);
+        self::assertSame(2260, $result['estimatedDamage']);
+    }
+
+    public function testEstimateAppliesComboExtraPercentToNextHitWithoutComboHits(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 800, 'moveType' => 'normal', 'notation' => '5HP'],
+            ['damage' => 1500, 'moveType' => 'special', 'notation' => '214HP > 6P', 'scalingComboExtraPercent' => 20, 'damageParts' => [900, 600]],
+            ['damage' => 1600, 'moveType' => 'special', 'notation' => '214HK'],
+        ]);
+
+        self::assertSame([800, 1380, 800], $result['stepDamages']);
+        self::assertSame(2980, $result['estimatedDamage']);
+    }
 }

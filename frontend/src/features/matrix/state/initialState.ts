@@ -10,6 +10,7 @@ function createAxis(prefix: "row" | "column", count: number): MatrixAxisItem[] {
         label: `${prefix === "row" ? "Row" : "Column"} ${index + 1}`,
         layer: 1,
         requirements: [],
+        colorTag: null,
     }));
 }
 

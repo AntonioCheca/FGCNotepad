@@ -6,6 +6,7 @@ import {MatrixValueCell} from "./MatrixValueCell";
 import {MatrixDensityProfile} from "./gridDensity";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
 import {AxisRequirementTrigger} from "./AxisRequirementEditor";
+import {MatrixHeatmapTone} from "../services/matrixInsightService";
 
 interface MatrixGridBodyProps {
     state: MatrixEditorState;
@@ -43,6 +44,7 @@ interface MatrixGridBodyProps {
     densityProfile: MatrixDensityProfile;
     showLayerControls: boolean;
     summaryValueFormatter?: (value: number | null) => string;
+    heatmapToneByCellKey?: Record<string, MatrixHeatmapTone>;
 }
 
 export function MatrixGridBody({
@@ -66,7 +68,7 @@ export function MatrixGridBody({
                                        canEditBodyValues,
                                        canEditSummaries,
                                         onRowLabelChange,
-                                        onRowLayerChange,
+                                         onRowLayerChange,
                                         onOpenRowRequirements,
                                       onSelectRowHeader,
                                      onSelectBodyCell,
@@ -79,15 +81,16 @@ export function MatrixGridBody({
                                        onCommitEdit,
                                        onCancelEdit,
                                        densityProfile,
-                                      showLayerControls,
-                                      summaryValueFormatter,
-                                      }: MatrixGridBodyProps) {
+                                       showLayerControls,
+                                       summaryValueFormatter,
+                                       heatmapToneByCellKey = {},
+                                       }: MatrixGridBodyProps) {
     const {theme} = useMode();
     return (
         <tbody>
         {state.grid.rows.map((row) => {
             const rowIsActive = activeRowId === row.id;
-            const rowUnavailable = unavailableRowIds.has(row.id);
+                    const rowUnavailable = unavailableRowIds.has(row.id);
             return (
             <tr key={row.id}>
                 <th
@@ -189,6 +192,7 @@ export function MatrixGridBody({
                                 axisHighlighted={axisHighlighted}
                                 unavailable={cellUnavailable}
                                 readOnly={!canEditBodyValues || !isEditableBodyCell(cell)}
+                                heatmapTone={heatmapToneByCellKey[key]}
                                 onOpenReferenceLink={cell?.kind === "reference" ? () => onOpenReferenceLink(key) : undefined}
                                 onOpenDynamicCombo={cell?.kind === "dynamic_combo" ? () => onOpenDynamicCombo(key) : undefined}
                                 onSelect={() => onSelectBodyCell(row.id, column.id)}

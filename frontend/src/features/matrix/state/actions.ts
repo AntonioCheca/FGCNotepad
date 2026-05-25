@@ -1,4 +1,4 @@
-import {MatrixDynamicComboData, MatrixReferencePreValue, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
+import {MatrixDynamicComboData, MatrixOptionColorTag, MatrixReferencePreValue, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
 
 export type MatrixAction =
     | { type: "grid/replaceState"; payload: { state: import("../model/stateTypes").MatrixEditorState } }
@@ -15,6 +15,7 @@ export type MatrixAction =
     | { type: "grid/setExpectedValue"; payload: { value: number | null } }
     | { type: "grid/setAxisLabel"; payload: { axis: "rows" | "columns"; axisId: string; label: string } }
     | { type: "grid/setAxisLayer"; payload: { axis: "rows" | "columns"; axisId: string; layer: number } }
+    | { type: "grid/setAxisColorTag"; payload: { axis: "rows" | "columns"; axisId: string; colorTag: MatrixOptionColorTag | null } }
     | { type: "grid/addAxisRequirement"; payload: { axis: "rows" | "columns"; axisId: string; requirement: MatrixResourceRequirement } }
     | { type: "grid/updateAxisRequirement"; payload: { axis: "rows" | "columns"; axisId: string; index: number; requirement: MatrixResourceRequirement } }
     | { type: "grid/removeAxisRequirement"; payload: { axis: "rows" | "columns"; axisId: string; index: number } }
@@ -56,6 +57,10 @@ export const matrixActions = {
     setAxisLayer: (axis: "rows" | "columns", axisId: string, layer: number): MatrixAction => ({
         type: "grid/setAxisLayer",
         payload: {axis, axisId, layer},
+    }),
+    setAxisColorTag: (axis: "rows" | "columns", axisId: string, colorTag: MatrixOptionColorTag | null): MatrixAction => ({
+        type: "grid/setAxisColorTag",
+        payload: {axis, axisId, colorTag},
     }),
     addAxisRequirement: (axis: "rows" | "columns", axisId: string, requirement: MatrixResourceRequirement): MatrixAction => ({
         type: "grid/addAxisRequirement",

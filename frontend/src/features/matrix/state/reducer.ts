@@ -11,6 +11,7 @@ function createNextAxisItem(axis: MatrixAxisItem[], prefix: "row" | "column"): M
         label: `${prefix === "row" ? "Row" : "Column"} ${nextIndex}`,
         layer: 1,
         requirements: [],
+        colorTag: null,
     };
 }
 
@@ -470,6 +471,25 @@ export function matrixEditorReducer(state: MatrixEditorState, action: MatrixActi
             const target = action.payload.axis === "rows" ? state.grid.rows : state.grid.columns;
             const updated = target.map((axis) =>
                 axis.id === action.payload.axisId ? {...axis, layer: Math.trunc(action.payload.layer)} : axis
+            );
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    [action.payload.axis]: updated,
+                },
+                derived: {
+                    ...state.derived,
+                    isDirty: true,
+                },
+            };
+        }
+
+        case "grid/setAxisColorTag": {
+            const target = action.payload.axis === "rows" ? state.grid.rows : state.grid.columns;
+            const updated = target.map((axis) =>
+                axis.id === action.payload.axisId ? {...axis, colorTag: action.payload.colorTag} : axis
             );
 
             return {

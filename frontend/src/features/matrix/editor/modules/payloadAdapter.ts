@@ -3,7 +3,43 @@ import {deserializeMatrixPayload} from "@/src/features/matrix/serialization/dese
 import {createColumnSummaryKey, createExpectedValueKey, createRowSummaryKey} from "@/src/features/matrix/model";
 import {createInitialMatrixEditorState} from "@/src/features/matrix/state";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
-import {MatrixEditorState, MatrixReferencePreValue} from "@/src/features/matrix/model";
+import {MatrixEditorState, MatrixOptionColorTag, MatrixReferencePreValue} from "@/src/features/matrix/model";
+
+type AxisOptionColorTagMap = {
+    rows: Record<string, MatrixOptionColorTag>;
+    columns: Record<string, MatrixOptionColorTag>;
+};
+
+function isOptionColorTag(value: unknown): value is MatrixOptionColorTag {
+    return value === "tag1" || value === "tag2" || value === "tag3" || value === "tag4" || value === "tag5";
+}
+
+function readAxisOptionColorTags(extensions: Record<string, unknown> | undefined): AxisOptionColorTagMap {
+    const tags = extensions?.axisOptionColorTags;
+    if (!tags || typeof tags !== "object" || Array.isArray(tags)) {
+        return {rows: {}, columns: {}};
+    }
+
+    const rowsRaw = (tags as Record<string, unknown>).rows;
+    const columnsRaw = (tags as Record<string, unknown>).columns;
+    const rows = rowsRaw && typeof rowsRaw === "object" && !Array.isArray(rowsRaw) ? rowsRaw as Record<string, unknown> : {};
+    const columns = columnsRaw && typeof columnsRaw === "object" && !Array.isArray(columnsRaw) ? columnsRaw as Record<string, unknown> : {};
+
+    return {
+        rows: Object.entries(rows).reduce<Record<string, MatrixOptionColorTag>>((acc, [key, value]) => {
+            if (isOptionColorTag(value)) {
+                acc[key] = value;
+            }
+            return acc;
+        }, {}),
+        columns: Object.entries(columns).reduce<Record<string, MatrixOptionColorTag>>((acc, [key, value]) => {
+            if (isOptionColorTag(value)) {
+                acc[key] = value;
+            }
+            return acc;
+        }, {}),
+    };
+}
 
 function toDynamicComboPayload(value: unknown): MatrixDynamicComboPayload | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -80,6 +116,7 @@ function toReferencePreValuePayload(value: MatrixReferencePreValue): Record<stri
 
 export function matrixPayloadToEditorState(matrix: MatrixPayload) {
     const safe = deserializeMatrixPayload(matrix).payload;
+    const axisOptionColorTags = readAxisOptionColorTags(safe.extensions);
     const runtime = createInitialMatrixEditorState({
         matrixId: safe.metadata.matrixId,
         title: safe.metadata.title,
@@ -92,12 +129,14 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
         label,
         layer: typeof safe.axes.rowLayers?.[index] === "number" ? safe.axes.rowLayers[index] : 1,
         requirements: safe.axes.rowRequirements?.[index] ?? [],
+        colorTag: axisOptionColorTags.rows[`row_${index + 1}`] ?? null,
     }));
     runtime.grid.columns = safe.axes.columns.map((label, index) => ({
         id: `column_${index + 1}`,
         label,
         layer: typeof safe.axes.columnLayers?.[index] === "number" ? safe.axes.columnLayers[index] : 1,
         requirements: safe.axes.columnRequirements?.[index] ?? [],
+        colorTag: axisOptionColorTags.columns[`column_${index + 1}`] ?? null,
     }));
 
     safe.axes.rows.forEach((_, rowIndex) => {
@@ -239,6 +278,24 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
     const columnFrequencies = state.grid.columns.map(
         (column) => state.grid.columnSummaryCells[createColumnSummaryKey(column.id)]?.value ?? null
     );
+    const axisOptionColorTags = {
+        rows: state.grid.rows.reduce<Record<string, MatrixOptionColorTag>>((acc, row) => {
+            if (row.colorTag) {
+                acc[row.id] = row.colorTag;
+            }
+            return acc;
+        }, {}),
+        columns: state.grid.columns.reduce<Record<string, MatrixOptionColorTag>>((acc, column) => {
+            if (column.colorTag) {
+                acc[column.id] = column.colorTag;
+            }
+            return acc;
+        }, {}),
+    };
+    const nextExtensions = {
+        ...(previous?.extensions ?? {}),
+        axisOptionColorTags,
+    };
 
     return serializeMatrixPayload({
         rows,
@@ -259,6 +316,6 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
             title: state.grid.metadata.title,
             source: "editor",
         },
-        extensions: previous?.extensions,
+        extensions: nextExtensions,
     });
 }

@@ -1,7 +1,7 @@
 import React from "react";
 
 import {MatrixPayload} from "@/src/types/matrixPayload";
-import {isTemporarilyValidNumericDraft, MatrixLinkedCellResolution, selectCellValueByKey, selectGridValues, selectIsCellEditableByKey} from "@/src/features/matrix/model";
+import {createBodyCellKey, isTemporarilyValidNumericDraft, MatrixEditorState, MatrixLinkedCellResolution, selectCellValueByKey, selectGridValues, selectIsCellEditableByKey} from "@/src/features/matrix/model";
 import useSolverGames from "@/hooks/useSolverGame";
 import useMoves from "@/hooks/useMoves";
 import {computeExpectedValue} from "./services/matrixComputationService";
@@ -9,6 +9,7 @@ import {useMatrixEditorController} from "./state/useMatrixEditorController";
 import {MatrixEditorLayout} from "./rendering/MatrixEditorLayout";
 import {MatrixGrid} from "./rendering/MatrixGrid";
 import {MatrixEditorToolbar} from "./rendering/MatrixEditorToolbar";
+import {MatrixInsightsDashboard} from "./rendering/MatrixInsightsDashboard";
 import {ScenarioLinkPanel} from "./rendering/ScenarioLinkPanel";
 import {DynamicComboPanel} from "./rendering/DynamicComboPanel";
 import {ReferenceInspector} from "./rendering/ReferenceInspector";
@@ -24,6 +25,7 @@ import {useSolveMatrix} from "./hooks/useSolveMatrix";
 import {useMatrixEditorPanels} from "./hooks/useMatrixEditorPanels";
 import {buildMatrixResourceGating, MatrixResourceContext} from "./services/matrixResourceGating";
 import {resolveEditorLinkedReferences} from "./services/linkedReferenceResolutionService";
+import {buildMatrixInsights} from "./services/matrixInsightService";
 
 interface MatrixEditorShellProps {
     matrix: MatrixPayload;
@@ -52,6 +54,28 @@ interface MatrixEditorShellProps {
     resourceContext?: MatrixResourceContext | null;
     currentScenarioId?: string | null;
     linkedCellResolutions?: Record<string, MatrixLinkedCellResolution>;
+}
+
+function computeDisplayedExpectedValue(targetState: MatrixEditorState, displayedBodyValues: Record<string, number | null>): number | null {
+    let value = 0;
+    let hasUsableTerm = false;
+
+    targetState.grid.rows.forEach((row) => {
+        const rowWeight = targetState.grid.rowSummaryCells[`row-summary::${row.id}`]?.value;
+        targetState.grid.columns.forEach((column) => {
+            const columnWeight = targetState.grid.columnSummaryCells[`column-summary::${column.id}`]?.value;
+            const key = createBodyCellKey(row.id, column.id);
+            const cellValue = displayedBodyValues[key] ?? targetState.grid.bodyCells[key]?.value ?? null;
+            if (cellValue === null || rowWeight === null || columnWeight === null) {
+                return;
+            }
+
+            value += cellValue * rowWeight * columnWeight;
+            hasUsableTerm = true;
+        });
+    });
+
+    return hasUsableTerm ? Number(value.toFixed(4)) : null;
 }
 
 export function MatrixEditorShell({
@@ -196,16 +220,6 @@ export function MatrixEditorShell({
 
         return Array.from(columnVisibilitySet);
     }, [columnVisibilitySet]);
-
-    const displayedExpectedValue = React.useMemo(() => {
-        const values = selectGridValues(filteredVisibleState);
-        const rowWeights = filteredVisibleState.grid.rows.map((row) => filteredVisibleState.grid.rowSummaryCells[`row-summary::${row.id}`]?.value ?? null);
-        const columnWeights = filteredVisibleState.grid.columns.map(
-            (column) => filteredVisibleState.grid.columnSummaryCells[`column-summary::${column.id}`]?.value ?? null
-        );
-
-        return computeExpectedValue(values, rowWeights, columnWeights);
-    }, [filteredVisibleState]);
 
     const summaryValueFormatter = React.useMemo(() => {
         if (!displayFrequenciesAsPercent) {
@@ -438,6 +452,16 @@ export function MatrixEditorShell({
         }, {});
     }, [effectiveLinkedCellResolutions]);
 
+    const displayedExpectedValue = React.useMemo(
+        () => computeDisplayedExpectedValue(filteredVisibleState, referenceResolution.displayedBodyValues),
+        [filteredVisibleState, referenceResolution.displayedBodyValues]
+    );
+
+    const matrixInsights = React.useMemo(
+        () => buildMatrixInsights(filteredVisibleState, referenceResolution.displayedBodyValues, displayedExpectedValue),
+        [displayedExpectedValue, filteredVisibleState, referenceResolution.displayedBodyValues]
+    );
+
     const resolveLinkedCellsForSolve = React.useCallback(() => resolveEditorLinkedReferences({
         state: stateRef.current,
         currentScenarioId,
@@ -643,6 +667,7 @@ export function MatrixEditorShell({
                     onShowLayerControlsChange={setShowLayerControls}
                 />
                 {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
+                <MatrixInsightsDashboard insights={matrixInsights} />
 
                 <div
                     style={{
@@ -729,6 +754,7 @@ export function MatrixEditorShell({
                         density="standard"
                         showLayerControls={showLayerControls}
                         summaryValueFormatter={summaryValueFormatter}
+                        heatmapToneByCellKey={matrixInsights.heatmapToneByCellKey}
                     />
                     </div>
 

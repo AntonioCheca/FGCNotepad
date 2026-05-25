@@ -7,6 +7,7 @@ import {MatrixGridBody} from "./MatrixGridBody";
 import {MatrixSummaryAxes} from "./MatrixSummaryAxes";
 import {resolveDensityProfile} from "./gridDensity";
 import {FloatingAxisRequirementEditor} from "./AxisRequirementEditor";
+import {MatrixHeatmapTone} from "../services/matrixInsightService";
 
 type RequirementEditorTarget = {
     axis: "rows" | "columns";
@@ -72,6 +73,7 @@ interface MatrixGridProps {
     density: MatrixDensityMode;
     showLayerControls: boolean;
     summaryValueFormatter?: (value: number | null) => string;
+    heatmapToneByCellKey?: Record<string, MatrixHeatmapTone>;
 }
 
 export function MatrixGrid({
@@ -108,8 +110,8 @@ export function MatrixGrid({
                                  onRemoveColumn,
                                  onRowLabelChange,
                                  onColumnLabelChange,
-                                   onRowLayerChange,
-                                   onColumnLayerChange,
+                                    onRowLayerChange,
+                                    onColumnLayerChange,
                                    onAddRowRequirement,
                                    onUpdateRowRequirement,
                                    onRemoveRowRequirement,
@@ -130,9 +132,10 @@ export function MatrixGrid({
                                   onCommitEdit,
                                   onCancelEdit,
                                  density,
-                                 showLayerControls,
-                                 summaryValueFormatter,
-                                }: MatrixGridProps) {
+                                  showLayerControls,
+                                  summaryValueFormatter,
+                                  heatmapToneByCellKey = {},
+                                 }: MatrixGridProps) {
     const {theme} = useMode();
     const [structureSelection, setStructureSelection] = React.useState<{axis: "row" | "column"; id: string} | null>(null);
     const [requirementTarget, setRequirementTarget] = React.useState<RequirementEditorTarget | null>(null);
@@ -294,6 +297,7 @@ export function MatrixGrid({
                     densityProfile={profile}
                     showLayerControls={showLayerControls}
                     summaryValueFormatter={summaryValueFormatter}
+                    heatmapToneByCellKey={heatmapToneByCellKey}
                 />
                 <MatrixSummaryAxes
                     state={state}

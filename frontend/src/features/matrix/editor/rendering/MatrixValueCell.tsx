@@ -2,6 +2,7 @@ import React from "react";
 import {MatrixValidationIssue} from "@/src/features/matrix/model";
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixDensityProfile} from "./gridDensity";
+import {MatrixHeatmapTone} from "../services/matrixInsightService";
 
 interface MatrixValueCellProps {
     value: number | null;
@@ -18,6 +19,8 @@ interface MatrixValueCellProps {
     axisHighlighted?: boolean;
     unavailable?: boolean;
     readOnly?: boolean;
+    heatmapTone?: MatrixHeatmapTone;
+    accentBorderColor?: string | null;
     onOpenReferenceLink?: () => void;
     onOpenDynamicCombo?: () => void;
     onSelect: () => void;
@@ -46,9 +49,11 @@ function MatrixValueCellComponent({
                                     draftHasFormatError = false,
                                      issues = [],
                                       axisHighlighted = false,
-                                      unavailable = false,
-                                      readOnly = false,
-                                     onOpenReferenceLink,
+                                       unavailable = false,
+                                       readOnly = false,
+                                       heatmapTone = "neutral",
+                                       accentBorderColor = null,
+                                      onOpenReferenceLink,
                                       onOpenDynamicCombo,
                                       onSelect,
                                      onStartEdit,
@@ -102,6 +107,15 @@ function MatrixValueCellComponent({
                 : {background: theme.fgc.chip.neutralBg, border: `1px solid ${theme.fgc.chip.neutralBorder}`, color: theme.fgc.chip.neutralText};
 
     const displayValue = displayLabel ?? (valueFormatter ? valueFormatter(value) : value === null ? "" : String(value));
+    const heatmapBackground = heatmapTone === "positiveStrong"
+        ? theme.fgc.chip.successBg
+        : heatmapTone === "positiveSoft"
+            ? theme.fgc.chip.infoBg
+            : heatmapTone === "negativeStrong"
+                ? theme.fgc.chip.warningBg
+                : heatmapTone === "negativeSoft"
+                    ? theme.fgc.chip.warningBg
+                    : theme.fgc.surface.base;
 
     return (
         <button
@@ -141,16 +155,16 @@ function MatrixValueCellComponent({
                         ? `2px solid ${theme.fgc.feedback.error}`
                         : isActive
                             ? `2px solid ${theme.fgc.selection.active}`
-                            : `1px solid ${theme.fgc.border.default}`,
+                            : `1px solid ${accentBorderColor ?? theme.fgc.border.default}`,
                     background: unavailable
                         ? theme.fgc.surface.sunken
                         : readOnly
                         ? theme.fgc.surface.sunken
-                        : hasCommittedError
-                            ? theme.fgc.chip.warningBg
-                            : axisHighlighted
-                                ? theme.fgc.selection.hover
-                                : theme.fgc.surface.base,
+                                : hasCommittedError
+                                    ? theme.fgc.chip.warningBg
+                                    : axisHighlighted
+                                        ? theme.fgc.selection.hover
+                                        : heatmapBackground,
                     color: unavailable ? theme.fgc.text.disabled : theme.fgc.text.primary,
                     cursor: "pointer",
                     borderRadius: 6,
@@ -230,6 +244,8 @@ export const MatrixValueCell = React.memo(MatrixValueCellComponent, (previous, n
         previous.axisHighlighted === next.axisHighlighted &&
         previous.unavailable === next.unavailable &&
         previous.readOnly === next.readOnly &&
+        previous.heatmapTone === next.heatmapTone &&
+        previous.accentBorderColor === next.accentBorderColor &&
         (previous.issues?.length ?? 0) === (next.issues?.length ?? 0) &&
         previousFirstIssue?.code === nextFirstIssue?.code &&
         previousFirstIssue?.message === nextFirstIssue?.message &&

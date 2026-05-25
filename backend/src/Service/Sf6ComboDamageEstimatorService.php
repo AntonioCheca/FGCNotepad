@@ -133,7 +133,12 @@ final class Sf6ComboDamageEstimatorService
 
                 $comboExtraPercent = $this->readOptionalPercent($move, 'scalingComboExtraPercent');
                 $comboPenaltyExtraPercent = $comboExtraPercent ?? 0;
-
+            } else {
+                $comboExtraPercent = $this->readOptionalPercent($move, 'scalingComboExtraPercent');
+                if (null !== $comboExtraPercent) {
+                    $comboPenaltyRemainingHits = 1;
+                    $comboPenaltyExtraPercent = $comboExtraPercent;
+                }
             }
 
             if (0 === $index) {
@@ -162,7 +167,10 @@ final class Sf6ComboDamageEstimatorService
         $light = [100, 80, 70, 60, 50, 40, 30, 20, 10, 10];
         $table = $isLightStarter ? $light : $normal;
         if (null !== $starterScalingPercent) {
-            $table[1] = min($table[1], max(10, 100 - $starterScalingPercent));
+            $nextScale = min($table[1], max(10, 100 - $starterScalingPercent));
+            for ($index = 1; $index < count($table); $index++) {
+                $table[$index] = max(10, $nextScale - (($index - 1) * 10));
+            }
         }
 
         $result = [];
