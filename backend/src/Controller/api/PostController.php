@@ -120,9 +120,6 @@ class PostController extends AbstractController
     #[Route('/{id}', name: 'read', methods: ['GET'])]
     public function read(string $id, PostRepository $postRepository): JsonResponse
     {
-        /**
-         * @var Post|false $post
-         */
         $post = $postRepository->find($id);
         if (!$post) {
             throw new NotFoundHttpException(sprintf('Post not found with id %s', $id));

@@ -44,6 +44,14 @@ interface UseScenarioTableStateProps {
 
 export function useScenarioTableState(props: UseScenarioTableStateProps): [ScenarioTableState, ScenarioTableActions] {
     const [editor] = useLexicalComposerContext();
+    const {
+        updateRows,
+        updateColumns,
+        updateValues,
+        updateRowFrequencies,
+        updateColumnFrequencies,
+        updateExpectedValue,
+    } = props;
 
     const [rows, setRows] = useState(props.initialRows);
     const [columns, setColumns] = useState(props.initialColumns);
@@ -62,44 +70,44 @@ export function useScenarioTableState(props: UseScenarioTableStateProps): [Scena
     const setAndUpdateRows = useCallback((rows: string[]) => {
         editor.update(() => {
             setRows(rows);
-            props.updateRows(rows);
+            updateRows(rows);
         });
-    }, [editor, props.updateRows]);
+    }, [editor, updateRows]);
 
     const setAndUpdateColumns = useCallback((columns: string[]) => {
         editor.update(() => {
             setColumns(columns);
-            props.updateColumns(columns);
+            updateColumns(columns);
         });
-    }, [editor, props.updateColumns]);
+    }, [editor, updateColumns]);
 
     const setAndUpdateValues = useCallback((values: ScenarioTableValue[][]) => {
         editor.update(() => {
             setValues(values);
-            props.updateValues(values);
+            updateValues(values);
         });
-    }, [editor, props.updateValues]);
+    }, [editor, updateValues]);
 
     const setAndUpdateRowFrequencies = useCallback((rowFrequencies: (number | string)[]) => {
         editor.update(() => {
             setRowFrequencies(rowFrequencies);
-            props.updateRowFrequencies(rowFrequencies);
+            updateRowFrequencies(rowFrequencies);
         });
-    }, [editor, props.updateRowFrequencies]);
+    }, [editor, updateRowFrequencies]);
 
     const setAndUpdateColumnFrequencies = useCallback((columnFrequencies: (number | string)[]) => {
         editor.update(() => {
             setColumnFrequencies(columnFrequencies);
-            props.updateColumnFrequencies(columnFrequencies);
+            updateColumnFrequencies(columnFrequencies);
         });
-    }, [editor, props.updateColumnFrequencies]);
+    }, [editor, updateColumnFrequencies]);
 
     const setAndUpdateExpectedValue = useCallback((expectedValue: number) => {
         editor.update(() => {
             setExpectedValue(expectedValue);
-            props.updateExpectedValue(expectedValue);
+            updateExpectedValue(expectedValue);
         });
-    }, [editor, props.updateExpectedValue]);
+    }, [editor, updateExpectedValue]);
 
     const setDerivedMetrics = useCallback((metrics: Record<string, unknown>) => {
         editor.update(() => {

@@ -13,8 +13,8 @@ class PostNormalizer implements NormalizerInterface
         return [
             'id' => $object->getId(),
             'title' => $object->getTitle(),
-            'content' => $object->getContent(),
-            'createdAt' => $object->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'content' => $object->getBody(),
+            'createdAt' => $object->getCreatedAt()->format('Y-m-d H:i:s'),
             'author' => $object->getAuthor() ? [
                 'id' => $object->getAuthor()->getId(),
                 'username' => $object->getAuthor()->getUsername(),

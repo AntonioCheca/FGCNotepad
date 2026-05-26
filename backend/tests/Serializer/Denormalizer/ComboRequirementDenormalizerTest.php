@@ -56,8 +56,10 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
         $this->assertFalse($object->isCornerRequired());
         $this->assertTrue($object->isNotCrouchingRequired());
         $this->assertSame($sequence->getId(), $object->getSequence()?->getId());
-        $this->assertSame('Medals', $object->getRequirementSpecificCharacter()?->getObjectName());
-        $this->assertSame('5', $object->getRequirementSpecificCharacter()?->getStatusRequired());
+        $specificCharacter = $object->getRequirementSpecificCharacter();
+        $this->assertNotNull($specificCharacter);
+        $this->assertSame('Medals', $specificCharacter->getObjectName());
+        $this->assertSame('5', $specificCharacter->getStatusRequired());
 
         // Cleanup
         $this->em->remove($sequence);

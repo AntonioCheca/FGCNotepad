@@ -424,17 +424,18 @@ class ComboSequenceController extends AbstractController
             }
 
             $frameData = $move->getFrameData();
+
             $moveByLeafId[$leafId] = [
-                'damage' => (int) $frameData?->getDamage(),
-                'moveType' => (string) ($frameData?->getMoveType() ?? 'normal'),
+                'damage' => (int) $frameData->getDamage(),
+                'moveType' => (string) $frameData->getMoveType(),
                 'notation' => (string) $move->getNumpadNotation(),
-                'scalingStartPercent' => $frameData?->getScalingStartPercent(),
-                'scalingImmediatePercent' => $frameData?->getScalingImmediatePercent(),
-                'scalingMinimumPercent' => $frameData?->getScalingMinimumPercent(),
-                'scalingComboHits' => $frameData?->getScalingComboHits(),
-                'scalingComboExtraPercent' => $frameData?->getScalingComboExtraPercent(),
-                'scalingMultiplierPercent' => $frameData?->getScalingMultiplierPercent(),
-                'damageParts' => $this->getDamageParts($frameData?->getExtraInformation()),
+                'scalingStartPercent' => $frameData->getScalingStartPercent(),
+                'scalingImmediatePercent' => $frameData->getScalingImmediatePercent(),
+                'scalingMinimumPercent' => $frameData->getScalingMinimumPercent(),
+                'scalingComboHits' => $frameData->getScalingComboHits(),
+                'scalingComboExtraPercent' => $frameData->getScalingComboExtraPercent(),
+                'scalingMultiplierPercent' => $frameData->getScalingMultiplierPercent(),
+                'damageParts' => $this->getDamageParts($frameData->getExtraInformation()),
             ];
         }
 

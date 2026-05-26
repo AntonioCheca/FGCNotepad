@@ -173,7 +173,7 @@ class ImportFrameDataFromFatJsonCommand extends Command
     ): bool {
         $changed = false;
 
-        $changed = $this->setIfChanged($frameData->getStartup(), (int) ($record['startup'] ?? 0), $frameData->setStartup(...)) || $changed;
+        $changed = $this->setIfChanged($frameData->getStartup(), (int) ($record['startup'] ?? 0), $frameData->setStartup(...));
         $changed = $this->setIfChanged($frameData->getActive(), (int) ($record['active'] ?? 0), $frameData->setActive(...)) || $changed;
         $changed = $this->setIfChanged($frameData->getRecovery(), (int) ($record['recovery'] ?? 0), $frameData->setRecovery(...)) || $changed;
         $changed = $this->setIfChanged($frameData->getTotal(), (int) ($record['total'] ?? 0), $frameData->setTotal(...)) || $changed;
@@ -252,7 +252,7 @@ class ImportFrameDataFromFatJsonCommand extends Command
         }
 
         preg_match_all('/\d+/', $matches[1], $partMatches);
-        $parts = array_map('intval', $partMatches[0] ?? []);
+        $parts = array_map('intval', $partMatches[0]);
 
         return count($parts) > 1 ? $parts : [];
     }

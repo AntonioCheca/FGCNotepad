@@ -44,7 +44,6 @@ class ScenarioNormalizerTest extends TestCase
 
         $data = $normalizer->normalize($scenario);
 
-        $this->assertIsArray($data);
         $this->assertEquals('Test Scenario', $data['name']);
         $this->assertEquals('Knockdown', $data['type']);
         $this->assertCount(1, $data['layers']);

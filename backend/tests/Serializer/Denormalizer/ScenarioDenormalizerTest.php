@@ -8,22 +8,26 @@ use App\Entity\Character;
 use App\Repository\CharacterRepository;
 use App\Tests\DatabaseTestCase;
 use Doctrine\ORM\EntityRepository;
-use Symfony\Component\Serializer\SerializerInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Serializer\Serializer;
 
 class ScenarioDenormalizerTest extends DatabaseTestCase
 {
-    private SerializerInterface $serializer;
+    private Serializer $serializer;
     private EntityManagerInterface $em;
+    /**
+     * @var EntityRepository<Character>
+     */
     private EntityRepository $characterRepository;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->serializer = static::getContainer()->get(SerializerInterface::class);
+        $this->serializer = static::getContainer()->get('serializer');
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
-        /** @var CharacterRepository $characterRepository */
-        $this->characterRepository = $this->em->getRepository(Character::class);
+        /** @var CharacterRepository $repository */
+        $repository = $this->em->getRepository(Character::class);
+        $this->characterRepository = $repository;
 
         // Ensure at least one Character exists for the moves
         if (!$this->characterRepository->findOneBy(['name' => 'Ryu'])) {

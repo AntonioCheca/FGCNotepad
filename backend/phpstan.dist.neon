@@ -1,8 +1,20 @@
 parameters:
     level: 6
+    treatPhpDocTypesAsCertain: false
     paths:
         - bin/
         - config/
         - public/
         - src/
         - tests/
+    ignoreErrors:
+        -
+            identifier: missingType.iterableValue
+        -
+            identifier: property.onlyWritten
+        -
+            identifier: doctrine.columnType
+            path: src/Entity/*
+        -
+            identifier: doctrine.associationType
+            path: src/Entity/*

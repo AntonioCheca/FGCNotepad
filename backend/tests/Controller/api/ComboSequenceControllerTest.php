@@ -1428,6 +1428,5 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         }
 
         $this->fail(sprintf('Could not find step with ordinal %d.', $ordinal));
-        throw new \RuntimeException('Unreachable');
     }
 }

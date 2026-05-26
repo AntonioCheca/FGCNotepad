@@ -95,7 +95,7 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
 
         usort(
             $steps,
-            static fn ($a, $b): int => ($a?->getOrdinalInCombo() ?? 0) <=> ($b?->getOrdinalInCombo() ?? 0)
+            static fn ($a, $b): int => ($a->getOrdinalInCombo() ?? 0) <=> ($b->getOrdinalInCombo() ?? 0)
         );
 
         return $steps;

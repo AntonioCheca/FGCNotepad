@@ -31,7 +31,7 @@ class AuthControllerTest extends DatabaseTestCase
         }
     }
 
-    public function testSuccessfulLogin()
+    public function testSuccessfulLogin(): void
     {
         $user = new User();
         $user->setUsername(self::TEST_USER_NAME);
@@ -49,7 +49,7 @@ class AuthControllerTest extends DatabaseTestCase
         $this->assertNotNull(json_decode($this->client->getResponse()->getContent(), true)['token']);
     }
 
-    public function testInvalidLogin()
+    public function testInvalidLogin(): void
     {
         $this->client->request('POST', '/api/login_check', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => 'wronguser',

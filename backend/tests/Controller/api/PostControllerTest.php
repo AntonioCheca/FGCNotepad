@@ -2,12 +2,11 @@
 
 namespace App\Tests\Controller\api;
 
-use App\Entity\Character;
-use App\Entity\Move;
 use App\Entity\Post;
 use App\Entity\Scenario;
 use App\Entity\Tag;
 use App\Entity\User;
+use App\Repository\TagRepository;
 use App\Repository\UserRepository;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +34,9 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertEquals($post->getId(), $data['id']);
     }
 
+    /**
+     * @param array<string, mixed>|null $body
+     */
     private function addPostInBackend(?array $body = null): Post
     {
         $post = new Post();
@@ -207,22 +209,6 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(0, $scenarioCount);
     }
 
-    private function addMoveInBackend(): Move
-    {
-        $character = new Character();
-        $character->setName('Test character');
-        $move = new Move();
-        $move->setNumpadNotation('5HP');
-        $move->setCharacter($character);
-
-        $entityManager = self::$kernel->getContainer()->get('doctrine')->getManager();
-        $entityManager->persist($character);
-        $entityManager->persist($move);
-        $entityManager->flush();
-
-        return $move;
-    }
-
     public function testCreatePostWithTags(): void
     {
         $this->createAuthenticatedClient();
@@ -257,6 +243,9 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $this->assertEquals(['Tag1', 'Tag2'], $data['tags']);
     }
 
+    /**
+     * @param list<string> $tagNames
+     */
     private function addPostWithTags(array $tagNames): Post
     {
         /** @var TagRepository $tagRepository */
@@ -283,10 +272,7 @@ class PostControllerTest extends AuthenticatedWebTestCase
         $post->setLastModified(new \DateTime());
 
         foreach ($tagNames as $tagName) {
-            // Check if the tag already exists
             $tag = $tagRepository->findOneBy(['name' => $tagName]);
-
-            // If not found, create a new one
             if (!$tag) {
                 $tag = new Tag();
                 $tag->setName($tagName);

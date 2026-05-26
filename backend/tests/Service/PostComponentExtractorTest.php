@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class PostComponentExtractorTest extends TestCase
 {
-    public function testExtractComponentIds()
+    public function testExtractComponentIds(): void
     {
         $extractor = new PostComponentExtractor();
 
@@ -38,7 +38,7 @@ class PostComponentExtractorTest extends TestCase
         ], $result);
     }
 
-    public function testExtractComponentIdsHandlesNestedStructures()
+    public function testExtractComponentIdsHandlesNestedStructures(): void
     {
         $extractor = new PostComponentExtractor();
 
@@ -70,7 +70,7 @@ class PostComponentExtractorTest extends TestCase
         ], $result);
     }
 
-    public function testExtractComponentIdsHandlesEmptyInput()
+    public function testExtractComponentIdsHandlesEmptyInput(): void
     {
         $extractor = new PostComponentExtractor();
 

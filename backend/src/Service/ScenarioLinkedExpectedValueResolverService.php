@@ -237,8 +237,6 @@ class ScenarioLinkedExpectedValueResolverService
     }
 
     /**
-     * @param list<ScenarioCell> $cells
-     *
      * @return array<int, array<int, ScenarioCell>>
      */
     private function buildCellCoordinateMap(Scenario $scenario): array

@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class MixedStrategyGameSolverTest extends TestCase
 {
-    public function testBasicExample()
+    public function testBasicExample(): void
     {
         $solver = new MixedStrategyGameSolver();
         $payoffMatrix = ['A1' => ['B1' => 1, 'B2' => 0], 'A2' => ['B1' => 0, 'B2' => 2]];
@@ -23,7 +23,7 @@ class MixedStrategyGameSolverTest extends TestCase
         self::assertEqualsWithDelta($expectedResult, $result['equilibria'], 0.01);
     }
 
-    public function testPerformanceWithLargerMatrix()
+    public function testPerformanceWithLargerMatrix(): void
     {
         $solver = new MixedStrategyGameSolver();
 
@@ -46,7 +46,7 @@ class MixedStrategyGameSolverTest extends TestCase
         self::assertNotEmpty($result['equilibria']);
     }
 
-    public function testDerivedMetricsAreCalculated()
+    public function testDerivedMetricsAreCalculated(): void
     {
         $solver = new MixedStrategyGameSolver();
         $payoffMatrix = [

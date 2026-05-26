@@ -75,6 +75,23 @@ Database setup:
 2. Use `backend/.env.example` as the safe reference for required variables.
 3. Put machine-specific connection details in `backend/.env.local`.
 
+Windows local test DB setup (required for `make check-backend`):
+
+1. Copy `backend/.env.test.example` values into `backend/.env.test.local` when your host/test credentials differ.
+2. Keep `POSTGRES_DB` set to the base name (for example `fgc_db`); Symfony appends `_test` in test env.
+3. Create and migrate the test database with:
+
+```bash
+make local-create-test-database
+make local-migrate-test
+```
+
+4. Run backend validation with:
+
+```bash
+make check-backend
+```
+
 One-time setup:
 
 ```bash
@@ -147,12 +164,20 @@ Backend scripts:
 
 Known baseline failures:
 
-- Frontend typecheck currently fails from pre-existing TypeScript issues.
-- Frontend lint currently fails from pre-existing lint/config/code issues after replacing deprecated `next lint` with ESLint CLI.
 - Frontend `node:test` tests compile through the existing TypeScript compiler before running on Node.
-- Backend PHPUnit requires a reachable test database; local credentials should be supplied through `backend/.env.test.local` when defaults do not match the host PostgreSQL setup.
-- PHPStan no longer fails immediately from the default 128M PHP memory limit or missing dev fixtures, but it currently reports existing static analysis errors.
-- Security audit commands may report existing advisories. Dependency advisory remediation is intentionally out of scope for this baseline ticket.
+- Frontend lint currently reports warnings (no lint errors), so `make check-frontend` passes.
+- Backend PHPUnit requires a reachable test database; configure `backend/.env.test.local` and run `make local-create-test-database` + `make local-migrate-test` when host defaults do not match.
+- Security audit commands currently report advisories. Remediation is tracked as follow-up tickets below.
+
+Audit follow-up tickets:
+
+- `SEC-FE-001`: Upgrade `axios`/`follow-redirects` chain in `frontend/` and re-run `make audit-frontend`.
+- `SEC-FE-002`: Upgrade `next`/`postcss` in `frontend/` and validate app-router/cache related advisories.
+- `SEC-FE-003`: Evaluate `react-use` major upgrade path required to remediate `js-cookie` advisory.
+- `SEC-BE-001`: Upgrade Symfony components to patched ranges (`>=7.4.12` where applicable) and re-run `make audit-backend`.
+- `SEC-BE-002`: Upgrade `twig/twig` to `>=3.26.0` and validate template/sandbox compatibility.
+- `SEC-BE-003`: Upgrade `league/commonmark` and re-verify markdown sanitization behavior.
+- `SEC-BE-004`: Upgrade dev dependency `phpunit/phpunit` to a patched version and re-run backend checks.
 
 Future tickets should address these failures directly instead of hiding them from validation commands.
 

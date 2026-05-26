@@ -199,7 +199,7 @@ class ModerationController extends AbstractController
                 }
             }
 
-            return array_values($normalized);
+            return $normalized;
         }
 
         return [];

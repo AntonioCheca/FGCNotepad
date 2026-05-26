@@ -14,11 +14,12 @@ class PostRepositoryTest extends DatabaseTestCase
     {
         parent::setUp();
 
-        /** @var PostRepository postRepository */
-        $this->postRepository = $this->entityManager->getRepository(Post::class);
+        /** @var PostRepository $repository */
+        $repository = $this->entityManager->getRepository(Post::class);
+        $this->postRepository = $repository;
     }
 
-    public function testFindPaginatedBasic()
+    public function testFindPaginatedBasic(): void
     {
         $expectedSql = <<< SQL
         SELECT fp.id as id, fu.username as author, fp.title as title, ARRAY_AGG(tagg.name) as tags

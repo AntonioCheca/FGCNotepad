@@ -12,7 +12,7 @@ class ComponentNormalizer implements NormalizerInterface
         /** @var Component $object */
         return [
             'id' => $object->getId(),
-            'name' => $object->getName(),
+            'type' => strtolower((new \ReflectionClass($object))->getShortName()),
         ];
     }
 

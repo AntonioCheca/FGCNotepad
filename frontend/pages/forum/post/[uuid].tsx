@@ -58,7 +58,7 @@ export default function PostPage() {
         return () => {
             isMounted = false; // Prevent updating state if unmounted
         };
-    }, [router.isReady, safeUuid, user?.token]);
+    }, [getSpecificPost, router.isReady, safeUuid, user?.token]);
 
 
     if (loading) return <AppCircularProgress sx={{display: "block", margin: "auto", mt: 4}}/>;

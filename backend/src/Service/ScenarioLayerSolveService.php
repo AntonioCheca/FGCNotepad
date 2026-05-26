@@ -63,9 +63,6 @@ class ScenarioLayerSolveService
     }
 
     /**
-     * @param list<ScenarioRow> $rows
-     * @param list<ScenarioColumn> $columns
-     *
      * @return array<int, array<int, ScenarioCell>>
      */
     private function buildCellCoordinateMap(Scenario $scenario): array

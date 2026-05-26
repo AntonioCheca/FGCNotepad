@@ -14,6 +14,8 @@ class ComboRequirementNormalizer implements NormalizerInterface
     public function normalize($object, $format = null, array $context = []): array
     {
         /** @var ComboRequirement $object */
+        $specificCharacter = $object->getRequirementSpecificCharacter();
+
         return [
             'id' => $object->getId(),
             'counter_hit_required' => $object->isCounterHitRequired(),
@@ -22,10 +24,10 @@ class ComboRequirementNormalizer implements NormalizerInterface
             'airborne_required' => $object->isAirborneRequired(),
             'mid_screen_required' => $object->isMidScreenRequired(),
             'not_crouching_required' => $object->isNotCrouchingRequired(),
-            'requirement_specific_character' => $object->getRequirementSpecificCharacter() ? [
-                'id' => $object->getRequirementSpecificCharacter()?->getId(),
-                'object_name' => $object->getRequirementSpecificCharacter()?->getObjectName(),
-                'status_required' => $object->getRequirementSpecificCharacter()?->getStatusRequired(),
+            'requirement_specific_character' => null !== $specificCharacter ? [
+                'id' => $specificCharacter->getId(),
+                'object_name' => $specificCharacter->getObjectName(),
+                'status_required' => $specificCharacter->getStatusRequired(),
             ] : null,
         ];
     }

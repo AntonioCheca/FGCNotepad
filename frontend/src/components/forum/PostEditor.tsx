@@ -1,4 +1,4 @@
-import {ChangeEvent, useState, useEffect} from "react";
+import {ChangeEvent, useState, useEffect, useCallback} from "react";
 import {LexicalComposer} from "@lexical/react/LexicalComposer";
 import {RichTextPlugin} from "@lexical/react/LexicalRichTextPlugin";
 import {ContentEditable} from "@lexical/react/LexicalContentEditable";
@@ -94,14 +94,14 @@ export default function PostEditor({
         editable: editable
     };
 
-    const loadDataFromLocalStorage = () => {
+    const loadDataFromLocalStorage = useCallback(() => {
         if (editable) {
             const savedTitle = localStorage.getItem("postDraftTitle");
             const savedBody = localStorage.getItem("postDraftBody");
             if (savedTitle) setTitle(savedTitle);
             if (savedBody) setBody(savedBody);
         }
-    };
+    }, [editable]);
 
     useEffect(() => {
         loadDataFromLocalStorage();

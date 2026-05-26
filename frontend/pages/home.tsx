@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {PostList} from "@/src/components/forum/PostList";
 import {Post} from "@/src/components/forum/PostItem";
 import SearchBar from "@/src/components/forum/SearchBar";
@@ -17,7 +17,7 @@ const HomePage = () => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const loadPosts = async (searchParams: PostSearchParams) => {
+    const loadPosts = useCallback(async (searchParams: PostSearchParams) => {
         try {
             setLoading(true);
             const {textQuery, includedTags, excludedTags} = searchParams;
@@ -28,11 +28,11 @@ const HomePage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [fetchPosts]);
 
     useEffect(() => {
         loadPosts({textQuery: "", includedTags: [], excludedTags: []});
-    }, []);
+    }, [loadPosts]);
 
     return (
         <AppContainer maxWidth="md">

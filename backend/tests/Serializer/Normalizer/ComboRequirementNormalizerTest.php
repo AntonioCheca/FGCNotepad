@@ -41,7 +41,6 @@ class ComboRequirementNormalizerTest extends KernelTestCase
         $normalizer = new ComboRequirementNormalizer();
         $data = $normalizer->normalize($requirement);
 
-        $this->assertIsArray($data);
         $this->assertTrue($data['counter_hit_required']);
         $this->assertFalse($data['punish_counter_required']);
         $this->assertTrue($data['corner_required']);
