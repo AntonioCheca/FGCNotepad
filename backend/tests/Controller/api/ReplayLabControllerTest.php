@@ -61,14 +61,14 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         self::assertSame(10, $payload['maxClipDurationSeconds'] ?? null);
     }
 
-    public function testLocalMkvReplayCanBeImportedWithoutMultipartUpload(): void
+    public function testLocalMp4ReplayCanBeImportedWithoutMultipartUpload(): void
     {
         $importDirectory = dirname(__DIR__, 3) . '/var/replay-imports';
         if (!is_dir($importDirectory)) {
             mkdir($importDirectory, 0775, true);
         }
-        $sourcePath = $importDirectory . '/local-heavy-replay.mkv';
-        file_put_contents($sourcePath, "\x1A\x45\xDF\xA3matroska-video-bytes");
+        $sourcePath = $importDirectory . '/local-heavy-replay.mp4';
+        file_put_contents($sourcePath, "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isomvideo-bytes");
 
         $this->client->request('GET', '/api/replay-video-imports', [], [], $this->getHeaders());
 
@@ -76,13 +76,13 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         $files = $this->decodeResponsePayload();
         $candidate = null;
         foreach ($files as $file) {
-            if (is_array($file) && 'local-heavy-replay.mkv' === ($file['filename'] ?? null)) {
+            if (is_array($file) && 'local-heavy-replay.mp4' === ($file['filename'] ?? null)) {
                 $candidate = $file;
                 break;
             }
         }
         self::assertIsArray($candidate);
-        self::assertSame('video/x-matroska', $candidate['mimeType'] ?? null);
+        self::assertSame('video/mp4', $candidate['mimeType'] ?? null);
 
         $this->client->request('POST', sprintf('/api/replay-video-imports/%s', $candidate['id']), [], [], $this->jsonHeaders(), json_encode([
             'fps' => 60,
@@ -91,9 +91,33 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
 
         self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
         $video = $this->decodeResponsePayload();
-        self::assertSame('local-heavy-replay.mkv', $video['originalFilename'] ?? null);
-        self::assertSame('video/x-matroska', $video['mimeType'] ?? null);
+        self::assertSame('local-heavy-replay.mp4', $video['originalFilename'] ?? null);
+        self::assertSame('video/mp4', $video['mimeType'] ?? null);
         self::assertFalse(is_file($sourcePath));
+    }
+
+    public function testLocalMkvReplayIsNotImportable(): void
+    {
+        $importDirectory = dirname(__DIR__, 3) . '/var/replay-imports';
+        if (!is_dir($importDirectory)) {
+            mkdir($importDirectory, 0775, true);
+        }
+        $sourcePath = $importDirectory . '/blocked-replay.mkv';
+        file_put_contents($sourcePath, "\x1A\x45\xDF\xA3matroska-video-bytes");
+
+        try {
+            $this->client->request('GET', '/api/replay-video-imports', [], [], $this->getHeaders());
+
+            self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+            $files = $this->decodeResponsePayload();
+            foreach ($files as $file) {
+                self::assertNotSame('blocked-replay.mkv', is_array($file) ? ($file['filename'] ?? null) : null);
+            }
+        } finally {
+            if (is_file($sourcePath)) {
+                unlink($sourcePath);
+            }
+        }
     }
 
     public function testReplayVideoPlaybackReturnsOwnedMedia(): void
@@ -162,7 +186,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
     public function testLocalFileReplayVideoCanCreateReviewSessionWithoutUploadingOriginal(): void
     {
         $this->client->request('POST', '/api/replay-videos/local-file', [], [], $this->jsonHeaders(), json_encode([
-            'filename' => 'local-source.mkv',
+            'filename' => 'local-source.mp4',
             'sizeBytes' => 123456789,
             'fps' => 60,
         ]));
@@ -170,7 +194,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
         $video = $this->decodeResponsePayload();
         self::assertSame('local_file', $video['sourceType'] ?? null);
-        self::assertSame('local-source.mkv', $video['originalFilename'] ?? null);
+        self::assertSame('local-source.mp4', $video['originalFilename'] ?? null);
         self::assertSame('video/local-file', $video['mimeType'] ?? null);
         self::assertNull($video['deleteAfter'] ?? null);
 
@@ -182,6 +206,17 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
         $session = $this->decodeResponsePayload();
         self::assertSame('local_file', $session['video']['sourceType'] ?? null);
+    }
+
+    public function testLocalFileReplayVideoRejectsMkvMetadata(): void
+    {
+        $this->client->request('POST', '/api/replay-videos/local-file', [], [], $this->jsonHeaders(), json_encode([
+            'filename' => 'local-source.mkv',
+            'sizeBytes' => 123456789,
+            'fps' => 60,
+        ]));
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
     public function testYouTubeReplayPlaybackEndpointRejectsIframeSources(): void

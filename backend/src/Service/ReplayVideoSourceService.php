@@ -53,6 +53,10 @@ final class ReplayVideoSourceService
             throw new BadRequestHttpException('filename is required.');
         }
 
+        if (!str_ends_with(strtolower($trimmedFilename), '.mp4')) {
+            throw new BadRequestHttpException('Only MP4 replay files are supported. Convert MKV files to MP4 before review.');
+        }
+
         if ($sizeBytes <= 0) {
             throw new BadRequestHttpException('sizeBytes must be greater than 0.');
         }

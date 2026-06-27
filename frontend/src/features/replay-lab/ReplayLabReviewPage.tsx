@@ -65,6 +65,10 @@ function formatTimestamp(milliseconds: number): string {
     return `${(milliseconds / 1000).toFixed(3)}s`;
 }
 
+function isMp4File(file: File): boolean {
+    return file.name.toLowerCase().endsWith(".mp4") || file.type === "video/mp4";
+}
+
 function humanizeCategory(category: string): string {
     return category.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -92,6 +96,123 @@ function shouldIgnoreShortcut(event: KeyboardEvent): boolean {
     }
 
     return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
+}
+
+function percentageAt(milliseconds: number, durationMs: number): number {
+    if (durationMs <= 0) {
+        return 0;
+    }
+
+    return Math.max(0, Math.min(100, (milliseconds / durationMs) * 100));
+}
+
+interface ReplayTimelineProps {
+    annotations: ReplayAnnotation[];
+    clipStartMs: number | null;
+    clipEndMs: number | null;
+    cursorMs: number;
+    durationMs: number;
+    onSeek: (timeMs: number) => void;
+}
+
+function ReplayTimeline({annotations, clipStartMs, clipEndMs, cursorMs, durationMs, onSeek}: ReplayTimelineProps) {
+    const draftStart = clipStartMs !== null && clipEndMs !== null ? Math.min(clipStartMs, clipEndMs) : null;
+    const draftEnd = clipStartMs !== null && clipEndMs !== null ? Math.max(clipStartMs, clipEndMs) : null;
+
+    return (
+        <AppBox sx={{display: "grid"}}>
+            <AppBox
+                role="slider"
+                aria-label="Replay timeline"
+                aria-valuemin={0}
+                aria-valuemax={Math.max(0, durationMs)}
+                aria-valuenow={Math.max(0, Math.min(durationMs, cursorMs))}
+                tabIndex={0}
+                onClick={(event) => {
+                    if (durationMs <= 0) {
+                        return;
+                    }
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    onSeek(Math.round(((event.clientX - rect.left) / rect.width) * durationMs));
+                }}
+                sx={(theme) => ({
+                    position: "relative",
+                    height: 18,
+                    overflow: "hidden",
+                    cursor: durationMs > 0 ? "pointer" : "default",
+                    borderRadius: 999,
+                    border: "1px solid",
+                    borderColor: theme.fgc.border.strong,
+                    backgroundColor: theme.fgc.surface.sunken,
+                    boxShadow: `inset 0 0 0 1px ${theme.fgc.border.default}`,
+                })}
+            >
+                {annotations.map((annotation) => {
+                    const left = percentageAt(annotation.startTimeMs, durationMs);
+                    const width = Math.max(0.6, percentageAt(annotation.endTimeMs - annotation.startTimeMs, durationMs));
+
+                    return (
+                        <AppBox
+                            key={annotation.id}
+                            title={`${annotation.title || humanizeCategory(annotation.category)} ${formatTimestamp(annotation.startTimeMs)} - ${formatTimestamp(annotation.endTimeMs)}`}
+                            sx={(theme) => ({
+                                position: "absolute",
+                                top: 2,
+                                bottom: 2,
+                                left: `${left}%`,
+                                width: `${width}%`,
+                                borderRadius: 999,
+                                backgroundColor: annotation.exportedClip ? theme.fgc.feedback.success : theme.fgc.selection.active,
+                                border: `1px solid ${annotation.exportedClip ? theme.fgc.feedback.success : theme.fgc.focus.outline}`,
+                            })}
+                        />
+                    );
+                })}
+                {draftStart !== null && draftEnd !== null ? (
+                    <AppBox
+                        title={`Draft ${formatTimestamp(draftStart)} - ${formatTimestamp(draftEnd)}`}
+                        sx={(theme) => ({
+                            position: "absolute",
+                            top: 1,
+                            bottom: 1,
+                            left: `${percentageAt(draftStart, durationMs)}%`,
+                            width: `${Math.max(0.8, percentageAt(draftEnd - draftStart, durationMs))}%`,
+                            borderRadius: 999,
+                            backgroundColor: theme.fgc.feedback.warning,
+                            border: `1px solid ${theme.fgc.feedback.warning}`,
+                            boxShadow: `0 0 0 2px ${theme.fgc.surface.base}`,
+                        })}
+                    />
+                ) : null}
+                {clipStartMs !== null && clipEndMs === null ? (
+                    <AppBox
+                        title={`Start ${formatTimestamp(clipStartMs)}`}
+                        sx={(theme) => ({
+                            position: "absolute",
+                            top: -1,
+                            bottom: -1,
+                            left: `${percentageAt(clipStartMs, durationMs)}%`,
+                            width: 3,
+                            borderRadius: 999,
+                            backgroundColor: theme.fgc.feedback.warning,
+                            boxShadow: `0 0 0 1px ${theme.fgc.surface.base}, 0 0 10px ${theme.fgc.feedback.warning}`,
+                        })}
+                    />
+                ) : null}
+                <AppBox
+                    sx={(theme) => ({
+                        position: "absolute",
+                        top: 0,
+                        bottom: 0,
+                        left: `${percentageAt(cursorMs, durationMs)}%`,
+                        width: 2,
+                        backgroundColor: theme.fgc.action.primary,
+                        boxShadow: `0 0 0 1px ${theme.fgc.surface.base}`,
+                    })}
+                />
+            </AppBox>
+        </AppBox>
+    );
 }
 
 export function ReplayLabReviewPage() {
@@ -126,10 +247,10 @@ export function ReplayLabReviewPage() {
     const [playbackUrl, setPlaybackUrl] = React.useState<string | null>(null);
     const [playerLoading, setPlayerLoading] = React.useState(false);
     const [startingWorkflow, setStartingWorkflow] = React.useState<WorkflowMode | null>(null);
-    const [playbackPosition, setPlaybackPosition] = React.useState({timeMs: 0, frame: 0});
+    const [playbackPosition, setPlaybackPosition] = React.useState({timeMs: 0, frame: 0, durationMs: 0});
     const [clipStartMs, setClipStartMs] = React.useState<number | null>(null);
     const [clipEndMs, setClipEndMs] = React.useState<number | null>(null);
-    const [seekToMs, setSeekToMs] = React.useState<number | null>(null);
+    const [seekCommand, setSeekCommand] = React.useState<{id: number; timeMs: number} | null>(null);
     const [eventKind, setEventKind] = React.useState<ReplayAnnotationEventKind>("memory");
     const [category, setCategory] = React.useState<ReplayAnnotationCategory>(defaultCategory("memory"));
     const [annotationTitle, setAnnotationTitle] = React.useState("");
@@ -218,6 +339,9 @@ export function ReplayLabReviewPage() {
                 if (!file) {
                     throw new Error(`Select the local source file "${video.originalFilename}" before opening this review.`);
                 }
+                if (!isMp4File(file)) {
+                    throw new Error("Only MP4 files are supported. Convert MKV files to MP4 before review.");
+                }
                 objectUrl = URL.createObjectURL(file);
             } else if (video.sourceType !== "youtube") {
                 objectUrl = URL.createObjectURL(await fetchVideoPlaybackBlob(video.id));
@@ -244,6 +368,10 @@ export function ReplayLabReviewPage() {
             setError("Choose a local replay file before starting review.");
             return;
         }
+        if (!isMp4File(localSourceFile)) {
+            setError("Only MP4 files are supported. Convert MKV files to MP4 before review.");
+            return;
+        }
 
         setError(null);
         setNotice(null);
@@ -265,6 +393,10 @@ export function ReplayLabReviewPage() {
         event.preventDefault();
         if (!localSourceFile) {
             setError("Choose the matching local original file before starting a coaching review.");
+            return;
+        }
+        if (!isMp4File(localSourceFile)) {
+            setError("Only MP4 files are supported. Convert MKV files to MP4 before review.");
             return;
         }
         if (!youtubeUrl.trim()) {
@@ -356,7 +488,7 @@ export function ReplayLabReviewPage() {
         setTaskScheduleType("once");
         setTaskOccurrences("1");
         setTaskDueDate("");
-        setSeekToMs(annotation.startTimeMs);
+        setSeekCommand({id: Date.now(), timeMs: annotation.startTimeMs});
     };
 
     const submitAnnotation = async () => {
@@ -502,7 +634,8 @@ export function ReplayLabReviewPage() {
         setAnnotations([]);
         setShareLinks([]);
         setCreatedShareLink(null);
-        setPlaybackPosition({timeMs: 0, frame: 0});
+        setPlaybackPosition({timeMs: 0, frame: 0, durationMs: 0});
+        setSeekCommand(null);
         setPlaybackUrl((current) => {
             if (current) {
                 URL.revokeObjectURL(current);
@@ -560,7 +693,7 @@ export function ReplayLabReviewPage() {
             if (event.key.toLowerCase() === "g") {
                 event.preventDefault();
                 if (clipStartMs !== null) {
-                    setSeekToMs(clipStartMs);
+                    setSeekCommand({id: Date.now(), timeMs: clipStartMs});
                 }
                 return;
             }
@@ -582,8 +715,18 @@ export function ReplayLabReviewPage() {
         <>
             <AppButton type="button" variant="outlined" disabled={!canMarkRange} onClick={markClipStart}>Set Start</AppButton>
             <AppButton type="button" variant="outlined" disabled={!canMarkRange} onClick={markClipEnd}>Set End</AppButton>
-            <AppButton type="button" variant="outlined" disabled={clipStartMs === null} onClick={() => clipStartMs !== null && setSeekToMs(clipStartMs)}>Go Start</AppButton>
+            <AppButton type="button" variant="outlined" disabled={clipStartMs === null} onClick={() => clipStartMs !== null && setSeekCommand({id: Date.now(), timeMs: clipStartMs})}>Go Start</AppButton>
         </>
+    );
+    const timeline = (
+        <ReplayTimeline
+            annotations={annotations}
+            clipStartMs={clipStartMs}
+            clipEndMs={clipEndMs}
+            cursorMs={playbackPosition.timeMs}
+            durationMs={playbackPosition.durationMs || selectedVideo?.durationMs || 0}
+            onSeek={(timeMs) => setSeekCommand({id: Date.now(), timeMs})}
+        />
     );
 
     return (
@@ -595,7 +738,6 @@ export function ReplayLabReviewPage() {
             <AppStack spacing={1.5}>
                 {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
                 {notice ? <AppAlert severity="success" onClose={() => setNotice(null)}>{notice}</AppAlert> : null}
-
                 {!isEditorOpen ? (
                     <AppBox sx={{display: "grid", gap: 1.5}}>
                         <SectionCard title="Choose source file" description="Required for both Local Review and Coaching Review." tone="raised" variant="input">
@@ -603,8 +745,8 @@ export function ReplayLabReviewPage() {
                                 {limits ? <AppAlert severity="info">Exports are limited to {limits.maxClipDurationSeconds}s clips. Original videos are not uploaded.</AppAlert> : null}
                                 <AppStack direction={{xs: "column", sm: "row"}} spacing={1} alignItems={{xs: "stretch", sm: "center"}}>
                                     <AppButton type="button" component="label" variant="outlined">
-                                        Select Local MP4/MKV
-                                        <input hidden type="file" accept="video/mp4,video/x-matroska,.mkv,.mp4" onChange={(event) => setLocalSourceFile(event.target.files?.[0] ?? null)} />
+                                        Select Local MP4
+                                        <input hidden type="file" accept="video/mp4,.mp4" onChange={(event) => setLocalSourceFile(event.target.files?.[0] ?? null)} />
                                     </AppButton>
                                     <AppTypography color="text.secondary">
                                         {localSourceFile ? `${localSourceFile.name} (${formatBytes(localSourceFile.size)})` : "No local source selected"}
@@ -670,23 +812,86 @@ export function ReplayLabReviewPage() {
                             </AppStack>
                         </AppStack>
 
-                        <AppBox
-                            sx={(theme) => ({
-                                display: "grid",
-                                gap: 0.75,
-                                px: {xs: 0, md: 0.5},
-                                py: {xs: 0, md: 0.25},
-                                borderRadius: 1.5,
-                                backgroundColor: theme.fgc.surface.base,
-                            })}
-                        >
-                            {playerLoading ? <AppAlert severity="info">Loading player...</AppAlert> : null}
-                            {selectedVideo?.sourceType === "youtube" ? (
-                                <ReplayYouTubePlayer videoId={selectedVideo.youtubeVideoId} fps={60} title={selectedVideo.originalFilename} seekToMs={seekToMs} onPlaybackPositionChange={setPlaybackPosition} controlsAddon={markerControls} />
-                            ) : (
-                                <ReplayVideoPlayer src={playbackUrl} title={selectedVideo?.originalFilename ?? "Replay playback"} seekToMs={seekToMs} onPlaybackPositionChange={setPlaybackPosition} controlsAddon={markerControls} />
-                            )}
-                            <AppTypography variant="caption" color="text.secondary">Mark shortcuts: I start, O end, G go start, S save.</AppTypography>
+                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(0, 0.9fr) minmax(340px, 420px)", xl: "minmax(0, 0.86fr) 440px"}, gap: 1, alignItems: "start"}}>
+                            <AppBox
+                                sx={(theme) => ({
+                                    display: "grid",
+                                    gap: 0.7,
+                                    px: {xs: 0, md: 0.5},
+                                    py: {xs: 0, md: 0.25},
+                                    borderRadius: 1.5,
+                                    backgroundColor: theme.fgc.surface.base,
+                                })}
+                            >
+                                {playerLoading ? <AppAlert severity="info">Loading player...</AppAlert> : null}
+                                {selectedVideo?.sourceType === "youtube" ? (
+                                    <ReplayYouTubePlayer videoId={selectedVideo.youtubeVideoId} fps={60} title={selectedVideo.originalFilename} seekCommand={seekCommand} onPlaybackPositionChange={setPlaybackPosition} timelineAddon={timeline} controlsAddon={markerControls} />
+                                ) : (
+                                    <ReplayVideoPlayer src={playbackUrl} title={selectedVideo?.originalFilename ?? "Replay playback"} seekCommand={seekCommand} onPlaybackPositionChange={setPlaybackPosition} timelineAddon={timeline} controlsAddon={markerControls} />
+                                )}
+                                <AppTypography variant="body2" color="text.secondary" sx={{width: {xs: "100%", md: "82%"}, mx: "auto"}}>Mark: I start, O end, G go start, S save.</AppTypography>
+                            </AppBox>
+
+                            <AppStack spacing={1} sx={{maxHeight: {lg: "calc(100vh - 190px)"}, overflow: {lg: "auto"}, pr: {lg: 0.25}}}>
+                                <SectionCard title="Annotation" description="Mark, describe, save." tone="raised" variant="input">
+                                    <AppStack spacing={0.75}>
+                                        <AppTypography variant="body2" color={clipDurationMs !== null && clipDurationMs > 10000 ? "error" : "text.secondary"}>
+                                            {clipStartMs === null ? "Start unset" : `Start ${formatTimestamp(clipStartMs)}`} - {clipEndMs === null ? "End unset" : `End ${formatTimestamp(clipEndMs)}`} - {clipDurationMs === null ? "No duration" : formatTimestamp(Math.max(0, clipDurationMs))}
+                                        </AppTypography>
+                                        <AppBox sx={{display: "grid", gridTemplateColumns: "0.72fr 1fr", gap: 0.75}}>
+                                            <AppTextField select label="Type" value={eventKind} onChange={(event) => handleEventKindChange(event.target.value as ReplayAnnotationEventKind)}>
+                                                <AppMenuItem value="memory">Memory</AppMenuItem>
+                                                <AppMenuItem value="task">Task</AppMenuItem>
+                                            </AppTextField>
+                                            <AppTextField select label="Category" value={category} onChange={(event) => setCategory(event.target.value as ReplayAnnotationCategory)}>
+                                                {categoriesFor(eventKind).map((item) => <AppMenuItem key={item} value={item}>{humanizeCategory(item)}</AppMenuItem>)}
+                                            </AppTextField>
+                                        </AppBox>
+                                        <AppTextField label={eventKind === "memory" ? "Prompt" : "Task"} value={annotationTitle} onChange={(event) => setAnnotationTitle(event.target.value)} />
+                                        <AppTextField label="Notes" value={annotationNotes} onChange={(event) => setAnnotationNotes(event.target.value)} multiline minRows={1} />
+                                        {eventKind === "memory" ? <AppTextField label="Answer" value={annotationAnswer} onChange={(event) => setAnnotationAnswer(event.target.value)} /> : null}
+                                        {eventKind === "task" ? (
+                                            <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 86px", gap: 0.75}}>
+                                                <AppTextField select label="Schedule" value={taskScheduleType} onChange={(event) => setTaskScheduleType(event.target.value as PracticeTaskScheduleType)}>
+                                                    <AppMenuItem value="once">Once</AppMenuItem>
+                                                    <AppMenuItem value="daily_for_n_days">Daily</AppMenuItem>
+                                                    <AppMenuItem value="weekly">Weekly</AppMenuItem>
+                                                    <AppMenuItem value="custom">Custom</AppMenuItem>
+                                                </AppTextField>
+                                                <AppTextField label="Reps" value={taskOccurrences} onChange={(event) => setTaskOccurrences(event.target.value)} inputProps={{inputMode: "numeric"}} />
+                                                <AppTextField label="First due" type="datetime-local" value={taskDueDate} onChange={(event) => setTaskDueDate(event.target.value)} InputLabelProps={{shrink: true}} sx={{gridColumn: "1 / -1"}} />
+                                            </AppBox>
+                                        ) : null}
+                                        <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                                            <AppButton type="button" disabled={!canSaveAnnotation || loading} onClick={() => void submitAnnotation()}>{editingAnnotationId ? "Update" : "Save"}</AppButton>
+                                            <AppButton type="button" variant="outlined" color="secondary" onClick={clearSelection}>Clear</AppButton>
+                                            {editingAnnotationId ? <AppButton type="button" variant="outlined" color="secondary" onClick={resetAnnotationForm}>Cancel</AppButton> : null}
+                                        </AppStack>
+                                    </AppStack>
+                                </SectionCard>
+
+                                <SectionCard title="Saved" description={`${annotations.length} marked clips.`} tone="sunken" variant="finalize">
+                                    <AppStack spacing={0.75}>
+                                        {exportResult ? <AppAlert severity={exportResult.failed > 0 ? "warning" : "success"}>Export summary: {exportResult.clipsCreated} clips, {exportResult.tasksCreated} tasks, {exportResult.studyCardsCreated} cards, {exportResult.failed} failed.</AppAlert> : null}
+                                        {annotations.length === 0 ? <AppTypography color="text.secondary">No annotations yet.</AppTypography> : null}
+                                        {annotations.map((annotation) => (
+                                            <AppBox key={annotation.id} sx={(theme) => ({display: "grid", gap: 0.5, p: 0.75, border: "1px solid", borderColor: annotation.exportedClip ? theme.fgc.border.strong : theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base})}>
+                                                <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                                    {annotation.exportedClip ? <AppChip size="small" color="success" label="Exported" /> : null}
+                                                    <AppChip size="small" variant="outlined" label={`${formatTimestamp(annotation.startTimeMs)} - ${formatTimestamp(annotation.endTimeMs)}`} />
+                                                </AppStack>
+                                                <AppTypography variant="subtitle2">{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
+                                                {annotation.exportError ? <AppTypography variant="caption" color="error">{annotation.exportError}</AppTypography> : null}
+                                                <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                                    <AppButton type="button" variant="outlined" size="small" onClick={() => setSeekCommand({id: Date.now(), timeMs: annotation.startTimeMs})}>Go</AppButton>
+                                                    <AppButton type="button" variant="outlined" size="small" disabled={Boolean(annotation.exportedClip)} onClick={() => editAnnotation(annotation)}>Edit</AppButton>
+                                                    <AppButton type="button" variant="outlined" color="error" size="small" disabled={Boolean(annotation.exportedClip)} onClick={() => void removeAnnotation(annotation.id)}>Delete</AppButton>
+                                                </AppStack>
+                                            </AppBox>
+                                        ))}
+                                    </AppStack>
+                                </SectionCard>
+                            </AppStack>
                         </AppBox>
 
                         {workflowMode === "coaching" ? (
@@ -709,67 +914,6 @@ export function ReplayLabReviewPage() {
                             </SectionCard>
                         ) : null}
 
-                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "minmax(360px, 420px) 1fr"}, gap: 1, alignItems: "start"}}>
-                            <SectionCard title="New annotation" description="Set a range, describe what matters, then save." tone="raised" variant="input">
-                                <AppStack spacing={0.85}>
-                                    <AppTypography color={clipDurationMs !== null && clipDurationMs > 10000 ? "error" : "text.secondary"}>
-                                        {clipStartMs === null ? "Start unset" : `Start ${formatTimestamp(clipStartMs)}`} - {clipEndMs === null ? "End unset" : `End ${formatTimestamp(clipEndMs)}`} - {clipDurationMs === null ? "No duration" : formatTimestamp(Math.max(0, clipDurationMs))}
-                                    </AppTypography>
-                                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "140px 1fr"}, gap: 1}}>
-                                        <AppTextField select label="Type" value={eventKind} onChange={(event) => handleEventKindChange(event.target.value as ReplayAnnotationEventKind)}>
-                                            <AppMenuItem value="memory">Memory</AppMenuItem>
-                                            <AppMenuItem value="task">Task</AppMenuItem>
-                                        </AppTextField>
-                                        <AppTextField select label="Category" value={category} onChange={(event) => setCategory(event.target.value as ReplayAnnotationCategory)}>
-                                            {categoriesFor(eventKind).map((item) => <AppMenuItem key={item} value={item}>{humanizeCategory(item)}</AppMenuItem>)}
-                                        </AppTextField>
-                                    </AppBox>
-                                    <AppTextField label={eventKind === "memory" ? "Prompt" : "Task"} value={annotationTitle} onChange={(event) => setAnnotationTitle(event.target.value)} />
-                                    <AppTextField label="Notes" value={annotationNotes} onChange={(event) => setAnnotationNotes(event.target.value)} multiline minRows={1} />
-                                    {eventKind === "memory" ? <AppTextField label="Answer" value={annotationAnswer} onChange={(event) => setAnnotationAnswer(event.target.value)} /> : null}
-                                    {eventKind === "task" ? (
-                                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 120px"}, gap: 1}}>
-                                            <AppTextField select label="Schedule" value={taskScheduleType} onChange={(event) => setTaskScheduleType(event.target.value as PracticeTaskScheduleType)}>
-                                                <AppMenuItem value="once">Once</AppMenuItem>
-                                                <AppMenuItem value="daily_for_n_days">Daily</AppMenuItem>
-                                                <AppMenuItem value="weekly">Weekly</AppMenuItem>
-                                                <AppMenuItem value="custom">Custom</AppMenuItem>
-                                            </AppTextField>
-                                            <AppTextField label="Reps" value={taskOccurrences} onChange={(event) => setTaskOccurrences(event.target.value)} inputProps={{inputMode: "numeric"}} />
-                                            <AppTextField label="First due" type="datetime-local" value={taskDueDate} onChange={(event) => setTaskDueDate(event.target.value)} InputLabelProps={{shrink: true}} sx={{gridColumn: {md: "1 / -1"}}} />
-                                        </AppBox>
-                                    ) : null}
-                                    <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                                        <AppButton type="button" disabled={!canSaveAnnotation || loading} onClick={() => void submitAnnotation()}>{editingAnnotationId ? "Update" : "Save"}</AppButton>
-                                        <AppButton type="button" variant="outlined" color="secondary" onClick={clearSelection}>Clear Range</AppButton>
-                                    </AppStack>
-                                    {editingAnnotationId ? <AppButton type="button" variant="outlined" color="secondary" onClick={resetAnnotationForm}>Cancel Edit</AppButton> : null}
-                                </AppStack>
-                            </SectionCard>
-
-                            <SectionCard title="Saved annotations" description={`${annotations.length} saved moments.`} tone="sunken" variant="finalize">
-                                <AppStack spacing={1}>
-                                    {exportResult ? <AppAlert severity={exportResult.failed > 0 ? "warning" : "success"}>Export summary: {exportResult.clipsCreated} clips, {exportResult.tasksCreated} tasks, {exportResult.studyCardsCreated} cards, {exportResult.failed} failed.</AppAlert> : null}
-                                    {annotations.length === 0 ? <AppTypography color="text.secondary">No annotations yet.</AppTypography> : null}
-                                    {annotations.map((annotation) => (
-                                        <AppBox key={annotation.id} sx={(theme) => ({display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr auto"}, gap: 1, alignItems: "center", p: 1, border: "1px solid", borderColor: annotation.exportedClip ? theme.fgc.border.strong : theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base})}>
-                                            <AppBox>
-                                                <AppTypography variant="subtitle2">{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
-                                                <AppTypography variant="body2" color="text.secondary">{formatTimestamp(annotation.startTimeMs)} - {formatTimestamp(annotation.endTimeMs)} - {annotation.eventKind === "memory" ? "Memory" : "Task"}</AppTypography>
-                                                {annotation.notes ? <AppTypography variant="body2" color="text.secondary">{annotation.notes}</AppTypography> : null}
-                                                {annotation.exportError ? <AppTypography variant="caption" color="error">{annotation.exportError}</AppTypography> : null}
-                                            </AppBox>
-                                            <AppStack direction="row" spacing={0.75} justifyContent={{xs: "flex-start", md: "flex-end"}} flexWrap="wrap" useFlexGap>
-                                                {annotation.exportedClip ? <AppChip size="small" color="success" label="Exported" /> : null}
-                                                <AppButton type="button" variant="outlined" size="small" onClick={() => setSeekToMs(annotation.startTimeMs)}>Go</AppButton>
-                                                <AppButton type="button" variant="outlined" size="small" disabled={Boolean(annotation.exportedClip)} onClick={() => editAnnotation(annotation)}>Edit</AppButton>
-                                                <AppButton type="button" variant="outlined" color="error" size="small" disabled={Boolean(annotation.exportedClip)} onClick={() => void removeAnnotation(annotation.id)}>Delete</AppButton>
-                                            </AppStack>
-                                        </AppBox>
-                                    ))}
-                                </AppStack>
-                            </SectionCard>
-                        </AppBox>
                     </AppBox>
                 )}
             </AppStack>

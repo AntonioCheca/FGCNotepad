@@ -15,11 +15,6 @@ final class LocalReplayImportService
     /** @var array<string, string> */
     private const ALLOWED_EXTENSIONS = [
         'mp4' => 'video/mp4',
-        'm4v' => 'video/mp4',
-        'webm' => 'video/webm',
-        'mov' => 'video/quicktime',
-        'qt' => 'video/quicktime',
-        'mkv' => 'video/x-matroska',
     ];
 
     public function __construct(

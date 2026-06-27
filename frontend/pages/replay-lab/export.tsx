@@ -46,6 +46,10 @@ function extensionFor(file: File): string {
     return extension && /^[a-z0-9]+$/.test(extension) ? extension : "mp4";
 }
 
+function isMp4File(file: File): boolean {
+    return file.name.toLowerCase().endsWith(".mp4") || file.type === "video/mp4";
+}
+
 function dataToBlob(data: Uint8Array | string): Blob {
     return new Blob([data], {type: "video/mp4"});
 }
@@ -117,6 +121,10 @@ export default function ReplayLabExportRoute() {
         }
         if (!file) {
             setError("Choose the local original replay file first.");
+            return;
+        }
+        if (!isMp4File(file)) {
+            setError("Only MP4 files are supported. Convert MKV files to MP4 before export.");
             return;
         }
 
@@ -206,7 +214,7 @@ export default function ReplayLabExportRoute() {
                         {selectedFileMismatch ? <AppAlert severity="warning">Selected file name does not match the source used to create this review.</AppAlert> : null}
                         <AppButton type="button" component="label" variant="outlined">
                             Select Local Source File
-                            <input hidden type="file" accept="video/mp4,video/x-matroska,.mkv,.mp4" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+                            <input hidden type="file" accept="video/mp4,.mp4" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
                         </AppButton>
                         <AppTypography color="text.secondary">{file ? `${file.name} (${formatBytes(file.size)})` : "No file selected"}</AppTypography>
                         <AppButton type="button" disabled={!session || !file || selectedFileMismatch || ["loading", "exporting", "uploading", "finalizing"].includes(status)} onClick={() => void runExport()}>

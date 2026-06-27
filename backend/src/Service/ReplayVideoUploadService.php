@@ -16,10 +16,6 @@ final class ReplayVideoUploadService
      */
     private const ALLOWED_MIME_TYPES = [
         'video/mp4',
-        'video/webm',
-        'video/quicktime',
-        'video/x-matroska',
-        'video/matroska',
     ];
 
     public function __construct(
@@ -75,7 +71,7 @@ final class ReplayVideoUploadService
 
         $mimeType = $this->resolveMimeType($file);
         if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
-            throw new BadRequestHttpException('Replay file type is not supported.');
+            throw new BadRequestHttpException('Only MP4 replay files are supported. Convert MKV files to MP4 before review.');
         }
 
         if (null !== $fps && ($fps <= 0.0 || $fps > 240.0)) {
@@ -117,10 +113,7 @@ final class ReplayVideoUploadService
     private function mimeTypeFromExtension(string $extension): ?string
     {
         return match (strtolower($extension)) {
-            'mp4', 'm4v' => 'video/mp4',
-            'webm' => 'video/webm',
-            'mov', 'qt' => 'video/quicktime',
-            'mkv' => 'video/x-matroska',
+            'mp4' => 'video/mp4',
             default => null,
         };
     }

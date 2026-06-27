@@ -60,10 +60,10 @@ export function ReplayLabSharedReviewPage() {
     const [review, setReview] = React.useState<SharedReplayReviewResponse | null>(null);
     const [annotations, setAnnotations] = React.useState<ReplayAnnotation[]>([]);
     const [playbackUrl, setPlaybackUrl] = React.useState<string | null>(null);
-    const [playbackPosition, setPlaybackPosition] = React.useState({timeMs: 0, frame: 0});
+    const [playbackPosition, setPlaybackPosition] = React.useState({timeMs: 0, frame: 0, durationMs: 0});
     const [clipStartMs, setClipStartMs] = React.useState<number | null>(null);
     const [clipEndMs, setClipEndMs] = React.useState<number | null>(null);
-    const [seekToMs, setSeekToMs] = React.useState<number | null>(null);
+    const [seekCommand, setSeekCommand] = React.useState<{id: number; timeMs: number} | null>(null);
     const [eventKind, setEventKind] = React.useState<ReplayAnnotationEventKind>("memory");
     const [category, setCategory] = React.useState<ReplayAnnotationCategory>(defaultCategory("memory"));
     const [title, setTitle] = React.useState("");
@@ -192,7 +192,7 @@ export function ReplayLabSharedReviewPage() {
                                 videoId={review.session.video.youtubeVideoId}
                                 fps={review.session.video.fps ?? 60}
                                 title={review.session.title}
-                                seekToMs={seekToMs}
+                                seekCommand={seekCommand}
                                 onPlaybackPositionChange={setPlaybackPosition}
                             />
                         ) : (
@@ -200,7 +200,7 @@ export function ReplayLabSharedReviewPage() {
                                 src={playbackUrl}
                                 fps={review?.session.video?.fps ?? 60}
                                 title={review?.session.title ?? "Shared replay playback"}
-                                seekToMs={seekToMs}
+                                seekCommand={seekCommand}
                                 onPlaybackPositionChange={setPlaybackPosition}
                             />
                         )}
@@ -210,7 +210,7 @@ export function ReplayLabSharedReviewPage() {
                             <AppChip label={`Frame ~${playbackPosition.frame}`} size="small" variant="outlined" />
                             <AppButton type="button" variant="outlined" disabled={!review} onClick={() => setClipStartMs(playbackPosition.timeMs)}>Mark Start</AppButton>
                             <AppButton type="button" variant="outlined" disabled={!review} onClick={() => setClipEndMs(playbackPosition.timeMs)}>Mark End</AppButton>
-                            <AppButton type="button" variant="outlined" disabled={clipStartMs === null} onClick={() => clipStartMs !== null && setSeekToMs(clipStartMs)}>Go Start</AppButton>
+                            <AppButton type="button" variant="outlined" disabled={clipStartMs === null} onClick={() => clipStartMs !== null && setSeekCommand({id: Date.now(), timeMs: clipStartMs})}>Go Start</AppButton>
                             <AppButton type="button" variant="outlined" color="secondary" onClick={clearSelection}>Clear</AppButton>
                         </AppStack>
                         <AppAlert severity={clipDurationMs !== null && clipDurationMs > 10000 ? "warning" : "info"}>
@@ -266,7 +266,7 @@ export function ReplayLabSharedReviewPage() {
                                 </AppStack>
                                 <AppTypography variant="subtitle2">{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
                                 {annotation.notes ? <AppTypography variant="body2" color="text.secondary">{annotation.notes}</AppTypography> : null}
-                                <AppButton type="button" variant="outlined" size="small" onClick={() => setSeekToMs(annotation.startTimeMs)}>Go To Clip</AppButton>
+                                <AppButton type="button" variant="outlined" size="small" onClick={() => setSeekCommand({id: Date.now(), timeMs: annotation.startTimeMs})}>Go To Clip</AppButton>
                             </AppBox>
                         ))}
                     </AppStack>
