@@ -6,9 +6,11 @@ import {
     PendingActionsIcon,
     SearchOutlinedIcon,
     SettingsOutlinedIcon,
+    ScheduleIcon,
     SportsKabaddiOutlinedIcon,
     SportsMartialArtsOutlinedIcon,
     SportsMmaIcon,
+    TimelineIcon,
 } from "@/src/components/ui/AppIcons";
 
 export const navigationSections: NavigationSection[] = [
@@ -54,6 +56,29 @@ export const navigationSections: NavigationSection[] = [
                 label: "Create Scenario",
                 href: "/scenarios/new",
                 icon: <SportsKabaddiOutlinedIcon/>
+            }
+        ]
+    },
+    {
+        title: "Replay Lab",
+        items: [
+            {
+                label: "Review Replays",
+                href: "/replay-lab",
+                icon: <TimelineIcon/>,
+                requiresAuth: true,
+            },
+            {
+                label: "Practice Tasks",
+                href: "/replay-lab/practice-tasks",
+                icon: <PendingActionsIcon/>,
+                requiresAuth: true,
+            },
+            {
+                label: "Study Deck",
+                href: "/replay-lab/study-deck",
+                icon: <ScheduleIcon/>,
+                requiresAuth: true,
             }
         ]
     },

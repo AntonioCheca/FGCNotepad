@@ -1,6 +1,18 @@
 parameters:
     app.combo_resource.drive_bar_value: 200.0
     app.combo_resource.super_bar_value: 500.0
+    app.replay_storage.default_local_root: '%kernel.project_dir%/var/replay-storage'
+    app.replay_storage.default_import_directory: '%kernel.project_dir%/var/replay-imports'
+    app.replay_storage.default_max_size_bytes: 3221225472
+    app.replay_storage.default_max_duration_seconds: 600
+    app.replay_storage.default_retention_days: 14
+    app.replay_storage.default_clip_max_duration_seconds: 10
+    app.replay_storage.default_max_temporary_replays_per_user: 20
+    app.replay_storage.default_max_temporary_replay_storage_bytes_per_user: 1073741824
+    app.replay_storage.default_max_clips_per_user: 500
+    app.replay_storage.default_max_clip_storage_bytes_per_user: 1073741824
+    app.replay_storage.default_orphan_clip_retention_days: 1
+    app.replay_storage.default_ffmpeg_binary: 'ffmpeg'
 
 services:
     _defaults:
@@ -38,6 +50,35 @@ services:
     App\Service\ScenarioLayerSolveService:
         arguments:
             $cachePool: '@cache.app'
+    App\Service\ReplayStorage\LocalVideoStorage:
+        arguments:
+            $rootDirectory: '%env(default:app.replay_storage.default_local_root:REPLAY_STORAGE_LOCAL_ROOT)%'
+    App\Service\ReplayStorage\VideoStorageInterface: '@App\Service\ReplayStorage\LocalVideoStorage'
+    App\Service\ReplayStorage\LocalVideoPathResolver: '@App\Service\ReplayStorage\LocalVideoStorage'
+    App\Service\ReplayVideoUploadService:
+        arguments:
+            $retentionDays: '%env(default:app.replay_storage.default_retention_days:int:REPLAY_RETENTION_DAYS)%'
+    App\Service\LocalReplayImportService:
+        arguments:
+            $importDirectory: '%env(default:app.replay_storage.default_import_directory:REPLAY_IMPORT_DIRECTORY)%'
+            $retentionDays: '%env(default:app.replay_storage.default_retention_days:int:REPLAY_RETENTION_DAYS)%'
+    App\Service\ReplayLabLimits:
+        arguments:
+            $maxReplaySizeBytes: '%env(default:app.replay_storage.default_max_size_bytes:int:REPLAY_MAX_SIZE_BYTES)%'
+            $maxReplayDurationSeconds: '%env(default:app.replay_storage.default_max_duration_seconds:int:REPLAY_MAX_DURATION_SECONDS)%'
+            $maxTemporaryReplaysPerUser: '%env(default:app.replay_storage.default_max_temporary_replays_per_user:int:REPLAY_MAX_TEMPORARY_REPLAYS_PER_USER)%'
+            $maxTemporaryReplayStorageBytesPerUser: '%env(default:app.replay_storage.default_max_temporary_replay_storage_bytes_per_user:int:REPLAY_MAX_TEMPORARY_STORAGE_BYTES_PER_USER)%'
+            $maxClipDurationSeconds: '%env(default:app.replay_storage.default_clip_max_duration_seconds:int:REPLAY_CLIP_MAX_DURATION_SECONDS)%'
+            $maxClipsPerUser: '%env(default:app.replay_storage.default_max_clips_per_user:int:REPLAY_MAX_CLIPS_PER_USER)%'
+            $maxClipStorageBytesPerUser: '%env(default:app.replay_storage.default_max_clip_storage_bytes_per_user:int:REPLAY_MAX_CLIP_STORAGE_BYTES_PER_USER)%'
+    App\Service\ReplayLabCleanupService:
+        arguments:
+            $orphanClipRetentionDays: '%env(default:app.replay_storage.default_orphan_clip_retention_days:int:REPLAY_ORPHAN_CLIP_RETENTION_DAYS)%'
+    App\Service\FfmpegReplayClipGenerator:
+        arguments:
+            $ffmpegBinary: '%env(default:app.replay_storage.default_ffmpeg_binary:FFMPEG_BINARY)%'
+            $maxClipDurationSeconds: '%env(default:app.replay_storage.default_clip_max_duration_seconds:int:REPLAY_CLIP_MAX_DURATION_SECONDS)%'
+    App\Service\ReplayClipGeneratorInterface: '@App\Service\FfmpegReplayClipGenerator'
     App\Serializer\Normalizer\:
         resource: '../src/Serializer/Normalizer'
         tags:
@@ -53,3 +94,7 @@ services:
             - { name: serializer.denormalizer, priority: 100 }
 
 
+when@test:
+    services:
+        App\Tests\Service\FakeReplayClipGenerator: ~
+        App\Service\ReplayClipGeneratorInterface: '@App\Tests\Service\FakeReplayClipGenerator'

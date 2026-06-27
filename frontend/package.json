@@ -21,6 +21,8 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@hookform/resolvers": "^4.1.2",
     "@lexical/react": "^0.27.2",
     "@mui/icons-material": "^6.4.5",
