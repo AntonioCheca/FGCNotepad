@@ -1,4 +1,5 @@
 parameters:
+    app.registration_enabled.default: false
     app.combo_resource.drive_bar_value: 200.0
     app.combo_resource.super_bar_value: 500.0
     app.replay_storage.default_local_root: '%kernel.project_dir%/var/replay-storage'

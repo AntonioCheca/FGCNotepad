@@ -8,6 +8,7 @@ use App\Service\RegistrationService;
 use App\Util\MixedValidator;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,8 +25,16 @@ class AuthController extends AbstractController
     private UserRepository $userRepository;
     private RegistrationService $registrationService;
 
-    public function __construct(UserPasswordHasherInterface $passwordHasher, JWTTokenManagerInterface $jwtManager, UserRepository $userRepository, RegistrationService $registrationService)
-    {
+    public function __construct(
+        UserPasswordHasherInterface $passwordHasher,
+        JWTTokenManagerInterface $jwtManager,
+        UserRepository $userRepository,
+        RegistrationService $registrationService,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $environment,
+        #[Autowire('%env(default:app.registration_enabled.default:bool:REGISTRATION_ENABLED)%')]
+        private readonly bool $registrationEnabled,
+    ) {
         $this->passwordHasher = $passwordHasher;
         $this->jwtManager = $jwtManager;
         $this->userRepository = $userRepository;
@@ -63,6 +72,10 @@ class AuthController extends AbstractController
     #[Route('/register', name: 'api_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
+        if ('prod' === $this->environment && !$this->registrationEnabled) {
+            return new JsonResponse(['message' => 'Registration is disabled.'], Response::HTTP_FORBIDDEN);
+        }
+
         $data = json_decode($request->getContent(), true);
 
         if (!is_array($data) || !isset($data['username'], $data['password']) || !is_string($data['username']) || !is_string($data['password'])) {

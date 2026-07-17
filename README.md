@@ -74,6 +74,8 @@ cp .env.prod.example .env.prod
 
 Set the production domain and CORS pattern in `.env.prod`. The example file keeps these values in one place so the domain can be changed later without editing Docker or Nginx config.
 
+Public registration is disabled in production by default. Set `REGISTRATION_ENABLED=true` in `.env.prod` and restart the backend container only when public signups should be open.
+
 Production start:
 
 ```bash
