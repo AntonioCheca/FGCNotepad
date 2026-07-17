@@ -5,3 +5,5 @@ backend/.env.local
 backend/.env.*.local
 frontend/.env.local
 frontend/.env.*.local
+.env.prod
+backups/

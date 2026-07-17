@@ -1,0 +1,82 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.prod
+    container_name: fgc_backend_prod
+    restart: unless-stopped
+    env_file:
+      - path: .env.prod
+        required: false
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      REPLAY_STORAGE_LOCAL_ROOT: /var/www/html/var/replay-storage
+      REPLAY_IMPORT_DIRECTORY: /var/www/html/var/replay-imports
+    expose:
+      - "9000"
+    volumes:
+      - jwt_keys:/var/www/html/config/jwt
+      - replay_storage:/var/www/html/var/replay-storage
+      - replay_imports:/var/www/html/var/replay-imports
+    depends_on:
+      - postgres
+    networks:
+      - fgcnet
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_URL: /api
+    container_name: fgc_frontend_prod
+    restart: unless-stopped
+    env_file:
+      - path: .env.prod
+        required: false
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+    networks:
+      - fgcnet
+
+  nginx:
+    image: nginx:stable
+    container_name: fgc_nginx_prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - fgcnet
+
+  postgres:
+    image: postgres:15
+    container_name: fgc_postgres_prod
+    restart: unless-stopped
+    env_file:
+      - path: .env.prod
+        required: false
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - fgcnet
+
+volumes:
+  pgdata:
+  jwt_keys:
+  replay_storage:
+  replay_imports:
+
+networks:
+  fgcnet:

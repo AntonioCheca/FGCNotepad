@@ -1,0 +1,14 @@
+.git
+.idea
+backend/.env.local
+backend/.env.*.local
+backend/config/jwt/*.pem
+backend/vendor
+backend/var
+frontend/.env.local
+frontend/.env.*.local
+frontend/.next
+frontend/node_modules
+frontend/node_modules_host
+frontend/out
+frontend/build

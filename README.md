@@ -24,12 +24,16 @@ Backend is Symfony/PHP, frontend is Next.js/React, and the database is PostgreSQ
 - Backend defaults are tracked in `backend/.env` for Symfony compatibility.
 - Safe setup reference values are in `backend/.env.example` and `frontend/.env.example`.
 - Test setup reference values are in `backend/.env.test.example`.
+- Production setup reference values are in `.env.prod.example`.
 - Real local overrides should go in ignored files such as `backend/.env.local`, `backend/.env.dev.local`, `backend/.env.test.local`, or `frontend/.env.local`.
+- Real production values should go in ignored `.env.prod` on the server.
 - Generate local JWT keys with `make local-create-jwt-keys` for host development or `make create-jwt-keys` for Docker development.
 
-### Option A: Docker
+### Option A: Docker Development
 
-Docker is the recommended workflow for Linux contributors and deployment-like parity.
+`docker-compose.yml` is the development Compose file. It keeps bind mounts and manual dev commands for local convenience.
+
+Docker development is the recommended workflow for Linux contributors and deployment-like parity.
 
 Prerequisites:
 
@@ -51,12 +55,118 @@ Development:
 
 - `make build` builds the containers.
 - `make up` starts containers with `docker compose up`; it does not build them.
+- Direct Compose command: `docker compose up -d`.
 - `make stop` stops containers.
 - `make logs` follows service logs.
 
 Once running, access the frontend via http://localhost:3000.
 
-### Option B: Local Development
+### Option B: Production Docker Compose
+
+`docker-compose.prod.yml` is the production Compose file for a single-machine AWS Lightsail deployment. It builds production images, uses Nginx as the only public proxy, keeps Postgres off the public internet, and stores Postgres/JWT/replay data in Docker volumes.
+
+One-time server setup:
+
+```bash
+cp .env.prod.example .env.prod
+# Edit .env.prod with real secrets before starting containers.
+```
+
+Set the production domain and CORS pattern in `.env.prod`. The example file keeps these values in one place so the domain can be changed later without editing Docker or Nginx config.
+
+Production start:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Production routing:
+
+- Public HTTP: `80:80` through Nginx.
+- Frontend: Nginx proxies `/` to the Next container.
+- Backend API: Nginx routes `/api` to Symfony PHP-FPM.
+- Postgres: bound to `127.0.0.1:5432` for SSH tunnel access only.
+- Healthcheck: `/api/health` returns `{"status":"ok"}` through the production proxy.
+
+Production API URL:
+
+```env
+NEXT_PUBLIC_API_URL=/api
+```
+
+Production migrations:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend php bin/console doctrine:migrations:migrate --no-interaction
+```
+
+Production Symfony check:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend php bin/console about --env=prod
+```
+
+Production JWT keys:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend php bin/console lexik:jwt:generate-keypair
+```
+
+The generated JWT keys live in the `jwt_keys` Docker volume mounted at `/var/www/html/config/jwt`. Private keys must not be committed to Git.
+
+Safe Postgres access from PHPStorm:
+
+```bash
+ssh -L 5433:localhost:5432 ubuntu@SERVER_IP
+```
+
+Then configure PHPStorm with:
+
+- Host: `localhost`
+- Port: `5433`
+- Database: value from `POSTGRES_DB` in `.env.prod`
+- User: value from `POSTGRES_USER` in `.env.prod`
+- Password: value from `POSTGRES_PASSWORD` in `.env.prod`
+
+Do not open port `5432` in the Lightsail firewall. The backend connects to Postgres over the Docker network at `postgres:5432`.
+
+Manual production deploy:
+
+```bash
+bash scripts/deploy-prod.sh
+```
+
+The deploy script runs `git pull --ff-only`, builds images, starts services, runs Doctrine migrations explicitly, and checks Symfony prod runtime.
+
+Production database backup:
+
+```bash
+bash scripts/backup-prod-db.sh
+```
+
+Backups are written to ignored `backups/postgres/` files with timestamped `.sql.gz` names. The script keeps the latest 8 backups by default; override with `BACKUP_RETENTION=12 bash scripts/backup-prod-db.sh`.
+
+Restore a production backup into the local Docker dev database:
+
+```bash
+gunzip -c backups/postgres/backup-file.sql.gz | docker exec -i fgc_postgres psql -U fgc_user -d fgc_db
+```
+
+During beta, create a backup weekly and before large deploys.
+
+Replay Lab production note:
+
+- Browser export at `/replay-lab/export` uses `ffmpeg.wasm` in the user's browser and uploads MP4 clips to the backend.
+- Uploaded clips are stored in the `replay_storage` Docker volume.
+- Server-side export requires `ffmpeg` in the backend image and is not enabled in the first production Dockerfile.
+
+Compose file ownership:
+
+- `docker-compose.yml` is the canonical development Compose file.
+- `docker-compose.prod.yml` is the canonical production Compose file.
+- `backend/compose.yaml` is a Symfony-generated helper file and is not used for deployment.
+
+### Option C: Local Development
 
 Local host development is the recommended Windows workflow.
 

@@ -51,6 +51,7 @@ security:
     access_control:
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/api/admin, roles: ROLE_ADMIN }
+        - { path: ^/api/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/shared-review, roles: PUBLIC_ACCESS }

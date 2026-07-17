@@ -1,4 +1,8 @@
 
+# Symfony-generated helper compose file. This is not the canonical project Compose file.
+# Use ../docker-compose.yml for development and ../docker-compose.prod.yml for production deploys.
+# Do not use this file for Lightsail or production database creation.
+
 services:
 ###> doctrine/doctrine-bundle ###
   database:
