@@ -3,11 +3,9 @@
 namespace App\Controller\api;
 
 use App\Entity\ComboSequences;
-use App\Entity\Post;
 use App\Entity\Scenario;
 use App\Entity\User;
 use App\Repository\ComboSequencesRepository;
-use App\Repository\PostRepository;
 use App\Repository\ScenarioRepository;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationQueueService;
@@ -33,7 +31,6 @@ class ModerationController extends AbstractController
         private readonly EndpointAuthorizationService $endpointAuthorizationService,
         private readonly ModerationQueueService $moderationQueueService,
         private readonly ModerationTransitionService $moderationTransitionService,
-        private readonly PostRepository $postRepository,
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly ScenarioRepository $scenarioRepository,
         private readonly EntityManagerInterface $entityManager,
@@ -79,9 +76,7 @@ class ModerationController extends AbstractController
 
         try {
             $target = $this->resolveTarget($type, $id);
-            if ($target instanceof Post) {
-                $this->moderationTransitionService->approvePost($target, $actor);
-            } elseif ($target instanceof ComboSequences) {
+            if ($target instanceof ComboSequences) {
                 $this->moderationTransitionService->approveCombo($target, $actor);
             } else {
                 $this->moderationTransitionService->approveScenario($target, $actor);
@@ -113,9 +108,7 @@ class ModerationController extends AbstractController
 
         try {
             $target = $this->resolveTarget($type, $id);
-            if ($target instanceof Post) {
-                $this->moderationTransitionService->rejectPost($target, $actor, $reason);
-            } elseif ($target instanceof ComboSequences) {
+            if ($target instanceof ComboSequences) {
                 $this->moderationTransitionService->rejectCombo($target, $actor, $reason);
             } else {
                 $this->moderationTransitionService->rejectScenario($target, $actor, $reason);
@@ -147,9 +140,7 @@ class ModerationController extends AbstractController
 
         try {
             $target = $this->resolveTarget($type, $id);
-            if ($target instanceof Post) {
-                $this->moderationTransitionService->hidePost($target, $actor, $reason);
-            } elseif ($target instanceof ComboSequences) {
+            if ($target instanceof ComboSequences) {
                 $this->moderationTransitionService->hideCombo($target, $actor, $reason);
             } else {
                 $this->moderationTransitionService->hideScenario($target, $actor, $reason);
@@ -228,22 +219,9 @@ class ModerationController extends AbstractController
         return $reason;
     }
 
-    private function resolveTarget(string $type, string $id): Post|ComboSequences|Scenario
+    private function resolveTarget(string $type, string $id): ComboSequences|Scenario
     {
         $normalizedType = trim(mb_strtolower($type));
-
-        if ('post' === $normalizedType) {
-            if (!Uuid::isValid($id)) {
-                throw new NotFoundHttpException('Post not found.');
-            }
-
-            $post = $this->postRepository->find($id);
-            if (!$post instanceof Post) {
-                throw new NotFoundHttpException('Post not found.');
-            }
-
-            return $post;
-        }
 
         if ('combo' === $normalizedType) {
             if (!ctype_digit($id)) {
@@ -277,14 +255,12 @@ class ModerationController extends AbstractController
     /**
      * @return array<string,mixed>
      */
-    private function buildDecisionResponse(string $type, Post|ComboSequences|Scenario $target): array
+    private function buildDecisionResponse(string $type, ComboSequences|Scenario $target): array
     {
         $contentType = trim(mb_strtolower($type));
-        $contentId = $target instanceof Post
-            ? (string) $target->getId()?->toRfc4122()
-            : ($target instanceof ComboSequences
-                ? (string) $target->getId()
-                : $target->getPublicId()->toRfc4122());
+        $contentId = $target instanceof ComboSequences
+            ? (string) $target->getId()
+            : $target->getPublicId()->toRfc4122();
 
         $decidedBy = $target->getModerationDecidedBy();
 

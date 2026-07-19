@@ -165,7 +165,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
         const redirectPath = localStorage.getItem("redirectAfterLogin");
         localStorage.removeItem("redirectAfterLogin");
-        router.push(redirectPath || "/home");
+        router.push(redirectPath || "/combos");
     };
 
     const logout = () => {

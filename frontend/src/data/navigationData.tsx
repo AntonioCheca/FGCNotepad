@@ -1,7 +1,6 @@
 import {NavigationSection} from "@/src/types/navigation";
 import {
     AccountCircleOutlinedIcon,
-    ArticleOutlinedIcon,
     HelpOutlineOutlinedIcon,
     PendingActionsIcon,
     SearchOutlinedIcon,
@@ -14,21 +13,6 @@ import {
 } from "@/src/components/ui/AppIcons";
 
 export const navigationSections: NavigationSection[] = [
-    {
-        title: "Posts",
-        items: [
-            {
-                label: "Search Posts",
-                href: "/home",
-                icon: <SearchOutlinedIcon/>  // magnifying glass for searching
-            },
-            {
-                label: "Create Post",
-                href: "/forum/post/new",
-                icon: <ArticleOutlinedIcon/> // document icon for creating post
-            }
-        ]
-    },
     {
         title: "Combos",
         items: [

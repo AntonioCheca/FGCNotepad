@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use App\Entity\ComboSequences;
-use App\Entity\Post;
 use App\Entity\Scenario;
 use App\Entity\User;
 use App\Util\Enum\ModerationState;
@@ -16,18 +15,6 @@ class ModerationTransitionService
     public function __construct(
         private readonly AuthorizationPolicyService $authorizationPolicyService,
     ) {
-    }
-
-    public function submitPostForReview(Post $post): void
-    {
-        $this->submitForReview(
-            static fn (): string => $post->getModerationState(),
-            static fn (string $state) => $post->setModerationState($state),
-            static fn (?\DateTimeImmutable $submittedAt) => $post->setSubmittedForReviewAt($submittedAt),
-            static fn (?\DateTimeImmutable $decidedAt) => $post->setModerationDecidedAt($decidedAt),
-            static fn (?User $decider) => $post->setModerationDecidedBy($decider),
-            static fn (?string $reason) => $post->setModerationReason($reason),
-        );
     }
 
     public function submitComboForReview(ComboSequences $combo): void
@@ -52,36 +39,6 @@ class ModerationTransitionService
             static fn (?User $decider) => $scenario->setModerationDecidedBy($decider),
             static fn (?string $reason) => $scenario->setModerationReason($reason),
         );
-    }
-
-    public function moderatePost(Post $post, User $actor, string $targetState, ?string $reason): void
-    {
-        $this->moderate(
-            static fn (): string => $post->getModerationState(),
-            static fn (string $state) => $post->setModerationState($state),
-            static fn (?\DateTimeImmutable $submittedAt) => $post->setSubmittedForReviewAt($submittedAt),
-            static fn (?\DateTimeImmutable $decidedAt) => $post->setModerationDecidedAt($decidedAt),
-            static fn (?User $decider) => $post->setModerationDecidedBy($decider),
-            static fn (?string $moderationReason) => $post->setModerationReason($moderationReason),
-            $actor,
-            $targetState,
-            $reason,
-        );
-    }
-
-    public function approvePost(Post $post, User $actor): void
-    {
-        $this->moderatePost($post, $actor, ModerationState::APPROVED->value, null);
-    }
-
-    public function rejectPost(Post $post, User $actor, string $reason): void
-    {
-        $this->moderatePost($post, $actor, ModerationState::REJECTED->value, $reason);
-    }
-
-    public function hidePost(Post $post, User $actor, string $reason): void
-    {
-        $this->moderatePost($post, $actor, ModerationState::HIDDEN->value, $reason);
     }
 
     public function moderateCombo(ComboSequences $combo, User $actor, string $targetState, ?string $reason): void

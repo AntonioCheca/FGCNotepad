@@ -4,7 +4,6 @@ namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
 use App\Entity\Move;
-use App\Entity\Post;
 use App\Entity\Scenario;
 use App\Entity\User;
 use App\Tests\DatabaseTestCase;
@@ -13,14 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ModerationDecisionControllerTest extends DatabaseTestCase
 {
-    public function testModeratorCanApprovePostAndPersistAuditFields(): void
+    public function testModeratorCanApproveScenarioAndPersistAuditFields(): void
     {
         $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
         $author = $this->createUser('author_user', [UserRole::USER]);
-        $post = $this->createPost($author, 'pending_review');
+        $scenario = $this->createScenario($author, 'pending_review');
 
         $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/approve', $post->getId()?->toRfc4122()), [], [], $headers);
+        $this->client->request('POST', sprintf('/api/moderation/scenario/%s/approve', $scenario->getPublicId()->toRfc4122()), [], [], $headers);
 
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
@@ -29,21 +28,22 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
         self::assertSame('moderator_user', $payload['moderationDecidedBy']);
         self::assertNotNull($payload['moderationDecidedAt']);
 
-        $this->entityManager->refresh($post);
-        self::assertSame('approved', $post->getModerationState());
+        $this->entityManager->refresh($scenario);
+        self::assertSame('approved', $scenario->getModerationState());
     }
 
     public function testRejectAndHideRequireReason(): void
     {
         $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
         $author = $this->createUser('author_user', [UserRole::USER]);
-        $post = $this->createPost($author, 'pending_review');
+        $scenario = $this->createScenario($author, 'pending_review');
         $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
 
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/reject', $post->getId()?->toRfc4122()), [], [], $headers, json_encode([]));
+        $endpointBase = sprintf('/api/moderation/scenario/%s', $scenario->getPublicId()->toRfc4122());
+        $this->client->request('POST', sprintf('%s/reject', $endpointBase), [], [], $headers, json_encode([]));
         self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
 
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/hide', $post->getId()?->toRfc4122()), [], [], $headers, json_encode(['reason' => '']));
+        $this->client->request('POST', sprintf('%s/hide', $endpointBase), [], [], $headers, json_encode(['reason' => '']));
         self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
@@ -51,10 +51,10 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
     {
         $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
         $author = $this->createUser('author_user', [UserRole::USER]);
-        $post = $this->createPost($author, 'pending_review');
+        $scenario = $this->createScenario($author, 'pending_review');
         $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
 
-        $endpoint = sprintf('/api/moderation/post/%s/approve', $post->getId()?->toRfc4122());
+        $endpoint = sprintf('/api/moderation/scenario/%s/approve', $scenario->getPublicId()->toRfc4122());
         $this->client->request('POST', $endpoint, [], [], $headers);
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
 
@@ -66,10 +66,10 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
     {
         $user = $this->createUser('normal_user', [UserRole::USER]);
         $author = $this->createUser('author_user', [UserRole::USER]);
-        $post = $this->createPost($author, 'pending_review');
+        $scenario = $this->createScenario($author, 'pending_review');
 
         $headers = $this->loginHeaders($user->getUsername(), 'testpassword');
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/approve', $post->getId()?->toRfc4122()), [], [], $headers);
+        $this->client->request('POST', sprintf('/api/moderation/scenario/%s/approve', $scenario->getPublicId()->toRfc4122()), [], [], $headers);
 
         self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
     }
@@ -96,15 +96,16 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
     public function testUnauthenticatedCannotExecuteModerationDecisions(): void
     {
         $author = $this->createUser('author_user', [UserRole::USER]);
-        $post = $this->createPost($author, 'pending_review');
+        $scenario = $this->createScenario($author, 'pending_review');
+        $endpointBase = sprintf('/api/moderation/scenario/%s', $scenario->getPublicId()->toRfc4122());
 
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/approve', $post->getId()?->toRfc4122()));
+        $this->client->request('POST', sprintf('%s/approve', $endpointBase));
         self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
 
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/reject', $post->getId()?->toRfc4122()), [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['reason' => 'x']));
+        $this->client->request('POST', sprintf('%s/reject', $endpointBase), [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['reason' => 'x']));
         self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
 
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/hide', $post->getId()?->toRfc4122()), [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['reason' => 'x']));
+        $this->client->request('POST', sprintf('%s/hide', $endpointBase), [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['reason' => 'x']));
         self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
     }
 
@@ -122,9 +123,6 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
         $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
         $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
 
-        $this->client->request('POST', '/api/moderation/post/not-a-uuid/approve', [], [], $headers);
-        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
-
         $this->client->request('POST', '/api/moderation/combo/not-numeric/approve', [], [], $headers);
         self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
 
@@ -136,10 +134,10 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
     {
         $moderator = $this->createUser('moderator_user', [UserRole::MODERATOR]);
         $author = $this->createUser('author_user', [UserRole::USER]);
-        $post = $this->createPost($author, 'invalid_state');
+        $scenario = $this->createScenario($author, 'invalid_state');
 
         $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
-        $this->client->request('POST', sprintf('/api/moderation/post/%s/approve', $post->getId()?->toRfc4122()), [], [], $headers);
+        $this->client->request('POST', sprintf('/api/moderation/scenario/%s/approve', $scenario->getPublicId()->toRfc4122()), [], [], $headers);
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
@@ -162,30 +160,14 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
         return $user;
     }
 
-    private function createPost(User $author, string $state): Post
-    {
-        $post = new Post();
-        $post->setTitle('Moderation target post');
-        $post->setBody(json_encode(['content' => 'post']) ?: '{}');
-        $post->setAuthor($author);
-        $post->setCreatedAt(new \DateTimeImmutable());
-        $post->setLastModified(new \DateTimeImmutable());
-        $post->setModerationState($state);
-
-        $this->entityManager->persist($post);
-        $this->entityManager->flush();
-
-        return $post;
-    }
-
     private function createScenario(User $author, string $state): Scenario
     {
-        $defender = (new Character())->setName('Defender');
-        $attacker = (new Character())->setName('Attacker');
+        $defender = (new Character())->setName(sprintf('Defender %s', uniqid('', true)));
+        $attacker = (new Character())->setName(sprintf('Attacker %s', uniqid('', true)));
         $move = (new Move())->setCharacter($attacker)->setNumpadNotation('5HP');
 
         $scenario = (new Scenario())
-            ->setName('Moderation target scenario')
+            ->setName(sprintf('Moderation target scenario %s', uniqid('', true)))
             ->setScenarioType('oki')
             ->setDefenderCharacter($defender)
             ->setAttackerCharacter($attacker)

@@ -44,9 +44,6 @@ final class ApiAuthenticationBoundaryTest extends DatabaseTestCase
     {
         $this->client->request('GET', '/api/profile/me');
         self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
-
-        $this->client->request('GET', '/api/posts');
-        self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode());
     }
 
     public function testAuthenticatedUserCanAccessProtectedEndpoint(): void

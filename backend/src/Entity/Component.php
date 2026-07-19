@@ -2,8 +2,6 @@
 
 namespace App\Entity;
 
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\IdGenerator\UuidGenerator;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -23,44 +21,8 @@ abstract class Component
     #[Groups(["move:read", "character:read"])]
     private ?Uuid $id = null;
 
-    /**
-     * @var Collection<int, Post>
-     */
-    #[ORM\ManyToMany(targetEntity: Post::class, mappedBy: "components")]
-    private Collection $posts;
-
-    public function __construct()
-    {
-        $this->posts = new ArrayCollection();
-    }
-
     public function getId(): ?Uuid
     {
         return $this->id;
-    }
-
-    /**
-     * @return Collection<int, Post>
-     */
-    public function getPosts(): Collection
-    {
-        return $this->posts;
-    }
-
-    public function addPost(Post $post): self
-    {
-        if (!$this->posts->contains($post)) {
-            $this->posts->add($post);
-            $post->addComponent($this);
-        }
-        return $this;
-    }
-
-    public function removePost(Post $post): self
-    {
-        if ($this->posts->removeElement($post)) {
-            $post->removeComponent($this);
-        }
-        return $this;
     }
 }

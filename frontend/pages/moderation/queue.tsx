@@ -39,7 +39,6 @@ type DecisionAction = "approve" | "reject" | "hide";
 
 const CONTENT_FILTER_OPTIONS: Array<{value: ContentFilter; label: string}> = [
     {value: "all", label: "All Content"},
-    {value: "post", label: "Posts"},
     {value: "combo", label: "Combos"},
     {value: "scenario", label: "Scenarios"},
 ];
@@ -67,10 +66,6 @@ function toApiFilters(contentType: ContentFilter, state: StateFilter, sort: Sort
 }
 
 function buildContentLink(item: ModerationQueueItem): string {
-    if (item.contentType === "post") {
-        return `/forum/post/${item.contentId}`;
-    }
-
     if (item.contentType === "combo") {
         return `/combos?highlightComboId=${item.contentId}`;
     }

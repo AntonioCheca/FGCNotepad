@@ -3,7 +3,6 @@
 namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
-use App\Entity\Post;
 use App\Entity\User;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Symfony\Component\HttpFoundation\Response;

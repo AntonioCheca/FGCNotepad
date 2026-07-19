@@ -4,7 +4,6 @@ namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
 use App\Entity\Move;
-use App\Entity\Post;
 use App\Entity\Scenario;
 use App\Entity\ScenarioFlag;
 use App\Entity\User;
@@ -20,7 +19,7 @@ class ModerationQueueControllerTest extends DatabaseTestCase
         $admin = $this->createUser('admin_user', [UserRole::ADMIN]);
         $author = $this->createUser('author_user', [UserRole::USER]);
 
-        $this->createPendingPost($author, 'Pending Post');
+        $this->createScenario($author, 'Pending Scenario', 'pending_review');
 
         $moderatorHeaders = $this->loginHeaders($moderator->getUsername(), 'testpassword');
         $this->client->request('GET', '/api/moderation/queue', [], [], $moderatorHeaders);
@@ -47,15 +46,15 @@ class ModerationQueueControllerTest extends DatabaseTestCase
         $author = $this->createUser('author_user', [UserRole::USER]);
         $reporter = $this->createUser('reporter_user', [UserRole::USER]);
 
-        $oldPost = $this->createPendingPost($author, 'Older Pending Post', new \DateTimeImmutable('-3 days'));
-        $newPost = $this->createPendingPost($author, 'Newer Pending Post', new \DateTimeImmutable('-1 day'));
+        $oldScenario = $this->createScenario($author, 'Older Pending Scenario', 'pending_review', new \DateTimeImmutable('-3 days'));
+        $newScenario = $this->createScenario($author, 'Newer Pending Scenario', 'pending_review', new \DateTimeImmutable('-1 day'));
         $flaggedScenario = $this->createApprovedFlaggedScenario($author, $reporter);
 
         $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
 
         $this->client->request(
             'GET',
-            '/api/moderation/queue?contentType=post&state=pending_review&sort=oldest',
+            '/api/moderation/queue?contentType=scenario&state=pending_review&sort=oldest',
             [],
             [],
             $headers
@@ -65,8 +64,8 @@ class ModerationQueueControllerTest extends DatabaseTestCase
 
         self::assertIsArray($payload['data'] ?? null);
         self::assertCount(2, $payload['data']);
-        self::assertSame($oldPost->getId()?->toRfc4122(), $payload['data'][0]['contentId']);
-        self::assertSame($newPost->getId()?->toRfc4122(), $payload['data'][1]['contentId']);
+        self::assertSame($oldScenario->getPublicId()->toRfc4122(), $payload['data'][0]['contentId']);
+        self::assertSame($newScenario->getPublicId()->toRfc4122(), $payload['data'][1]['contentId']);
 
         $row = $payload['data'][0];
         self::assertArrayHasKey('contentId', $row);
@@ -78,13 +77,7 @@ class ModerationQueueControllerTest extends DatabaseTestCase
         self::assertArrayHasKey('updatedAt', $row);
         self::assertArrayHasKey('flagCount', $row);
 
-        $this->client->request(
-            'GET',
-            '/api/moderation/queue?contentType=scenario&state=flagged',
-            [],
-            [],
-            $headers
-        );
+        $this->client->request('GET', '/api/moderation/queue?contentType=scenario&state=flagged', [], [], $headers);
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
         $flaggedPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
 
@@ -122,13 +115,13 @@ class ModerationQueueControllerTest extends DatabaseTestCase
         $author = $this->createUser('author_user', [UserRole::USER]);
         $reporter = $this->createUser('reporter_user', [UserRole::USER]);
 
-        $post = $this->createPendingPost($author, 'Pending Post CSV');
-        $scenario = $this->createApprovedFlaggedScenario($author, $reporter);
+        $pendingScenario = $this->createScenario($author, 'Pending Scenario CSV', 'pending_review');
+        $flaggedScenario = $this->createApprovedFlaggedScenario($author, $reporter);
 
         $headers = $this->loginHeaders($moderator->getUsername(), 'testpassword');
         $this->client->request(
             'GET',
-            '/api/moderation/queue?contentType=post,scenario&state=pending_review,flagged&sort=oldest',
+            '/api/moderation/queue?contentType=scenario&state=pending_review,flagged&sort=oldest',
             [],
             [],
             $headers
@@ -139,8 +132,8 @@ class ModerationQueueControllerTest extends DatabaseTestCase
         self::assertCount(2, $payload['data']);
 
         $contentIds = array_map(static fn (array $row): string => (string) $row['contentId'], $payload['data']);
-        self::assertContains($post->getId()?->toRfc4122(), $contentIds);
-        self::assertContains($scenario->getPublicId()->toRfc4122(), $contentIds);
+        self::assertContains($pendingScenario->getPublicId()->toRfc4122(), $contentIds);
+        self::assertContains($flaggedScenario->getPublicId()->toRfc4122(), $contentIds);
     }
 
     /**
@@ -159,44 +152,38 @@ class ModerationQueueControllerTest extends DatabaseTestCase
         return $user;
     }
 
-    private function createPendingPost(User $author, string $title, ?\DateTimeImmutable $createdAt = null): Post
+    private function createScenario(User $author, string $name, string $state, ?\DateTimeImmutable $createdAt = null): Scenario
     {
-        $createdAt ??= new \DateTimeImmutable();
-        $post = new Post();
-        $post->setTitle($title);
-        $post->setBody(json_encode(['content' => 'queue item']) ?: '{}');
-        $post->setAuthor($author);
-        $post->setCreatedAt($createdAt);
-        $post->setLastModified($createdAt);
-        $post->setModerationState('pending_review');
-
-        $this->entityManager->persist($post);
-        $this->entityManager->flush();
-
-        return $post;
-    }
-
-    private function createApprovedFlaggedScenario(User $author, User $reporter): Scenario
-    {
-        $defender = (new Character())->setName('Defender');
-        $attacker = (new Character())->setName('Attacker');
+        $defender = (new Character())->setName(sprintf('%s Defender', $name));
+        $attacker = (new Character())->setName(sprintf('%s Attacker', $name));
         $move = (new Move())->setCharacter($attacker)->setNumpadNotation('5HP');
+        $createdAt ??= new \DateTimeImmutable();
 
         $scenario = (new Scenario())
-            ->setName('Flagged Scenario')
+            ->setName($name)
             ->setScenarioType('oki')
             ->setDefenderCharacter($defender)
             ->setAttackerCharacter($attacker)
             ->setTriggerMove($move)
             ->setAuthor($author)
-            ->setModerationState('approved');
-
-        $flag = new ScenarioFlag($scenario, $reporter, 'Needs review');
+            ->setCreatedAt($createdAt)
+            ->setUpdatedAt($createdAt)
+            ->setModerationState($state);
 
         $this->entityManager->persist($defender);
         $this->entityManager->persist($attacker);
         $this->entityManager->persist($move);
         $this->entityManager->persist($scenario);
+        $this->entityManager->flush();
+
+        return $scenario;
+    }
+
+    private function createApprovedFlaggedScenario(User $author, User $reporter): Scenario
+    {
+        $scenario = $this->createScenario($author, 'Flagged Scenario', 'approved');
+        $flag = new ScenarioFlag($scenario, $reporter, 'Needs review');
+
         $this->entityManager->persist($flag);
         $this->entityManager->flush();
 

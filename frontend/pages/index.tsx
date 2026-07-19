@@ -5,7 +5,7 @@ export default function IndexPage() {
     const router = useRouter();
 
     useEffect(() => {
-        void router.replace('/home');
+        void router.replace('/combos');
     }, [router]);
 
     return null;

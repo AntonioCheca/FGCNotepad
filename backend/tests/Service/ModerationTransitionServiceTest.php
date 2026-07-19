@@ -2,7 +2,7 @@
 
 namespace App\Tests\Service;
 
-use App\Entity\Post;
+use App\Entity\Scenario;
 use App\Entity\User;
 use App\Service\AuthorizationPolicyService;
 use App\Service\ModerationTransitionService;
@@ -24,128 +24,119 @@ class ModerationTransitionServiceTest extends TestCase
 
     public function testSubmitForReviewSetsPendingAndClearsDecisionMetadata(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::APPROVED->value)
             ->setModerationReason('old reason');
 
-        $this->service->submitPostForReview($post);
+        $this->service->submitScenarioForReview($scenario);
 
-        self::assertSame(ModerationState::PENDING_REVIEW->value, $post->getModerationState());
-        self::assertNotNull($post->getSubmittedForReviewAt());
-        self::assertNull($post->getModerationDecidedAt());
-        self::assertNull($post->getModerationDecidedBy());
-        self::assertNull($post->getModerationReason());
+        self::assertSame(ModerationState::PENDING_REVIEW->value, $scenario->getModerationState());
+        self::assertNotNull($scenario->getSubmittedForReviewAt());
+        self::assertNull($scenario->getModerationDecidedAt());
+        self::assertNull($scenario->getModerationDecidedBy());
+        self::assertNull($scenario->getModerationReason());
     }
 
     public function testModeratorCanApproveHiddenContent(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::HIDDEN->value);
         $moderator = $this->newUser('moderator', [UserRole::MODERATOR]);
 
-        $this->service->moderatePost($post, $moderator, ModerationState::APPROVED->value, null);
+        $this->service->moderateScenario($scenario, $moderator, ModerationState::APPROVED->value, null);
 
-        self::assertSame(ModerationState::APPROVED->value, $post->getModerationState());
-        self::assertNotNull($post->getModerationDecidedAt());
-        self::assertSame($moderator, $post->getModerationDecidedBy());
+        self::assertSame(ModerationState::APPROVED->value, $scenario->getModerationState());
+        self::assertNotNull($scenario->getModerationDecidedAt());
+        self::assertSame($moderator, $scenario->getModerationDecidedBy());
     }
 
     public function testRejectRequiresReason(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::PENDING_REVIEW->value);
         $moderator = $this->newUser('moderator', [UserRole::MODERATOR]);
 
         $this->expectException(BadRequestHttpException::class);
-        $this->service->moderatePost($post, $moderator, ModerationState::REJECTED->value, null);
+        $this->service->moderateScenario($scenario, $moderator, ModerationState::REJECTED->value, null);
     }
 
     public function testUserCannotModerateContent(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::PENDING_REVIEW->value);
         $user = $this->newUser('user', [UserRole::USER]);
 
         $this->expectException(AccessDeniedHttpException::class);
-        $this->service->moderatePost($post, $user, ModerationState::APPROVED->value, null);
+        $this->service->moderateScenario($scenario, $user, ModerationState::APPROVED->value, null);
     }
 
     public function testCannotTargetPendingReviewViaModerationAction(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::APPROVED->value);
         $admin = $this->newUser('admin', [UserRole::ADMIN]);
 
         $this->expectException(BadRequestHttpException::class);
-        $this->service->moderatePost($post, $admin, ModerationState::PENDING_REVIEW->value, null);
+        $this->service->moderateScenario($scenario, $admin, ModerationState::PENDING_REVIEW->value, null);
     }
 
     public function testDuplicateTargetStateThrowsConflict(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::APPROVED->value);
         $admin = $this->newUser('admin', [UserRole::ADMIN]);
 
         $this->expectException(ConflictHttpException::class);
-        $this->service->moderatePost($post, $admin, ModerationState::APPROVED->value, null);
+        $this->service->moderateScenario($scenario, $admin, ModerationState::APPROVED->value, null);
     }
 
     public function testHideRequiresReason(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::PENDING_REVIEW->value);
         $moderator = $this->newUser('moderator', [UserRole::MODERATOR]);
 
         $this->expectException(BadRequestHttpException::class);
-        $this->service->moderatePost($post, $moderator, ModerationState::HIDDEN->value, null);
+        $this->service->moderateScenario($scenario, $moderator, ModerationState::HIDDEN->value, null);
     }
 
     public function testRejectReasonIsTrimmedBeforePersisting(): void
     {
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::PENDING_REVIEW->value);
         $moderator = $this->newUser('moderator', [UserRole::MODERATOR]);
 
-        $this->service->moderatePost($post, $moderator, ModerationState::REJECTED->value, '  policy violation  ');
+        $this->service->moderateScenario($scenario, $moderator, ModerationState::REJECTED->value, '  policy violation  ');
 
-        self::assertSame(ModerationState::REJECTED->value, $post->getModerationState());
-        self::assertSame('policy violation', $post->getModerationReason());
+        self::assertSame(ModerationState::REJECTED->value, $scenario->getModerationState());
+        self::assertSame('policy violation', $scenario->getModerationReason());
     }
 
     public function testSubmitForReviewFromRejectedClearsPriorDecisionMetadata(): void
     {
         $moderator = $this->newUser('moderator', [UserRole::MODERATOR]);
-        $post = (new Post())
-            ->setTitle('A')
-            ->setBody('B')
+        $scenario = (new Scenario())
+            ->setName('A')
             ->setModerationState(ModerationState::REJECTED->value)
             ->setModerationDecidedBy($moderator)
             ->setModerationDecidedAt(new \DateTimeImmutable('-1 day'))
             ->setModerationReason('old reason');
 
-        $this->service->submitPostForReview($post);
+        $this->service->submitScenarioForReview($scenario);
 
-        self::assertSame(ModerationState::PENDING_REVIEW->value, $post->getModerationState());
-        self::assertNotNull($post->getSubmittedForReviewAt());
-        self::assertNull($post->getModerationDecidedAt());
-        self::assertNull($post->getModerationDecidedBy());
-        self::assertNull($post->getModerationReason());
+        self::assertSame(ModerationState::PENDING_REVIEW->value, $scenario->getModerationState());
+        self::assertNotNull($scenario->getSubmittedForReviewAt());
+        self::assertNull($scenario->getModerationDecidedAt());
+        self::assertNull($scenario->getModerationDecidedBy());
+        self::assertNull($scenario->getModerationReason());
     }
 
     /**

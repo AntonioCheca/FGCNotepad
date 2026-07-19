@@ -7,7 +7,7 @@ use Doctrine\DBAL\Connection;
 
 class ModerationQueueService
 {
-    private const ALLOWED_CONTENT_TYPES = ['post', 'combo', 'scenario'];
+    private const ALLOWED_CONTENT_TYPES = ['combo', 'scenario'];
     private const ALLOWED_SORT_VALUES = ['oldest', 'newest'];
 
     public function __construct(
@@ -28,9 +28,6 @@ class ModerationQueueService
         $normalizedSort = $this->normalizeSort($sort);
 
         $rows = [];
-        if (in_array('post', $normalizedContentTypes, true)) {
-            $rows = array_merge($rows, $this->fetchPostRows());
-        }
         if (in_array('combo', $normalizedContentTypes, true)) {
             $rows = array_merge($rows, $this->fetchComboRows());
         }
@@ -146,37 +143,6 @@ class ModerationQueueService
         }
 
         return $normalized;
-    }
-
-    /**
-     * @return list<array<string,mixed>>
-     */
-    private function fetchPostRows(): array
-    {
-        $rows = $this->connection->executeQuery(<<<'SQL'
-            SELECT
-                p.id::text AS content_id,
-                'post' AS content_type,
-                p.title AS title,
-                COALESCE(u.username, 'UNKNOWN_USER') AS author,
-                p.moderation_state AS state,
-                p.created_at AS created_at,
-                p.last_modified AS updated_at,
-                0 AS flag_count
-            FROM forum.post p
-            LEFT JOIN forum."user" u ON u.id = p.author_id
-        SQL)->fetchAllAssociative();
-
-        return array_map(static fn (array $row): array => [
-            'contentId' => (string) $row['content_id'],
-            'contentType' => (string) $row['content_type'],
-            'title' => (string) $row['title'],
-            'author' => (string) $row['author'],
-            'state' => (string) $row['state'],
-            'createdAt' => self::normalizeDateValue($row['created_at'] ?? null),
-            'updatedAt' => self::normalizeDateValue($row['updated_at'] ?? null),
-            'flagCount' => (int) $row['flag_count'],
-        ], $rows);
     }
 
     /**

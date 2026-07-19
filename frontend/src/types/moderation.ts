@@ -1,4 +1,4 @@
-export type ModerationContentType = "post" | "combo" | "scenario";
+export type ModerationContentType = "combo" | "scenario";
 
 export type ModerationState = "pending_review" | "approved" | "rejected" | "hidden";
 
