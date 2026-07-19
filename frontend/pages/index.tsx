@@ -1,12 +1,12 @@
-import {useEffect} from 'react';
-import {useRouter} from 'next/router';
+import type {GetServerSideProps} from "next";
 
 export default function IndexPage() {
-    const router = useRouter();
-
-    useEffect(() => {
-        void router.replace('/combos');
-    }, [router]);
-
     return null;
 }
+
+export const getServerSideProps: GetServerSideProps = async () => ({
+    redirect: {
+        destination: "/combos",
+        permanent: false,
+    },
+});

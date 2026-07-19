@@ -1,6 +1,6 @@
 import React from "react";
 import {useRouter} from "next/router";
-import type {FFmpeg} from "@ffmpeg/ffmpeg";
+import type {FFmpeg, LogEventCallback, ProgressEventCallback} from "@ffmpeg/ffmpeg";
 import {useReplayLab} from "@/hooks/useReplayLab";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppBox} from "@/src/components/ui/AppBox";
@@ -54,11 +54,29 @@ function dataToBlob(data: Uint8Array | string): Blob {
     return new Blob([data], {type: "video/mp4"});
 }
 
+function subscribeToFfmpegEvents(
+    ffmpeg: FFmpeg,
+    onLog: (message: string) => void,
+    onProgress: (progress: number) => void,
+): () => void {
+    const logHandler: LogEventCallback = ({message}) => onLog(message);
+    const progressHandler: ProgressEventCallback = ({progress: nextProgress}) => onProgress(Math.max(0, Math.min(1, nextProgress)));
+
+    ffmpeg.on("log", logHandler);
+    ffmpeg.on("progress", progressHandler);
+
+    return () => {
+        ffmpeg.off("log", logHandler);
+        ffmpeg.off("progress", progressHandler);
+    };
+}
+
 export default function ReplayLabExportRoute() {
     const router = useRouter();
     const sessionId = typeof router.query.sessionId === "string" ? router.query.sessionId : null;
     const {getReviewSession, listAnnotations, uploadAnnotationClip, exportReviewSession} = useReplayLab();
     const ffmpegRef = React.useRef<FFmpeg | null>(null);
+    const ffmpegEventCleanupRef = React.useRef<(() => void) | null>(null);
     const [session, setSession] = React.useState<ReplayReviewSession | null>(null);
     const [annotations, setAnnotations] = React.useState<ReplayAnnotation[]>([]);
     const [file, setFile] = React.useState<File | null>(null);
@@ -69,7 +87,17 @@ export default function ReplayLabExportRoute() {
     const [result, setResult] = React.useState<ReplayAnnotationExportResult | null>(null);
     const [error, setError] = React.useState<string | null>(null);
 
-    React.useEffect(() => () => ffmpegRef.current?.terminate(), []);
+    React.useEffect(() => () => {
+        const ffmpeg = ffmpegRef.current;
+        if (!ffmpeg) {
+            return;
+        }
+
+        ffmpegEventCleanupRef.current?.();
+        ffmpeg.terminate();
+        ffmpegRef.current = null;
+        ffmpegEventCleanupRef.current = null;
+    }, []);
 
     React.useEffect(() => {
         if (!sessionId) {
@@ -106,8 +134,8 @@ export default function ReplayLabExportRoute() {
         appendLog("Loading ffmpeg.wasm...");
         const {FFmpeg: FFmpegClass} = await import("@ffmpeg/ffmpeg");
         const ffmpeg = new FFmpegClass();
-        ffmpeg.on("log", ({message}) => appendLog(message));
-        ffmpeg.on("progress", ({progress: nextProgress}) => setProgress(Math.max(0, Math.min(1, nextProgress))));
+        ffmpegEventCleanupRef.current?.();
+        ffmpegEventCleanupRef.current = subscribeToFfmpegEvents(ffmpeg, appendLog, setProgress);
         await ffmpeg.load();
         ffmpegRef.current = ffmpeg;
         appendLog("ffmpeg.wasm loaded.");

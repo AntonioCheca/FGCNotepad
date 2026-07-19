@@ -1,5 +1,4 @@
 import React from "react";
-import {useRouter} from "next/router";
 import AuthContext from "@/services/AuthContext";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -86,7 +85,6 @@ function formatDate(value: string | null): string {
 
 export default function AdminUsersPage() {
     const authContext = React.useContext(AuthContext);
-    const router = useRouter();
     const {listUsers, updateUserRoles, deactivateUser} = useAdminUsers();
 
     const [rows, setRows] = React.useState<AdminUserRow[]>([]);
@@ -178,17 +176,6 @@ export default function AdminUsersPage() {
             setConfirmLoading(false);
         }
     };
-
-    React.useEffect(() => {
-        if (loading) {
-            return;
-        }
-
-        if (!isAuthenticated) {
-            localStorage.setItem("redirectAfterLogin", "/admin/users");
-            router.replace("/auth/login");
-        }
-    }, [isAuthenticated, loading, router]);
 
     React.useEffect(() => {
         if (loading || !isAuthenticated || !canManageUsers) {

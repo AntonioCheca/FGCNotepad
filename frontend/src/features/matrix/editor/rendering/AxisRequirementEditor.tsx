@@ -122,8 +122,10 @@ export function FloatingAxisRequirementEditor({
     const panelRef = React.useRef<HTMLDivElement | null>(null);
     const panelWidth = 292;
     const panelMaxHeight = 260;
-    const top = Math.min(window.innerHeight - panelMaxHeight - 12, anchorRect.bottom + 6);
-    const left = Math.min(window.innerWidth - panelWidth - 12, Math.max(12, anchorRect.left));
+    const viewportWidth = typeof window === "undefined" ? anchorRect.left + panelWidth + 12 : window.innerWidth;
+    const viewportHeight = typeof window === "undefined" ? anchorRect.bottom + panelMaxHeight + 18 : window.innerHeight;
+    const top = Math.min(viewportHeight - panelMaxHeight - 12, anchorRect.bottom + 6);
+    const left = Math.min(viewportWidth - panelWidth - 12, Math.max(12, anchorRect.left));
 
     React.useEffect(() => {
         function handlePointerDown(event: PointerEvent): void {

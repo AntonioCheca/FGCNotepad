@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import {useRouter} from "next/router";
 import AuthContext from "@/services/AuthContext";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -126,7 +125,6 @@ function rowMatchesFilters(item: ModerationQueueItem, contentFilter: ContentFilt
 
 export default function ModerationQueuePage() {
     const authContext = React.useContext(AuthContext);
-    const router = useRouter();
     const {getQueue, approve, reject, hide} = useModeration();
 
     const [contentFilter, setContentFilter] = React.useState<ContentFilter>("all");
@@ -166,17 +164,6 @@ export default function ModerationQueuePage() {
             setLoadingQueue(false);
         }
     }, [contentFilter, getQueue, sortFilter, stateFilter]);
-
-    React.useEffect(() => {
-        if (loading) {
-            return;
-        }
-
-        if (!isAuthenticated) {
-            localStorage.setItem("redirectAfterLogin", "/moderation/queue");
-            router.replace("/auth/login");
-        }
-    }, [isAuthenticated, loading, router]);
 
     React.useEffect(() => {
         if (loading || !isAuthenticated || !canModerate) {

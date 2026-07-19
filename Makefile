@@ -132,6 +132,14 @@ audit-backend:
 
 audit: audit-frontend audit-backend
 
+verify-frontend-upgrade:
+	cd frontend && node -e "const [major, minor] = process.versions.node.split('.').map(Number); if (major < 22 || (major === 22 && minor < 13)) { console.error('Node >=22.13.0 required. Found ' + process.version); process.exit(1); }"
+	cd frontend && npm ci
+	cd frontend && npm audit
+	cd frontend && npm ls next eslint-config-next @mui/material-nextjs postcss
+	cd frontend && npm run check
+	cd frontend && npm run build
+
 # Convenience commands that work for both
 help:
 	@echo "Available commands:"
@@ -167,7 +175,8 @@ help:
 	@echo "  audit                - Run frontend and backend security audits"
 	@echo "  audit-frontend       - Run npm audit"
 	@echo "  audit-backend        - Run composer audit"
+	@echo "  verify-frontend-upgrade - Reinstall and verify upgraded frontend stack"
 	@echo ""
 	@echo "Run 'make help' to see this message"
 
-.PHONY: build up stop logs create-jwt-keys migrate migrate-test create-test-database composer-install bash frontend-bash psql local-setup local-composer-install local-npm-install local-create-jwt-keys local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit help
+.PHONY: build up stop logs create-jwt-keys migrate migrate-test create-test-database composer-install bash frontend-bash psql local-setup local-composer-install local-npm-install local-create-jwt-keys local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit verify-frontend-upgrade help
