@@ -1,7 +1,7 @@
 import React from "react";
 
 import useApi from "@/hooks/useApi";
-import api, {getStoredAuthToken} from "@/services/api";
+import api from "@/services/api";
 import {
     ComboKnowledgeResponse,
     ComboRecommendationResponse,
@@ -9,16 +9,6 @@ import {
     ScenarioExecutionPreference,
     ScenarioExecutionSelection,
 } from "@/src/types/scenarioExecution";
-
-export function hasJwtToken(): boolean {
-    if (typeof window === "undefined") {
-        return false;
-    }
-
-    const token = getStoredAuthToken();
-
-    return typeof token === "string" && token.length > 0;
-}
 
 export function useExecutionProfile() {
     const {request} = useApi();

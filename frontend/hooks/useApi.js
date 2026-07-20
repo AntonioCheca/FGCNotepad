@@ -1,7 +1,7 @@
 // hooks/useApi.js
 import {useCallback, useEffect, useRef, useState} from "react";
 import {useRouter} from "next/router";
-import {clearStoredAuthToken} from "@/services/api";
+import {clearCsrfToken} from "@/services/api";
 
 const useApi = () => {
     const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ const useApi = () => {
             return response;
         } catch (error) {
             if (error.response?.status === 401) {
-                clearStoredAuthToken();
+                clearCsrfToken();
                 window.dispatchEvent(new Event("auth:unauthorized"));
 
                 const currentPath = `${window.location.pathname}${window.location.search}`;

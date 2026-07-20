@@ -7,6 +7,4 @@ export interface AuthProfile {
     isActive: boolean;
 }
 
-export interface AuthUser extends AuthProfile {
-    token: string;
-}
+export type AuthUser = AuthProfile;

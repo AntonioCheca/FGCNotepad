@@ -5,8 +5,9 @@ import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
+import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ComboKnowledgeItem, ComboRecommendationItem} from "@/src/types/scenarioExecution";
+import AuthContext from "@/services/AuthContext";
 
 function buildDifficultyOptions(combos: ComboKnowledgeItem[]): number[] {
     const values = new Set<number>();
@@ -22,8 +23,10 @@ function buildDifficultyOptions(combos: ComboKnowledgeItem[]): number[] {
 
 export default function RecommendComboPage() {
     const {getComboKnowledge, getComboRecommendations} = useExecutionProfile();
+    const authContext = React.useContext(AuthContext);
+    const authLoading = authContext?.loading ?? true;
+    const isAuthenticated = authContext?.isAuthenticated ?? false;
 
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -45,10 +48,11 @@ export default function RecommendComboPage() {
     }, [getComboKnowledge]);
 
     React.useEffect(() => {
-        const authenticated = hasJwtToken();
-        setIsAuthenticated(authenticated);
+        if (authLoading) {
+            return;
+        }
 
-        if (!authenticated) {
+        if (!isAuthenticated) {
             setIsLoading(false);
             return;
         }
@@ -81,7 +85,11 @@ export default function RecommendComboPage() {
         return () => {
             canceled = true;
         };
-    }, [getComboKnowledge]);
+    }, [authLoading, getComboKnowledge, isAuthenticated]);
+
+    if (!authContext) {
+        throw new Error("AuthContext must be used within an AuthProvider");
+    }
 
     const difficultyOptions = React.useMemo(() => buildDifficultyOptions(combos), [combos]);
 

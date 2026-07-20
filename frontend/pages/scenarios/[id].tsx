@@ -13,11 +13,12 @@ import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
 import {MatrixLinkedCellResolution} from "@/src/features/matrix/model";
 import {useScenarios, ScenarioDetail, ScenarioLayerSolveSnapshot, ScenarioResolvedLinkedCell} from "@/hooks/useScenarios";
-import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
+import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 import {useCharacters} from "@/hooks/useCharacters";
 import {useMode} from "@/src/context/ThemeContext";
+import AuthContext from "@/services/AuthContext";
 
 const DEFAULT_EXECUTION_SELECTION: ScenarioExecutionSelection = {
     mode: "standard",
@@ -98,6 +99,9 @@ export default function ScenarioDetailPage() {
     const [dynamicRefreshQueued, setDynamicRefreshQueued] = React.useState(false);
     const [executionSelection, setExecutionSelection] = React.useState<ScenarioExecutionSelection>(DEFAULT_EXECUTION_SELECTION);
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const authContext = React.useContext(AuthContext);
+    const authLoading = authContext?.loading ?? true;
+    const contextIsAuthenticated = authContext?.isAuthenticated ?? false;
     const [personalizedDefenderId, setPersonalizedDefenderId] = React.useState("");
     const [columnVisibilityByLabel, setColumnVisibilityByLabel] = React.useState<Record<string, boolean> | null>(null);
     const [layerSolveSnapshots, setLayerSolveSnapshots] = React.useState<Record<number, ScenarioLayerSolveSnapshot>>({});
@@ -168,10 +172,13 @@ export default function ScenarioDetailPage() {
     }, [scenarioId, attackerLifeMax, defenderLifeMax]);
 
     React.useEffect(() => {
-        const authenticated = hasJwtToken();
-        setIsAuthenticated(authenticated);
+        if (authLoading) {
+            return;
+        }
 
-        if (!authenticated) {
+        setIsAuthenticated(contextIsAuthenticated);
+
+        if (!contextIsAuthenticated) {
             return;
         }
 
@@ -196,7 +203,7 @@ export default function ScenarioDetailPage() {
         return () => {
             canceled = true;
         };
-    }, [getExecutionPreference]);
+    }, [authLoading, contextIsAuthenticated, getExecutionPreference]);
 
     React.useEffect(() => {
         if (!scenarioId) {

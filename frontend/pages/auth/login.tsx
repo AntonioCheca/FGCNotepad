@@ -7,6 +7,7 @@ import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppCard} from "@/src/components/ui/AppCard";
 import {AppCardContent} from "@/src/components/ui/AppCardContent";
 import AuthContext from "@/services/AuthContext";
+import {AuthUser} from "@/src/types/auth";
 
 const LoginPage = () => {
     const {loginUser} = useAuth();
@@ -23,13 +24,14 @@ const LoginPage = () => {
         setError("");
         try {
             const data = await loginUser(username, password);
-            const token = data?.token;
+            const user = data?.user as AuthUser | undefined;
+            const csrfToken = data?.csrfToken;
 
-            if (typeof token !== "string" || token.length === 0) {
-                throw new Error("Missing auth token from login response");
+            if (!user || typeof csrfToken !== "string" || csrfToken.length === 0) {
+                throw new Error("Missing session data from login response");
             }
 
-            login(token);
+            login(user, csrfToken);
         } catch (error: unknown) {
             const normalizedError = error as {
                 response?: {data?: {message?: string; error?: string}};

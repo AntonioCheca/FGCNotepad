@@ -10,7 +10,7 @@ const useAuth = () => {
         request(() => api.post("/register", {username, password}));
 
     const loginUser = async (username, password) => {
-        return request(() => api.post("/login_check", {username, password}));
+        return request(() => api.post("/login", {username, password}));
     };
 
     const getCurrentUser = () => request(() => fetchCurrentUserProfile());

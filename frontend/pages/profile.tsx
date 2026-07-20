@@ -6,8 +6,9 @@ import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppTooltip} from "@/src/components/ui/AppTooltip";
 import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
-import {hasJwtToken, useExecutionProfile} from "@/hooks/useExecutionProfile";
+import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ComboKnowledgeItem, ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
+import AuthContext from "@/services/AuthContext";
 
 export default function ProfilePage() {
     const {
@@ -16,8 +17,10 @@ export default function ProfilePage() {
         getExecutionPreference,
         updateExecutionPreference,
     } = useExecutionProfile();
+    const authContext = React.useContext(AuthContext);
+    const authLoading = authContext?.loading ?? true;
+    const isAuthenticated = authContext?.isAuthenticated ?? false;
 
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
     const [loading, setLoading] = React.useState(true);
     const [savingKnowledge, setSavingKnowledge] = React.useState(false);
     const [savingPreference, setSavingPreference] = React.useState(false);
@@ -41,10 +44,11 @@ export default function ProfilePage() {
     }, [getComboKnowledge]);
 
     React.useEffect(() => {
-        const authenticated = hasJwtToken();
-        setIsAuthenticated(authenticated);
+        if (authLoading) {
+            return;
+        }
 
-        if (!authenticated) {
+        if (!isAuthenticated) {
             setLoading(false);
             return;
         }
@@ -84,7 +88,11 @@ export default function ProfilePage() {
         return () => {
             canceled = true;
         };
-    }, [getComboKnowledge, getExecutionPreference]);
+    }, [authLoading, getComboKnowledge, getExecutionPreference, isAuthenticated]);
+
+    if (!authContext) {
+        throw new Error("AuthContext must be used within an AuthProvider");
+    }
 
     if (!isAuthenticated) {
         return (

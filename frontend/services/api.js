@@ -4,75 +4,52 @@ import axios from "axios";
 // Check if we're running on the client side (browser) or server side (Node runtime)
 const isClient = typeof window !== 'undefined';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (isClient
-    ? "http://127.0.0.1:8000/api"
-    : "http://nginx:80/api");
+function resolveApiBaseUrl() {
+    const configuredUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!isClient) {
+        return configuredUrl || "http://nginx:80/api";
+    }
+
+    const fallbackUrl = "http://127.0.0.1:8000/api";
+    const apiUrl = configuredUrl || fallbackUrl;
+
+    try {
+        const parsedUrl = new URL(apiUrl, window.location.origin);
+        const pageHost = window.location.hostname;
+        const loopbackHosts = new Set(["localhost", "127.0.0.1"]);
+
+        if (loopbackHosts.has(parsedUrl.hostname) && loopbackHosts.has(pageHost)) {
+            parsedUrl.hostname = pageHost;
+        }
+
+        return parsedUrl.toString();
+    } catch {
+        return apiUrl;
+    }
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {"Content-Type": "application/json"},
+    withCredentials: true,
 });
 
-const AUTH_TOKEN_STORAGE_KEYS = ["jwt", "token"];
+let csrfToken = null;
 
-const normalizeToken = (token) => {
-    if (typeof token !== "string") {
-        return null;
-    }
-
-    const trimmedToken = token.trim();
-    if (!trimmedToken) {
-        return null;
-    }
-
-    return trimmedToken.replace(/^Bearer\s+/i, "").trim() || null;
+export const setCsrfToken = (token) => {
+    csrfToken = typeof token === "string" && token.length > 0 ? token : null;
 };
 
-export const getStoredAuthToken = () => {
-    if (typeof window === "undefined") {
-        return null;
-    }
-
-    for (const key of AUTH_TOKEN_STORAGE_KEYS) {
-        const normalizedToken = normalizeToken(localStorage.getItem(key));
-        if (normalizedToken) {
-            return normalizedToken;
-        }
-    }
-
-    return null;
+export const clearCsrfToken = () => {
+    csrfToken = null;
 };
 
-export const setStoredAuthToken = (token) => {
-    if (typeof window === "undefined") {
-        return;
-    }
-
-    const normalizedToken = normalizeToken(token);
-    if (!normalizedToken) {
-        clearStoredAuthToken();
-        return;
-    }
-
-    localStorage.setItem("jwt", normalizedToken);
-    localStorage.removeItem("token");
-};
-
-export const clearStoredAuthToken = () => {
-    if (typeof window === "undefined") {
-        return;
-    }
-
-    for (const key of AUTH_TOKEN_STORAGE_KEYS) {
-        localStorage.removeItem(key);
-    }
-};
-
-// Attach token to all requests
 api.interceptors.request.use((config) => {
-    const token = getStoredAuthToken();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    const method = String(config.method || "get").toUpperCase();
+    if (csrfToken && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+        config.headers["X-CSRF-Token"] = csrfToken;
     }
     return config;
 });

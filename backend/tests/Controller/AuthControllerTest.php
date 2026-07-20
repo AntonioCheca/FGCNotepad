@@ -59,6 +59,88 @@ class AuthControllerTest extends DatabaseTestCase
         $this->assertResponseStatusCodeSame(401);
     }
 
+    public function testBrowserSessionLoginReturnsUserAndNoToken(): void
+    {
+        $this->createPasswordUser(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+
+        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => self::TEST_USER_NAME,
+            'password' => self::TEST_USER_PASSWORD,
+        ]));
+
+        $this->assertResponseIsSuccessful();
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        self::assertSame(self::TEST_USER_NAME, $payload['user']['username'] ?? null);
+        self::assertSame(['ROLE_USER'], $payload['user']['roles'] ?? null);
+        self::assertIsString($payload['csrfToken'] ?? null);
+        self::assertArrayNotHasKey('token', $payload);
+        self::assertArrayNotHasKey('refresh_token', $payload);
+    }
+
+    public function testBrowserSessionMeRequiresAuthentication(): void
+    {
+        $this->client->request('GET', '/api/me');
+
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testBrowserSessionCanAccessMeAfterLogin(): void
+    {
+        $this->createPasswordUser(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+        $this->loginBrowserSession(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+
+        $this->client->request('GET', '/api/me');
+
+        $this->assertResponseIsSuccessful();
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertTrue($payload['authenticated'] ?? false);
+        self::assertSame(self::TEST_USER_NAME, $payload['user']['username'] ?? null);
+        self::assertIsString($payload['csrfToken'] ?? null);
+    }
+
+    public function testBrowserSessionUnsafeRequestRequiresCsrfToken(): void
+    {
+        $this->createPasswordUser(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+        $this->loginBrowserSession(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+
+        $this->client->request('PUT', '/api/profile/notation-preference', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'notationDictionary' => 'numpad',
+        ]));
+
+        $this->assertResponseStatusCodeSame(403);
+    }
+
+    public function testBrowserSessionUnsafeRequestAcceptsValidCsrfToken(): void
+    {
+        $this->createPasswordUser(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+        $csrfToken = $this->loginBrowserSession(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+
+        $this->client->request('PUT', '/api/profile/notation-preference', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_CSRF_TOKEN' => $csrfToken,
+        ], json_encode([
+            'notationDictionary' => 'numpad',
+        ]));
+
+        $this->assertResponseIsSuccessful();
+    }
+
+    public function testBrowserLogoutInvalidatesSession(): void
+    {
+        $this->createPasswordUser(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+        $csrfToken = $this->loginBrowserSession(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+
+        $this->client->request('POST', '/api/logout', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_CSRF_TOKEN' => $csrfToken,
+        ]);
+        $this->assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/me');
+        $this->assertResponseStatusCodeSame(401);
+    }
+
     public function testRegisterReturnsDefaultUserRoleMetadata(): void
     {
         $username = $this->nextUsername('newuser');
@@ -138,5 +220,30 @@ class AuthControllerTest extends DatabaseTestCase
     private function nextUsername(string $prefix): string
     {
         return sprintf('%s_%s_%d', $prefix, $this->usernameSeed, $this->usernameSeq++);
+    }
+
+    private function createPasswordUser(string $username, string $password): User
+    {
+        $user = new User();
+        $user->setUsername($username);
+        $user->setPassword($this->passwordHasher->hashPassword($user, $password));
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        return $user;
+    }
+
+    private function loginBrowserSession(string $username, string $password): string
+    {
+        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => $username,
+            'password' => $password,
+        ]));
+
+        $this->assertResponseIsSuccessful();
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        return (string) ($payload['csrfToken'] ?? '');
     }
 }

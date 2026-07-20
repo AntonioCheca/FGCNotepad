@@ -2,8 +2,7 @@
 
 import {createContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef} from "react";
 import {useRouter} from "next/navigation";
-import {fetchCurrentUserProfile} from "@/services/authProfile";
-import {clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken} from "@/services/api";
+import api, {clearCsrfToken, setCsrfToken} from "@/services/api";
 import {AuthUser, UserRole} from "@/src/types/auth";
 
 interface AuthContextType {
@@ -13,8 +12,8 @@ interface AuthContextType {
     hasRole: (role: UserRole) => boolean;
     canModerate: boolean;
     canManageUsers: boolean;
-    login: (token: string) => void;
-    logout: () => void;
+    login: (user: AuthUser, csrfToken: string) => void;
+    logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,117 +28,46 @@ function getHttpStatus(error: unknown): number | null {
     return typeof response?.status === "number" ? response.status : null;
 }
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-    const [, payload] = token.split(".");
-    if (!payload) {
-        return null;
-    }
-
-    try {
-        const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-        const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-
-        return JSON.parse(atob(padded)) as Record<string, unknown>;
-    } catch {
-        return null;
-    }
-}
-
-function isUserRole(role: unknown): role is UserRole {
-    return role === "ROLE_USER" || role === "ROLE_MODERATOR" || role === "ROLE_ADMIN";
-}
-
-function buildUserFromToken(token: string): AuthUser | null {
-    const payload = decodeJwtPayload(token);
-    if (!payload) {
-        return null;
-    }
-
-    const username = typeof payload.username === "string"
-        ? payload.username
-        : typeof payload.user === "string"
-            ? payload.user
-            : null;
-
-    if (!username) {
-        return null;
-    }
-
-    const roles = Array.isArray(payload.roles)
-        ? payload.roles.filter(isUserRole)
-        : [];
-
-    return {
-        token,
-        id: typeof payload.id === "string" ? payload.id : "",
-        username,
-        roles: roles.length > 0 ? roles : ["ROLE_USER"],
-        isActive: true,
-    };
-}
-
 export function AuthProvider({children}: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const router = useRouter();
 
     const clearSession = useCallback(() => {
-        clearStoredAuthToken();
+        clearCsrfToken();
         setUser(null);
     }, []);
 
-    const hydrateUserFromToken = useCallback(async (token: string) => {
+    const refreshSession = useCallback(async () => {
         setLoading(true);
         try {
-            const profile = await fetchCurrentUserProfile();
-            setUser({token, ...profile});
+            const response = await api.get("/me");
+            const payload = response.data as {user?: AuthUser; csrfToken?: string};
+            if (payload.user) {
+                setUser(payload.user);
+            }
+            setCsrfToken(payload.csrfToken ?? null);
         } catch (error: unknown) {
             const status = getHttpStatus(error);
             if (status === 401 || status === 403) {
                 clearSession();
-                return;
-            }
-
-            const userFromToken = buildUserFromToken(token);
-            if (userFromToken) {
-                setUser(userFromToken);
             }
         } finally {
             setLoading(false);
         }
     }, [clearSession]);
-    const eventHandlersRef = useRef({clearSession, hydrateUserFromToken, router});
+
+    const eventHandlersRef = useRef({clearSession, router});
 
     useEffect(() => {
-        eventHandlersRef.current = {clearSession, hydrateUserFromToken, router};
+        eventHandlersRef.current = {clearSession, router};
     });
 
     useEffect(() => {
-        const token = getStoredAuthToken();
-        if (!token) {
-            setLoading(false);
-            return;
-        }
-
-        void hydrateUserFromToken(token);
-    }, [hydrateUserFromToken]);
+        void refreshSession();
+    }, [refreshSession]);
 
     useEffect(() => {
-        const handleStorage = (event: StorageEvent) => {
-            if (event.key !== "jwt" && event.key !== "token") {
-                return;
-            }
-
-            const token = getStoredAuthToken();
-
-            if (!token) {
-                setUser(null);
-                return;
-            }
-
-            void eventHandlersRef.current.hydrateUserFromToken(token);
-        };
-
         const handleUnauthorized = () => {
             eventHandlersRef.current.clearSession();
 
@@ -152,30 +80,29 @@ export function AuthProvider({children}: { children: ReactNode }) {
             eventHandlersRef.current.router.replace('/auth/login');
         };
 
-        window.addEventListener("storage", handleStorage);
         window.addEventListener("auth:unauthorized", handleUnauthorized);
 
         return () => {
-            window.removeEventListener("storage", handleStorage);
             window.removeEventListener("auth:unauthorized", handleUnauthorized);
         };
     }, []);
 
-    const login = useCallback((token: string) => {
-        setStoredAuthToken(token);
-        const normalizedToken = getStoredAuthToken();
-        if (normalizedToken) {
-            void hydrateUserFromToken(normalizedToken);
-        }
+    const login = useCallback((nextUser: AuthUser, nextCsrfToken: string) => {
+        setUser(nextUser);
+        setCsrfToken(nextCsrfToken);
 
         const redirectPath = localStorage.getItem("redirectAfterLogin");
         localStorage.removeItem("redirectAfterLogin");
         router.push(redirectPath || "/combos");
-    }, [hydrateUserFromToken, router]);
+    }, [router]);
 
-    const logout = useCallback(() => {
-        clearSession();
-        router.push("/auth/login");
+    const logout = useCallback(async () => {
+        try {
+            await api.post("/logout");
+        } finally {
+            clearSession();
+            router.push("/auth/login");
+        }
     }, [clearSession, router]);
 
     const hasRole = useCallback((role: UserRole): boolean => {

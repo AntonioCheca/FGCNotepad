@@ -4,7 +4,7 @@ import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {useContentFlags} from "@/hooks/useContentFlags";
-import {getStoredAuthToken} from "@/services/api";
+import AuthContext from "@/services/AuthContext";
 
 interface ContentFlagButtonProps {
     targetType: "scenario" | "combo";
@@ -13,22 +13,18 @@ interface ContentFlagButtonProps {
 
 export function ContentFlagButton({targetType, targetId}: ContentFlagButtonProps) {
     const {createScenarioFlag, createComboFlag} = useContentFlags();
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const authContext = React.useContext(AuthContext);
     const [isOpen, setIsOpen] = React.useState(false);
     const [comment, setComment] = React.useState("");
     const [submitting, setSubmitting] = React.useState(false);
     const [feedback, setFeedback] = React.useState<string | null>(null);
     const [error, setError] = React.useState<string | null>(null);
 
-    React.useEffect(() => {
-        if (typeof window === "undefined") {
-            return;
-        }
+    if (!authContext) {
+        throw new Error("AuthContext must be used within an AuthProvider");
+    }
 
-        setIsAuthenticated(Boolean(getStoredAuthToken()));
-    }, []);
-
-    if (!isAuthenticated) {
+    if (!authContext.isAuthenticated) {
         return null;
     }
 

@@ -7,6 +7,9 @@ controllers:
 api_login_check:
     path: /api/login_check
 
+api_browser_login:
+    path: /api/login
+
 login_check_options:
    path: /api/login_check
    methods: [OPTIONS]
