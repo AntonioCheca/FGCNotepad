@@ -5,26 +5,26 @@ export default function usePersistentState<T>(
     initial: T,
     ignoreNullInitial = false
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState<T>(initial);
-    const [hydrated, setHydrated] = useState(false);
+    const [state, setState] = useState<T>(() => {
+        if (typeof window === "undefined") {
+            return initial;
+        }
 
-    useEffect(() => {
         try {
             const saved = localStorage.getItem(key);
-            if (saved) setState(JSON.parse(saved) as T);
+            return saved ? JSON.parse(saved) as T : initial;
         } catch {
+            return initial;
         }
-        setHydrated(true);
-    }, [key]);
+    });
 
     useEffect(() => {
-        if (!hydrated) return;
         if (ignoreNullInitial && state === null) return; // skip saving null defaults
         try {
             localStorage.setItem(key, JSON.stringify(state));
         } catch {
         }
-    }, [key, state, hydrated, ignoreNullInitial]);
+    }, [key, state, ignoreNullInitial]);
 
     return [state, setState];
 }

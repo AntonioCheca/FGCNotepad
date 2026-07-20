@@ -93,7 +93,12 @@ export function buildMatrixInsights(state: MatrixEditorState, displayedBodyValue
         })
     );
 
-    const numericPayoffs = payoffByCell.map((entry) => entry.value).filter((value): value is number => typeof value === "number");
+    const numericPayoffs: number[] = [];
+    for (const entry of payoffByCell) {
+        if (typeof entry.value === "number") {
+            numericPayoffs.push(entry.value);
+        }
+    }
     const payoffMin = numericPayoffs.length > 0 ? Math.min(...numericPayoffs) : null;
     const payoffMax = numericPayoffs.length > 0 ? Math.max(...numericPayoffs) : null;
     const denom = payoffMin !== null && payoffMax !== null ? Math.max(Math.abs(payoffMin), Math.abs(payoffMax), 1) : 1;
@@ -107,10 +112,14 @@ export function buildMatrixInsights(state: MatrixEditorState, displayedBodyValue
         return acc;
     }, {});
 
-    const weightedOutcomes: WeightedOutcomeDatum[] = Object.entries(weightedOutcomeMap)
-        .map(([label, probability]) => ({label, probability: Number((probability * 100).toFixed(2))}))
-        .filter((entry) => entry.probability > 0)
-        .sort((a, b) => b.probability - a.probability);
+    const weightedOutcomes: WeightedOutcomeDatum[] = [];
+    for (const [label, probability] of Object.entries(weightedOutcomeMap)) {
+        const percentage = Number((probability * 100).toFixed(2));
+        if (percentage > 0) {
+            weightedOutcomes.push({label, probability: percentage});
+        }
+    }
+    weightedOutcomes.sort((a, b) => b.probability - a.probability);
 
     const evDistributionMap = payoffByCell.reduce<Record<number, number>>((acc, entry) => {
         if (entry.value === null || entry.probability <= 0) {

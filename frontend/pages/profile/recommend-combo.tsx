@@ -136,6 +136,7 @@ export default function RecommendComboPage() {
 
             <div style={{display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16}}>
                 <select
+                    aria-label="Recommendation character"
                     value={selectedCharacterId}
                     onChange={async (event) => {
                         const characterId = event.target.value;
@@ -153,6 +154,7 @@ export default function RecommendComboPage() {
                 </select>
 
                 <select
+                    aria-label="Recommendation difficulty cap"
                     value={selectedDifficultyCap ?? ""}
                     onChange={(event) => {
                         const parsed = Number.parseInt(event.target.value, 10);

@@ -192,9 +192,13 @@ export interface ComboApiSummary {
 
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     const moveNamesFromLegacyField = combo.moves?.map((move) => move.name ?? "-") ?? [];
-    const moveNamesFromSteps = combo.steps
-        ?.map((step) => step.child_sequence_name ?? "")
-        .filter((name) => name.trim() !== "") ?? [];
+    const moveNamesFromSteps: string[] = [];
+    for (const step of combo.steps ?? []) {
+        const name = step.child_sequence_name ?? "";
+        if (name.trim() !== "") {
+            moveNamesFromSteps.push(name);
+        }
+    }
 
     return {
         id: combo.id,

@@ -1,5 +1,6 @@
 import {useContext, useState} from "react";
 import Link from "next/link";
+import {useRouter} from "next/router";
 import LoginForm from "@/src/components/forms/LoginForm";
 import useAuth from "@/hooks/useAuth";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -11,6 +12,7 @@ import {AuthUser} from "@/src/types/auth";
 
 const LoginPage = () => {
     const {loginUser} = useAuth();
+    const router = useRouter();
     const [error, setError] = useState("");
     const authContext = useContext(AuthContext);
 
@@ -19,6 +21,11 @@ const LoginPage = () => {
     }
 
     const {login} = authContext;
+
+    const redirectQuery = Array.isArray(router.query.redirect) ? router.query.redirect[0] : router.query.redirect;
+    const safeRedirectPath = typeof redirectQuery === "string" && redirectQuery.startsWith("/") && !redirectQuery.startsWith("//")
+        ? redirectQuery
+        : null;
 
     const handleLogin = async (username: string, password: string) => {
         setError("");
@@ -31,7 +38,7 @@ const LoginPage = () => {
                 throw new Error("Missing session data from login response");
             }
 
-            login(user, csrfToken);
+            login(user, csrfToken, safeRedirectPath);
         } catch (error: unknown) {
             const normalizedError = error as {
                 response?: {data?: {message?: string; error?: string}};

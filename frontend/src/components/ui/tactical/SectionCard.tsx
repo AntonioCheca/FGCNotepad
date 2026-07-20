@@ -2,7 +2,7 @@ import React from "react";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {BoltIcon, CheckCircleOutlineIcon, PendingActionsIcon} from "@/src/components/ui/AppIcons";
-import type {Theme} from "@/src/components/ui/AppTheme";
+import type {Theme} from "@/src/components/ui/AppThemeUtils";
 
 interface SectionCardProps {
     title: string;

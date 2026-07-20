@@ -15,6 +15,13 @@ type RequirementEditorTarget = {
     anchorRect: DOMRect;
 };
 
+const EMPTY_DISPLAY_LABELS_BY_KEY: Record<string, string> = {};
+const EMPTY_UNAVAILABLE_ROW_IDS = new Set<string>();
+const EMPTY_UNAVAILABLE_COLUMN_IDS = new Set<string>();
+const EMPTY_UNAVAILABLE_REASON_BY_ROW_ID: Record<string, string> = {};
+const EMPTY_UNAVAILABLE_REASON_BY_COLUMN_ID: Record<string, string> = {};
+const EMPTY_HEATMAP_TONE_BY_CELL_KEY: Record<string, MatrixHeatmapTone> = {};
+
 interface MatrixGridProps {
     state: MatrixEditorState;
     attackerCharacterName?: string | null;
@@ -90,12 +97,12 @@ export function MatrixGrid({
                                 draftHasFormatError,
                                     validationByKey,
                                     displayedBodyValues,
-                                    displayLabelsByKey = {},
-                                    moveLabelById,
-                                   unavailableRowIds = new Set<string>(),
-                                   unavailableColumnIds = new Set<string>(),
-                                   unavailableReasonByRowId = {},
-                                   unavailableReasonByColumnId = {},
+                                     displayLabelsByKey = EMPTY_DISPLAY_LABELS_BY_KEY,
+                                     moveLabelById,
+                                    unavailableRowIds = EMPTY_UNAVAILABLE_ROW_IDS,
+                                   unavailableColumnIds = EMPTY_UNAVAILABLE_COLUMN_IDS,
+                                    unavailableReasonByRowId = EMPTY_UNAVAILABLE_REASON_BY_ROW_ID,
+                                   unavailableReasonByColumnId = EMPTY_UNAVAILABLE_REASON_BY_COLUMN_ID,
                                    canEditRowStructure,
                                  canEditColumnStructure,
                                  canEditRowAxisLabels,
@@ -134,10 +141,9 @@ export function MatrixGrid({
                                  density,
                                   showLayerControls,
                                   summaryValueFormatter,
-                                  heatmapToneByCellKey = {},
-                                 }: MatrixGridProps) {
+                                  heatmapToneByCellKey = EMPTY_HEATMAP_TONE_BY_CELL_KEY,
+                                  }: MatrixGridProps) {
     const {theme} = useMode();
-    const [structureSelection, setStructureSelection] = React.useState<{axis: "row" | "column"; id: string} | null>(null);
     const [requirementTarget, setRequirementTarget] = React.useState<RequirementEditorTarget | null>(null);
 
     const profile = React.useMemo(
@@ -145,68 +151,55 @@ export function MatrixGrid({
         [density, state.grid.rows.length, state.grid.columns.length]
     );
 
-    React.useEffect(() => {
-        if (!activeTarget || activeTarget.zone === "body" || activeTarget.zone === "expectedValue") {
-            setStructureSelection(null);
-            return;
+    const structureSelection = React.useMemo(() => {
+        if (requirementTarget) {
+            return {
+                axis: requirementTarget.axis === "rows" ? "row" : "column",
+                id: requirementTarget.axisId,
+            };
         }
 
-        if (activeTarget.zone === "rowSummary") {
-            setStructureSelection((prev) => {
-                if (prev?.axis === "row" && prev.id === activeTarget.rowId) {
-                    return prev;
-                }
-                return {axis: "row", id: activeTarget.rowId};
-            });
-            return;
+        if (activeTarget?.zone === "rowSummary") {
+            return {axis: "row", id: activeTarget.rowId} as const;
         }
 
-        setStructureSelection((prev) => {
-            if (prev?.axis === "column" && prev.id === activeTarget.columnId) {
-                return prev;
-            }
-            return {axis: "column", id: activeTarget.columnId};
-        });
-    }, [activeTarget]);
+        if (activeTarget?.zone === "columnSummary") {
+            return {axis: "column", id: activeTarget.columnId} as const;
+        }
+
+        return null;
+    }, [activeTarget, requirementTarget]);
 
     const handleSelectColumnHeader = React.useCallback((columnId: string) => {
-        setStructureSelection({axis: "column", id: columnId});
         onSelectColumnHeader(columnId);
     }, [onSelectColumnHeader]);
 
     const handleSelectRowHeader = React.useCallback((rowId: string) => {
-        setStructureSelection({axis: "row", id: rowId});
         onSelectRowHeader(rowId);
     }, [onSelectRowHeader]);
 
     const handleSelectBodyCell = React.useCallback((rowId: string, columnId: string) => {
-        setStructureSelection(null);
         onSelectBodyCell(rowId, columnId);
     }, [onSelectBodyCell]);
 
     const handleSelectRowSummary = React.useCallback((rowId: string) => {
-        setStructureSelection(null);
         onSelectRowSummary(rowId);
     }, [onSelectRowSummary]);
 
     const handleSelectColumnSummary = React.useCallback((columnId: string) => {
-        setStructureSelection(null);
         onSelectColumnSummary(columnId);
     }, [onSelectColumnSummary]);
 
     const handleSelectExpectedValue = React.useCallback(() => {
-        setStructureSelection(null);
         onSelectExpectedValue();
     }, [onSelectExpectedValue]);
 
     const handleOpenRowRequirements = React.useCallback((rowId: string, anchor: HTMLElement) => {
-        setStructureSelection({axis: "row", id: rowId});
         onSelectRowHeader(rowId);
         setRequirementTarget({axis: "rows", axisId: rowId, anchorRect: anchor.getBoundingClientRect()});
     }, [onSelectRowHeader]);
 
     const handleOpenColumnRequirements = React.useCallback((columnId: string, anchor: HTMLElement) => {
-        setStructureSelection({axis: "column", id: columnId});
         onSelectColumnHeader(columnId);
         setRequirementTarget({axis: "columns", axisId: columnId, anchorRect: anchor.getBoundingClientRect()});
     }, [onSelectColumnHeader]);

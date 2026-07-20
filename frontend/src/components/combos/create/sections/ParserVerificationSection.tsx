@@ -77,7 +77,7 @@ export function ParserVerificationSection({
                         const isSelected = mappedStepIndex !== undefined && mappedStepIndex === selectedStepIndex;
 
                         return (
-                            <AppBox key={`${token.token}-${token.index}-${index}`} sx={{display: "inline-flex", gap: 0.5, alignItems: "center"}}>
+                            <AppBox key={`token-${token.index}-${token.token}`} sx={{display: "inline-flex", gap: 0.5, alignItems: "center"}}>
                                 <AppBox
                                     onClick={() => {
                                         if (mappedStepIndex !== undefined) {
@@ -238,8 +238,8 @@ export function ParserVerificationSection({
             {translateWarnings.length > 0 ? (
                 <InlineNotice severity="warning">
                     <AppBox sx={{display: "grid", gap: 0.35}}>
-                        {translateWarnings.map((warning, index) => (
-                            <AppTypography key={`warning-${index}`} variant="body2" sx={{display: "flex", gap: 0.5, alignItems: "center"}}>
+                        {translateWarnings.map((warning) => (
+                            <AppTypography key={`warning-${warning}`} variant="body2" sx={{display: "flex", gap: 0.5, alignItems: "center"}}>
                                 <WarningAmberIcon fontSize="inherit" />
                                 {warning}
                             </AppTypography>

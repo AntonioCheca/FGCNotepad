@@ -29,6 +29,13 @@ const DEFAULT_REQUIREMENT: MatrixResourceRequirement = {
     threshold: 1,
 };
 
+let requirementRenderIdCounter = 0;
+
+function createRequirementRenderId(): string {
+    requirementRenderIdCounter += 1;
+    return `requirement-${requirementRenderIdCounter}`;
+}
+
 function formatRequirement(requirement: MatrixResourceRequirement): string {
     const owner = requirement.owner === "attacker" ? "Atk" : "Def";
     const resource = requirement.resource === "health" ? "HP" : requirement.resource === "drive" ? "Drv" : "Sup";
@@ -120,12 +127,32 @@ export function FloatingAxisRequirementEditor({
 }: FloatingAxisRequirementEditorProps) {
     const {theme} = useMode();
     const panelRef = React.useRef<HTMLDivElement | null>(null);
+    const [requirementRenderIds, setRequirementRenderIds] = React.useState<string[]>(() => requirements.map(createRequirementRenderId));
     const panelWidth = 292;
     const panelMaxHeight = 260;
     const viewportWidth = typeof window === "undefined" ? anchorRect.left + panelWidth + 12 : window.innerWidth;
     const viewportHeight = typeof window === "undefined" ? anchorRect.bottom + panelMaxHeight + 18 : window.innerHeight;
     const top = Math.min(viewportHeight - panelMaxHeight - 12, anchorRect.bottom + 6);
     const left = Math.min(viewportWidth - panelWidth - 12, Math.max(12, anchorRect.left));
+
+    React.useEffect(() => {
+        setRequirementRenderIds((current) => {
+            if (current.length === requirements.length) {
+                return current;
+            }
+
+            if (current.length > requirements.length) {
+                return current.slice(0, requirements.length);
+            }
+
+            const next = [...current];
+            while (next.length < requirements.length) {
+                next.push(createRequirementRenderId());
+            }
+
+            return next;
+        });
+    }, [requirements.length]);
 
     React.useEffect(() => {
         function handlePointerDown(event: PointerEvent): void {
@@ -195,7 +222,7 @@ export function FloatingAxisRequirementEditor({
                 <div style={{display: "flex", flexWrap: "wrap", gap: 4}}>
                     {requirements.map((requirement, index) => (
                         <span
-                            key={`${requirement.owner}-${requirement.resource}-summary-${index}`}
+                            key={`${requirementRenderIds[index] ?? `${requirement.owner}-${requirement.resource}-${requirement.threshold}`}-summary`}
                             style={{
                                 borderRadius: 999,
                                 padding: "2px 7px",
@@ -213,7 +240,7 @@ export function FloatingAxisRequirementEditor({
             )}
 
             {requirements.map((requirement, index) => (
-                <div key={`${requirement.owner}-${requirement.resource}-${index}`} style={{display: "grid", gridTemplateColumns: "58px 72px 62px 28px", gap: 4}}>
+                <div key={requirementRenderIds[index] ?? `requirement-fallback-${requirement.owner}-${requirement.resource}`} style={{display: "grid", gridTemplateColumns: "58px 72px 62px 28px", gap: 4}}>
                     <select
                         value={requirement.owner}
                         disabled={readOnly}
@@ -254,6 +281,7 @@ export function FloatingAxisRequirementEditor({
                         onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
+                            setRequirementRenderIds((current) => current.filter((_, currentIndex) => currentIndex !== index));
                             onRemove(index);
                         }}
                         style={controlStyle}
@@ -270,6 +298,7 @@ export function FloatingAxisRequirementEditor({
                 onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
+                    setRequirementRenderIds((current) => [...current, createRequirementRenderId()]);
                     onAdd(DEFAULT_REQUIREMENT);
                 }}
                 style={{...controlStyle, justifySelf: "start", padding: "1px 9px"}}

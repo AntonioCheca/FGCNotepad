@@ -10,9 +10,12 @@ interface DynamicComboPanelProps {
     initialValue: MatrixDynamicComboData | null;
     moveLabelById: Record<string, string>;
     presentation?: "modal" | "inline";
+    resetKey?: string;
     onClose: () => void;
     onConfirm: (value: MatrixDynamicComboData, starterLabels: Record<string, string>) => void;
 }
+
+type DynamicComboPanelBodyProps = Omit<DynamicComboPanelProps, "open" | "resetKey">;
 
 interface CharacterOption {
     id: string;
@@ -74,7 +77,22 @@ function normalizeMoveSearchResults(value: unknown): MoveSearchOption[] {
         .filter((option): option is MoveSearchOption => option !== null);
 }
 
-export function DynamicComboPanel({open, initialValue, moveLabelById, presentation = "modal", onClose, onConfirm}: DynamicComboPanelProps) {
+function createStarterSelections(initialValue: MatrixDynamicComboData | null, moveLabelById: Record<string, string>): MoveSearchOption[] {
+    return (initialValue?.starterMoveIds ?? []).map((starterMoveId) => ({
+        id: starterMoveId,
+        summary: moveLabelById[starterMoveId] ?? `Move #${starterMoveId}`,
+    }));
+}
+
+export function DynamicComboPanel({open, resetKey = "dynamic-combo-panel", ...bodyProps}: DynamicComboPanelProps) {
+    if (!open) {
+        return null;
+    }
+
+    return <DynamicComboPanelBody key={resetKey} {...bodyProps} />;
+}
+
+function DynamicComboPanelBody({initialValue, moveLabelById, presentation = "modal", onClose, onConfirm}: DynamicComboPanelBodyProps) {
     const {characters, loading: charactersLoading} = useCharacters();
     const {searchMoves, getSpecificMove} = useMoves();
     const searchMovesRef = React.useRef(searchMoves);
@@ -83,7 +101,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
     const [selectedCharacter, setSelectedCharacter] = React.useState<CharacterOption | null>(null);
     const [starterQuery, setStarterQuery] = React.useState("");
     const [starterOptions, setStarterOptions] = React.useState<MoveSearchOption[]>([]);
-    const [starterSelections, setStarterSelections] = React.useState<MoveSearchOption[]>([]);
+    const [starterSelections, setStarterSelections] = React.useState<MoveSearchOption[]>(() => createStarterSelections(initialValue, moveLabelById));
     const [searchingMoves, setSearchingMoves] = React.useState(false);
     const [starterPreset, setStarterPreset] = React.useState<StarterContextPreset>(() => presetFromContext(initialValue?.starterContext));
     const [error, setError] = React.useState<string | null>(null);
@@ -101,31 +119,10 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
         [characters]
     );
 
-    const initialStarterSelections = React.useMemo<MoveSearchOption[]>(
-        () =>
-            (initialValue?.starterMoveIds ?? []).map((starterMoveId) => ({
-                id: starterMoveId,
-                summary: moveLabelById[starterMoveId] ?? `Move #${starterMoveId}`,
-            })),
-        [initialValue, moveLabelById]
-    );
     const selectedCharacterName = selectedCharacter?.name ?? "";
 
     React.useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        setSelectedCharacter(null);
-        setStarterQuery("");
-        setStarterOptions([]);
-        setStarterSelections(initialStarterSelections);
-        setStarterPreset(presetFromContext(initialValue?.starterContext));
-        setError(null);
-    }, [open, initialValue, initialStarterSelections]);
-
-    React.useEffect(() => {
-        if (!open || !initialValue?.starterMoveIds?.length) {
+        if (!initialValue?.starterMoveIds?.length) {
             return;
         }
 
@@ -173,23 +170,18 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
         return () => {
             canceled = true;
         };
-    }, [open, initialValue, moveLabelById]);
+    }, [initialValue, moveLabelById]);
 
     React.useEffect(() => {
-        if (!open || !initialValue?.attackerCharacterId || characterOptions.length === 0) {
+        if (!initialValue?.attackerCharacterId || characterOptions.length === 0) {
             return;
         }
 
         const existing = characterOptions.find((option) => option.id === initialValue.attackerCharacterId) ?? null;
         setSelectedCharacter(existing);
-    }, [open, initialValue, characterOptions]);
+    }, [initialValue, characterOptions]);
 
     React.useEffect(() => {
-        if (!open) {
-            setStarterOptions([]);
-            return;
-        }
-
         let canceled = false;
         const normalizedQuery = starterQuery.trim();
         const backendQuery = selectedCharacterName
@@ -232,11 +224,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
             canceled = true;
             window.clearTimeout(timeoutId);
         };
-    }, [open, starterQuery, selectedCharacterName]);
-
-    if (!open) {
-        return null;
-    }
+    }, [starterQuery, selectedCharacterName]);
 
     const isInline = presentation === "inline";
 

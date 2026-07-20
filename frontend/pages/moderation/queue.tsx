@@ -111,6 +111,157 @@ function rowMatchesFilters(item: ModerationQueueItem, contentFilter: ContentFilt
     return item.state === stateFilter;
 }
 
+interface QueueFiltersCardProps {
+    contentFilter: ContentFilter;
+    stateFilter: StateFilter;
+    sortFilter: SortFilter;
+    loadingQueue: boolean;
+    onContentFilterChange: (value: ContentFilter) => void;
+    onStateFilterChange: (value: StateFilter) => void;
+    onSortFilterChange: (value: SortFilter) => void;
+    onRefresh: () => void;
+}
+
+function QueueFiltersCard({contentFilter, stateFilter, sortFilter, loadingQueue, onContentFilterChange, onStateFilterChange, onSortFilterChange, onRefresh}: QueueFiltersCardProps) {
+    return (
+        <SectionCard title="Queue Filters" description="Narrow by content type, moderation state, and ordering." variant="review" tone="raised">
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "repeat(4, minmax(0, 1fr))"}, gap: 1.1}}>
+                <AppFormControl size="small" fullWidth>
+                    <AppInputLabel id="moderation-content-filter-label">Content Type</AppInputLabel>
+                    <AppSelect labelId="moderation-content-filter-label" label="Content Type" value={contentFilter} onChange={(event) => onContentFilterChange(event.target.value as ContentFilter)}>
+                        {CONTENT_FILTER_OPTIONS.map((option) => <AppMenuItem key={option.value} value={option.value}>{option.label}</AppMenuItem>)}
+                    </AppSelect>
+                </AppFormControl>
+
+                <AppFormControl size="small" fullWidth>
+                    <AppInputLabel id="moderation-state-filter-label">State</AppInputLabel>
+                    <AppSelect labelId="moderation-state-filter-label" label="State" value={stateFilter} onChange={(event) => onStateFilterChange(event.target.value as StateFilter)}>
+                        {STATE_FILTER_OPTIONS.map((option) => <AppMenuItem key={option.value} value={option.value}>{option.label}</AppMenuItem>)}
+                    </AppSelect>
+                </AppFormControl>
+
+                <AppFormControl size="small" fullWidth>
+                    <AppInputLabel id="moderation-sort-filter-label">Sort</AppInputLabel>
+                    <AppSelect labelId="moderation-sort-filter-label" label="Sort" value={sortFilter} onChange={(event) => onSortFilterChange(event.target.value as SortFilter)}>
+                        {SORT_FILTER_OPTIONS.map((option) => <AppMenuItem key={option.value} value={option.value}>{option.label}</AppMenuItem>)}
+                    </AppSelect>
+                </AppFormControl>
+
+                <AppBox sx={{display: "flex", alignItems: "center", justifyContent: {xs: "flex-start", md: "flex-end"}}}>
+                    <AppButton type="button" variant="outlined" onClick={onRefresh} disabled={loadingQueue}>{loadingQueue ? "Refreshing..." : "Refresh Queue"}</AppButton>
+                </AppBox>
+            </AppBox>
+        </SectionCard>
+    );
+}
+
+interface QueueSectionProps {
+    items: ModerationQueueItem[];
+    loadingQueue: boolean;
+    activeReasonRowKey: string | null;
+    activeReasonAction: "reject" | "hide" | null;
+    reasonDraftByRowKey: Record<string, string>;
+    rowErrorByKey: Record<string, string>;
+    pendingByKey: Record<string, boolean>;
+    onDecision: (item: ModerationQueueItem, action: DecisionAction) => Promise<void>;
+    onOpenReason: (rowKey: string, action: "reject" | "hide") => void;
+    onCancelReason: () => void;
+    onReasonDraftChange: (rowKey: string, value: string) => void;
+}
+
+function QueueSection({items, loadingQueue, activeReasonRowKey, activeReasonAction, reasonDraftByRowKey, rowErrorByKey, pendingByKey, onDecision, onOpenReason, onCancelReason, onReasonDraftChange}: QueueSectionProps) {
+    return (
+        <SectionCard title="Queue" description="Approve to publish, reject/hide with a reason to keep moderation audit clarity." variant="review">
+            {loadingQueue ? (
+                <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}><AppCircularProgress/></AppBox>
+            ) : items.length === 0 ? (
+                <InlineNotice severity="info">No items match the current moderation filters.</InlineNotice>
+            ) : (
+                <AppTableContainer sx={{maxHeight: "calc(100vh - 320px)", backgroundColor: "fgc.surface.base"}}>
+                    <AppTable stickyHeader size="small">
+                        <AppTableHead>
+                            <AppTableRow>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Type</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Title</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Author</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>State</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Flags</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Created</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Updated</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Actions</AppTableCell>
+                            </AppTableRow>
+                        </AppTableHead>
+                        <AppTableBody>
+                            {items.map((item) => {
+                                const key = rowKey(item);
+                                const isPending = Boolean(pendingByKey[key]);
+                                const isReasonOpen = activeReasonRowKey === key && (activeReasonAction === "reject" || activeReasonAction === "hide");
+                                const reasonDraft = reasonDraftByRowKey[key] ?? "";
+                                const rowError = rowErrorByKey[key];
+
+                                return (
+                                    <AppTableRow key={key} hover>
+                                        <AppTableCell><AppChip size="small" label={item.contentType} variant="outlined"/></AppTableCell>
+                                        <AppTableCell>
+                                            <AppBox sx={{display: "grid", gap: 0.5}}>
+                                                <AppTypography variant="body2" sx={{fontWeight: 600}}>{item.title || "Untitled"}</AppTypography>
+                                                <Link href={buildContentLink(item)} style={{textDecoration: "none", width: "fit-content"}}><AppButton type="button" size="small" variant="outlined">Open</AppButton></Link>
+                                            </AppBox>
+                                        </AppTableCell>
+                                        <AppTableCell>{item.author || "UNKNOWN_USER"}</AppTableCell>
+                                        <AppTableCell>{item.state}</AppTableCell>
+                                        <AppTableCell>{item.flagCount}</AppTableCell>
+                                        <AppTableCell>{formatUtcDateTime(item.createdAt)}</AppTableCell>
+                                        <AppTableCell>{formatUtcDateTime(item.updatedAt)}</AppTableCell>
+                                        <AppTableCell sx={{minWidth: 280}}>
+                                            <AppBox sx={{display: "grid", gap: 0.8}}>
+                                                <AppBox sx={{display: "flex", gap: 0.6, flexWrap: "wrap"}}>
+                                                    <AppButton type="button" size="small" disabled={isPending} onClick={() => void onDecision(item, "approve")}>Approve</AppButton>
+                                                    <AppButton type="button" size="small" variant="outlined" color="warning" disabled={isPending} onClick={() => onOpenReason(key, "reject")}>Reject</AppButton>
+                                                    <AppButton type="button" size="small" variant="outlined" color="error" disabled={isPending} onClick={() => onOpenReason(key, "hide")}>Hide</AppButton>
+                                                </AppBox>
+
+                                                {isReasonOpen ? (
+                                                    <AppBox sx={{display: "grid", gap: 0.65, p: 0.8, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.2, backgroundColor: "fgc.surface.sunken"}}>
+                                                        <AppTextField size="small" label={activeReasonAction === "reject" ? "Reject reason" : "Hide reason"} value={reasonDraft} onChange={(event) => onReasonDraftChange(key, event.target.value)} multiline minRows={2} placeholder="Required reason" />
+                                                        <AppBox sx={{display: "flex", gap: 0.6, justifyContent: "flex-end"}}>
+                                                            <AppButton type="button" size="small" variant="outlined" disabled={isPending} onClick={onCancelReason}>Cancel</AppButton>
+                                                            <AppButton type="button" size="small" color={activeReasonAction === "hide" ? "error" : "warning"} disabled={isPending} onClick={() => void onDecision(item, activeReasonAction === "reject" ? "reject" : "hide")}>
+                                                                {isPending ? "Submitting..." : (activeReasonAction === "reject" ? "Confirm Reject" : "Confirm Hide")}
+                                                            </AppButton>
+                                                        </AppBox>
+                                                    </AppBox>
+                                                ) : null}
+
+                                                {rowError ? <AppTypography variant="caption" color="error">{rowError}</AppTypography> : null}
+                                            </AppBox>
+                                        </AppTableCell>
+                                    </AppTableRow>
+                                );
+                            })}
+                        </AppTableBody>
+                    </AppTable>
+                </AppTableContainer>
+            )}
+        </SectionCard>
+    );
+}
+
+interface ModerationToastProps {
+    open: boolean;
+    severity: "success" | "error";
+    message: string;
+    onClose: () => void;
+}
+
+function ModerationToast({open, severity, message, onClose}: ModerationToastProps) {
+    return (
+        <AppSnackbar open={open} autoHideDuration={3000} onClose={onClose} anchorOrigin={{vertical: "bottom", horizontal: "right"}}>
+            <AppAlert severity={severity} variant="filled" onClose={onClose} sx={{width: "100%"}}>{message}</AppAlert>
+        </AppSnackbar>
+    );
+}
+
 export default function ModerationQueuePage() {
     const authContext = React.useContext(AuthContext);
     const {getQueue, approve, reject, hide} = useModeration();
@@ -190,18 +341,16 @@ export default function ModerationQueuePage() {
                     : await hide(item.contentType, item.contentId, reason ?? "");
 
             setItems((current) => {
-                const updatedRows = current
-                    .map((row) => {
-                        if (rowKey(row) !== key) {
-                            return row;
-                        }
+                const updatedRows: ModerationQueueItem[] = [];
+                for (const row of current) {
+                    const nextRow = rowKey(row) === key
+                        ? {...row, state: response.moderationState}
+                        : row;
 
-                        return {
-                            ...row,
-                            state: response.moderationState,
-                        };
-                    })
-                    .filter((row) => rowMatchesFilters(row, contentFilter, stateFilter));
+                    if (rowMatchesFilters(nextRow, contentFilter, stateFilter)) {
+                        updatedRows.push(nextRow);
+                    }
+                }
 
                 return updatedRows;
             });
@@ -257,234 +406,42 @@ export default function ModerationQueuePage() {
                 subtitle="Process pending and flagged content quickly. Decisions apply immediately and keep the queue synchronized."
                 badgeLabel={`Visible items: ${items.length}`}
             >
-                <SectionCard
-                    title="Queue Filters"
-                    description="Narrow by content type, moderation state, and ordering."
-                    variant="review"
-                    tone="raised"
-                >
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "repeat(4, minmax(0, 1fr))"}, gap: 1.1}}>
-                        <AppFormControl size="small" fullWidth>
-                            <AppInputLabel id="moderation-content-filter-label">Content Type</AppInputLabel>
-                            <AppSelect
-                                labelId="moderation-content-filter-label"
-                                label="Content Type"
-                                value={contentFilter}
-                                onChange={(event) => setContentFilter(event.target.value as ContentFilter)}
-                            >
-                                {CONTENT_FILTER_OPTIONS.map((option) => (
-                                    <AppMenuItem key={option.value} value={option.value}>{option.label}</AppMenuItem>
-                                ))}
-                            </AppSelect>
-                        </AppFormControl>
-
-                        <AppFormControl size="small" fullWidth>
-                            <AppInputLabel id="moderation-state-filter-label">State</AppInputLabel>
-                            <AppSelect
-                                labelId="moderation-state-filter-label"
-                                label="State"
-                                value={stateFilter}
-                                onChange={(event) => setStateFilter(event.target.value as StateFilter)}
-                            >
-                                {STATE_FILTER_OPTIONS.map((option) => (
-                                    <AppMenuItem key={option.value} value={option.value}>{option.label}</AppMenuItem>
-                                ))}
-                            </AppSelect>
-                        </AppFormControl>
-
-                        <AppFormControl size="small" fullWidth>
-                            <AppInputLabel id="moderation-sort-filter-label">Sort</AppInputLabel>
-                            <AppSelect
-                                labelId="moderation-sort-filter-label"
-                                label="Sort"
-                                value={sortFilter}
-                                onChange={(event) => setSortFilter(event.target.value as SortFilter)}
-                            >
-                                {SORT_FILTER_OPTIONS.map((option) => (
-                                    <AppMenuItem key={option.value} value={option.value}>{option.label}</AppMenuItem>
-                                ))}
-                            </AppSelect>
-                        </AppFormControl>
-
-                        <AppBox sx={{display: "flex", alignItems: "center", justifyContent: {xs: "flex-start", md: "flex-end"}}}>
-                            <AppButton type="button" variant="outlined" onClick={() => void loadQueue()} disabled={loadingQueue}>
-                                {loadingQueue ? "Refreshing..." : "Refresh Queue"}
-                            </AppButton>
-                        </AppBox>
-                    </AppBox>
-                </SectionCard>
+                <QueueFiltersCard
+                    contentFilter={contentFilter}
+                    stateFilter={stateFilter}
+                    sortFilter={sortFilter}
+                    loadingQueue={loadingQueue}
+                    onContentFilterChange={setContentFilter}
+                    onStateFilterChange={setStateFilter}
+                    onSortFilterChange={setSortFilter}
+                    onRefresh={() => void loadQueue()}
+                />
 
                 {queueError ? <InlineNotice severity="error">{queueError}</InlineNotice> : null}
 
-                <SectionCard
-                    title="Queue"
-                    description="Approve to publish, reject/hide with a reason to keep moderation audit clarity."
-                    variant="review"
-                >
-                    {loadingQueue ? (
-                        <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}>
-                            <AppCircularProgress/>
-                        </AppBox>
-                    ) : items.length === 0 ? (
-                        <InlineNotice severity="info">No items match the current moderation filters.</InlineNotice>
-                    ) : (
-                        <AppTableContainer sx={{maxHeight: "calc(100vh - 320px)", backgroundColor: "fgc.surface.base"}}>
-                            <AppTable stickyHeader size="small">
-                                <AppTableHead>
-                                    <AppTableRow>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Type</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Title</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Author</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>State</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Flags</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Created</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Updated</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Actions</AppTableCell>
-                                    </AppTableRow>
-                                </AppTableHead>
-
-                                <AppTableBody>
-                                    {items.map((item) => {
-                                        const key = rowKey(item);
-                                        const isPending = Boolean(pendingByKey[key]);
-                                        const isReasonOpen = activeReasonRowKey === key && (activeReasonAction === "reject" || activeReasonAction === "hide");
-                                        const reasonDraft = reasonDraftByRowKey[key] ?? "";
-                                        const rowError = rowErrorByKey[key];
-
-                                        return (
-                                            <AppTableRow key={key} hover>
-                                                <AppTableCell>
-                                                    <AppChip size="small" label={item.contentType} variant="outlined"/>
-                                                </AppTableCell>
-                                                <AppTableCell>
-                                                    <AppBox sx={{display: "grid", gap: 0.5}}>
-                                                        <AppTypography variant="body2" sx={{fontWeight: 600}}>{item.title || "Untitled"}</AppTypography>
-                                                        <Link href={buildContentLink(item)} style={{textDecoration: "none", width: "fit-content"}}>
-                                                            <AppButton type="button" size="small" variant="outlined">Open</AppButton>
-                                                        </Link>
-                                                    </AppBox>
-                                                </AppTableCell>
-                                                <AppTableCell>{item.author || "UNKNOWN_USER"}</AppTableCell>
-                                                <AppTableCell>{item.state}</AppTableCell>
-                                                <AppTableCell>{item.flagCount}</AppTableCell>
-                                                <AppTableCell>{formatUtcDateTime(item.createdAt)}</AppTableCell>
-                                                <AppTableCell>{formatUtcDateTime(item.updatedAt)}</AppTableCell>
-                                                <AppTableCell sx={{minWidth: 280}}>
-                                                    <AppBox sx={{display: "grid", gap: 0.8}}>
-                                                        <AppBox sx={{display: "flex", gap: 0.6, flexWrap: "wrap"}}>
-                                                            <AppButton
-                                                                type="button"
-                                                                size="small"
-                                                                disabled={isPending}
-                                                                onClick={() => void runDecision(item, "approve")}
-                                                            >
-                                                                Approve
-                                                            </AppButton>
-                                                            <AppButton
-                                                                type="button"
-                                                                size="small"
-                                                                variant="outlined"
-                                                                color="warning"
-                                                                disabled={isPending}
-                                                                onClick={() => {
-                                                                    setActiveReasonRowKey(key);
-                                                                    setActiveReasonAction("reject");
-                                                                    setRowErrorByKey((current) => ({...current, [key]: ""}));
-                                                                }}
-                                                            >
-                                                                Reject
-                                                            </AppButton>
-                                                            <AppButton
-                                                                type="button"
-                                                                size="small"
-                                                                variant="outlined"
-                                                                color="error"
-                                                                disabled={isPending}
-                                                                onClick={() => {
-                                                                    setActiveReasonRowKey(key);
-                                                                    setActiveReasonAction("hide");
-                                                                    setRowErrorByKey((current) => ({...current, [key]: ""}));
-                                                                }}
-                                                            >
-                                                                Hide
-                                                            </AppButton>
-                                                        </AppBox>
-
-                                                        {isReasonOpen ? (
-                                                            <AppBox sx={{display: "grid", gap: 0.65, p: 0.8, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.2, backgroundColor: "fgc.surface.sunken"}}>
-                                                                <AppTextField
-                                                                    size="small"
-                                                                    label={activeReasonAction === "reject" ? "Reject reason" : "Hide reason"}
-                                                                    value={reasonDraft}
-                                                                    onChange={(event) => {
-                                                                        const value = event.target.value;
-                                                                        setReasonDraftByRowKey((current) => ({...current, [key]: value}));
-                                                                    }}
-                                                                    multiline
-                                                                    minRows={2}
-                                                                    placeholder="Required reason"
-                                                                />
-                                                                <AppBox sx={{display: "flex", gap: 0.6, justifyContent: "flex-end"}}>
-                                                                    <AppButton
-                                                                        type="button"
-                                                                        size="small"
-                                                                        variant="outlined"
-                                                                        disabled={isPending}
-                                                                        onClick={() => {
-                                                                            setActiveReasonRowKey(null);
-                                                                            setActiveReasonAction(null);
-                                                                        }}
-                                                                    >
-                                                                        Cancel
-                                                                    </AppButton>
-                                                                    <AppButton
-                                                                        type="button"
-                                                                        size="small"
-                                                                        color={activeReasonAction === "hide" ? "error" : "warning"}
-                                                                        disabled={isPending}
-                                                                        onClick={() => {
-                                                                            if (activeReasonAction === "reject") {
-                                                                                void runDecision(item, "reject");
-                                                                                return;
-                                                                            }
-
-                                                                            void runDecision(item, "hide");
-                                                                        }}
-                                                                    >
-                                                                        {isPending ? "Submitting..." : (activeReasonAction === "reject" ? "Confirm Reject" : "Confirm Hide")}
-                                                                    </AppButton>
-                                                                </AppBox>
-                                                            </AppBox>
-                                                        ) : null}
-
-                                                        {rowError ? <AppTypography variant="caption" color="error">{rowError}</AppTypography> : null}
-                                                    </AppBox>
-                                                </AppTableCell>
-                                            </AppTableRow>
-                                        );
-                                    })}
-                                </AppTableBody>
-                            </AppTable>
-                        </AppTableContainer>
-                    )}
-                </SectionCard>
+                <QueueSection
+                    items={items}
+                    loadingQueue={loadingQueue}
+                    activeReasonRowKey={activeReasonRowKey}
+                    activeReasonAction={activeReasonAction}
+                    reasonDraftByRowKey={reasonDraftByRowKey}
+                    rowErrorByKey={rowErrorByKey}
+                    pendingByKey={pendingByKey}
+                    onDecision={runDecision}
+                    onOpenReason={(key, action) => {
+                        setActiveReasonRowKey(key);
+                        setActiveReasonAction(action);
+                        setRowErrorByKey((current) => ({...current, [key]: ""}));
+                    }}
+                    onCancelReason={() => {
+                        setActiveReasonRowKey(null);
+                        setActiveReasonAction(null);
+                    }}
+                    onReasonDraftChange={(key, value) => setReasonDraftByRowKey((current) => ({...current, [key]: value}))}
+                />
             </PageShell>
 
-            <AppSnackbar
-                open={toastOpen}
-                autoHideDuration={3000}
-                onClose={() => setToastOpen(false)}
-                anchorOrigin={{vertical: "bottom", horizontal: "right"}}
-            >
-                <AppAlert
-                    severity={toastSeverity}
-                    variant="filled"
-                    onClose={() => setToastOpen(false)}
-                    sx={{width: "100%"}}
-                >
-                    {toastMessage}
-                </AppAlert>
-            </AppSnackbar>
+            <ModerationToast open={toastOpen} severity={toastSeverity} message={toastMessage} onClose={() => setToastOpen(false)} />
         </AppContainer>
     );
 }

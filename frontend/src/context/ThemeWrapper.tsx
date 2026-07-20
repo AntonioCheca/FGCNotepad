@@ -2,7 +2,8 @@
 "use client";
 
 import {useMode} from "@/src/context/ThemeContext";
-import {AppCssBaseline, AppThemeProvider} from "@/src/components/ui/AppTheme";
+import {AppCssBaseline} from "@/src/components/ui/AppCssBaseline";
+import {AppThemeProvider} from "@/src/components/ui/AppTheme";
 import Sidebar from "@/src/components/layouts/Sidebar";
 
 export default function ThemeWrapper({children}: { children: React.ReactNode }) {

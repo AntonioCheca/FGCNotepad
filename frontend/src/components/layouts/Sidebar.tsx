@@ -27,10 +27,10 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
 
     const {isAuthenticated, hasRole} = authContext;
 
-    const visibleSections = navigationSections
-        .map((section) => ({
-            ...section,
-            items: section.items.filter((item) => {
+    const visibleSections = React.useMemo(() => {
+        const sections = [];
+        for (const section of navigationSections) {
+            const items = section.items.filter((item) => {
                 if (item.requiresAuth && !isAuthenticated) {
                     return false;
                 }
@@ -40,9 +40,15 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                 }
 
                 return item.allowedRoles.some((role) => hasRole(role));
-            }),
-        }))
-        .filter((section) => section.items.length > 0);
+            });
+
+            if (items.length > 0) {
+                sections.push({...section, items});
+            }
+        }
+
+        return sections;
+    }, [hasRole, isAuthenticated]);
 
     return (
         <AppBox

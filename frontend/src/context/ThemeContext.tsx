@@ -11,10 +11,8 @@ import React, {
 } from "react";
 import {
     AppThemeProvider,
-    createAppTheme,
-    type Theme,
-    type PaletteMode,
 } from "@/src/components/ui/AppTheme";
+import {createAppTheme, type PaletteMode, type Theme} from "@/src/components/ui/AppThemeUtils";
 import {getDesignTokens} from "@/styles/theme";
 
 const THEME_STORAGE_KEY = "fgc-theme-mode";

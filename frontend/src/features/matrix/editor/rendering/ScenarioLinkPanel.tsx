@@ -11,6 +11,7 @@ interface ScenarioLinkPanelProps {
     initialPreValue?: MatrixReferencePreValue;
     moveLabelById: Record<string, string>;
     presentation?: "modal" | "inline";
+    resetKey?: string;
     onClose: () => void;
     onConfirm: (item: ScenarioSearchItem, preValue: MatrixReferencePreValue, starterLabels: Record<string, string>) => void;
     onRemove?: () => void;
@@ -18,7 +19,17 @@ interface ScenarioLinkPanelProps {
 
 type PreValueKind = MatrixReferencePreValue["kind"];
 
-export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel, initialPreValue, moveLabelById, presentation = "modal", onClose, onConfirm, onRemove}: ScenarioLinkPanelProps) {
+type ScenarioLinkPanelBodyProps = Omit<ScenarioLinkPanelProps, "open" | "resetKey">;
+
+export function ScenarioLinkPanel({open, resetKey = "scenario-link-panel", ...bodyProps}: ScenarioLinkPanelProps) {
+    if (!open) {
+        return null;
+    }
+
+    return <ScenarioLinkPanelBody key={resetKey} {...bodyProps} />;
+}
+
+function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initialPreValue, moveLabelById, presentation = "modal", onClose, onConfirm, onRemove}: ScenarioLinkPanelBodyProps) {
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [query, setQuery] = React.useState("");
@@ -28,19 +39,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
     const [preValueKind, setPreValueKind] = React.useState<PreValueKind>(() => initialPreValue?.kind ?? "none");
     const [staticPreValue, setStaticPreValue] = React.useState(() => initialPreValue?.kind === "static" ? String(initialPreValue.staticValue) : "");
     const [dynamicPreValue, setDynamicPreValue] = React.useState(() => initialPreValue?.kind === "dynamic_combo" ? initialPreValue.dynamicCombo : null);
-    const [dynamicStarterLabels, setDynamicStarterLabels] = React.useState<Record<string, string>>({});
-
-    React.useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        setSelectedId(initialScenarioId ?? null);
-        setPreValueKind(initialPreValue?.kind ?? "none");
-        setStaticPreValue(initialPreValue?.kind === "static" ? String(initialPreValue.staticValue) : "");
-        setDynamicPreValue(initialPreValue?.kind === "dynamic_combo" ? initialPreValue.dynamicCombo : null);
-        setDynamicStarterLabels({});
-    }, [open, initialScenarioId, initialPreValue]);
+    const dynamicStarterLabelsRef = React.useRef<Record<string, string>>({});
 
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -53,10 +52,6 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
     }, [query]);
 
     React.useEffect(() => {
-        if (!open) {
-            return;
-        }
-
         let isMounted = true;
         setLoading(true);
         setError(null);
@@ -91,11 +86,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
         return () => {
             isMounted = false;
         };
-    }, [open, initialScenarioId, debouncedQuery]);
-
-    if (!open) {
-        return null;
-    }
+    }, [initialScenarioId, debouncedQuery]);
 
     const isInline = presentation === "inline";
 
@@ -202,12 +193,13 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
                         <DynamicComboPanel
                             open
                             presentation="inline"
+                            resetKey="scenario-dynamic-prevalue"
                             initialValue={dynamicPreValue}
                             moveLabelById={moveLabelById}
                             onClose={() => setPreValueKind("none")}
                             onConfirm={(value, starterLabels) => {
                                 setDynamicPreValue(value);
-                                setDynamicStarterLabels(starterLabels);
+                                dynamicStarterLabelsRef.current = starterLabels;
                                 setError(null);
                             }}
                         />
@@ -254,7 +246,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
                                         return;
                                     }
 
-                                    onConfirm(selected, {kind: "dynamic_combo", dynamicCombo: dynamicPreValue}, dynamicStarterLabels);
+                                    onConfirm(selected, {kind: "dynamic_combo", dynamicCombo: dynamicPreValue}, dynamicStarterLabelsRef.current);
                                     return;
                                 }
 

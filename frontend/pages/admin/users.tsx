@@ -71,6 +71,240 @@ function normalizeApiError(error: unknown, fallbackMessage: string): string {
         || fallbackMessage;
 }
 
+interface AdminControlsProps {
+    size: number;
+    loadingUsers: boolean;
+    onSizeChange: (size: number) => void;
+    onRefresh: () => void;
+}
+
+function AdminControls({size, loadingUsers, onSizeChange, onRefresh}: AdminControlsProps) {
+    return (
+        <SectionCard
+            title="Admin Controls"
+            description="Role updates and deactivations are applied directly through the admin API."
+            variant="review"
+            tone="raised"
+        >
+            <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center", flexWrap: "wrap"}}>
+                <AppBox sx={{display: "flex", gap: 0.8, alignItems: "center", flexWrap: "wrap"}}>
+                    <AppTypography variant="body2">Rows per page</AppTypography>
+                    <AppFormControl size="small" sx={{minWidth: 100}}>
+                        <AppInputLabel id="admin-size-label">Size</AppInputLabel>
+                        <AppSelect
+                            labelId="admin-size-label"
+                            label="Size"
+                            value={String(size)}
+                            onChange={(event) => onSizeChange(Number(event.target.value))}
+                        >
+                            <AppMenuItem value="10">10</AppMenuItem>
+                            <AppMenuItem value="20">20</AppMenuItem>
+                            <AppMenuItem value="50">50</AppMenuItem>
+                        </AppSelect>
+                    </AppFormControl>
+                </AppBox>
+
+                <AppButton type="button" variant="outlined" onClick={onRefresh} disabled={loadingUsers}>
+                    {loadingUsers ? "Refreshing..." : "Refresh"}
+                </AppButton>
+            </AppBox>
+        </SectionCard>
+    );
+}
+
+interface UsersSectionProps {
+    rows: AdminUserRow[];
+    loadingUsers: boolean;
+    page: number;
+    totalPages: number;
+    roleDraftById: Record<string, RolePreset>;
+    pendingById: Record<string, boolean>;
+    rowErrorById: Record<string, string>;
+    onPreviousPage: () => void;
+    onNextPage: () => void;
+    onRoleDraftChange: (rowId: string, preset: RolePreset) => void;
+    onSaveRoles: (row: AdminUserRow) => Promise<void>;
+    onDeactivate: (row: AdminUserRow) => Promise<void>;
+    onConfirm: (title: string, body: string, action: () => Promise<void>) => void;
+}
+
+function UsersSection({rows, loadingUsers, page, totalPages, roleDraftById, pendingById, rowErrorById, onPreviousPage, onNextPage, onRoleDraftChange, onSaveRoles, onDeactivate, onConfirm}: UsersSectionProps) {
+    return (
+        <SectionCard
+            title="Users"
+            description="Use confirmation for dangerous actions. Backend validations are shown per user row."
+            variant="review"
+        >
+            {loadingUsers ? (
+                <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}>
+                    <AppCircularProgress/>
+                </AppBox>
+            ) : rows.length === 0 ? (
+                <InlineNotice severity="info">No users found for this page.</InlineNotice>
+            ) : (
+                <AppTableContainer sx={{maxHeight: "calc(100vh - 320px)", backgroundColor: "fgc.surface.base"}}>
+                    <AppTable stickyHeader size="small">
+                        <AppTableHead>
+                            <AppTableRow>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Username</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Status</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Current Roles</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Role Action</AppTableCell>
+                                <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Account Action</AppTableCell>
+                            </AppTableRow>
+                        </AppTableHead>
+
+                        <AppTableBody>
+                            {rows.map((row) => {
+                                const pending = Boolean(pendingById[row.id]);
+                                const draft = roleDraftById[row.id] ?? rolePresetFromRoles(row.roles);
+                                const currentPreset = rolePresetFromRoles(row.roles);
+                                const isRoleChanged = draft !== currentPreset;
+                                const rowError = rowErrorById[row.id];
+
+                                return (
+                                    <AppTableRow key={row.id} hover>
+                                        <AppTableCell>
+                                            <AppBox sx={{display: "grid", gap: 0.4}}>
+                                                <AppTypography variant="body2" sx={{fontWeight: 650}}>{row.username}</AppTypography>
+                                                <AppTypography variant="caption" color="text.secondary">ID: {row.id}</AppTypography>
+                                            </AppBox>
+                                        </AppTableCell>
+                                        <AppTableCell>
+                                            <AppBox sx={{display: "grid", gap: 0.4}}>
+                                                <AppChip size="small" label={row.isActive ? "Active" : "Deactivated"} color={row.isActive ? "success" : "default"} variant="outlined" />
+                                                {!row.isActive ? (
+                                                    <AppTypography variant="caption" color="text.secondary">
+                                                        Deactivated at {formatUtcDateTime(row.deactivatedAt)}
+                                                    </AppTypography>
+                                                ) : null}
+                                            </AppBox>
+                                        </AppTableCell>
+                                        <AppTableCell>
+                                            <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
+                                                {row.roles.map((role) => <AppChip key={`${row.id}-${role}`} size="small" label={role} variant="outlined"/>)}
+                                            </AppBox>
+                                        </AppTableCell>
+                                        <AppTableCell sx={{minWidth: 280}}>
+                                            <AppBox sx={{display: "grid", gap: 0.6}}>
+                                                <AppFormControl size="small" fullWidth>
+                                                    <AppInputLabel id={`role-select-${row.id}`}>Role Preset</AppInputLabel>
+                                                    <AppSelect
+                                                        labelId={`role-select-${row.id}`}
+                                                        label="Role Preset"
+                                                        value={draft}
+                                                        disabled={pending || !row.isActive}
+                                                        onChange={(event) => onRoleDraftChange(row.id, event.target.value as RolePreset)}
+                                                    >
+                                                        <AppMenuItem value="user">User</AppMenuItem>
+                                                        <AppMenuItem value="moderator">Moderator</AppMenuItem>
+                                                        <AppMenuItem value="admin">Admin</AppMenuItem>
+                                                    </AppSelect>
+                                                </AppFormControl>
+
+                                                <AppButton
+                                                    type="button"
+                                                    size="small"
+                                                    disabled={pending || !isRoleChanged || !row.isActive}
+                                                    onClick={() => {
+                                                        if (hasRole(row.roles, "ROLE_ADMIN") && draft !== "admin") {
+                                                            onConfirm(
+                                                                "Confirm Admin Role Removal",
+                                                                `Remove admin privileges from ${row.username}? Last-active-admin protection may block this action.`,
+                                                                async () => onSaveRoles(row)
+                                                            );
+                                                            return;
+                                                        }
+
+                                                        void onSaveRoles(row);
+                                                    }}
+                                                >
+                                                    {pending ? "Saving..." : "Save Roles"}
+                                                </AppButton>
+                                            </AppBox>
+                                        </AppTableCell>
+                                        <AppTableCell sx={{minWidth: 220}}>
+                                            <AppBox sx={{display: "grid", gap: 0.6}}>
+                                                <AppButton
+                                                    type="button"
+                                                    size="small"
+                                                    color="error"
+                                                    variant="outlined"
+                                                    disabled={pending || !row.isActive}
+                                                    onClick={() => {
+                                                        onConfirm(
+                                                            "Confirm Deactivation",
+                                                            `Deactivate ${row.username}? This user will no longer be able to authenticate.`,
+                                                            async () => onDeactivate(row)
+                                                        );
+                                                    }}
+                                                >
+                                                    {pending ? "Processing..." : "Deactivate"}
+                                                </AppButton>
+
+                                                {rowError ? <AppTypography variant="caption" color="error">{rowError}</AppTypography> : null}
+                                            </AppBox>
+                                        </AppTableCell>
+                                    </AppTableRow>
+                                );
+                            })}
+                        </AppTableBody>
+                    </AppTable>
+                </AppTableContainer>
+            )}
+
+            <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, pt: 1}}>
+                <AppTypography variant="body2" color="text.secondary">Page {page} of {totalPages}</AppTypography>
+                <AppBox sx={{display: "flex", gap: 0.75}}>
+                    <AppButton type="button" variant="outlined" disabled={page <= 1 || loadingUsers} onClick={onPreviousPage}>Previous</AppButton>
+                    <AppButton type="button" variant="outlined" disabled={page >= totalPages || loadingUsers} onClick={onNextPage}>Next</AppButton>
+                </AppBox>
+            </AppBox>
+        </SectionCard>
+    );
+}
+
+interface ConfirmActionDialogProps {
+    open: boolean;
+    title: string;
+    body: string;
+    loading: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+}
+
+function ConfirmActionDialog({open, title, body, loading, onClose, onConfirm}: ConfirmActionDialogProps) {
+    return (
+        <AppDialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <AppDialogTitle>{title}</AppDialogTitle>
+            <AppDialogContent>
+                <AppTypography>{body}</AppTypography>
+            </AppDialogContent>
+            <AppDialogActions>
+                <AppButton type="button" variant="outlined" onClick={onClose} disabled={loading}>Cancel</AppButton>
+                <AppButton type="button" color="error" onClick={onConfirm} disabled={loading}>{loading ? "Confirming..." : "Confirm"}</AppButton>
+            </AppDialogActions>
+        </AppDialog>
+    );
+}
+
+interface AdminToastProps {
+    open: boolean;
+    severity: "success" | "error";
+    message: string;
+    onClose: () => void;
+}
+
+function AdminToast({open, severity, message, onClose}: AdminToastProps) {
+    return (
+        <AppSnackbar open={open} autoHideDuration={3000} onClose={onClose} anchorOrigin={{vertical: "bottom", horizontal: "right"}}>
+            <AppAlert severity={severity} variant="filled" onClose={onClose} sx={{width: "100%"}}>
+                {message}
+            </AppAlert>
+        </AppSnackbar>
+    );
+}
+
 export default function AdminUsersPage() {
     const authContext = React.useContext(AuthContext);
     const {listUsers, updateUserRoles, deactivateUser} = useAdminUsers();
@@ -89,7 +323,7 @@ export default function AdminUsersPage() {
     const [confirmOpen, setConfirmOpen] = React.useState(false);
     const [confirmTitle, setConfirmTitle] = React.useState("");
     const [confirmBody, setConfirmBody] = React.useState("");
-    const [confirmAction, setConfirmAction] = React.useState<(() => Promise<void>) | null>(null);
+    const confirmActionRef = React.useRef<(() => Promise<void>) | null>(null);
     const [confirmLoading, setConfirmLoading] = React.useState(false);
 
     const [toastOpen, setToastOpen] = React.useState(false);
@@ -135,7 +369,7 @@ export default function AdminUsersPage() {
     const openConfirmation = (title: string, body: string, action: () => Promise<void>) => {
         setConfirmTitle(title);
         setConfirmBody(body);
-        setConfirmAction(() => action);
+        confirmActionRef.current = action;
         setConfirmOpen(true);
     };
 
@@ -145,21 +379,21 @@ export default function AdminUsersPage() {
         }
 
         setConfirmOpen(false);
-        setConfirmAction(null);
+        confirmActionRef.current = null;
         setConfirmTitle("");
         setConfirmBody("");
     };
 
     const runConfirmedAction = async () => {
-        if (!confirmAction) {
+        if (!confirmActionRef.current) {
             return;
         }
 
         setConfirmLoading(true);
         try {
-            await confirmAction();
+            await confirmActionRef.current();
             setConfirmOpen(false);
-            setConfirmAction(null);
+            confirmActionRef.current = null;
         } finally {
             setConfirmLoading(false);
         }
@@ -243,233 +477,37 @@ export default function AdminUsersPage() {
                 subtitle="Manage account roles and deactivate users with explicit safety checks."
                 badgeLabel={`Total users: ${total}`}
             >
-                <SectionCard
-                    title="Admin Controls"
-                    description="Role updates and deactivations are applied directly through the admin API."
-                    variant="review"
-                    tone="raised"
-                >
-                    <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center", flexWrap: "wrap"}}>
-                        <AppBox sx={{display: "flex", gap: 0.8, alignItems: "center", flexWrap: "wrap"}}>
-                            <AppTypography variant="body2">Rows per page</AppTypography>
-                            <AppFormControl size="small" sx={{minWidth: 100}}>
-                                <AppInputLabel id="admin-size-label">Size</AppInputLabel>
-                                <AppSelect
-                                    labelId="admin-size-label"
-                                    label="Size"
-                                    value={String(size)}
-                                    onChange={(event) => {
-                                        setSize(Number(event.target.value));
-                                        setPage(1);
-                                    }}
-                                >
-                                    <AppMenuItem value="10">10</AppMenuItem>
-                                    <AppMenuItem value="20">20</AppMenuItem>
-                                    <AppMenuItem value="50">50</AppMenuItem>
-                                </AppSelect>
-                            </AppFormControl>
-                        </AppBox>
-
-                        <AppButton type="button" variant="outlined" onClick={() => void loadUsers()} disabled={loadingUsers}>
-                            {loadingUsers ? "Refreshing..." : "Refresh"}
-                        </AppButton>
-                    </AppBox>
-                </SectionCard>
+                <AdminControls
+                    size={size}
+                    loadingUsers={loadingUsers}
+                    onSizeChange={(nextSize) => {
+                        setSize(nextSize);
+                        setPage(1);
+                    }}
+                    onRefresh={() => void loadUsers()}
+                />
 
                 {pageError ? <InlineNotice severity="error">{pageError}</InlineNotice> : null}
 
-                <SectionCard
-                    title="Users"
-                    description="Use confirmation for dangerous actions. Backend validations are shown per user row."
-                    variant="review"
-                >
-                    {loadingUsers ? (
-                        <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}>
-                            <AppCircularProgress/>
-                        </AppBox>
-                    ) : rows.length === 0 ? (
-                        <InlineNotice severity="info">No users found for this page.</InlineNotice>
-                    ) : (
-                        <AppTableContainer sx={{maxHeight: "calc(100vh - 320px)", backgroundColor: "fgc.surface.base"}}>
-                            <AppTable stickyHeader size="small">
-                                <AppTableHead>
-                                    <AppTableRow>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Username</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Status</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Current Roles</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Role Action</AppTableCell>
-                                        <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Account Action</AppTableCell>
-                                    </AppTableRow>
-                                </AppTableHead>
-
-                                <AppTableBody>
-                                    {rows.map((row) => {
-                                        const pending = Boolean(pendingById[row.id]);
-                                        const draft = roleDraftById[row.id] ?? rolePresetFromRoles(row.roles);
-                                        const currentPreset = rolePresetFromRoles(row.roles);
-                                        const isRoleChanged = draft !== currentPreset;
-                                        const rowError = rowErrorById[row.id];
-
-                                        return (
-                                            <AppTableRow key={row.id} hover>
-                                                <AppTableCell>
-                                                    <AppBox sx={{display: "grid", gap: 0.4}}>
-                                                        <AppTypography variant="body2" sx={{fontWeight: 650}}>{row.username}</AppTypography>
-                                                        <AppTypography variant="caption" color="text.secondary">ID: {row.id}</AppTypography>
-                                                    </AppBox>
-                                                </AppTableCell>
-                                                <AppTableCell>
-                                                    <AppBox sx={{display: "grid", gap: 0.4}}>
-                                                        <AppChip
-                                                            size="small"
-                                                            label={row.isActive ? "Active" : "Deactivated"}
-                                                            color={row.isActive ? "success" : "default"}
-                                                            variant="outlined"
-                                                        />
-                                                        {!row.isActive ? (
-                                                            <AppTypography variant="caption" color="text.secondary">
-                                                                Deactivated at {formatUtcDateTime(row.deactivatedAt)}
-                                                            </AppTypography>
-                                                        ) : null}
-                                                    </AppBox>
-                                                </AppTableCell>
-                                                <AppTableCell>
-                                                    <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
-                                                        {row.roles.map((role) => (
-                                                            <AppChip key={`${row.id}-${role}`} size="small" label={role} variant="outlined"/>
-                                                        ))}
-                                                    </AppBox>
-                                                </AppTableCell>
-                                                <AppTableCell sx={{minWidth: 280}}>
-                                                    <AppBox sx={{display: "grid", gap: 0.6}}>
-                                                        <AppFormControl size="small" fullWidth>
-                                                            <AppInputLabel id={`role-select-${row.id}`}>Role Preset</AppInputLabel>
-                                                            <AppSelect
-                                                                labelId={`role-select-${row.id}`}
-                                                                label="Role Preset"
-                                                                value={draft}
-                                                                disabled={pending || !row.isActive}
-                                                                onChange={(event) => {
-                                                                    setRoleDraftById((current) => ({
-                                                                        ...current,
-                                                                        [row.id]: event.target.value as RolePreset,
-                                                                    }));
-                                                                }}
-                                                            >
-                                                                <AppMenuItem value="user">User</AppMenuItem>
-                                                                <AppMenuItem value="moderator">Moderator</AppMenuItem>
-                                                                <AppMenuItem value="admin">Admin</AppMenuItem>
-                                                            </AppSelect>
-                                                        </AppFormControl>
-
-                                                        <AppButton
-                                                            type="button"
-                                                            size="small"
-                                                            disabled={pending || !isRoleChanged || !row.isActive}
-                                                            onClick={() => {
-                                                                const targetIsAdmin = draft === "admin";
-                                                                const currentIsAdmin = hasRole(row.roles, "ROLE_ADMIN");
-
-                                                                if (currentIsAdmin && !targetIsAdmin) {
-                                                                    openConfirmation(
-                                                                        "Confirm Admin Role Removal",
-                                                                        `Remove admin privileges from ${row.username}? Last-active-admin protection may block this action.`,
-                                                                        async () => handleSaveRoles(row)
-                                                                    );
-                                                                    return;
-                                                                }
-
-                                                                void handleSaveRoles(row);
-                                                            }}
-                                                        >
-                                                            {pending ? "Saving..." : "Save Roles"}
-                                                        </AppButton>
-                                                    </AppBox>
-                                                </AppTableCell>
-                                                <AppTableCell sx={{minWidth: 220}}>
-                                                    <AppBox sx={{display: "grid", gap: 0.6}}>
-                                                        <AppButton
-                                                            type="button"
-                                                            size="small"
-                                                            color="error"
-                                                            variant="outlined"
-                                                            disabled={pending || !row.isActive}
-                                                            onClick={() => {
-                                                                openConfirmation(
-                                                                    "Confirm Deactivation",
-                                                                    `Deactivate ${row.username}? This user will no longer be able to authenticate.`,
-                                                                    async () => handleDeactivate(row)
-                                                                );
-                                                            }}
-                                                        >
-                                                            {pending ? "Processing..." : "Deactivate"}
-                                                        </AppButton>
-
-                                                        {rowError ? <AppTypography variant="caption" color="error">{rowError}</AppTypography> : null}
-                                                    </AppBox>
-                                                </AppTableCell>
-                                            </AppTableRow>
-                                        );
-                                    })}
-                                </AppTableBody>
-                            </AppTable>
-                        </AppTableContainer>
-                    )}
-
-                    <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, pt: 1}}>
-                        <AppTypography variant="body2" color="text.secondary">
-                            Page {page} of {totalPages}
-                        </AppTypography>
-                        <AppBox sx={{display: "flex", gap: 0.75}}>
-                            <AppButton
-                                type="button"
-                                variant="outlined"
-                                disabled={page <= 1 || loadingUsers}
-                                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                            >
-                                Previous
-                            </AppButton>
-                            <AppButton
-                                type="button"
-                                variant="outlined"
-                                disabled={page >= totalPages || loadingUsers}
-                                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                            >
-                                Next
-                            </AppButton>
-                        </AppBox>
-                    </AppBox>
-                </SectionCard>
+                <UsersSection
+                    rows={rows}
+                    loadingUsers={loadingUsers}
+                    page={page}
+                    totalPages={totalPages}
+                    roleDraftById={roleDraftById}
+                    pendingById={pendingById}
+                    rowErrorById={rowErrorById}
+                    onPreviousPage={() => setPage((current) => Math.max(1, current - 1))}
+                    onNextPage={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    onRoleDraftChange={(rowId, preset) => setRoleDraftById((current) => ({...current, [rowId]: preset}))}
+                    onSaveRoles={handleSaveRoles}
+                    onDeactivate={handleDeactivate}
+                    onConfirm={openConfirmation}
+                />
             </PageShell>
 
-            <AppDialog open={confirmOpen} onClose={closeConfirmation} maxWidth="sm" fullWidth>
-                <AppDialogTitle>{confirmTitle}</AppDialogTitle>
-                <AppDialogContent>
-                    <AppTypography>{confirmBody}</AppTypography>
-                </AppDialogContent>
-                <AppDialogActions>
-                    <AppButton type="button" variant="outlined" onClick={closeConfirmation} disabled={confirmLoading}>Cancel</AppButton>
-                    <AppButton type="button" color="error" onClick={() => void runConfirmedAction()} disabled={confirmLoading}>
-                        {confirmLoading ? "Confirming..." : "Confirm"}
-                    </AppButton>
-                </AppDialogActions>
-            </AppDialog>
-
-            <AppSnackbar
-                open={toastOpen}
-                autoHideDuration={3000}
-                onClose={() => setToastOpen(false)}
-                anchorOrigin={{vertical: "bottom", horizontal: "right"}}
-            >
-                <AppAlert
-                    severity={toastSeverity}
-                    variant="filled"
-                    onClose={() => setToastOpen(false)}
-                    sx={{width: "100%"}}
-                >
-                    {toastMessage}
-                </AppAlert>
-            </AppSnackbar>
+            <ConfirmActionDialog open={confirmOpen} title={confirmTitle} body={confirmBody} loading={confirmLoading} onClose={closeConfirmation} onConfirm={() => void runConfirmedAction()} />
+            <AdminToast open={toastOpen} severity={toastSeverity} message={toastMessage} onClose={() => setToastOpen(false)} />
         </AppContainer>
     );
 }

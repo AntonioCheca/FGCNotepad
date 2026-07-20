@@ -33,7 +33,6 @@ export default function ThemeLogo({className, collapsed = false}: ThemeLogoProps
                 margin: "0 auto",
                 maxWidth: "100%",
                 height: "auto",
-                transition: "width 0.3s ease, height 0.3s ease",
             }}
             sizes={`${baseSizeRem}rem`} // hint for responsive image sizing
         />

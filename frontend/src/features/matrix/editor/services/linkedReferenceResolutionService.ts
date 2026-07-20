@@ -70,9 +70,12 @@ export async function resolveEditorLinkedReferences({
         return existingResolutions;
     }
 
-    const selfReferenceKeys = Object.values(state.grid.bodyCells)
-        .filter((cell) => cell.kind === "reference" && cell.reference?.scenarioId === currentScenarioId)
-        .map((cell) => cell.key);
+    const selfReferenceKeys: string[] = [];
+    for (const cell of Object.values(state.grid.bodyCells)) {
+        if (cell.kind === "reference" && cell.reference?.scenarioId === currentScenarioId) {
+            selfReferenceKeys.push(cell.key);
+        }
+    }
 
     if (selfReferenceKeys.length === 0) {
         return existingResolutions;

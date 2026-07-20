@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
-import {AuthProvider} from "@/services/AuthContext";
+import {AuthProvider} from "@/services/AuthProvider";
 import {ThemeModeProvider} from "@/src/context/ThemeContext";
 import ThemeWrapper from "@/src/context/ThemeWrapper";
 import {AppRouterCacheProvider} from "@/src/components/ui/AppRouterCacheProvider";

@@ -14,6 +14,12 @@ interface ReplayVideoPlayerProps {
     controlsAddon?: React.ReactNode;
 }
 
+interface PlaybackPosition {
+    timeMs: number;
+    frame: number;
+    durationMs: number;
+}
+
 type MediaLoadState = "idle" | "loading" | "metadata" | "first-frame" | "ready" | "buffering" | "seeking" | "stalled" | "error";
 
 interface MediaDiagnostics {
@@ -24,6 +30,18 @@ interface MediaDiagnostics {
     duration: number | null;
     bufferedPercent: number;
     errorMessage: string | null;
+}
+
+function initialMediaDiagnostics(src: string | null): MediaDiagnostics {
+    return {
+        state: src ? "loading" : "idle",
+        lastEvent: src ? "src" : "idle",
+        readyState: 0,
+        networkState: 0,
+        duration: null,
+        bufferedPercent: 0,
+        errorMessage: null,
+    };
 }
 
 function formatPlaybackTime(seconds: number): string {
@@ -72,24 +90,41 @@ function bufferedPercent(video: HTMLVideoElement): number {
     return Math.max(0, Math.min(100, (end / video.duration) * 100));
 }
 
-export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPositionChange, timelineAddon, controlsAddon}: ReplayVideoPlayerProps) {
+export function ReplayVideoPlayer(props: ReplayVideoPlayerProps) {
+    return <ReplayVideoPlayerContent key={props.src ?? "empty"} {...props} />;
+}
+
+function ReplayVideoPlayerContent({src, fps, title, seekCommand, onPlaybackPositionChange, timelineAddon, controlsAddon}: ReplayVideoPlayerProps) {
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const seekTimeoutRef = React.useRef<number | null>(null);
     const lastSeekCommandRef = React.useRef<number | null>(null);
+    const positionChangeRef = React.useRef(onPlaybackPositionChange);
     const [isPlaying, setIsPlaying] = React.useState(false);
-    const [media, setMedia] = React.useState<MediaDiagnostics>({
-        state: "idle",
-        lastEvent: "idle",
-        readyState: 0,
-        networkState: 0,
-        duration: null,
-        bufferedPercent: 0,
-        errorMessage: null,
-    });
+    const [media, setMedia] = React.useState<MediaDiagnostics>(() => initialMediaDiagnostics(src));
     const [currentTime, setCurrentTime] = React.useState(0);
     const effectiveFps = typeof fps === "number" && fps > 0 ? fps : 60;
-    const frame = Math.max(0, Math.round(currentTime * effectiveFps));
     const canUseControls = Boolean(src && media.state !== "idle" && media.state !== "loading" && media.state !== "error");
+
+    React.useEffect(() => {
+        positionChangeRef.current = onPlaybackPositionChange;
+    });
+
+    const publishPlaybackPosition = React.useCallback((seconds: number, durationSeconds: number | null | undefined) => {
+        const safeSeconds = Number.isFinite(seconds) ? seconds : 0;
+        const safeDurationSeconds = typeof durationSeconds === "number" && Number.isFinite(durationSeconds) ? durationSeconds : 0;
+        const nextPosition: PlaybackPosition = {
+            timeMs: Math.round(safeSeconds * 1000),
+            frame: Math.max(0, Math.round(safeSeconds * effectiveFps)),
+            durationMs: Math.round(safeDurationSeconds * 1000),
+        };
+
+        positionChangeRef.current?.(nextPosition);
+    }, [effectiveFps]);
+
+    const updateCurrentTime = React.useCallback((video: HTMLVideoElement) => {
+        setCurrentTime(video.currentTime);
+        publishPlaybackPosition(video.currentTime, video.duration);
+    }, [publishPlaybackPosition]);
 
     const captureMediaState = React.useCallback((eventName: string, state: MediaLoadState) => {
         const video = videoRef.current;
@@ -110,21 +145,6 @@ export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPosit
     }, []);
 
     React.useEffect(() => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        lastSeekCommandRef.current = null;
-        setMedia({
-            state: src ? "loading" : "idle",
-            lastEvent: src ? "src" : "idle",
-            readyState: 0,
-            networkState: 0,
-            duration: null,
-            bufferedPercent: 0,
-            errorMessage: null,
-        });
-    }, [src]);
-
-    React.useEffect(() => {
         const video = videoRef.current;
         if (!video || !seekCommand || media.state === "error" || media.state === "loading" || media.state === "idle") {
             return;
@@ -141,15 +161,11 @@ export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPosit
 
         captureMediaState("seek-command", "seeking");
         video.currentTime = Math.max(0, seekCommand.timeMs / 1000);
-        setCurrentTime(video.currentTime);
+        updateCurrentTime(video);
         seekTimeoutRef.current = window.setTimeout(() => {
             captureMediaState("seek-timeout", video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA ? "ready" : "stalled");
         }, 5000);
-    }, [captureMediaState, media.state, seekCommand]);
-
-    React.useEffect(() => {
-        onPlaybackPositionChange?.({timeMs: Math.round(currentTime * 1000), frame, durationMs: media.duration ? Math.round(media.duration * 1000) : 0});
-    }, [currentTime, frame, media.duration, onPlaybackPositionChange]);
+    }, [captureMediaState, media.state, seekCommand, updateCurrentTime]);
 
     React.useEffect(() => {
         const video = videoRef.current;
@@ -159,13 +175,13 @@ export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPosit
 
         let callbackId = 0;
         const syncFrameTime = () => {
-            setCurrentTime(video.currentTime);
+            updateCurrentTime(video);
             callbackId = video.requestVideoFrameCallback(syncFrameTime);
         };
         callbackId = video.requestVideoFrameCallback(syncFrameTime);
 
         return () => video.cancelVideoFrameCallback(callbackId);
-    }, [canUseControls, src]);
+    }, [canUseControls, src, updateCurrentTime]);
 
     const seekBy = React.useCallback((seconds: number) => {
         const video = videoRef.current;
@@ -175,8 +191,8 @@ export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPosit
 
         captureMediaState("manual-seek", "seeking");
         video.currentTime = Math.max(0, Math.min(video.duration || Number.MAX_SAFE_INTEGER, video.currentTime + seconds));
-        setCurrentTime(video.currentTime);
-    }, [canUseControls, captureMediaState]);
+        updateCurrentTime(video);
+    }, [canUseControls, captureMediaState, updateCurrentTime]);
 
     const togglePlayback = React.useCallback(async () => {
         const video = videoRef.current;
@@ -282,16 +298,19 @@ export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPosit
                         onLoadStart={() => captureMediaState("loadstart", "loading")}
                         onLoadedMetadata={(event) => {
                             captureMediaState("loadedmetadata", "metadata");
-                            setCurrentTime(event.currentTarget.currentTime);
+                            updateCurrentTime(event.currentTarget);
                         }}
                         onLoadedData={(event) => {
                             captureMediaState("loadeddata", "first-frame");
-                            setCurrentTime(event.currentTarget.currentTime);
+                            updateCurrentTime(event.currentTarget);
                         }}
-                        onDurationChange={() => captureMediaState("durationchange", media.state === "idle" ? "loading" : media.state)}
+                        onDurationChange={(event) => {
+                            captureMediaState("durationchange", media.state === "idle" ? "loading" : media.state);
+                            updateCurrentTime(event.currentTarget);
+                        }}
                         onPlay={() => setIsPlaying(true)}
                         onPause={() => setIsPlaying(false)}
-                        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+                        onTimeUpdate={(event) => updateCurrentTime(event.currentTarget)}
                         onProgress={() => captureMediaState("progress", media.state)}
                         onWaiting={() => captureMediaState("waiting", "buffering")}
                         onCanPlay={() => captureMediaState("canplay", "ready")}
@@ -302,7 +321,7 @@ export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPosit
                                 seekTimeoutRef.current = null;
                             }
                             captureMediaState("seeked", "ready");
-                            setCurrentTime(event.currentTarget.currentTime);
+                            updateCurrentTime(event.currentTarget);
                         }}
                         onStalled={() => captureMediaState("stalled", "stalled")}
                         onError={() => captureMediaState("error", "error")}

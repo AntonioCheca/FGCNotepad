@@ -1,17 +1,10 @@
 // hooks/useApi.js
-import {useCallback, useEffect, useRef, useState} from "react";
-import {useRouter} from "next/router";
+import {useCallback, useRef, useState} from "react";
 import {clearCsrfToken} from "@/services/api";
 
 const useApi = () => {
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
-    const routerReplaceRef = useRef(router.replace);
     const redirectingRef = useRef(false);
-
-    useEffect(() => {
-        routerReplaceRef.current = router.replace;
-    }, [router.replace]);
 
     /**
      * Executes an API call and always returns the normalized payload.
@@ -38,7 +31,6 @@ const useApi = () => {
                 if (!isAuthRoute && !redirectingRef.current) {
                     redirectingRef.current = true;
                     localStorage.setItem('redirectAfterLogin', currentPath);
-                    routerReplaceRef.current('/auth/login');
                 }
             }
             throw error;
