@@ -65,7 +65,7 @@ export function ReplayLabSharedReviewPage() {
     const [clipEndMs, setClipEndMs] = React.useState<number | null>(null);
     const [seekCommand, setSeekCommand] = React.useState<{id: number; timeMs: number} | null>(null);
     const [eventKind, setEventKind] = React.useState<ReplayAnnotationEventKind>("memory");
-    const [category, setCategory] = React.useState<ReplayAnnotationCategory>(defaultCategory("memory"));
+    const [category, setCategory] = React.useState<ReplayAnnotationCategory>(() => defaultCategory("memory"));
     const [title, setTitle] = React.useState("");
     const [notes, setNotes] = React.useState("");
     const [answer, setAnswer] = React.useState("");

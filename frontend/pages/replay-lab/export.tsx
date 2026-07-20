@@ -274,7 +274,7 @@ export default function ReplayLabExportRoute() {
                         ))}
                         <AppBox sx={(theme) => ({maxHeight: 360, overflow: "auto", p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.sunken})}>
                             {logs.length === 0 ? <AppTypography color="text.secondary">Export progress will appear here.</AppTypography> : null}
-                            {logs.map((log, index) => <AppTypography key={`${index}-${log}`} variant="caption" component="pre" sx={{whiteSpace: "pre-wrap", m: 0}}>{log}</AppTypography>)}
+                            {logs.map((log) => <AppTypography key={log} variant="caption" component="pre" sx={{whiteSpace: "pre-wrap", m: 0}}>{log}</AppTypography>)}
                         </AppBox>
                     </AppStack>
                 </SectionCard>

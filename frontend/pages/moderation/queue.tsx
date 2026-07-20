@@ -24,6 +24,7 @@ import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {useModeration} from "@/hooks/useModeration";
+import {formatUtcDateTime} from "@/src/utils/formatDateTime";
 import {
     ModerationContentType,
     ModerationQueueFilters,
@@ -74,19 +75,6 @@ function buildContentLink(item: ModerationQueueItem): string {
 
 function rowKey(item: ModerationQueueItem): string {
     return `${item.contentType}:${item.contentId}`;
-}
-
-function formatDate(value: string): string {
-    if (!value) {
-        return "-";
-    }
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-        return "-";
-    }
-
-    return parsed.toLocaleString();
 }
 
 function normalizeApiError(error: unknown, fallbackMessage: string): string {
@@ -379,8 +367,8 @@ export default function ModerationQueuePage() {
                                                 <AppTableCell>{item.author || "UNKNOWN_USER"}</AppTableCell>
                                                 <AppTableCell>{item.state}</AppTableCell>
                                                 <AppTableCell>{item.flagCount}</AppTableCell>
-                                                <AppTableCell>{formatDate(item.createdAt)}</AppTableCell>
-                                                <AppTableCell>{formatDate(item.updatedAt)}</AppTableCell>
+                                                <AppTableCell>{formatUtcDateTime(item.createdAt)}</AppTableCell>
+                                                <AppTableCell>{formatUtcDateTime(item.updatedAt)}</AppTableCell>
                                                 <AppTableCell sx={{minWidth: 280}}>
                                                     <AppBox sx={{display: "grid", gap: 0.8}}>
                                                         <AppBox sx={{display: "flex", gap: 0.6, flexWrap: "wrap"}}>

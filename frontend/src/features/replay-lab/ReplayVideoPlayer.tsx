@@ -198,46 +198,54 @@ export function ReplayVideoPlayer({src, fps, title, seekCommand, onPlaybackPosit
         setIsPlaying(false);
     }, [canUseControls]);
 
+    const keyboardControlsRef = React.useRef({canUseControls, effectiveFps, seekBy, togglePlayback});
+
+    React.useEffect(() => {
+        keyboardControlsRef.current = {canUseControls, effectiveFps, seekBy, togglePlayback};
+    });
+
     React.useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (!canUseControls || shouldIgnoreShortcut(event)) {
+            const keyboardControls = keyboardControlsRef.current;
+
+            if (!keyboardControls.canUseControls || shouldIgnoreShortcut(event)) {
                 return;
             }
 
             if (event.code === "Space") {
                 event.preventDefault();
-                void togglePlayback();
+                void keyboardControls.togglePlayback();
                 return;
             }
 
             if (event.key === "ArrowLeft") {
                 event.preventDefault();
-                seekBy(-1);
+                keyboardControls.seekBy(-1);
                 return;
             }
 
             if (event.key === "ArrowRight") {
                 event.preventDefault();
-                seekBy(1);
+                keyboardControls.seekBy(1);
                 return;
             }
 
             if (event.key === "," || event.key === "[") {
                 event.preventDefault();
-                seekBy(-1 / effectiveFps);
+                keyboardControls.seekBy(-1 / keyboardControls.effectiveFps);
                 return;
             }
 
             if (event.key === "." || event.key === "]") {
                 event.preventDefault();
-                seekBy(1 / effectiveFps);
+                keyboardControls.seekBy(1 / keyboardControls.effectiveFps);
             }
         };
 
         window.addEventListener("keydown", handleKeyDown);
 
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [canUseControls, effectiveFps, seekBy, togglePlayback]);
+    }, []);
 
     React.useEffect(() => {
         return () => {

@@ -1,7 +1,12 @@
 import React from "react";
+import dynamic from "next/dynamic";
 import {MatrixInsights} from "../services/matrixInsightService";
 import {StrategyMixChart} from "./StrategyMixChart";
-import {ExpectedValueRangeChart} from "./ExpectedValueRangeChart";
+
+const ExpectedValueRangeChart = dynamic(
+    () => import("./ExpectedValueRangeChart").then((module) => module.ExpectedValueRangeChart),
+    {ssr: false, loading: () => <div style={{height: 280}} />}
+);
 
 interface MatrixInsightsDashboardProps {
     insights: MatrixInsights;

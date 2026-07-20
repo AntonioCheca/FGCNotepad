@@ -71,6 +71,7 @@ function MatrixValueCellComponent({
             <input
                 autoFocus
                 type="text"
+                aria-label="Matrix cell value"
                 value={draft}
                 onChange={(event) => onDraftChange(event.target.value)}
                 onKeyDown={(event) => {
@@ -197,9 +198,9 @@ function MatrixValueCellComponent({
             ) : dynamicChipLabels.length > 0 ? (
                 <span style={{display: "grid", gap: 4}}>
                     <span style={{display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center"}}>
-                        {dynamicChipLabels.map((label, index) => (
+                        {dynamicChipLabels.map((label) => (
                             <span
-                                key={`${label}-${index}`}
+                                key={label}
                                 style={{
                                     ...chipStyle,
                                     display: "inline-block",

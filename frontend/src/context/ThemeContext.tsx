@@ -3,6 +3,7 @@
 
 import React, {
     createContext,
+    useCallback,
     useMemo,
     useState,
     useContext,
@@ -46,11 +47,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => {
     const [mode, setMode] = useState<PaletteMode>(resolveInitialMode);
 
-    const toggleColorMode = () => {
+    const toggleColorMode = useCallback(() => {
         setMode((prev) => (prev === "light" ? "dark" : "light"));
-    };
+    }, []);
 
     const theme = useMemo(() => createAppTheme(getDesignTokens(mode)), [mode]);
+    const contextValue = useMemo<ThemeContextType>(() => ({mode, toggleColorMode, theme}), [mode, theme, toggleColorMode]);
 
     useEffect(() => {
         localStorage.setItem(THEME_STORAGE_KEY, mode);
@@ -79,7 +81,7 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
     }, [theme]);
 
     return (
-        <ThemeContext.Provider value={{mode, toggleColorMode, theme}}>
+        <ThemeContext.Provider value={contextValue}>
             <AppThemeProvider theme={theme}>{children}</AppThemeProvider>
         </ThemeContext.Provider>
     );

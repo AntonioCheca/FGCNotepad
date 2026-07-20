@@ -10,6 +10,7 @@ import {AppTypography} from "@/src/components/ui/AppTypography";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {ReplayClipPlayer} from "@/src/features/replay-lab/ReplayClipPlayer";
+import {formatUtcDateTime} from "@/src/utils/formatDateTime";
 import {
     replayMemoryCategories,
     type ReplayMemoryCategory,
@@ -20,10 +21,6 @@ import {
 
 function humanizeCategory(category: string): string {
     return category.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatDate(value: string): string {
-    return new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short"}).format(new Date(value));
 }
 
 function getErrorMessage(error: unknown): string {
@@ -118,7 +115,7 @@ export function ReplayLabStudyDeckPage() {
                                 <ReplayClipPlayer clip={activeCard.clip} title={activeCard.prompt} />
                                 <AppTypography variant="h6">{activeCard.prompt}</AppTypography>
                                 <AppTypography variant="body2" color="text.secondary">
-                                    Due {formatDate(activeCard.dueAt)} · interval {activeCard.intervalDays}d · reps {activeCard.repetitionCount} · lapses {activeCard.lapseCount}
+                                    Due {formatUtcDateTime(activeCard.dueAt)} · interval {activeCard.intervalDays}d · reps {activeCard.repetitionCount} · lapses {activeCard.lapseCount}
                                 </AppTypography>
                                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 0.75}}>
                                     {replayMemoryCategories.map((category) => (
@@ -135,7 +132,7 @@ export function ReplayLabStudyDeckPage() {
                                 </AppBox>
                                 {reviewResult ? (
                                     <AppAlert severity={reviewResult.review.wasCorrect ? "success" : "warning"}>
-                                        You chose {selectedAnswer ? humanizeCategory(selectedAnswer) : "nothing"}. Correct answer: {reviewResult.card.correctAnswer}. Next due: {formatDate(reviewResult.review.nextDueAt)}.
+                                        You chose {selectedAnswer ? humanizeCategory(selectedAnswer) : "nothing"}. Correct answer: {reviewResult.card.correctAnswer}. Next due: {formatUtcDateTime(reviewResult.review.nextDueAt)}.
                                     </AppAlert>
                                 ) : null}
                                 <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -185,7 +182,7 @@ export function ReplayLabStudyDeckPage() {
                                 })}
                             >
                                 <AppTypography variant="subtitle2">{card.prompt}</AppTypography>
-                                <AppTypography variant="caption" color="text.secondary">{humanizeCategory(card.category)} · due {formatDate(card.dueAt)}</AppTypography>
+                                <AppTypography variant="caption" color="text.secondary">{humanizeCategory(card.category)} · due {formatUtcDateTime(card.dueAt)}</AppTypography>
                             </AppBox>
                         ))}
                         {cards.length === 0 ? <AppTypography color="text.secondary">Export memory annotations from a review session to create study cards.</AppTypography> : null}

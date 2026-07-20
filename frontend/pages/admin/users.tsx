@@ -27,6 +27,7 @@ import {AppDialogContent} from "@/src/components/ui/AppDialogContent";
 import {AppDialogActions} from "@/src/components/ui/AppDialogActions";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppAlert} from "@/src/components/ui/AppAlert";
+import {formatUtcDateTime} from "@/src/utils/formatDateTime";
 
 type RolePreset = "user" | "moderator" | "admin";
 
@@ -68,19 +69,6 @@ function normalizeApiError(error: unknown, fallbackMessage: string): string {
         || maybeResponse.response?.data?.message
         || maybeResponse.message
         || fallbackMessage;
-}
-
-function formatDate(value: string | null): string {
-    if (!value) {
-        return "-";
-    }
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-        return "-";
-    }
-
-    return parsed.toLocaleString();
 }
 
 export default function AdminUsersPage() {
@@ -340,7 +328,7 @@ export default function AdminUsersPage() {
                                                         />
                                                         {!row.isActive ? (
                                                             <AppTypography variant="caption" color="text.secondary">
-                                                                Deactivated at {formatDate(row.deactivatedAt)}
+                                                                Deactivated at {formatUtcDateTime(row.deactivatedAt)}
                                                             </AppTypography>
                                                         ) : null}
                                                     </AppBox>

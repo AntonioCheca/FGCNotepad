@@ -23,7 +23,9 @@ export function ScenarioTableControls({onDelete, onSolveGame}: ScenarioTableCont
     return (
         <>
             <button
+                type="button"
                 className="delete-button"
+                aria-label="Delete scenario table"
                 onClick={onDelete}
                 style={{
                     ...commonStyle,
@@ -34,7 +36,9 @@ export function ScenarioTableControls({onDelete, onSolveGame}: ScenarioTableCont
                 ✕
             </button>
             <button
+                type="button"
                 className="solve-game-button"
+                aria-label="Solve scenario game"
                 onClick={onSolveGame}
                 style={{
                     ...commonStyle,

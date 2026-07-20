@@ -85,7 +85,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
     const [starterOptions, setStarterOptions] = React.useState<MoveSearchOption[]>([]);
     const [starterSelections, setStarterSelections] = React.useState<MoveSearchOption[]>([]);
     const [searchingMoves, setSearchingMoves] = React.useState(false);
-    const [starterPreset, setStarterPreset] = React.useState<StarterContextPreset>(presetFromContext(initialValue?.starterContext));
+    const [starterPreset, setStarterPreset] = React.useState<StarterContextPreset>(() => presetFromContext(initialValue?.starterContext));
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
@@ -260,7 +260,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
         >
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
                     <div style={{display: "grid", gap: 2}}>
-                        <strong style={{fontSize: 14, color: "#2a4a6f"}}>Dynamic Combo Cell</strong>
+                        <strong id="dynamic-combo-panel-title" style={{fontSize: 14, color: "#2a4a6f"}}>Dynamic Combo Cell</strong>
                         <span style={{fontSize: 12, color: "#5e7795"}}>Visible only for selected dynamic combo-capable cell</span>
                     </div>
                     <button type="button" onClick={onClose} style={{height: 30}}>Close</button>
@@ -403,6 +403,7 @@ export function DynamicComboPanel({open, initialValue, moveLabelById, presentati
         <div
             role="dialog"
             aria-modal="true"
+            aria-labelledby="dynamic-combo-panel-title"
             style={{
                 position: "fixed",
                 inset: 0,

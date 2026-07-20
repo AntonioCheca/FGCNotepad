@@ -80,6 +80,7 @@ export function MatrixGridHeader({
                     >
                     <input
                         type="text"
+                        aria-label={`Column label ${column.label || column.id}`}
                         value={column.label}
                         readOnly={!canEditColumnAxisLabels}
                         onFocus={() => onSelectColumnHeader(column.id)}

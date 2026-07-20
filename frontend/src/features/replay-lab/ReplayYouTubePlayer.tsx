@@ -169,46 +169,54 @@ export function ReplayYouTubePlayer({videoId, fps, title, seekCommand, onPlaybac
         setIsPlaying(true);
     }, [isPlaying, isReady]);
 
+    const keyboardControlsRef = React.useRef({fps, isReady, seekBy, togglePlayback});
+
+    React.useEffect(() => {
+        keyboardControlsRef.current = {fps, isReady, seekBy, togglePlayback};
+    });
+
     React.useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (!isReady || shouldIgnoreShortcut(event)) {
+            const keyboardControls = keyboardControlsRef.current;
+
+            if (!keyboardControls.isReady || shouldIgnoreShortcut(event)) {
                 return;
             }
 
             if (event.code === "Space") {
                 event.preventDefault();
-                togglePlayback();
+                keyboardControls.togglePlayback();
                 return;
             }
 
             if (event.key === "ArrowLeft") {
                 event.preventDefault();
-                seekBy(-1);
+                keyboardControls.seekBy(-1);
                 return;
             }
 
             if (event.key === "ArrowRight") {
                 event.preventDefault();
-                seekBy(1);
+                keyboardControls.seekBy(1);
                 return;
             }
 
             if (event.key === "," || event.key === "[") {
                 event.preventDefault();
-                seekBy(-1 / fps);
+                keyboardControls.seekBy(-1 / keyboardControls.fps);
                 return;
             }
 
             if (event.key === "." || event.key === "]") {
                 event.preventDefault();
-                seekBy(1 / fps);
+                keyboardControls.seekBy(1 / keyboardControls.fps);
             }
         };
 
         window.addEventListener("keydown", handleKeyDown);
 
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [fps, isReady, seekBy, togglePlayback]);
+    }, []);
 
     return (
         <AppBox sx={{display: "grid", gap: 1}}>

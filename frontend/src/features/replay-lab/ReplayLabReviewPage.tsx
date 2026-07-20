@@ -13,6 +13,7 @@ import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {ReplayTimeline} from "@/src/features/replay-lab/ReplayTimeline";
 import {ReplayVideoPlayer} from "@/src/features/replay-lab/ReplayVideoPlayer";
 import {ReplayYouTubePlayer} from "@/src/features/replay-lab/ReplayYouTubePlayer";
+import {formatUtcDateTime} from "@/src/utils/formatDateTime";
 import {
     replayMemoryCategories,
     replayTaskCategories,
@@ -38,14 +39,6 @@ function formatBytes(bytes: number): string {
     const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
 
     return `${(bytes / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
-}
-
-function formatDate(value: string | null): string {
-    if (!value) {
-        return "No expiry";
-    }
-
-    return new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short"}).format(new Date(value));
 }
 
 function getErrorMessage(error: unknown): string {
@@ -136,7 +129,7 @@ export function ReplayLabReviewPage() {
     const [clipEndMs, setClipEndMs] = React.useState<number | null>(null);
     const [seekCommand, setSeekCommand] = React.useState<{id: number; timeMs: number} | null>(null);
     const [eventKind, setEventKind] = React.useState<ReplayAnnotationEventKind>("memory");
-    const [category, setCategory] = React.useState<ReplayAnnotationCategory>(defaultCategory("memory"));
+    const [category, setCategory] = React.useState<ReplayAnnotationCategory>(() => defaultCategory("memory"));
     const [annotationTitle, setAnnotationTitle] = React.useState("");
     const [annotationNotes, setAnnotationNotes] = React.useState("");
     const [annotationAnswer, setAnnotationAnswer] = React.useState("");
@@ -545,22 +538,26 @@ export function ReplayLabReviewPage() {
     const markStartRef = React.useRef(markClipStart);
     const markEndRef = React.useRef(markClipEnd);
     const submitAnnotationRef = React.useRef(submitAnnotation);
+    const shortcutStateRef = React.useRef({canMarkRange, canSaveAnnotation, clipStartMs, isEditorOpen, loading});
 
     React.useEffect(() => {
         markStartRef.current = markClipStart;
         markEndRef.current = markClipEnd;
         submitAnnotationRef.current = submitAnnotation;
+        shortcutStateRef.current = {canMarkRange, canSaveAnnotation, clipStartMs, isEditorOpen, loading};
     });
 
     React.useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (!isEditorOpen || shouldIgnoreShortcut(event)) {
+            const shortcutState = shortcutStateRef.current;
+
+            if (!shortcutState.isEditorOpen || shouldIgnoreShortcut(event)) {
                 return;
             }
 
             if (event.key.toLowerCase() === "i") {
                 event.preventDefault();
-                if (canMarkRange) {
+                if (shortcutState.canMarkRange) {
                     markStartRef.current();
                 }
                 return;
@@ -568,7 +565,7 @@ export function ReplayLabReviewPage() {
 
             if (event.key.toLowerCase() === "o") {
                 event.preventDefault();
-                if (canMarkRange) {
+                if (shortcutState.canMarkRange) {
                     markEndRef.current();
                 }
                 return;
@@ -576,15 +573,15 @@ export function ReplayLabReviewPage() {
 
             if (event.key.toLowerCase() === "g") {
                 event.preventDefault();
-                if (clipStartMs !== null) {
-                    setSeekCommand({id: Date.now(), timeMs: clipStartMs});
+                if (shortcutState.clipStartMs !== null) {
+                    setSeekCommand({id: Date.now(), timeMs: shortcutState.clipStartMs});
                 }
                 return;
             }
 
             if (event.key.toLowerCase() === "s") {
                 event.preventDefault();
-                if (canSaveAnnotation && !loading) {
+                if (shortcutState.canSaveAnnotation && !shortcutState.loading) {
                     void submitAnnotationRef.current();
                 }
             }
@@ -593,7 +590,7 @@ export function ReplayLabReviewPage() {
         window.addEventListener("keydown", handleKeyDown);
 
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [canMarkRange, canSaveAnnotation, clipStartMs, isEditorOpen, loading]);
+    }, []);
 
     const markerControls = (
         <>
@@ -671,7 +668,7 @@ export function ReplayLabReviewPage() {
                                         <AppBox key={session.id} sx={(theme) => ({display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr auto"}, gap: 1, alignItems: "center", p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base})}>
                                             <AppBox>
                                                 <AppTypography variant="subtitle2">{session.title}</AppTypography>
-                                                <AppTypography variant="body2" color="text.secondary">{label}{video ? ` - ${video.originalFilename}` : ""} - Updated {formatDate(session.updatedAt)}</AppTypography>
+                                                <AppTypography variant="body2" color="text.secondary">{label}{video ? ` - ${video.originalFilename}` : ""} - Updated {formatUtcDateTime(session.updatedAt, "No expiry")}</AppTypography>
                                             </AppBox>
                                             <AppStack direction="row" spacing={0.75} justifyContent={{xs: "flex-start", md: "flex-end"}} flexWrap="wrap" useFlexGap>
                                                 <AppButton type="button" variant="outlined" onClick={() => void openReviewSession(session)} disabled={loading || !video || session.status === "archived"}>Open</AppButton>

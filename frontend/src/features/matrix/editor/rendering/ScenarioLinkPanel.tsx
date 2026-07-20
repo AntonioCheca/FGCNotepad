@@ -25,9 +25,9 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
     const [items, setItems] = React.useState<ScenarioSearchItem[]>([]);
     const [selectedId, setSelectedId] = React.useState<string | null>(initialScenarioId ?? null);
     const [debouncedQuery, setDebouncedQuery] = React.useState("");
-    const [preValueKind, setPreValueKind] = React.useState<PreValueKind>(initialPreValue?.kind ?? "none");
-    const [staticPreValue, setStaticPreValue] = React.useState(initialPreValue?.kind === "static" ? String(initialPreValue.staticValue) : "");
-    const [dynamicPreValue, setDynamicPreValue] = React.useState(initialPreValue?.kind === "dynamic_combo" ? initialPreValue.dynamicCombo : null);
+    const [preValueKind, setPreValueKind] = React.useState<PreValueKind>(() => initialPreValue?.kind ?? "none");
+    const [staticPreValue, setStaticPreValue] = React.useState(() => initialPreValue?.kind === "static" ? String(initialPreValue.staticValue) : "");
+    const [dynamicPreValue, setDynamicPreValue] = React.useState(() => initialPreValue?.kind === "dynamic_combo" ? initialPreValue.dynamicCombo : null);
     const [dynamicStarterLabels, setDynamicStarterLabels] = React.useState<Record<string, string>>({});
 
     React.useEffect(() => {
@@ -119,7 +119,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
         >
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
                     <div style={{display: "grid", gap: 2}}>
-                        <strong style={{fontSize: 14, color: "#2a4a6f"}}>Link Scenario</strong>
+                        <strong id="scenario-link-panel-title" style={{fontSize: 14, color: "#2a4a6f"}}>Link Scenario</strong>
                         <span style={{fontSize: 12, color: "#5e7795"}}>Visible only for selected reference-capable cell</span>
                     </div>
                     <button type="button" onClick={onClose} style={{height: 30}}>Close</button>
@@ -127,6 +127,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
                 <input
                     autoFocus
                     type="text"
+                    aria-label="Search scenarios"
                     placeholder="Search scenarios"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
@@ -291,6 +292,7 @@ export function ScenarioLinkPanel({open, initialScenarioId, initialScenarioLabel
         <div
             role="dialog"
             aria-modal="true"
+            aria-labelledby="scenario-link-panel-title"
             style={{
                 position: "fixed",
                 inset: 0,

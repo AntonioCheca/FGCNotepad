@@ -110,6 +110,7 @@ export function MatrixGridBody({
                 >
                     <input
                         type="text"
+                        aria-label={`Row label ${row.label || row.id}`}
                         value={row.label}
                         readOnly={!canEditRowAxisLabels}
                         onFocus={() => onSelectRowHeader(row.id)}

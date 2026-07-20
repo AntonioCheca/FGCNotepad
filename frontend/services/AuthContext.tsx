@@ -1,6 +1,6 @@
 'use client';
 
-import {createContext, useState, useEffect, ReactNode, useCallback} from "react";
+import {createContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef} from "react";
 import {useRouter} from "next/navigation";
 import {fetchCurrentUserProfile} from "@/services/authProfile";
 import {clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken} from "@/services/api";
@@ -108,6 +108,11 @@ export function AuthProvider({children}: { children: ReactNode }) {
             setLoading(false);
         }
     }, [clearSession]);
+    const eventHandlersRef = useRef({clearSession, hydrateUserFromToken, router});
+
+    useEffect(() => {
+        eventHandlersRef.current = {clearSession, hydrateUserFromToken, router};
+    });
 
     useEffect(() => {
         const token = getStoredAuthToken();
@@ -132,11 +137,11 @@ export function AuthProvider({children}: { children: ReactNode }) {
                 return;
             }
 
-            void hydrateUserFromToken(token);
+            void eventHandlersRef.current.hydrateUserFromToken(token);
         };
 
         const handleUnauthorized = () => {
-            clearSession();
+            eventHandlersRef.current.clearSession();
 
             if (window.location.pathname.startsWith('/auth/')) {
                 return;
@@ -144,7 +149,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
             const currentPath = `${window.location.pathname}${window.location.search}`;
             localStorage.setItem('redirectAfterLogin', currentPath);
-            router.replace('/auth/login');
+            eventHandlersRef.current.router.replace('/auth/login');
         };
 
         window.addEventListener("storage", handleStorage);
@@ -154,9 +159,9 @@ export function AuthProvider({children}: { children: ReactNode }) {
             window.removeEventListener("storage", handleStorage);
             window.removeEventListener("auth:unauthorized", handleUnauthorized);
         };
-    }, [clearSession, hydrateUserFromToken, router]);
+    }, []);
 
-    const login = (token: string) => {
+    const login = useCallback((token: string) => {
         setStoredAuthToken(token);
         const normalizedToken = getStoredAuthToken();
         if (normalizedToken) {
@@ -166,12 +171,12 @@ export function AuthProvider({children}: { children: ReactNode }) {
         const redirectPath = localStorage.getItem("redirectAfterLogin");
         localStorage.removeItem("redirectAfterLogin");
         router.push(redirectPath || "/combos");
-    };
+    }, [hydrateUserFromToken, router]);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         clearSession();
         router.push("/auth/login");
-    };
+    }, [clearSession, router]);
 
     const hasRole = useCallback((role: UserRole): boolean => {
         return Boolean(user?.roles?.includes(role));
@@ -180,18 +185,19 @@ export function AuthProvider({children}: { children: ReactNode }) {
     const isAuthenticated = user !== null;
     const canModerate = hasRole("ROLE_MODERATOR") || hasRole("ROLE_ADMIN");
     const canManageUsers = hasRole("ROLE_ADMIN");
+    const contextValue = useMemo<AuthContextType>(() => ({
+        user,
+        loading,
+        isAuthenticated,
+        hasRole,
+        canModerate,
+        canManageUsers,
+        login,
+        logout,
+    }), [canManageUsers, canModerate, hasRole, isAuthenticated, loading, login, logout, user]);
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            loading,
-            isAuthenticated,
-            hasRole,
-            canModerate,
-            canManageUsers,
-            login,
-            logout,
-        }}>
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );

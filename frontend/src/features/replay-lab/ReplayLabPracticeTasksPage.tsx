@@ -10,15 +10,8 @@ import {AppTypography} from "@/src/components/ui/AppTypography";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {ReplayClipPlayer} from "@/src/features/replay-lab/ReplayClipPlayer";
+import {formatUtcDateTime} from "@/src/utils/formatDateTime";
 import type {PracticeTask, PracticeTaskStatus} from "@/src/types/replayLab";
-
-function formatDate(value: string | null): string {
-    if (!value) {
-        return "No due date";
-    }
-
-    return new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short"}).format(new Date(value));
-}
 
 function humanizeCategory(category: string): string {
     return category.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -129,7 +122,7 @@ export function ReplayLabPracticeTasksPage() {
                                     <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                                         <AppChip size="small" label={humanizeCategory(task.category)} />
                                         <AppChip size="small" variant="outlined" label={task.status} />
-                                        <AppChip size="small" variant="outlined" label={formatDate(task.dueDate)} />
+                                        <AppChip size="small" variant="outlined" label={formatUtcDateTime(task.dueDate, "No due date")} />
                                         <AppChip size="small" variant="outlined" label={`${task.completedOccurrences}/${task.completedOccurrences + task.remainingOccurrences} done`} />
                                     </AppStack>
                                     <AppTypography variant="subtitle1" sx={{fontWeight: 650}}>{task.title}</AppTypography>

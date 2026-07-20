@@ -46,6 +46,26 @@ export function ReplayTimeline({annotations, clipStartMs, clipEndMs, cursorMs, d
                     const rect = event.currentTarget.getBoundingClientRect();
                     onSeek(Math.round(((event.clientX - rect.left) / rect.width) * durationMs));
                 }}
+                onKeyDown={(event) => {
+                    if (durationMs <= 0) {
+                        return;
+                    }
+
+                    const stepMs = event.shiftKey ? 5000 : 1000;
+                    if (event.key === "ArrowLeft") {
+                        event.preventDefault();
+                        onSeek(Math.max(0, cursorMs - stepMs));
+                    } else if (event.key === "ArrowRight") {
+                        event.preventDefault();
+                        onSeek(Math.min(durationMs, cursorMs + stepMs));
+                    } else if (event.key === "Home") {
+                        event.preventDefault();
+                        onSeek(0);
+                    } else if (event.key === "End") {
+                        event.preventDefault();
+                        onSeek(durationMs);
+                    }
+                }}
                 sx={(theme) => ({
                     position: "relative",
                     height: 18,
