@@ -22,7 +22,7 @@ FGCNotepad is a forum-wiki hybrid for fighting game analysis from a game theory 
 - `scripts/`: production deploy and backup helpers.
 - `docs/`: specialised planning and feature notes.
 - `AGENTS.md`: required entry point for AI-assisted work.
-- `BACKEND_FEATURE_MASTER.md`, `FRONTEND_FEATURE_MASTER.md`, `CONFIG_OPS_MASTER.md`: detailed implementation rules.
+- `docs/ai/`: detailed implementation rules for AI-assisted backend, frontend, and config/ops work.
 - `CONTRIBUTING.md`: fork, branch, pull request, and review workflow.
 
 ## Environment Files
@@ -117,9 +117,9 @@ make check
 
 - Contribution workflow: `CONTRIBUTING.md`.
 - AI agent rules: `AGENTS.md`.
-- Backend architecture and rules: `BACKEND_FEATURE_MASTER.md`.
-- Frontend architecture and UI rules: `FRONTEND_FEATURE_MASTER.md`.
-- Config, operations, and deployment conventions: `CONFIG_OPS_MASTER.md`.
+- Backend architecture and rules: `docs/ai/BACKEND_FEATURE_MASTER.md`.
+- Frontend architecture and UI rules: `docs/ai/FRONTEND_FEATURE_MASTER.md`.
+- Config, operations, and deployment conventions: `docs/ai/CONFIG_OPS_MASTER.md`.
 - FAT frame-data attribution: `docs/FAT_ATTRIBUTION.md`.
 - Replay Lab notes: `docs/replay-lab-0x-plan.md`.
 - Brand asset notice: `NOTICE.md`.

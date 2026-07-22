@@ -11,16 +11,16 @@ This file is the mandatory entry point for AI-assisted work in this repository.
 
 Before writing code, the agent must read and follow:
 
-1. `BACKEND_FEATURE_MASTER.md`
-2. `FRONTEND_FEATURE_MASTER.md`
-3. `CONFIG_OPS_MASTER.md`
+1. `docs/ai/BACKEND_FEATURE_MASTER.md`
+2. `docs/ai/FRONTEND_FEATURE_MASTER.md`
+3. `docs/ai/CONFIG_OPS_MASTER.md`
 
 If any instruction conflicts, apply this order of precedence:
 
 1. User request in the current conversation
 2. Safety constraints from the runtime/system
 3. This `AGENTS.md`
-4. The three master files
+4. The three master files under `docs/ai/`
 5. Existing code conventions in the touched area
 
 ## Non-negotiable rules
