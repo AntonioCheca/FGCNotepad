@@ -781,12 +781,12 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         if (!$user instanceof User) {
             $user = (new User())
                 ->setUsername($username)
-                ->setPassword(password_hash('testpassword', PASSWORD_BCRYPT))
+                ->setPassword(self::hashTestPassword())
                 ->setIsActive(true);
             $this->entityManager?->persist($user);
         } else {
             $user
-                ->setPassword(password_hash('testpassword', PASSWORD_BCRYPT))
+                ->setPassword(self::hashTestPassword())
                 ->setIsActive(true);
         }
         $this->entityManager?->flush();

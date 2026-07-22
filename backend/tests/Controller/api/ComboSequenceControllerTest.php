@@ -148,7 +148,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertInstanceOf(User::class, $currentUser);
         $otherUser = (new User())
             ->setUsername('other_combo_author')
-            ->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
+            ->setPassword(self::hashTestPassword());
 
         $ownPendingCombo = (new ComboSequences())
             ->setName('Own Pending Combo')

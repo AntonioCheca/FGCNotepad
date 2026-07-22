@@ -107,7 +107,7 @@ local-psql:
 	psql -U fgc_user -d fgc_db
 
 local-test:
-	cd backend && php bin/phpunit
+	cd backend && php -d xdebug.mode=off bin/phpunit
 
 check-frontend:
 	cd frontend && npm run check

@@ -94,7 +94,7 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
 
         $user = (new User())
             ->setUsername('knowledge_user')
-            ->setPassword(password_hash('knowledge_pass', PASSWORD_BCRYPT));
+            ->setPassword(self::hashTestPassword('knowledge_pass'));
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 

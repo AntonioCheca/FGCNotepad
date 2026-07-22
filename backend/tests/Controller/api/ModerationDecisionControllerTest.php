@@ -151,7 +151,7 @@ class ModerationDecisionControllerTest extends DatabaseTestCase
     {
         $user = new User();
         $user->setUsername($username);
-        $user->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
+        $user->setPassword(self::hashTestPassword());
         $user->setRoles(array_map(static fn (UserRole $role): string => $role->value, $roles));
 
         $this->entityManager->persist($user);

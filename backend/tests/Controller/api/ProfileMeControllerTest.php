@@ -20,7 +20,7 @@ class ProfileMeControllerTest extends DatabaseTestCase
     {
         $user = new User();
         $user->setUsername('profile_me_user');
-        $user->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
+        $user->setPassword(self::hashTestPassword());
         $user->setRoles([UserRole::ADMIN->value]);
 
         $this->entityManager->persist($user);

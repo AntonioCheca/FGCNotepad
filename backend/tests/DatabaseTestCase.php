@@ -42,23 +42,31 @@ abstract class DatabaseTestCase extends WebTestCase
     private function truncateDatabase(): void
     {
         $connection = $this->entityManager->getConnection();
-        $databasePlatform = $connection->getDatabasePlatform();
 
         $this->entityManager->clear();
         $connection->executeStatement("SET synchronous_commit = OFF");
 
+        $truncatableTables = $this->getTruncatableTables();
+        if ([] === $truncatableTables) {
+            return;
+        }
+
         $connection->beginTransaction();
         try {
-            foreach ($this->getTruncatableTables() as $tableName) {
-                $connection->executeStatement(
-                    $databasePlatform->getTruncateTableSQL($tableName, true)
-                );
-            }
+            $connection->executeStatement(sprintf(
+                'TRUNCATE %s RESTART IDENTITY CASCADE',
+                implode(', ', array_map([$this, 'quoteTableName'], $truncatableTables))
+            ));
             $connection->commit();
         } catch (\Throwable $e) {
             $connection->rollBack();
             throw $e;
         }
+    }
+
+    protected static function hashTestPassword(string $password = 'testpassword'): string
+    {
+        return password_hash($password, PASSWORD_BCRYPT, ['cost' => 4]);
     }
 
     /**
@@ -118,5 +126,15 @@ abstract class DatabaseTestCase extends WebTestCase
         }
 
         return array_values(array_unique($variants));
+    }
+
+    private function quoteTableName(string $tableName): string
+    {
+        $platform = $this->entityManager->getConnection()->getDatabasePlatform();
+
+        return implode('.', array_map(
+            static fn (string $segment): string => $platform->quoteIdentifier(str_replace('"', '', $segment)),
+            explode('.', $tableName)
+        ));
     }
 }

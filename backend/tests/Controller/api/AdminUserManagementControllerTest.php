@@ -198,7 +198,7 @@ class AdminUserManagementControllerTest extends DatabaseTestCase
     {
         $user = new User();
         $user->setUsername(sprintf('user_%s_%d', $this->usernameSeed, $this->userSeq++));
-        $user->setPassword(password_hash('testpassword', PASSWORD_BCRYPT));
+        $user->setPassword(self::hashTestPassword());
         $user->setRoles(array_map(static fn (UserRole $role): string => $role->value, $roles));
         $user->setIsActive(true);
 
