@@ -1,6 +1,7 @@
 .idea/
 .agents/
 .opencode/
+skills-lock.json
 
 # Tool caches
 .phpunit.result.cache
