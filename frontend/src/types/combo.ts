@@ -11,9 +11,9 @@ export interface CharacterOption {
 }
 
 export interface LeafSequenceOption {
-    id: ID;                  // ComboSequence ID for a LEAF/Move wrapper
+    id: ID;
     name: string;
-    character: CharacterOption; // ✅ add character for filtering
+    character: CharacterOption;
 }
 
 export interface StepDraft {
@@ -145,20 +145,19 @@ export interface EstimateComboResourcesResponse extends TranslateComboNotationRe
     };
 }
 
-// types/combo.ts
 export interface ComboRow {
     id: number;
     title: string;
     moderationState: string;
     characterName: string;
-    moves: string[];        // just move names
+    moves: string[];
     damage: number | string;
     resourceAdjustedDamage: number | string;
     driveCost: number | string;
     driveGain: number | string;
     superCost: number | string;
     superGain: number | string;
-    season: string;         // human-readable
+    season: string;
     isUsable: boolean;
     isFullyAudited: boolean;
     needsTechnicalReview: boolean;

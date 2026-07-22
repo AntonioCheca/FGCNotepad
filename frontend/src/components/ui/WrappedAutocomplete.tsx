@@ -10,12 +10,10 @@ type WrappedAutocompleteProps<T> = {
     label: string;
     options: T[];
     value: T | null;
-    /** Single-select only */
     onChange: (value: T | null) => void;
     getOptionLabel: (option: T) => string;
     isOptionEqualToValue?: (option: T, value: T) => boolean;
 
-    /** Controlled input support (for async search) */
     inputValue?: string;
     onInputChange?: (
         event: React.SyntheticEvent,
@@ -24,7 +22,7 @@ type WrappedAutocompleteProps<T> = {
     ) => void;
 
     placeholder?: string;
-    required?: boolean; // ✅ add this
+    required?: boolean;
 } & Omit<
     AutocompleteProps<T, false, false, false>,
     | "renderInput"
@@ -67,7 +65,7 @@ export function WrappedAutocomplete<T>({
                     {...params}
                     label={label}
                     placeholder={placeholder}
-                    required={required} // ✅ forward it
+                    required={required}
                 />
             )}
         />

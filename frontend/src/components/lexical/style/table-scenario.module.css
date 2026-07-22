@@ -1,6 +1,6 @@
 .table-container {
-    display: inline-block; /* Ensures it doesn't take full width */
-    width: 10%; /* Keeps the node within a limited space */
+    display: inline-block;
+    width: 10%;
     margin-bottom: 20px;
     margin-right: 10px;
 }

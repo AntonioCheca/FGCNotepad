@@ -15,29 +15,4 @@ class ScenarioOptionRelationshipsRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, ScenarioOptionRelationships::class);
     }
-
-    //    /**
-    //     * @return ScenarioOptionRelationships[] Returns an array of ScenarioOptionRelationships objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('s.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?ScenarioOptionRelationships
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
 }

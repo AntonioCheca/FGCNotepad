@@ -1,4 +1,3 @@
-// src/styles/ThemeContext.tsx
 "use client";
 
 import React, {
@@ -72,7 +71,6 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
         };
     }, []);
 
-    // ✅ Update <body> background color when theme changes
     useEffect(() => {
         document.body.style.backgroundColor = theme.palette.background.default;
         document.body.style.color = theme.palette.text.primary;

@@ -41,15 +41,12 @@ class TestEntityFactory
     {
         $sequence = new ComboSequences();
 
-        // Set basic properties
         $sequence->setName($overrides['name'] ?? 'Test Combo Sequence');
         $sequence->setDescription($overrides['description'] ?? 'Test combo description');
 
-        // Handle required relationships
         $move = $overrides['move'] ?? $this->createMove();
         $sequence->setMove($move);
 
-        // Get or create required entities
         $type = $overrides['type'] ?? $this->getOrCreateComboSequenceType();
         $sequence->setType($type);
 
@@ -80,7 +77,6 @@ class TestEntityFactory
 
     private function getOrCreateComboSequenceType(): ComboSequenceType
     {
-        // Try to find existing type first
         $type = $this->em->getRepository(ComboSequenceType::class)->findOneBy([]);
 
         if (!$type) {
@@ -92,7 +88,6 @@ class TestEntityFactory
 
     private function getOrCreateVisibility(): Visibility
     {
-        // Try to find existing visibility first
         $visibility = $this->em->getRepository(Visibility::class)->findOneBy([]);
 
         if (!$visibility) {

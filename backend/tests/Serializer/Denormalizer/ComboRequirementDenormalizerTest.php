@@ -28,7 +28,6 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
 
     public function testDenormalize(): void
     {
-        // Arrange: create and persist a ComboSequence
         $factory = new TestEntityFactory($this->em);
         $sequence = $factory->createComboSequence();
         $this->em->flush();
@@ -46,11 +45,9 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
             ]
         ];
 
-        // Act - Use Symfony's configured serializer
         /** @var ComboRequirement $object */
         $object = $this->serializer->denormalize($data, ComboRequirement::class);
 
-        // Assert
         $this->assertInstanceOf(ComboRequirement::class, $object);
         $this->assertTrue($object->isCounterHitRequired());
         $this->assertFalse($object->isCornerRequired());
@@ -61,7 +58,6 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
         $this->assertSame('Medals', $specificCharacter->getObjectName());
         $this->assertSame('5', $specificCharacter->getStatusRequired());
 
-        // Cleanup
         $this->em->remove($sequence);
         $this->em->flush();
     }

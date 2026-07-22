@@ -1,4 +1,3 @@
-// components/ui/AppSelect.tsx
 import React from "react";
 import {
     Select as MUISelect,
@@ -6,7 +5,6 @@ import {
     SelectChangeEvent
 } from "@mui/material";
 
-// Make AppSelect generic for type-safe value handling
 export interface AppSelectProps<T = unknown>
     extends Omit<MUISelectProps<T>, "onChange" | "value"> {
     value: T;

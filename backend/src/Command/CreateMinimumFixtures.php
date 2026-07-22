@@ -71,7 +71,6 @@ class CreateMinimumFixtures extends Command
             }
         }
 
-        // === Movement Moves for ALL Characters ===
         $allCharacters = $this->characterRepository->findAll();
 
         $moveRepo = $this->em->getRepository(Move::class);

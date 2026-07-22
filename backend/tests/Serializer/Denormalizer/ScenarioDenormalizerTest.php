@@ -29,7 +29,6 @@ class ScenarioDenormalizerTest extends DatabaseTestCase
         $repository = $this->em->getRepository(Character::class);
         $this->characterRepository = $repository;
 
-        // Ensure at least one Character exists for the moves
         if (!$this->characterRepository->findOneBy(['name' => 'Ryu'])) {
             $character = new Character();
             $character->setName('Ryu');
@@ -82,7 +81,6 @@ class ScenarioDenormalizerTest extends DatabaseTestCase
 
     public function testDenormalizeReusesExistingScenarioType(): void
     {
-        // Check if the ScenarioType already exists
         $type = $this->em->getRepository(ScenarioType::class)
             ->findOneBy(['name' => 'Okizeme']);
 
@@ -102,7 +100,6 @@ class ScenarioDenormalizerTest extends DatabaseTestCase
         /** @var Scenario $scenario */
         $scenario = $this->serializer->denormalize($data, Scenario::class);
 
-        // Assert that the denormalizer reuses the existing entity
         $this->assertSame($type, $scenario->getType());
         $this->assertEquals('Okizeme', $scenario->getType()->getName());
     }

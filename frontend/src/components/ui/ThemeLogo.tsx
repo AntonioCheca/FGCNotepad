@@ -9,16 +9,12 @@ type ThemeLogoProps = {
 export default function ThemeLogo({className, collapsed = false}: ThemeLogoProps) {
     const {mode} = useMode();
 
-    // Use different SVGs or just resize
     const src = mode === "light"
         ? "/logos/favicon-color-pos.svg"
         : "/logos/favicon-color-neg.svg";
 
-    // Use relative units converted to pixels for Image component,
-    // fallback to fixed sizes in rem units converted to pixels (e.g., 2.5rem = 40px)
-    // Next/Image requires numeric width/height (pixels), so calculate accordingly:
-    const baseSizeRem = collapsed ? 2 : 3; // 2rem when collapsed, 3rem expanded
-    const baseSizePx = baseSizeRem * 16;  // assuming 16px root font size
+    const baseSizeRem = collapsed ? 2 : 3;
+    const baseSizePx = baseSizeRem * 16;
 
     return (
         <Image
@@ -26,7 +22,7 @@ export default function ThemeLogo({className, collapsed = false}: ThemeLogoProps
             alt="Logo"
             className={className}
             width={baseSizePx}
-            height={baseSizePx * 0.66} // maintain aspect ratio ~ 2:3 height to width
+            height={baseSizePx * 0.66}
             priority
             style={{
                 display: "block",
@@ -34,7 +30,7 @@ export default function ThemeLogo({className, collapsed = false}: ThemeLogoProps
                 maxWidth: "100%",
                 height: "auto",
             }}
-            sizes={`${baseSizeRem}rem`} // hint for responsive image sizing
+            sizes={`${baseSizeRem}rem`}
         />
     );
 }

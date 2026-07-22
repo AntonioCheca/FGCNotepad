@@ -1,4 +1,3 @@
-// hooks/useApi.js
 import {useCallback, useRef, useState} from "react";
 import {clearCsrfToken} from "@/services/api";
 
@@ -6,10 +5,6 @@ const useApi = () => {
     const [loading, setLoading] = useState(false);
     const redirectingRef = useRef(false);
 
-    /**
-     * Executes an API call and always returns the normalized payload.
-     * Never returns a raw Axios response to callers.
-     */
     const request = useCallback(async (axiosCall) => {
         setLoading(true);
         try {

@@ -27,7 +27,6 @@ class MixedStrategyGameSolverTest extends TestCase
     {
         $solver = new MixedStrategyGameSolver();
 
-        // Build a 50x50 matrix with varied values
         $payoffMatrix = [];
         for ($i = 1; $i <= 50; $i++) {
             $rowKey = "A{$i}";
@@ -41,7 +40,6 @@ class MixedStrategyGameSolverTest extends TestCase
 
         $result = $solver->solveMixedStrategyGame($payoffMatrix);
 
-        // We don’t know the exact solution, but we assert structure & performance
         self::assertArrayHasKey('equilibria', $result);
         self::assertNotEmpty($result['equilibria']);
     }

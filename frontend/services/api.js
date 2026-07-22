@@ -1,7 +1,5 @@
-// services/api.js
 import axios from "axios";
 
-// Check if we're running on the client side (browser) or server side (Node runtime)
 const isClient = typeof window !== 'undefined';
 
 function resolveApiBaseUrl() {

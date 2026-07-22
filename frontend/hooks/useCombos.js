@@ -1,22 +1,10 @@
-// hooks/useCombos.js
 import {useCallback} from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 
-/**
- * Hook for interacting with ComboSequences API
- * Provides CRUD operations with authentication handled via useApi
- */
 const useCombos = () => {
     const {request} = useApi();
 
-    /**
-     * Fetch a list of combos
-     * @param {Object} options - Optional filters and pagination
-     * @param {number} [options.page] - Page number (future use)
-     * @param {number} [options.size] - Page size (future use)
-     * @returns {Promise<Array>} - List of combos
-     */
     const fetchCombos = useCallback(async (options = {}) => {
         try {
             const data = await request(() =>
@@ -48,12 +36,6 @@ const useCombos = () => {
         }
     }, [request]);
 
-
-    /**
-     * Create a new combo
-     * @param {Object} comboData - ComboSequences creation payload
-     * @returns {Promise<Object>} - Created combo
-     */
     const createCombo = useCallback(async (comboData) => {
         try {
             const data = await request(() =>
@@ -122,11 +104,6 @@ const useCombos = () => {
         }
     }, [request]);
 
-    /**
-     * Get details for a specific combo
-     * @param {number|string} id - Combo ID
-     * @returns {Promise<Object>} - Combo details
-     */
     const getCombo = useCallback(async (id) => {
         try {
             const data = await request(() =>
@@ -139,12 +116,6 @@ const useCombos = () => {
         }
     }, [request]);
 
-    /**
-     * Update an existing combo
-     * @param {number|string} id - Combo ID
-     * @param {Object} updateData - Partial combo data to update
-     * @returns {Promise<Object>} - Updated combo
-     */
     const updateCombo = useCallback(async (id, updateData) => {
         try {
             const data = await request(() =>
@@ -157,11 +128,6 @@ const useCombos = () => {
         }
     }, [request]);
 
-    /**
-     * Delete a combo
-     * @param {number|string} id - Combo ID
-     * @returns {Promise<void>}
-     */
     const deleteCombo = useCallback(async (id) => {
         try {
             await request(() =>

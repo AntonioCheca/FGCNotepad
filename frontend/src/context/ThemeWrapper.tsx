@@ -1,4 +1,3 @@
-// src/components/ThemeWrapper.tsx
 "use client";
 
 import {useMode} from "@/src/context/ThemeContext";
@@ -7,7 +6,7 @@ import {AppThemeProvider} from "@/src/components/ui/AppTheme";
 import Sidebar from "@/src/components/layouts/Sidebar";
 
 export default function ThemeWrapper({children}: { children: React.ReactNode }) {
-    const {theme} = useMode(); // ✅ safe here because this file runs on the client
+    const {theme} = useMode();
 
     return (
         <AppThemeProvider theme={theme}>

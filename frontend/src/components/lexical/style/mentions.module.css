@@ -15,23 +15,23 @@
 }
 
 .selected {
-    background: #e0e0e0; /* Slightly darker hover effect */
+    background: #e0e0e0;
 }
 
 .suggestion-menu-item {
     padding: 2px 4px;
     cursor: pointer;
     display: flex;
-    align-items: center; /* Ensure proper vertical alignment */
-    gap: 8px; /* Slightly bigger gap for better spacing */
+    align-items: center;
+    gap: 8px;
 }
 
 .move-icon {
     display: inline-block;
     width: 32px;
     height: 32px;
-    margin: 0; /* Reset margin if needed */
-    padding: 0; /* Reset padding */
+    margin: 0;
+    padding: 0;
 }
 
 
