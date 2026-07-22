@@ -3,7 +3,6 @@
 namespace App\Repository;
 
 use App\Entity\Move;
-use App\Util\QueryHelper;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -25,12 +24,12 @@ class MoveRepository extends ServiceEntityRepository
         $queryDraft = $this->createQueryBuilder('m')
             ->innerJoin('m.character', 'c');
 
-        $arrayOfItemsToQuery = explode(' ', $query);
-        foreach ($arrayOfItemsToQuery as $itemToQuery) {
-            $itemToQuery = '%' . $itemToQuery . '%';
-            $quotedItem = QueryHelper::quoteStringForQuery($itemToQuery);
-            $lowerItem = sprintf('LOWER(%s)', $quotedItem);
-            $queryDraft->andWhere(sprintf('(LOWER(c.name) LIKE %1$s) OR (LOWER(m.numpadNotation) LIKE %1$s)', $lowerItem));
+        $arrayOfItemsToQuery = array_values(array_filter(explode(' ', $query), static fn (string $item): bool => '' !== trim($item)));
+        foreach ($arrayOfItemsToQuery as $index => $itemToQuery) {
+            $parameterName = sprintf('term%d', $index);
+            $queryDraft
+                ->andWhere(sprintf('(LOWER(c.name) LIKE :%1$s) OR (LOWER(m.numpadNotation) LIKE :%1$s)', $parameterName))
+                ->setParameter($parameterName, '%' . mb_strtolower($itemToQuery) . '%');
         }
 
         return $queryDraft

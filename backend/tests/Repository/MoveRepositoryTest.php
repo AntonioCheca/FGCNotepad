@@ -73,4 +73,11 @@ class MoveRepositoryTest extends DatabaseTestCase
         $this->assertEquals('Aki', $results[0]->getCharacter()->getName());
         $this->assertEquals('5HP', $results[0]->getNumpadNotation());
     }
+
+    public function testFindByQueryHandlesQuotedInputWithoutBroadeningResults(): void
+    {
+        $results = $this->moveRepository->queryForSpecificNumpadOrCharactersFromString("Aki ' OR 1=1");
+
+        $this->assertSame([], $results);
+    }
 }

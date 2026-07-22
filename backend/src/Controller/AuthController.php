@@ -54,7 +54,7 @@ class AuthController extends AbstractController
         $password = $data['password'] ?? '';
 
         MixedValidator::validateMixedValueIsString($username, 'Username must be a string');
-        MixedValidator::validateMixedValueIsString($username, 'Password must be a string');
+        MixedValidator::validateMixedValueIsString($password, 'Password must be a string');
         /**
          * @var User|null $user
          */

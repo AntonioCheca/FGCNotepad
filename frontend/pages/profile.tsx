@@ -5,6 +5,8 @@ import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppTooltip} from "@/src/components/ui/AppTooltip";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppCheckbox} from "@/src/components/ui/AppCheckbox";
 import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
 import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ComboKnowledgeItem, ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
@@ -45,11 +47,11 @@ interface DefaultScenarioModeSectionProps {
 
 function DefaultScenarioModeSection({executionSelection, savingPreference, onSelectionChange, onSave}: DefaultScenarioModeSectionProps) {
     return (
-        <div style={{display: "grid", gap: 12, marginBottom: 24, border: "1px solid #e5e5e5", borderRadius: 8, padding: 12}}>
+        <AppBox sx={(theme) => ({display: "grid", gap: 1.5, mb: 3, border: `1px solid ${theme.fgc.border.default}`, borderRadius: 2, p: 1.5, backgroundColor: theme.fgc.surface.base})}>
             <AppTypography variant="h6">Default Scenario Mode</AppTypography>
             <AppTypography variant="body2">Set how scenario values are calculated when you open a scenario page.</AppTypography>
 
-            <div style={{display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap"}}>
+            <AppBox sx={{display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap"}}>
                 <span style={{display: "inline-flex", alignItems: "center", gap: 6}}>
                     <AppTypography variant="body2">My Current Knowledge</AppTypography>
                     <AppTooltip title="Use only combos you marked as known in Combo Knowledge."><span style={{display: "inline-flex", cursor: "help"}}><HelpOutlineOutlinedIcon fontSize="small"/></span></AppTooltip>
@@ -62,17 +64,30 @@ function DefaultScenarioModeSection({executionSelection, savingPreference, onSel
                     <AppTypography variant="body2">Difficulty Cap</AppTypography>
                     <AppTooltip title="Include all combos with difficulty less than or equal to your selected cap."><span style={{display: "inline-flex", cursor: "help"}}><HelpOutlineOutlinedIcon fontSize="small"/></span></AppTooltip>
                 </span>
-            </div>
+            </AppBox>
 
-            <div style={{display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap"}}>
+            <AppBox sx={(theme) => ({
+                display: "flex",
+                gap: 1.5,
+                alignItems: "center",
+                flexWrap: "wrap",
+                "& .profile-control": {
+                    height: 38,
+                    borderRadius: 1,
+                    border: `1px solid ${theme.fgc.border.default}`,
+                    padding: "0 10px",
+                    backgroundColor: theme.fgc.control.default,
+                    color: theme.fgc.text.primary,
+                },
+            })}>
                 <select
+                    className="profile-control"
                     aria-label="Default scenario mode"
                     value={executionSelection.mode}
                     onChange={(event) => {
                         const nextMode = event.target.value as ScenarioExecutionSelection["mode"];
                         onSelectionChange((current) => ({mode: nextMode, difficultyCap: nextMode === "difficulty_cap" ? current.difficultyCap ?? 3 : null}));
                     }}
-                    style={{height: 38, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
                 >
                     <option value="my_knowledge">My Current Knowledge</option>
                     <option value="standard">Standard Assumption</option>
@@ -81,13 +96,13 @@ function DefaultScenarioModeSection({executionSelection, savingPreference, onSel
 
                 {executionSelection.mode === "difficulty_cap" ? (
                     <select
+                        className="profile-control"
                         aria-label="Default difficulty cap"
                         value={executionSelection.difficultyCap ?? 3}
                         onChange={(event) => {
                             const cap = Number.parseInt(event.target.value, 10);
                             onSelectionChange((current) => ({...current, difficultyCap: Number.isFinite(cap) ? cap : 3}));
                         }}
-                        style={{height: 38, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
                     >
                         {Array.from({length: 7}).map((_, index) => {
                             const level = index + 1;
@@ -97,8 +112,8 @@ function DefaultScenarioModeSection({executionSelection, savingPreference, onSel
                 ) : null}
 
                 <AppButton type="button" disabled={savingPreference} onClick={() => void onSave()}>{savingPreference ? "Saving..." : "Save Mode"}</AppButton>
-            </div>
-        </div>
+            </AppBox>
+        </AppBox>
     );
 }
 
@@ -116,12 +131,25 @@ interface ComboKnowledgeSectionProps {
 
 function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficultyFilter, savingKnowledge, onCharacterChange, onCombosChange, onDifficultyFilterChange, onSave}: ComboKnowledgeSectionProps) {
     return (
-        <div style={{display: "grid", gap: 12, border: "1px solid #e5e5e5", borderRadius: 8, padding: 12}}>
+        <AppBox sx={(theme) => ({display: "grid", gap: 1.5, border: `1px solid ${theme.fgc.border.default}`, borderRadius: 2, p: 1.5, backgroundColor: theme.fgc.surface.base})}>
             <AppTypography variant="h6">Combo Knowledge</AppTypography>
             <AppTypography variant="body2">Mark combos you can execute today. This powers &quot;My Current Knowledge&quot; mode.</AppTypography>
 
-            <div style={{display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap"}}>
-                <select aria-label="Combo knowledge character" value={selectedCharacterId} onChange={(event) => void onCharacterChange(event.target.value)} style={{height: 38, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}>
+            <AppBox sx={(theme) => ({
+                display: "flex",
+                gap: 1.5,
+                alignItems: "center",
+                flexWrap: "wrap",
+                "& .profile-control": {
+                    height: 38,
+                    borderRadius: 1,
+                    border: `1px solid ${theme.fgc.border.default}`,
+                    padding: "0 10px",
+                    backgroundColor: theme.fgc.control.default,
+                    color: theme.fgc.text.primary,
+                },
+            })}>
+                <select className="profile-control" aria-label="Combo knowledge character" value={selectedCharacterId} onChange={(event) => void onCharacterChange(event.target.value)}>
                     {characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
                 </select>
 
@@ -129,6 +157,7 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                 <AppButton type="button" variant="outlined" onClick={() => onCombosChange((current) => current.map((combo) => ({...combo, known: false})))}>Clear All</AppButton>
 
                 <select
+                    className="profile-control"
                     aria-label="Mark known combos by difficulty"
                     defaultValue=""
                     onChange={(event) => {
@@ -137,7 +166,6 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                             onCombosChange((current) => current.map((combo) => ({...combo, known: combo.difficultyLevel !== null && combo.difficultyLevel <= cap})));
                         }
                     }}
-                    style={{height: 38, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
                 >
                     <option value="">Mark known up to difficulty...</option>
                     {Array.from({length: 7}).map((_, index) => {
@@ -147,6 +175,7 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                 </select>
 
                 <select
+                    className="profile-control"
                     aria-label="Filter combos by difficulty"
                     value={difficultyFilter ?? ""}
                     onChange={(event) => {
@@ -159,7 +188,6 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                         const parsed = Number.parseInt(value, 10);
                         onDifficultyFilterChange(Number.isFinite(parsed) ? parsed : null);
                     }}
-                    style={{height: 38, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
                 >
                     <option value="">All difficulties</option>
                     {Array.from({length: 7}).map((_, index) => {
@@ -169,25 +197,25 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                 </select>
 
                 <AppButton type="button" disabled={savingKnowledge || !selectedCharacterId} onClick={() => void onSave()}>{savingKnowledge ? "Saving..." : "Save Knowledge"}</AppButton>
-            </div>
+            </AppBox>
 
-            <div style={{display: "grid", gap: 6}}>
+            <AppBox sx={{display: "grid", gap: 0.75}}>
                 {combos.length === 0 ? <AppTypography>No combos found for this character.</AppTypography> : null}
                 {visibleCombos(combos, difficultyFilter).map((combo) => (
-                    <label key={combo.id} style={{display: "grid", gridTemplateColumns: "minmax(220px, 1fr) 110px 120px", alignItems: "center", gap: 12, border: "1px solid #efefef", borderRadius: 6, padding: "8px 10px"}}>
+                    <AppBox component="label" key={combo.id} sx={(theme) => ({display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 1fr) 110px 120px"}, alignItems: "center", gap: 1.5, border: `1px solid ${theme.fgc.border.subtle}`, borderRadius: 1, px: 1.25, py: 1, backgroundColor: theme.fgc.surface.subtle})}>
                         <AppTypography variant="body2">{combo.name}</AppTypography>
                         <AppTypography variant="body2">Difficulty: {combo.difficultyLevel ?? "-"}</AppTypography>
                         <span style={{display: "flex", alignItems: "center", gap: 8}}>
-                            <input type="checkbox" checked={combo.known} onChange={(event) => {
+                            <AppCheckbox size="small" checked={combo.known} onChange={(event) => {
                                 const checked = event.target.checked;
                                 onCombosChange((current) => current.map((row) => row.id === combo.id ? {...row, known: checked} : row));
                             }} />
                             <AppTypography variant="body2">Known</AppTypography>
                         </span>
-                    </label>
+                    </AppBox>
                 ))}
-            </div>
-        </div>
+            </AppBox>
+        </AppBox>
     );
 }
 

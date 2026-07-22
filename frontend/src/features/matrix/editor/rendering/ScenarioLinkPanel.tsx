@@ -1,6 +1,10 @@
 import React from "react";
 
 import {MatrixReferencePreValue} from "@/src/features/matrix/model";
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppButton} from "@/src/components/ui/AppButton";
+import {AppTextField} from "@/src/components/ui/AppTextField";
+import {AppTypography} from "@/src/components/ui/AppTypography";
 import {fetchScenarioItems, ScenarioSearchError, ScenarioSearchItem} from "../services/scenarioSearchService";
 import {DynamicComboPanel} from "./DynamicComboPanel";
 import {MatrixEditorPanelFrame} from "./MatrixEditorPanelFrame";
@@ -95,59 +99,80 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
 
     return (
         <MatrixEditorPanelFrame presentation={presentation} titleId={PANEL_TITLE_ID} width="640px" gap={8} onClose={onClose}>
-                <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                    <div style={{display: "grid", gap: 2}}>
-                        <strong id={PANEL_TITLE_ID} style={{fontSize: 14, color: "#2a4a6f"}}>Link Scenario</strong>
-                        <span style={{fontSize: 12, color: "#5e7795"}}>Visible only for selected reference-capable cell</span>
-                    </div>
-                    <button type="button" onClick={onClose} style={{height: 30}}>Close</button>
-                </div>
-                <input
-                    type="text"
+                <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1.5}}>
+                    <AppBox sx={{display: "grid", gap: 0.25}}>
+                        <AppTypography id={PANEL_TITLE_ID} component="strong" variant="subtitle2" sx={(theme) => ({color: theme.fgc.text.primary})}>Link Scenario</AppTypography>
+                        <AppTypography variant="caption" sx={(theme) => ({color: theme.fgc.text.secondary})}>Visible only for selected reference-capable cell</AppTypography>
+                    </AppBox>
+                    <AppButton type="button" size="small" variant="outlined" onClick={onClose}>Close</AppButton>
+                </AppBox>
+                <AppTextField
+                    size="small"
                     aria-label="Search scenarios"
                     placeholder="Search scenarios"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    style={{height: 34, border: "1px solid #b8c9dc", borderRadius: 8, padding: "0 10px", background: "#fff"}}
                 />
 
-                <div style={{border: "1px solid #cfdeec", borderRadius: 8, overflowY: "auto", overflowX: "hidden", maxHeight: isInline ? "44vh" : "50vh", background: "#fff", minWidth: 0}}>
-                    {loading ? <div style={{padding: 12}}>Loading scenarios...</div> : null}
-                    {!loading && error ? <div style={{padding: 12, color: "#cf1322"}}>{error}</div> : null}
-                    {!loading && !error && items.length === 0 ? <div style={{padding: 12}}>No scenarios found.</div> : null}
+                <AppBox sx={(theme) => ({border: `1px solid ${theme.fgc.border.default}`, borderRadius: 1, overflowY: "auto", overflowX: "hidden", maxHeight: isInline ? "44vh" : "50vh", backgroundColor: theme.fgc.surface.base, minWidth: 0})}>
+                    {loading ? <AppBox sx={{p: 1.5}}>Loading scenarios...</AppBox> : null}
+                    {!loading && error ? <AppBox sx={(theme) => ({p: 1.5, color: theme.fgc.feedback.error})}>{error}</AppBox> : null}
+                    {!loading && !error && items.length === 0 ? <AppBox sx={{p: 1.5}}>No scenarios found.</AppBox> : null}
                     {!loading && !error && items.length > 0 ? (
-                        <div>
+                        <AppBox>
                             {items.map((item) => {
                                 const selected = selectedId === item.id;
                                 return (
-                                    <button
+                                    <AppButton
                                         key={item.id}
                                         type="button"
+                                        variant="text"
+                                        fullWidth
                                         onClick={() => setSelectedId(item.id)}
-                                     style={{
-                                             display: "block",
-                                             width: "100%",
-                                             minWidth: 0,
-                                             textAlign: "left",
-                                             padding: 10,
-                                             border: "none",
-                                             borderBottom: "1px solid #edf2f7",
-                                             background: selected ? "#e6f1fc" : "#fff",
-                                         }}
-                                     >
-                                        <div style={{fontWeight: 600}}>{item.label}</div>
-                                        <div style={{fontSize: 12, color: "#64748b"}}>{item.typeLabel} · #{item.id}</div>
-                                    </button>
+                                        sx={(theme) => ({
+                                            display: "block",
+                                            minWidth: 0,
+                                            textAlign: "left",
+                                            justifyContent: "flex-start",
+                                            p: 1.25,
+                                            border: "none",
+                                            borderRadius: 0,
+                                            borderBottom: `1px solid ${theme.fgc.border.subtle}`,
+                                            backgroundColor: selected ? theme.fgc.selection.hover : theme.fgc.surface.base,
+                                            color: theme.fgc.text.primary,
+                                            textTransform: "none",
+                                            "&:hover": {backgroundColor: theme.fgc.selection.hover},
+                                        })}
+                                    >
+                                        <AppTypography variant="body2" sx={{fontWeight: 600}}>{item.label}</AppTypography>
+                                        <AppTypography variant="caption" sx={(theme) => ({color: theme.fgc.text.muted})}>{item.typeLabel} · #{item.id}</AppTypography>
+                                    </AppButton>
                                 );
                             })}
-                        </div>
+                        </AppBox>
                     ) : null}
-                </div>
+                </AppBox>
 
-                <div style={{display: "grid", gap: 8, border: "1px solid #cfdeec", borderRadius: 8, padding: 10, background: "#fff"}}>
-                    <label style={{display: "grid", gap: 4}}>
-                        <span style={{fontSize: 12, color: "#595959"}}>Pre-value Added Before Linked EV</span>
+                <AppBox sx={(theme) => ({
+                    display: "grid",
+                    gap: 1,
+                    border: `1px solid ${theme.fgc.border.default}`,
+                    borderRadius: 1,
+                    p: 1.25,
+                    backgroundColor: theme.fgc.surface.base,
+                    "& .scenario-link-control": {
+                        height: 34,
+                        borderRadius: 1,
+                        border: `1px solid ${theme.fgc.border.default}`,
+                        padding: "0 10px",
+                        backgroundColor: theme.fgc.control.default,
+                        color: theme.fgc.text.primary,
+                    },
+                })}>
+                    <AppBox component="label" sx={{display: "grid", gap: 0.5}}>
+                        <AppTypography variant="caption" sx={(theme) => ({color: theme.fgc.text.secondary})}>Pre-value Added Before Linked EV</AppTypography>
                         <select
+                            className="scenario-link-control"
                             value={preValueKind}
                             onChange={(event) => {
                                 setPreValueKind(event.target.value as PreValueKind);
@@ -158,21 +183,21 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                             <option value="static">Static value</option>
                             <option value="dynamic_combo">Dynamic combo</option>
                         </select>
-                    </label>
+                    </AppBox>
 
                     {preValueKind === "static" ? (
-                        <label style={{display: "grid", gap: 4}}>
-                            <span style={{fontSize: 12, color: "#595959"}}>Static Pre-value</span>
-                            <input
+                        <AppBox component="label" sx={{display: "grid", gap: 0.5}}>
+                            <AppTypography variant="caption" sx={(theme) => ({color: theme.fgc.text.secondary})}>Static Pre-value</AppTypography>
+                            <AppTextField
+                                size="small"
                                 type="number"
                                 value={staticPreValue}
                                 onChange={(event) => {
                                     setStaticPreValue(event.target.value);
                                     setError(null);
                                 }}
-                                style={{height: 34, border: "1px solid #b8c9dc", borderRadius: 8, padding: "0 10px", background: "#fff"}}
                             />
-                        </label>
+                        </AppBox>
                     ) : null}
 
                     {preValueKind === "dynamic_combo" ? (
@@ -190,21 +215,15 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                             }}
                         />
                     ) : null}
-                </div>
+                </AppBox>
 
-                <div style={{display: "flex", justifyContent: "flex-end", gap: 8}}>
-                    <button type="button" onClick={onClose} style={{height: 30}}>Cancel</button>
-                    <button
+                <AppBox sx={{display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap"}}>
+                    <AppButton type="button" size="small" variant="outlined" onClick={onClose}>Cancel</AppButton>
+                    <AppButton
                         type="button"
+                        size="small"
+                        variant="contained"
                         disabled={!selectedId}
-                        style={{
-                            height: 30,
-                            borderRadius: 6,
-                            border: "1px solid #2c5e93",
-                            background: selectedId ? "linear-gradient(135deg, #356ba4 0%, #4a80b8 100%)" : "#dbe8f6",
-                            color: selectedId ? "#fff" : "#355578",
-                            fontWeight: 600,
-                        }}
                         onClick={() => {
                             const selected = items.find((item) => item.id === selectedId)
                                 ?? (selectedId && selectedId === initialScenarioId
@@ -241,24 +260,19 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                         }}
                     >
                         Confirm Link
-                    </button>
+                    </AppButton>
                     {initialScenarioId && onRemove ? (
-                        <button
+                        <AppButton
                             type="button"
+                            size="small"
+                            variant="outlined"
+                            color="error"
                             onClick={onRemove}
-                            style={{
-                                height: 30,
-                                borderRadius: 6,
-                                border: "1px solid #cf1322",
-                                background: "#fff1f0",
-                                color: "#a8071a",
-                                fontWeight: 600,
-                            }}
                         >
                             Remove Link
-                        </button>
+                        </AppButton>
                     ) : null}
-                </div>
+                </AppBox>
         </MatrixEditorPanelFrame>
     );
 }

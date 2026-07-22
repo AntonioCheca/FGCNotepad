@@ -2,9 +2,13 @@
 
 namespace App\Tests\Controller;
 
+use App\Controller\AuthController;
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\RegistrationService;
 use App\Tests\DatabaseTestCase;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AuthControllerTest extends DatabaseTestCase
@@ -57,6 +61,50 @@ class AuthControllerTest extends DatabaseTestCase
         ]));
 
         $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testManualLoginRejectsNonStringPasswordPayload(): void
+    {
+        $controller = new AuthController(
+            $this->passwordHasher,
+            static::getContainer()->get(JWTTokenManagerInterface::class),
+            $this->userRepository,
+            static::getContainer()->get(RegistrationService::class),
+            'test',
+            true,
+        );
+
+        $this->expectException(\ValueError::class);
+        $this->expectExceptionMessage('Password must be a string');
+
+        $controller->login(new Request([], [], [], [], [], [], json_encode([
+            'username' => 'wronguser',
+            'password' => ['not', 'a', 'string'],
+        ])));
+    }
+
+    public function testBrowserLoginRejectsNonStringPasswordPayload(): void
+    {
+        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => self::TEST_USER_NAME,
+            'password' => ['not', 'a', 'string'],
+        ]));
+
+        $this->assertResponseStatusCodeSame(400);
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame('Username and password must be strings.', $payload['message'] ?? null);
+    }
+
+    public function testJwtLoginRejectsNonStringPasswordPayload(): void
+    {
+        $this->client->request('POST', '/api/login_check', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => self::TEST_USER_NAME,
+            'password' => ['not', 'a', 'string'],
+        ]));
+
+        $this->assertResponseStatusCodeSame(400);
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame('Username and password must be strings.', $payload['message'] ?? null);
     }
 
     public function testBrowserSessionLoginReturnsUserAndNoToken(): void
