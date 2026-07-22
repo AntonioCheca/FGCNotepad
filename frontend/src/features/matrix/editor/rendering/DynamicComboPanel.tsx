@@ -1,88 +1,20 @@
 import React from "react";
 
-import useMoves from "@/hooks/useMoves";
 import {useCharacters} from "@/hooks/useCharacters";
-import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
-import {MatrixDynamicComboData} from "@/src/features/matrix/model";
+import useMoves from "@/hooks/useMoves";
+import {buildResolvedMoveLabel, buildStarterLabels, contextFromPreset} from "./dynamic-combo-panel/dynamicComboPanelUtils";
+import type {DynamicComboCharacterOption, DynamicComboPanelBodyProps, DynamicComboPanelProps} from "./dynamic-combo-panel/dynamicComboPanelTypes";
+import {DynamicComboCharacterField} from "./dynamic-combo-panel/DynamicComboCharacterField";
+import {DynamicComboContextField} from "./dynamic-combo-panel/DynamicComboContextField";
+import {DynamicComboPanelActions} from "./dynamic-combo-panel/DynamicComboPanelActions";
+import {DynamicComboPanelFrame} from "./dynamic-combo-panel/DynamicComboPanelFrame";
+import {DynamicComboPanelHeader} from "./dynamic-combo-panel/DynamicComboPanelHeader";
+import {DynamicComboStarterField} from "./dynamic-combo-panel/DynamicComboStarterField";
+import {DynamicComboStarterList} from "./dynamic-combo-panel/DynamicComboStarterList";
+import {useDynamicComboMoveSearch} from "./dynamic-combo-panel/useDynamicComboMoveSearch";
+import {useDynamicComboPanelState} from "./dynamic-combo-panel/useDynamicComboPanelState";
 
-interface DynamicComboPanelProps {
-    open: boolean;
-    initialValue: MatrixDynamicComboData | null;
-    moveLabelById: Record<string, string>;
-    presentation?: "modal" | "inline";
-    resetKey?: string;
-    onClose: () => void;
-    onConfirm: (value: MatrixDynamicComboData, starterLabels: Record<string, string>) => void;
-}
-
-type DynamicComboPanelBodyProps = Omit<DynamicComboPanelProps, "open" | "resetKey">;
-
-interface CharacterOption {
-    id: string;
-    name: string;
-}
-
-interface MoveSearchOption {
-    id: string;
-    summary: string;
-}
-
-type StarterContextPreset = "normal" | "punish_counter" | "counter_hit";
-
-function contextFromPreset(preset: StarterContextPreset): MatrixDynamicComboData["starterContext"] {
-    if (preset === "punish_counter") {
-        return {isPunishCounter: true, isCounterHit: false};
-    }
-
-    if (preset === "counter_hit") {
-        return {isPunishCounter: false, isCounterHit: true};
-    }
-
-    return {isPunishCounter: false, isCounterHit: false};
-}
-
-function presetFromContext(value: MatrixDynamicComboData["starterContext"] | null | undefined): StarterContextPreset {
-    if (value?.isPunishCounter) {
-        return "punish_counter";
-    }
-
-    if (value?.isCounterHit) {
-        return "counter_hit";
-    }
-
-    return "normal";
-}
-
-function normalizeMoveSearchResults(value: unknown): MoveSearchOption[] {
-    if (!Array.isArray(value)) {
-        return [];
-    }
-
-    return value
-        .map((item) => {
-            if (!item || typeof item !== "object" || Array.isArray(item)) {
-                return null;
-            }
-
-            const record = item as Record<string, unknown>;
-            if (typeof record.id !== "string" && typeof record.id !== "number") {
-                return null;
-            }
-
-            return {
-                id: String(record.id),
-                summary: typeof record.summary === "string" ? record.summary : `Move #${String(record.id)}`,
-            } satisfies MoveSearchOption;
-        })
-        .filter((option): option is MoveSearchOption => option !== null);
-}
-
-function createStarterSelections(initialValue: MatrixDynamicComboData | null, moveLabelById: Record<string, string>): MoveSearchOption[] {
-    return (initialValue?.starterMoveIds ?? []).map((starterMoveId) => ({
-        id: starterMoveId,
-        summary: moveLabelById[starterMoveId] ?? `Move #${starterMoveId}`,
-    }));
-}
+const PANEL_TITLE_ID = "dynamic-combo-panel-title";
 
 export function DynamicComboPanel({open, resetKey = "dynamic-combo-panel", ...bodyProps}: DynamicComboPanelProps) {
     if (!open) {
@@ -95,31 +27,32 @@ export function DynamicComboPanel({open, resetKey = "dynamic-combo-panel", ...bo
 function DynamicComboPanelBody({initialValue, moveLabelById, presentation = "modal", onClose, onConfirm}: DynamicComboPanelBodyProps) {
     const {characters, loading: charactersLoading} = useCharacters();
     const {searchMoves, getSpecificMove} = useMoves();
-    const searchMovesRef = React.useRef(searchMoves);
     const getSpecificMoveRef = React.useRef(getSpecificMove);
-
-    const [selectedCharacter, setSelectedCharacter] = React.useState<CharacterOption | null>(null);
-    const [starterQuery, setStarterQuery] = React.useState("");
-    const [starterOptions, setStarterOptions] = React.useState<MoveSearchOption[]>([]);
-    const [starterSelections, setStarterSelections] = React.useState<MoveSearchOption[]>(() => createStarterSelections(initialValue, moveLabelById));
-    const [searchingMoves, setSearchingMoves] = React.useState(false);
-    const [starterPreset, setStarterPreset] = React.useState<StarterContextPreset>(() => presetFromContext(initialValue?.starterContext));
-    const [error, setError] = React.useState<string | null>(null);
-
-    React.useEffect(() => {
-        searchMovesRef.current = searchMoves;
-    }, [searchMoves]);
+    const {
+        state,
+        setSelectedCharacter,
+        setStarterQuery,
+        addStarterSelection,
+        removeStarterSelection,
+        replaceStarterLabels,
+        setStarterPreset,
+        setError,
+    } = useDynamicComboPanelState(initialValue, moveLabelById);
 
     React.useEffect(() => {
         getSpecificMoveRef.current = getSpecificMove;
     }, [getSpecificMove]);
 
-    const characterOptions = React.useMemo<CharacterOption[]>(
-        () => (characters as CharacterOption[]).filter((item) => typeof item.id === "string" && typeof item.name === "string"),
+    const characterOptions = React.useMemo<DynamicComboCharacterOption[]>(
+        () => (characters as DynamicComboCharacterOption[]).filter((item) => typeof item.id === "string" && typeof item.name === "string"),
         [characters]
     );
-
-    const selectedCharacterName = selectedCharacter?.name ?? "";
+    const selectedCharacterName = state.selectedCharacter?.name ?? "";
+    const {starterOptions, searchingMoves, clearStarterOptions} = useDynamicComboMoveSearch({
+        starterQuery: state.starterQuery,
+        selectedCharacterName,
+        searchMoves,
+    });
 
     React.useEffect(() => {
         if (!initialValue?.starterMoveIds?.length) {
@@ -137,14 +70,7 @@ function DynamicComboPanelBody({initialValue, moveLabelById, presentation = "mod
             unresolvedMoveIds.map(async (moveId) => {
                 try {
                     const move = await getSpecificMoveRef.current(moveId);
-                    if (!move || typeof move !== "object") {
-                        return [moveId, `Move #${moveId}`] as const;
-                    }
-
-                    const record = move as Record<string, unknown>;
-                    const notation = typeof record.numpad_notation === "string" ? record.numpad_notation : null;
-                    const character = typeof record.character === "string" ? record.character : null;
-                    return [moveId, notation ? `${character ? `${character} ` : ""}${notation}` : `Move #${moveId}`] as const;
+                    return [moveId, buildResolvedMoveLabel(moveId, move)] as const;
                 } catch {
                     return [moveId, `Move #${moveId}`] as const;
                 }
@@ -154,256 +80,72 @@ function DynamicComboPanelBody({initialValue, moveLabelById, presentation = "mod
                 return;
             }
 
-            const resolvedLabelById = resolvedLabels.reduce<Record<string, string>>((acc, [id, label]) => {
+            replaceStarterLabels(resolvedLabels.reduce<Record<string, string>>((acc, [id, label]) => {
                 acc[id] = label;
                 return acc;
-            }, {});
-
-            setStarterSelections((previous) =>
-                previous.map((selection) => ({
-                    ...selection,
-                    summary: resolvedLabelById[selection.id] ?? selection.summary,
-                }))
-            );
+            }, {}));
         });
 
         return () => {
             canceled = true;
         };
-    }, [initialValue, moveLabelById]);
+    }, [initialValue, moveLabelById, replaceStarterLabels]);
 
     React.useEffect(() => {
         if (!initialValue?.attackerCharacterId || characterOptions.length === 0) {
             return;
         }
 
-        const existing = characterOptions.find((option) => option.id === initialValue.attackerCharacterId) ?? null;
-        setSelectedCharacter(existing);
-    }, [initialValue, characterOptions]);
+        setSelectedCharacter(characterOptions.find((option) => option.id === initialValue.attackerCharacterId) ?? null);
+    }, [initialValue, characterOptions, setSelectedCharacter]);
 
-    React.useEffect(() => {
-        let canceled = false;
-        const normalizedQuery = starterQuery.trim();
-        const backendQuery = selectedCharacterName
-            ? `${selectedCharacterName}${normalizedQuery ? ` ${normalizedQuery}` : ""}`
-            : normalizedQuery;
-
-        if (backendQuery.length === 0) {
-            setStarterOptions([]);
+    const handleSave = React.useCallback(() => {
+        if (!state.selectedCharacter) {
+            setError("Select an attacker character.");
             return;
         }
 
-        const timeoutId = window.setTimeout(() => {
-            setSearchingMoves(true);
+        if (state.starterSelections.length === 0) {
+            setError("Add at least one starter move.");
+            return;
+        }
 
-            searchMovesRef.current(backendQuery)
-                .then((results: unknown) => {
-                    if (canceled) {
-                        return;
-                    }
-
-                    const normalized = normalizeMoveSearchResults(results);
-                    const filteredByQuery = normalized.filter((option) =>
-                        option.summary.toLowerCase().includes(normalizedQuery.toLowerCase())
-                    );
-                    setStarterOptions(filteredByQuery);
-                })
-                .catch(() => {
-                    if (!canceled) {
-                        setStarterOptions([]);
-                    }
-                })
-                .finally(() => {
-                    if (!canceled) {
-                        setSearchingMoves(false);
-                    }
-                });
-        }, 200);
-
-        return () => {
-            canceled = true;
-            window.clearTimeout(timeoutId);
-        };
-    }, [starterQuery, selectedCharacterName]);
-
-    const isInline = presentation === "inline";
-
-    const panelContent = (
-        <div
-            style={{
-                width: isInline ? "100%" : "min(560px, 92vw)",
-                maxHeight: isInline ? "unset" : "80vh",
-                background: isInline ? "transparent" : "#fff",
-                borderRadius: isInline ? 0 : 8,
-                border: isInline ? "none" : "1px solid #d9d9d9",
-                padding: 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                minWidth: 0,
-                boxSizing: "border-box",
-                overflowX: "hidden",
-            }}
-            onClick={(event) => event.stopPropagation()}
-        >
-                <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                    <div style={{display: "grid", gap: 2}}>
-                        <strong id="dynamic-combo-panel-title" style={{fontSize: 14, color: "#2a4a6f"}}>Dynamic Combo Cell</strong>
-                        <span style={{fontSize: 12, color: "#5e7795"}}>Visible only for selected dynamic combo-capable cell</span>
-                    </div>
-                    <button type="button" onClick={onClose} style={{height: 30}}>Close</button>
-                </div>
-
-                <WrappedAutocomplete<CharacterOption>
-                    label="Attacker Character"
-                    options={characterOptions}
-                    loading={charactersLoading}
-                    disablePortal
-                    value={selectedCharacter}
-                    onChange={(value) => {
-                        setSelectedCharacter(value);
-                        setError(null);
-                    }}
-                    getOptionLabel={(option) => option.name}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                />
-
-                <div style={{display: "grid", gap: 6, minWidth: 0}}>
-                    <WrappedAutocomplete<MoveSearchOption>
-                        label="Search Starter Move"
-                        options={starterOptions}
-                        loading={searchingMoves}
-                        disablePortal
-                        value={null}
-                        inputValue={starterQuery}
-                        onInputChange={(_event, value, reason) => {
-                            if (reason === "input" || reason === "clear") {
-                                setStarterQuery(value);
-                            }
-                            setError(null);
-                        }}
-                        onChange={(value) => {
-                            if (!value) {
-                                return;
-                            }
-
-                            setStarterSelections((previous) => {
-                                if (previous.some((item) => item.id === value.id)) {
-                                    return previous;
-                                }
-
-                                return [...previous, value];
-                            });
-
-                            setStarterQuery("");
-                            setStarterOptions([]);
-                            setError(null);
-                        }}
-                        getOptionLabel={(option) => option.summary}
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        filterOptions={(options) => options}
-                        noOptionsText={starterQuery.trim().length === 0 ? "Type to search moves" : "No moves found"}
-                    />
-                    <div style={{display: "grid", gap: 4, border: "1px solid #cfdeec", borderRadius: 8, padding: 8, background: "#fff", minWidth: 0}}>
-                        <span style={{fontSize: 12, color: "#595959"}}>Selected Starters</span>
-                        {starterSelections.length === 0 ? (
-                            <span style={{fontSize: 12, color: "#8c8c8c"}}>No starter moves selected yet.</span>
-                        ) : (
-                            starterSelections.map((item) => (
-                                <div
-                                    key={item.id}
-                                    style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, minWidth: 0}}
-                                >
-                                    <span style={{fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{item.summary}</span>
-                                    <button
-                                        type="button"
-                                        style={{flexShrink: 0}}
-                                        onClick={() => {
-                                            setStarterSelections((prev) => prev.filter((entry) => entry.id !== item.id));
-                                        }}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                <label style={{display: "grid", gap: 4}}>
-                    <span style={{fontSize: 12, color: "#595959"}}>Starter Context</span>
-                    <select value={starterPreset} onChange={(event) => setStarterPreset(event.target.value as StarterContextPreset)}>
-                        <option value="normal">Normal Hit</option>
-                        <option value="punish_counter">Punish Counter</option>
-                        <option value="counter_hit">Counter Hit</option>
-                    </select>
-                </label>
-
-                {error ? <div style={{fontSize: 12, color: "#cf1322"}}>{error}</div> : null}
-
-                <div style={{display: "flex", justifyContent: "flex-end", gap: 8}}>
-                    <button type="button" onClick={onClose} style={{height: 30}}>Cancel</button>
-                    <button
-                        type="button"
-                        style={{
-                            height: 30,
-                            borderRadius: 6,
-                            border: "1px solid #2c5e93",
-                            background: "linear-gradient(135deg, #356ba4 0%, #4a80b8 100%)",
-                            color: "#fff",
-                            fontWeight: 600,
-                        }}
-                        onClick={() => {
-                            if (!selectedCharacter) {
-                                setError("Select an attacker character.");
-                                return;
-                            }
-
-                            if (starterSelections.length === 0) {
-                                setError("Add at least one starter move.");
-                                return;
-                            }
-
-                            const starterContext = contextFromPreset(starterPreset);
-                            const starterLabels = starterSelections.reduce<Record<string, string>>((acc, selection) => {
-                                acc[selection.id] = selection.summary;
-                                return acc;
-                            }, {});
-                            onConfirm({
-                                attackerCharacterId: selectedCharacter.id,
-                                ...(typeof initialValue?.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: initialValue.isComboInitiatorAttacker} : {}),
-                                starterMoveIds: starterSelections.map((item) => item.id),
-                                starterContext,
-                            }, starterLabels);
-                        }}
-                    >
-                        Save Dynamic Combo
-                    </button>
-                </div>
-            </div>
-    );
-
-    if (presentation === "inline") {
-        return panelContent;
-    }
+        onConfirm({
+            attackerCharacterId: state.selectedCharacter.id,
+            ...(typeof initialValue?.isComboInitiatorAttacker === "boolean" ? {isComboInitiatorAttacker: initialValue.isComboInitiatorAttacker} : {}),
+            starterMoveIds: state.starterSelections.map((item) => item.id),
+            starterContext: contextFromPreset(state.starterPreset),
+        }, buildStarterLabels(state.starterSelections));
+    }, [initialValue, onConfirm, setError, state]);
 
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="dynamic-combo-panel-title"
-            style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(0,0,0,0.35)",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 1200,
-            }}
-            onClick={onClose}
-        >
-            {panelContent}
-        </div>
+        <DynamicComboPanelFrame presentation={presentation} titleId={PANEL_TITLE_ID} onClose={onClose}>
+            <DynamicComboPanelHeader titleId={PANEL_TITLE_ID} onClose={onClose} />
+
+            <DynamicComboCharacterField
+                characterOptions={characterOptions}
+                charactersLoading={charactersLoading}
+                selectedCharacter={state.selectedCharacter}
+                onSelectedCharacterChange={setSelectedCharacter}
+            />
+
+            <div style={{display: "grid", gap: 6, minWidth: 0}}>
+                <DynamicComboStarterField
+                    starterOptions={starterOptions}
+                    searchingMoves={searchingMoves}
+                    starterQuery={state.starterQuery}
+                    onStarterQueryChange={setStarterQuery}
+                    onStarterSelected={(value) => {
+                        addStarterSelection(value);
+                        clearStarterOptions();
+                    }}
+                />
+                <DynamicComboStarterList starterSelections={state.starterSelections} onRemoveStarter={removeStarterSelection} />
+            </div>
+
+            <DynamicComboContextField starterPreset={state.starterPreset} onStarterPresetChange={setStarterPreset} />
+
+            <DynamicComboPanelActions error={state.error} onCancel={onClose} onSave={handleSave} />
+        </DynamicComboPanelFrame>
     );
 }

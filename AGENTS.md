@@ -52,6 +52,20 @@ Do not present long design docs in approval steps; provide concise action bullet
 - Do not perform opportunistic rewrites outside the feature scope.
 - Keep files understandable by reading; comments only for non-obvious behavior.
 
+## React Doctor workflow
+
+When running React Doctor from `frontend/` on Windows, use the non-interactive command with the explicit Node 24 PATH override:
+
+```powershell
+$env:CI = "1"; $env:Path = "C:\Users\Pc-com\AppData\Local\Microsoft\WinGet\Packages\OpenJS.NodeJS.LTS_Microsoft.Winget.Source_8wekyb3d8bbwe\node-v24.18.0-win-x64;$env:Path"; npx react-doctor@0.8.1 --no-telemetry --verbose
+```
+
+Use `CI=1` to force non-interactive behavior, `--no-telemetry` to avoid the telemetry prompt, `react-doctor@0.8.1` to pin the expected version, and the PATH prefix so `node` resolves to Node `24.18.0` instead of the older local PATH Node. If Node PATH is already correct, this shorter command is acceptable from `frontend/`:
+
+```powershell
+$env:CI = "1"; npx react-doctor@0.8.1 --no-telemetry --verbose
+```
+
 ## FGC Tactical Editorial UI System
 
 This project uses a tactical editorial visual system anchored to two separate artist palettes. Do not merge them into a single 8-color set.
