@@ -1,9 +1,11 @@
 import React from "react";
 
 import {MatrixEditorState, MatrixValidationIssue, createBodyCellKey, createRowSummaryKey, isEditableBodyCell} from "@/src/features/matrix/model";
+import type {MatrixEditorPermissions} from "../hooks/useMatrixEditorPermissions";
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixValueCell} from "./MatrixValueCell";
 import {MatrixDensityProfile} from "./gridDensity";
+import type {MatrixGridViewOptions} from "./matrix-grid/matrixGridTypes";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
 import {AxisRequirementTrigger} from "./AxisRequirementEditor";
 import {MatrixHeatmapTone} from "../services/matrixInsightService";
@@ -24,10 +26,7 @@ interface MatrixGridBodyProps {
     displayedBodyValues: Record<string, number | null>;
     displayLabelsByKey?: Record<string, string>;
     moveLabelById: Record<string, string>;
-    canEditRowAxisLabels: boolean;
-    canEditRowLayers: boolean;
-    canEditBodyValues: boolean;
-    canEditSummaries: boolean;
+    permissions: MatrixEditorPermissions;
     onRowLabelChange: (rowId: string, label: string) => void;
     onRowLayerChange: (rowId: string, layer: number) => void;
     onOpenRowRequirements: (rowId: string, anchor: HTMLElement) => void;
@@ -42,7 +41,7 @@ interface MatrixGridBodyProps {
     onCommitEdit: () => void;
     onCancelEdit: () => void;
     densityProfile: MatrixDensityProfile;
-    showLayerControls: boolean;
+    viewOptions: MatrixGridViewOptions;
     summaryValueFormatter?: (value: number | null) => string;
     heatmapToneByCellKey?: Record<string, MatrixHeatmapTone>;
 }
@@ -63,10 +62,7 @@ export function MatrixGridBody({
                                         displayedBodyValues,
                                         displayLabelsByKey = {},
                                         moveLabelById,
-                                      canEditRowAxisLabels,
-                                      canEditRowLayers,
-                                       canEditBodyValues,
-                                       canEditSummaries,
+                                       permissions,
                                         onRowLabelChange,
                                          onRowLayerChange,
                                         onOpenRowRequirements,
@@ -81,11 +77,12 @@ export function MatrixGridBody({
                                        onCommitEdit,
                                        onCancelEdit,
                                        densityProfile,
-                                       showLayerControls,
+                                       viewOptions,
                                        summaryValueFormatter,
                                        heatmapToneByCellKey = {},
                                        }: MatrixGridBodyProps) {
     const {theme} = useMode();
+    const {showLayerControls} = viewOptions;
     return (
         <tbody>
         {state.grid.rows.map((row) => {
@@ -112,7 +109,7 @@ export function MatrixGridBody({
                         type="text"
                         aria-label={`Row label ${row.label || row.id}`}
                         value={row.label}
-                        readOnly={!canEditRowAxisLabels}
+                        readOnly={!permissions.canEditRowAxisLabels}
                         onFocus={() => onSelectRowHeader(row.id)}
                         onChange={(event) => onRowLabelChange(row.id, event.target.value)}
                         style={{
@@ -127,14 +124,14 @@ export function MatrixGridBody({
                         }}
                     />
                     {rowUnavailable ? (
-                        <span style={{position: "absolute", right: 4, top: 3, fontSize: 9, color: theme.fgc.text.disabled}}>
+                        <span style={{position: "absolute", right: 4, top: 3, fontSize: 12, color: theme.fgc.text.disabled}}>
                             Unavailable
                         </span>
                     ) : null}
                     {showLayerControls ? (
                         <MatrixLayerBadge
                             value={row.layer}
-                            readOnly={!canEditRowLayers}
+                            readOnly={!permissions.canEditRowLayers}
                             axisLabel={row.label || "Row"}
                             onSelect={() => onSelectRowHeader(row.id)}
                             onChange={(nextLayer) => onRowLayerChange(row.id, nextLayer)}
@@ -144,7 +141,7 @@ export function MatrixGridBody({
                     <AxisRequirementTrigger
                         axisLabel={row.label || "Row"}
                         requirements={row.requirements}
-                        readOnly={!canEditRowAxisLabels}
+                        readOnly={!permissions.canEditRowAxisLabels}
                         isActive={rowIsActive}
                         onOpen={(anchor) => onOpenRowRequirements(row.id, anchor)}
                     />
@@ -192,7 +189,7 @@ export function MatrixGridBody({
                                 issues={validationByKey[key] ?? []}
                                 axisHighlighted={axisHighlighted}
                                 unavailable={cellUnavailable}
-                                readOnly={!canEditBodyValues || !isEditableBodyCell(cell)}
+                                readOnly={!permissions.canEditBodyValues || !isEditableBodyCell(cell)}
                                 heatmapTone={heatmapToneByCellKey[key]}
                                 onOpenReferenceLink={cell?.kind === "reference" ? () => onOpenReferenceLink(key) : undefined}
                                 onOpenDynamicCombo={cell?.kind === "dynamic_combo" ? () => onOpenDynamicCombo(key) : undefined}
@@ -218,7 +215,7 @@ export function MatrixGridBody({
                         issues={validationByKey[createRowSummaryKey(row.id)] ?? []}
                         axisHighlighted={rowIsActive}
                         unavailable={rowUnavailable}
-                        readOnly={!canEditSummaries}
+                        readOnly={!permissions.canEditSummaries}
                         onSelect={() => onSelectRowSummary(row.id)}
                         onStartEdit={() => onStartEdit(createRowSummaryKey(row.id))}
                         onStartOverwriteEdit={(firstCharacter) => onStartOverwriteEdit(createRowSummaryKey(row.id), firstCharacter)}

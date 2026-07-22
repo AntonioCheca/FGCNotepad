@@ -40,7 +40,6 @@ interface MatrixEditorShellProps {
         starterContext: {isPunishCounter: boolean; isCounterHit: boolean};
     }) => Promise<number | null>;
     layerSolveSnapshots?: Record<number, {rowAxis: Array<number | null>; columnAxis: Array<number | null>; expectedValue: number | null}>;
-    onLayerViewChange?: (layerLimit: number | null) => void;
     displayFrequenciesAsPercent?: boolean;
     resourceContext?: MatrixResourceContext | null;
     currentScenarioId?: string | null;
@@ -66,7 +65,6 @@ export function MatrixEditorShell({
     onRefreshDynamicCells,
     onResolveDynamicComboCell,
     layerSolveSnapshots,
-    onLayerViewChange,
     displayFrequenciesAsPercent = false,
     resourceContext = null,
     currentScenarioId = null,
@@ -117,7 +115,6 @@ export function MatrixEditorShell({
         columnVisibilityByLabel,
         displayFrequenciesAsPercent,
         layerSolveSnapshots,
-        onLayerViewChange,
         resourceContext,
     });
 
@@ -231,23 +228,13 @@ export function MatrixEditorShell({
                 selectedLayer={viewModel.selectedLayer}
                 onShowAllLayersChange={viewModel.setShowAllLayers}
                 onSelectedLayerChange={viewModel.setSelectedLayer}
-                canEditRowStructure={permissions.canEditRowStructure}
-                canEditColumnStructure={permissions.canEditColumnStructure}
-                canEditRowAxisLabels={permissions.canEditRowAxisLabels}
-                canEditColumnAxisLabels={permissions.canEditColumnAxisLabels}
-                canEditRowLayers={permissions.canEditRowLayers}
-                canEditColumnLayers={permissions.canEditColumnLayers}
-                canEditBodyValues={permissions.canEditBodyValues}
-                canEditSummaries={permissions.canEditSummaries}
-                canEditReferences={permissions.canEditReferences}
-                canEditDynamicCombos={permissions.canEditDynamicCombos}
+                permissions={permissions}
                 selectedBodyCell={referenceModel.selectedBodyCell}
                 selectedReferenceLabel={referenceModel.selectedReferenceLabel}
                 onOpenReferenceLink={openLinkPanelForKey}
                 onOpenDynamicCombo={openDynamicComboPanelForKey}
                 onSolve={solveCurrentMatrix}
                 isSolving={isSolving}
-                editable={editable}
                 showLayerControls={showLayerControls}
                 onShowLayerControlsChange={setShowLayerControls}
                 displayedExpectedValue={referenceModel.displayedExpectedValue}

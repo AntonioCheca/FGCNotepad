@@ -14,7 +14,6 @@ interface UseMatrixEditorViewModelOptions {
     columnVisibilityByLabel?: Record<string, boolean> | null;
     displayFrequenciesAsPercent: boolean;
     layerSolveSnapshots?: Record<number, {rowAxis: Array<number | null>; columnAxis: Array<number | null>; expectedValue: number | null}>;
-    onLayerViewChange?: (layerLimit: number | null) => void;
     resourceContext?: MatrixResourceContext | null;
 }
 
@@ -26,7 +25,6 @@ export function useMatrixEditorViewModel({
     columnVisibilityByLabel,
     displayFrequenciesAsPercent,
     layerSolveSnapshots,
-    onLayerViewChange,
     resourceContext = null,
 }: UseMatrixEditorViewModelOptions) {
     const layerVisibility = useMatrixLayerVisibility({state, editable});
@@ -107,60 +105,54 @@ export function useMatrixEditorViewModel({
         };
     }, [displayFrequenciesAsPercent]);
 
-    React.useEffect(() => {
-        if (onLayerViewChange) {
-            onLayerViewChange(effectiveLayerLimit);
-        }
-    }, [effectiveLayerLimit, onLayerViewChange]);
-
-    React.useEffect(() => {
+    const layerSnapshot = React.useMemo(() => {
         if (editable || showAllLayers || effectiveLayerLimit === null || !layerSolveSnapshots || (resourceContext && hasResourceRequirements)) {
-            return;
+            return null;
         }
 
-        const snapshot = layerSolveSnapshots[effectiveLayerLimit];
-        if (!snapshot) {
-            return;
+        return layerSolveSnapshots[effectiveLayerLimit] ?? null;
+    }, [editable, effectiveLayerLimit, hasResourceRequirements, layerSolveSnapshots, resourceContext, showAllLayers]);
+
+    const displayState = React.useMemo(() => {
+        if (!layerSnapshot) {
+            return filteredVisibleState;
         }
 
-        state.grid.rows.forEach((row, index) => {
-            const value = snapshot.rowAxis[index];
+        const rowSummaryCells = {...filteredVisibleState.grid.rowSummaryCells};
+        const columnSummaryCells = {...filteredVisibleState.grid.columnSummaryCells};
+
+        filteredVisibleState.grid.rows.forEach((row, index) => {
+            const value = layerSnapshot.rowAxis[index];
             if (typeof value === "number" && Number.isFinite(value)) {
-                const current = state.grid.rowSummaryCells[`row-summary::${row.id}`]?.value;
-                if (current !== value) {
-                    dispatch(actions.setRowSummaryValue(row.id, value));
+                const key = `row-summary::${row.id}`;
+                if (rowSummaryCells[key]) {
+                    rowSummaryCells[key] = {...rowSummaryCells[key], value};
                 }
             }
         });
 
-        state.grid.columns.forEach((column, index) => {
-            const value = snapshot.columnAxis[index];
+        filteredVisibleState.grid.columns.forEach((column, index) => {
+            const value = layerSnapshot.columnAxis[index];
             if (typeof value === "number" && Number.isFinite(value)) {
-                const current = state.grid.columnSummaryCells[`column-summary::${column.id}`]?.value;
-                if (current !== value) {
-                    dispatch(actions.setColumnSummaryValue(column.id, value));
+                const key = `column-summary::${column.id}`;
+                if (columnSummaryCells[key]) {
+                    columnSummaryCells[key] = {...columnSummaryCells[key], value};
                 }
             }
         });
 
-        if (typeof snapshot.expectedValue === "number" && Number.isFinite(snapshot.expectedValue) && state.grid.expectedValueCell.value !== snapshot.expectedValue) {
-            dispatch(actions.setExpectedValue(snapshot.expectedValue));
-        }
-    }, [
-        actions,
-        dispatch,
-        effectiveLayerLimit,
-        editable,
-        layerSolveSnapshots,
-        hasResourceRequirements,
-        resourceContext,
-        showAllLayers,
-        state.grid.columns,
-        state.grid.columnSummaryCells,
-        state.grid.expectedValueCell.value,
-        state.grid.rowSummaryCells,
-        state.grid.rows,
-    ]);
+        return {
+            ...filteredVisibleState,
+            grid: {
+                ...filteredVisibleState.grid,
+                rowSummaryCells,
+                columnSummaryCells,
+                expectedValueCell: typeof layerSnapshot.expectedValue === "number" && Number.isFinite(layerSnapshot.expectedValue)
+                    ? {...filteredVisibleState.grid.expectedValueCell, value: layerSnapshot.expectedValue}
+                    : filteredVisibleState.grid.expectedValueCell,
+            },
+        };
+    }, [filteredVisibleState, layerSnapshot]);
 
     React.useEffect(() => {
         if (state.grid.expectedValueCell.value !== expectedValue) {
@@ -171,7 +163,7 @@ export function useMatrixEditorViewModel({
     return {
         ...layerVisibility,
         expectedValue,
-        filteredVisibleState,
+        filteredVisibleState: displayState,
         resourceGating,
         hasResourceRequirements,
         forceSolveColumnIds,

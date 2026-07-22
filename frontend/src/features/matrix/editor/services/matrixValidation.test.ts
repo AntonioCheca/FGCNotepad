@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {isTemporarilyValidNumericDraft, validateCommittedNumericDraft} from "./matrixValidation";
+import {isTemporarilyValidNumericDraft, validateCommittedNumericDraft} from "../../model/numericValidation";
 
 test("supports approved numeric formats", () => {
     assert.equal(validateCommittedNumericDraft("12").issues.length, 0);

@@ -1,8 +1,10 @@
 import React from "react";
 
 import {MatrixEditorState} from "@/src/features/matrix/model";
+import type {MatrixEditorPermissions} from "../hooks/useMatrixEditorPermissions";
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixDensityProfile} from "./gridDensity";
+import type {MatrixGridViewOptions} from "./matrix-grid/matrixGridTypes";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
 import {AxisRequirementTrigger} from "./AxisRequirementEditor";
 
@@ -13,14 +15,13 @@ interface MatrixGridHeaderProps {
     activeColumnId: string | null;
     unavailableColumnIds: Set<string>;
     unavailableReasonByColumnId: Record<string, string>;
-    canEditColumnAxisLabels: boolean;
-    canEditColumnLayers: boolean;
+    permissions: MatrixEditorPermissions;
     onColumnLabelChange: (columnId: string, label: string) => void;
     onColumnLayerChange: (columnId: string, layer: number) => void;
     onOpenColumnRequirements: (columnId: string, anchor: HTMLElement) => void;
     onSelectColumnHeader: (columnId: string) => void;
     densityProfile: MatrixDensityProfile;
-    showLayerControls: boolean;
+    viewOptions: MatrixGridViewOptions;
 }
 
 export function MatrixGridHeader({
@@ -30,16 +31,16 @@ export function MatrixGridHeader({
     activeColumnId,
     unavailableColumnIds,
     unavailableReasonByColumnId,
-    canEditColumnAxisLabels,
-    canEditColumnLayers,
+    permissions,
     onColumnLabelChange,
     onColumnLayerChange,
     onOpenColumnRequirements,
     onSelectColumnHeader,
     densityProfile,
-    showLayerControls,
+    viewOptions,
 }: MatrixGridHeaderProps) {
     const {theme} = useMode();
+    const {showLayerControls} = viewOptions;
     return (
         <thead>
         <tr>
@@ -82,7 +83,7 @@ export function MatrixGridHeader({
                         type="text"
                         aria-label={`Column label ${column.label || column.id}`}
                         value={column.label}
-                        readOnly={!canEditColumnAxisLabels}
+                        readOnly={!permissions.canEditColumnAxisLabels}
                         onFocus={() => onSelectColumnHeader(column.id)}
                         onChange={(event) => onColumnLabelChange(column.id, event.target.value)}
                         style={{
@@ -97,14 +98,14 @@ export function MatrixGridHeader({
                         }}
                     />
                     {columnUnavailable ? (
-                        <span style={{position: "absolute", right: 4, top: 3, fontSize: 9, color: theme.fgc.text.disabled}}>
+                        <span style={{position: "absolute", right: 4, top: 3, fontSize: 12, color: theme.fgc.text.disabled}}>
                             Unavailable
                         </span>
                     ) : null}
                     {showLayerControls ? (
                         <MatrixLayerBadge
                             value={column.layer}
-                            readOnly={!canEditColumnLayers}
+                            readOnly={!permissions.canEditColumnLayers}
                             axisLabel={column.label || "Column"}
                             onSelect={() => onSelectColumnHeader(column.id)}
                             onChange={(nextLayer) => onColumnLayerChange(column.id, nextLayer)}
@@ -114,7 +115,7 @@ export function MatrixGridHeader({
                     <AxisRequirementTrigger
                         axisLabel={column.label || "Column"}
                         requirements={column.requirements}
-                        readOnly={!canEditColumnAxisLabels}
+                        readOnly={!permissions.canEditColumnAxisLabels}
                         isActive={activeColumnId === column.id}
                         onOpen={(anchor) => onOpenColumnRequirements(column.id, anchor)}
                     />

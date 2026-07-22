@@ -1,14 +1,6 @@
 import {createBodyCellKey} from "./keys";
-import {MatrixBodyCell, MatrixEditorState, MatrixSelectionTarget, MatrixValidationIssue} from "./stateTypes";
+import {MatrixBodyCell, MatrixEditorState} from "./stateTypes";
 import {isEditableBodyCell} from "./cellGuards";
-
-export function selectRows(state: MatrixEditorState) {
-    return state.grid.rows;
-}
-
-export function selectColumns(state: MatrixEditorState) {
-    return state.grid.columns;
-}
 
 export function selectRowCount(state: MatrixEditorState): number {
     return state.grid.rows.length;
@@ -43,20 +35,8 @@ export function selectGridValues(state: MatrixEditorState): Array<Array<number |
     );
 }
 
-export function selectActiveTarget(state: MatrixEditorState): MatrixSelectionTarget | null {
-    return state.selection.activeTarget;
-}
-
 export function selectIsEditing(state: MatrixEditorState): boolean {
     return state.editing.mode === "edit";
-}
-
-export function selectActiveDraft(state: MatrixEditorState): string | null {
-    return state.editing.draft;
-}
-
-export function selectValidationForKey(state: MatrixEditorState, key: string): MatrixValidationIssue[] {
-    return state.validation.byKey[key] ?? [];
 }
 
 export function selectHasValidationErrors(state: MatrixEditorState): boolean {
@@ -65,18 +45,6 @@ export function selectHasValidationErrors(state: MatrixEditorState): boolean {
     }
 
     return Object.values(state.validation.byKey).some((issues) => issues.length > 0);
-}
-
-export function selectDerivedExpectedValue(state: MatrixEditorState): number | null {
-    return state.derived.computedExpectedValue;
-}
-
-export function selectIsDirty(state: MatrixEditorState): boolean {
-    return state.derived.isDirty;
-}
-
-export function selectViewportDensity(state: MatrixEditorState): "standard" | "compact" {
-    return state.viewport.density;
 }
 
 export function selectCellValueByKey(state: MatrixEditorState, key: string): number | null {

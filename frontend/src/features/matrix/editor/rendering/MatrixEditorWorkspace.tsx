@@ -2,6 +2,7 @@ import React from "react";
 
 import {MatrixBodyCell, MatrixEditorState, MatrixResourceRequirement} from "@/src/features/matrix/model";
 import {MatrixAction, matrixActions} from "@/src/features/matrix/state/actions";
+import type {MatrixEditorPermissions} from "../hooks/useMatrixEditorPermissions";
 import {ReferenceInspectorData} from "../services/referenceInspector";
 import {MatrixInsights} from "../services/matrixInsightService";
 import {toSelectionTarget} from "../services/matrixKeyboardEngine";
@@ -31,23 +32,13 @@ interface MatrixEditorWorkspaceProps {
     selectedLayer: number;
     onShowAllLayersChange: (value: boolean) => void;
     onSelectedLayerChange: (value: number) => void;
-    canEditRowStructure: boolean;
-    canEditColumnStructure: boolean;
-    canEditRowAxisLabels: boolean;
-    canEditColumnAxisLabels: boolean;
-    canEditRowLayers: boolean;
-    canEditColumnLayers: boolean;
-    canEditBodyValues: boolean;
-    canEditSummaries: boolean;
-    canEditReferences: boolean;
-    canEditDynamicCombos: boolean;
+    permissions: MatrixEditorPermissions;
     selectedBodyCell: MatrixBodyCell | null;
     selectedReferenceLabel: string | null;
     onOpenReferenceLink: (key: string) => void;
     onOpenDynamicCombo: (key: string) => void;
     onSolve: () => Promise<void>;
     isSolving: boolean;
-    editable: boolean;
     showLayerControls: boolean;
     onShowLayerControlsChange: (value: boolean) => void;
     displayedExpectedValue: number | null;
@@ -82,23 +73,13 @@ export function MatrixEditorWorkspace({
     selectedLayer,
     onShowAllLayersChange,
     onSelectedLayerChange,
-    canEditRowStructure,
-    canEditColumnStructure,
-    canEditRowAxisLabels,
-    canEditColumnAxisLabels,
-    canEditRowLayers,
-    canEditColumnLayers,
-    canEditBodyValues,
-    canEditSummaries,
-    canEditReferences,
-    canEditDynamicCombos,
+    permissions,
     selectedBodyCell,
     selectedReferenceLabel,
     onOpenReferenceLink,
     onOpenDynamicCombo,
     onSolve,
     isSolving,
-    editable,
     showLayerControls,
     onShowLayerControlsChange,
     displayedExpectedValue,
@@ -122,16 +103,19 @@ export function MatrixEditorWorkspace({
     return (
         <MatrixEditorLayout
             title={state.grid.metadata.title}
-            onDelete={canEditRowStructure || canEditColumnStructure ? onDelete : undefined}
+            onDelete={permissions.canEditRowStructure || permissions.canEditColumnStructure ? onDelete : undefined}
             warnings={displayWarnings}
         >
             <MatrixEditorToolbar
-                showAllLayers={showAllLayers}
+                viewState={{showAllLayers, showLayerControls}}
+                capabilities={{
+                    canEditReferences: permissions.canEditReferences,
+                    canEditDynamicCombos: permissions.canEditDynamicCombos,
+                    editable: permissions.canEditBodyValues,
+                }}
                 selectedLayer={selectedLayer}
                 onShowAllLayersChange={onShowAllLayersChange}
                 onSelectedLayerChange={onSelectedLayerChange}
-                canEditReferences={canEditReferences}
-                canEditDynamicCombos={canEditDynamicCombos}
                 selectedBodyCell={selectedBodyCell}
                 onOpenReferenceLink={onOpenReferenceLink}
                 onOpenDynamicCombo={onOpenDynamicCombo}
@@ -139,9 +123,7 @@ export function MatrixEditorWorkspace({
                 isSolving={isSolving}
                 rowCount={filteredVisibleState.grid.rows.length}
                 columnCount={filteredVisibleState.grid.columns.length}
-                editable={editable}
                 selectedReferenceLabel={selectedReferenceLabel}
-                showLayerControls={showLayerControls}
                 onShowLayerControlsChange={onShowLayerControlsChange}
             />
             {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
@@ -169,31 +151,24 @@ export function MatrixEditorWorkspace({
                         unavailableColumnIds={resourceGating.unavailableColumnIds}
                         unavailableReasonByRowId={resourceGating.reasonByRowId}
                         unavailableReasonByColumnId={resourceGating.reasonByColumnId}
-                        canEditRowStructure={canEditRowStructure}
-                        canEditColumnStructure={canEditColumnStructure}
-                        canEditRowAxisLabels={canEditRowAxisLabels}
-                        canEditColumnAxisLabels={canEditColumnAxisLabels}
-                        canEditRowLayers={canEditRowLayers}
-                        canEditColumnLayers={canEditColumnLayers}
-                        canEditBodyValues={canEditBodyValues}
-                        canEditSummaries={canEditSummaries}
+                        permissions={permissions}
                         onAddRow={() => {
-                            if (canEditRowStructure) {
+                            if (permissions.canEditRowStructure) {
                                 dispatch(actions.addRow());
                             }
                         }}
                         onAddColumn={() => {
-                            if (canEditColumnStructure) {
+                            if (permissions.canEditColumnStructure) {
                                 dispatch(actions.addColumn());
                             }
                         }}
                         onRemoveRow={(rowId) => {
-                            if (canEditRowStructure) {
+                            if (permissions.canEditRowStructure) {
                                 dispatch(actions.removeRow(rowId));
                             }
                         }}
                         onRemoveColumn={(columnId) => {
-                            if (canEditColumnStructure) {
+                            if (permissions.canEditColumnStructure) {
                                 dispatch(actions.removeColumn(columnId));
                             }
                         }}
@@ -220,8 +195,7 @@ export function MatrixEditorWorkspace({
                         onDraftChange={(draft) => dispatch(actions.updateDraft(draft))}
                         onCommitEdit={commitEditAndRefocus}
                         onCancelEdit={cancelEditAndRefocus}
-                        density="standard"
-                        showLayerControls={showLayerControls}
+                        viewOptions={{density: "standard", showLayerControls}}
                         summaryValueFormatter={summaryValueFormatter}
                         heatmapToneByCellKey={matrixInsights.heatmapToneByCellKey}
                     />

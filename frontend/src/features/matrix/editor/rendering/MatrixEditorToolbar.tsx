@@ -4,12 +4,18 @@ import {MatrixBodyCell} from "@/src/features/matrix/model";
 import {useMode} from "@/src/context/ThemeContext";
 
 interface MatrixEditorToolbarProps {
-    showAllLayers: boolean;
+    viewState: {
+        showAllLayers: boolean;
+        showLayerControls: boolean;
+    };
+    capabilities: {
+        canEditReferences: boolean;
+        canEditDynamicCombos: boolean;
+        editable: boolean;
+    };
     selectedLayer: number;
     onShowAllLayersChange: (showAllLayers: boolean) => void;
     onSelectedLayerChange: (layer: number) => void;
-    canEditReferences: boolean;
-    canEditDynamicCombos: boolean;
     selectedBodyCell: MatrixBodyCell | null;
     onOpenReferenceLink: (key: string) => void;
     onOpenDynamicCombo: (key: string) => void;
@@ -17,19 +23,16 @@ interface MatrixEditorToolbarProps {
     isSolving: boolean;
     rowCount: number;
     columnCount: number;
-    editable: boolean;
     selectedReferenceLabel: string | null;
-    showLayerControls: boolean;
     onShowLayerControlsChange: (show: boolean) => void;
 }
 
 export function MatrixEditorToolbar({
-    showAllLayers,
+    viewState,
+    capabilities,
     selectedLayer,
     onShowAllLayersChange,
     onSelectedLayerChange,
-    canEditReferences,
-    canEditDynamicCombos,
     selectedBodyCell,
     onOpenReferenceLink,
     onOpenDynamicCombo,
@@ -37,12 +40,12 @@ export function MatrixEditorToolbar({
     isSolving,
     rowCount,
     columnCount,
-    editable,
     selectedReferenceLabel,
-    showLayerControls,
     onShowLayerControlsChange,
 }: MatrixEditorToolbarProps) {
     const {theme} = useMode();
+    const {showAllLayers, showLayerControls} = viewState;
+    const {canEditReferences, canEditDynamicCombos, editable} = capabilities;
     const showCellActions = editable && !!selectedBodyCell && (canEditReferences || canEditDynamicCombos);
 
     return (

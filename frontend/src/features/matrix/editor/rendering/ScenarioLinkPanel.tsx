@@ -3,6 +3,7 @@ import React from "react";
 import {MatrixReferencePreValue} from "@/src/features/matrix/model";
 import {fetchScenarioItems, ScenarioSearchError, ScenarioSearchItem} from "../services/scenarioSearchService";
 import {DynamicComboPanel} from "./DynamicComboPanel";
+import {MatrixEditorPanelFrame} from "./MatrixEditorPanelFrame";
 
 interface ScenarioLinkPanelProps {
     open: boolean;
@@ -20,6 +21,8 @@ interface ScenarioLinkPanelProps {
 type PreValueKind = MatrixReferencePreValue["kind"];
 
 type ScenarioLinkPanelBodyProps = Omit<ScenarioLinkPanelProps, "open" | "resetKey">;
+
+const PANEL_TITLE_ID = "scenario-link-panel-title";
 
 export function ScenarioLinkPanel({open, resetKey = "scenario-link-panel", ...bodyProps}: ScenarioLinkPanelProps) {
     if (!open) {
@@ -90,33 +93,16 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
 
     const isInline = presentation === "inline";
 
-    const panelContent = (
-        <div
-            style={{
-                width: isInline ? "100%" : "min(640px, 92vw)",
-                maxHeight: isInline ? "unset" : "80vh",
-                background: isInline ? "transparent" : "#fff",
-                borderRadius: isInline ? 0 : 8,
-                border: isInline ? "none" : "1px solid #d9d9d9",
-                padding: 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                minWidth: 0,
-                boxSizing: "border-box",
-                overflowX: "hidden",
-            }}
-            onClick={(event) => event.stopPropagation()}
-        >
+    return (
+        <MatrixEditorPanelFrame presentation={presentation} titleId={PANEL_TITLE_ID} width="640px" gap={8} onClose={onClose}>
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
                     <div style={{display: "grid", gap: 2}}>
-                        <strong id="scenario-link-panel-title" style={{fontSize: 14, color: "#2a4a6f"}}>Link Scenario</strong>
+                        <strong id={PANEL_TITLE_ID} style={{fontSize: 14, color: "#2a4a6f"}}>Link Scenario</strong>
                         <span style={{fontSize: 12, color: "#5e7795"}}>Visible only for selected reference-capable cell</span>
                     </div>
                     <button type="button" onClick={onClose} style={{height: 30}}>Close</button>
                 </div>
                 <input
-                    autoFocus
                     type="text"
                     aria-label="Search scenarios"
                     placeholder="Search scenarios"
@@ -273,30 +259,6 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                         </button>
                     ) : null}
                 </div>
-            </div>
-    );
-
-    if (presentation === "inline") {
-        return panelContent;
-    }
-
-    return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="scenario-link-panel-title"
-            style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(0,0,0,0.35)",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 1200,
-            }}
-            onClick={onClose}
-        >
-            {panelContent}
-        </div>
+        </MatrixEditorPanelFrame>
     );
 }

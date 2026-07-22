@@ -1,5 +1,6 @@
 import React from "react";
 
+import {MatrixEditorState} from "@/src/features/matrix/model";
 import {MatrixPayload} from "@/src/types/matrixPayload";
 import {matrixActions, matrixEditorReducer} from "@/src/features/matrix/state";
 import {matrixEditorStateToPayload, matrixPayloadToEditorState} from "../modules/payloadAdapter";
@@ -11,9 +12,23 @@ interface UseMatrixEditorControllerOptions {
 }
 
 export function useMatrixEditorController({matrix, onMatrixChange, persistChanges = true}: UseMatrixEditorControllerOptions) {
-    const [state, dispatch] = React.useReducer(matrixEditorReducer, matrix, matrixPayloadToEditorState);
-    const isFirstSync = React.useRef(true);
+    const [state, setState] = React.useState<MatrixEditorState>(() => matrixPayloadToEditorState(matrix));
+    const stateRef = React.useRef(state);
     const previousPayloadRef = React.useRef<MatrixPayload>(matrix);
+
+    const dispatch = React.useCallback((action: Parameters<typeof matrixEditorReducer>[1]) => {
+        const nextState = matrixEditorReducer(stateRef.current, action);
+        stateRef.current = nextState;
+        setState(nextState);
+
+        if (!persistChanges || nextState.editing.mode === "edit") {
+            return;
+        }
+
+        const nextPayload = matrixEditorStateToPayload(nextState, previousPayloadRef.current);
+        previousPayloadRef.current = nextPayload;
+        onMatrixChange(nextPayload);
+    }, [onMatrixChange, persistChanges]);
 
     React.useEffect(() => {
         if (matrix === previousPayloadRef.current) {
@@ -22,27 +37,9 @@ export function useMatrixEditorController({matrix, onMatrixChange, persistChange
 
         const nextState = matrixPayloadToEditorState(matrix);
         previousPayloadRef.current = matrix;
-        dispatch(matrixActions.replaceState(nextState));
+        stateRef.current = nextState;
+        setState(nextState);
     }, [matrix]);
-
-    React.useEffect(() => {
-        if (isFirstSync.current) {
-            isFirstSync.current = false;
-            return;
-        }
-
-        if (state.editing.mode === "edit") {
-            return;
-        }
-
-        if (!persistChanges) {
-            return;
-        }
-
-        const nextPayload = matrixEditorStateToPayload(state, previousPayloadRef.current);
-        previousPayloadRef.current = nextPayload;
-        onMatrixChange(nextPayload);
-    }, [state, onMatrixChange, persistChanges]);
 
     return {
         state,

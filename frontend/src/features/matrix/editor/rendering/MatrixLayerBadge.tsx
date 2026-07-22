@@ -2,6 +2,7 @@ import React from "react";
 import {useMode} from "@/src/context/ThemeContext";
 
 import {MatrixDensityProfile} from "./gridDensity";
+import styles from "./matrixEditorRendering.module.css";
 
 interface MatrixLayerBadgeProps {
     value: number;
@@ -40,32 +41,27 @@ export function MatrixLayerBadge({
     }, [onChange, safeValue]);
 
     const minHeight = Math.max(18, densityProfile.cellHeight - 10);
-    const controlFontSize = Math.max(10, densityProfile.labelFontSize - 2);
+    const controlFontSize = Math.max(12, densityProfile.labelFontSize - 2);
     const buttonHeight = Math.max(8, Math.floor(minHeight / 2));
 
     if (readOnly) {
         return (
-            <span
+            <button
+                type="button"
+                aria-label={`Select ${axisLabel} layer ${safeValue}`}
                 onMouseDown={onSelect}
+                onClick={onSelect}
+                className={styles.matrixLayerBadgeReadOnly}
                 style={{
-                    marginTop: 4,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight,
-                    minWidth: 28,
-                    padding: "0 6px",
-                    borderRadius: 999,
-                    border: `1px solid ${theme.fgc.border.default}`,
-                    background: theme.fgc.surface.subtle,
-                    color: theme.fgc.text.muted,
-                    fontSize: controlFontSize,
-                    fontVariantNumeric: "tabular-nums",
-                    lineHeight: 1,
-                }}
+                    "--layer-control-height": `${minHeight}px`,
+                    "--layer-font-size": `${controlFontSize}px`,
+                    "--layer-border": theme.fgc.border.default,
+                    "--layer-readonly-background": theme.fgc.surface.subtle,
+                    "--layer-readonly-color": theme.fgc.text.muted,
+                } as React.CSSProperties}
             >
                 {safeValue}
-            </span>
+            </button>
         );
     }
 
@@ -74,16 +70,11 @@ export function MatrixLayerBadge({
             role="group"
             aria-label={`${axisLabel} layer control`}
             onMouseDown={onSelect}
+            className={styles.matrixLayerGroup}
             style={{
-                marginTop: 4,
-                display: "inline-flex",
-                alignItems: "center",
-                border: `1px solid ${theme.fgc.border.default}`,
-                borderRadius: 8,
-                overflow: "hidden",
-                background: theme.fgc.surface.base,
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
-            }}
+                "--layer-border": theme.fgc.border.default,
+                "--layer-background": theme.fgc.surface.base,
+            } as React.CSSProperties}
         >
             <button
                 type="button"
@@ -134,7 +125,7 @@ export function MatrixLayerBadge({
                         height: buttonHeight,
                         width: 14,
                         cursor: "pointer",
-                        fontSize: Math.max(9, controlFontSize - 1),
+                        fontSize: Math.max(12, controlFontSize - 1),
                         lineHeight: 1,
                         padding: 0,
                     }}
@@ -154,7 +145,7 @@ export function MatrixLayerBadge({
                         height: buttonHeight,
                         width: 14,
                         cursor: safeValue <= 1 ? "not-allowed" : "pointer",
-                        fontSize: Math.max(9, controlFontSize - 1),
+                        fontSize: Math.max(12, controlFontSize - 1),
                         lineHeight: 1,
                         padding: 0,
                     }}

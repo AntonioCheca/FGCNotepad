@@ -2,6 +2,7 @@ import React from "react";
 
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixResourceRequirement, MatrixResourceOwner, MatrixResourceType} from "@/src/features/matrix/model";
+import styles from "./matrixEditorRendering.module.css";
 
 interface AxisRequirementTriggerProps {
     axisLabel: string;
@@ -74,6 +75,7 @@ export function AxisRequirementTrigger({
 }: AxisRequirementTriggerProps) {
     const {theme} = useMode();
     const shouldShow = requirements.length > 0 || (isActive && !readOnly);
+    const hasRequirements = requirements.length > 0;
 
     if (!shouldShow) {
         return null;
@@ -89,28 +91,15 @@ export function AxisRequirementTrigger({
                 onOpen(event.currentTarget);
             }}
             aria-label={`${axisLabel} resource requirements`}
-            title={requirements.length > 0 ? requirements.map(formatRequirement).join(" | ") : "Add requirements"}
+            title={hasRequirements ? requirements.map(formatRequirement).join(" | ") : "Add requirements"}
+            className={styles.axisRequirementTrigger}
             style={{
-                position: "absolute",
-                right: 4,
-                bottom: 3,
-                zIndex: 8,
-                minHeight: 16,
-                maxWidth: 54,
-                padding: "0 5px",
-                borderRadius: 999,
-                border: `1px solid ${requirements.length > 0 ? theme.fgc.selection.active : theme.fgc.border.default}`,
-                background: requirements.length > 0 ? theme.fgc.surface.raised : theme.fgc.surface.sunken,
-                color: requirements.length > 0 ? theme.fgc.text.primary : theme.fgc.text.secondary,
-                fontSize: 9,
-                lineHeight: "14px",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-            }}
+                "--requirement-border": hasRequirements ? theme.fgc.selection.active : theme.fgc.border.default,
+                "--requirement-background": hasRequirements ? theme.fgc.surface.raised : theme.fgc.surface.sunken,
+                "--requirement-color": hasRequirements ? theme.fgc.text.primary : theme.fgc.text.secondary,
+            } as React.CSSProperties}
         >
-            {requirements.length > 0 ? `Req ${requirements.length}` : "+ Req"}
+            {hasRequirements ? `Req ${requirements.length}` : "+ Req"}
         </button>
     );
 }
@@ -126,7 +115,7 @@ export function FloatingAxisRequirementEditor({
     onClose,
 }: FloatingAxisRequirementEditorProps) {
     const {theme} = useMode();
-    const panelRef = React.useRef<HTMLDivElement | null>(null);
+    const panelRef = React.useRef<HTMLElement | null>(null);
     const [requirementRenderIds, setRequirementRenderIds] = React.useState<string[]>(() => requirements.map(createRequirementRenderId));
     const panelWidth = 292;
     const panelMaxHeight = 260;
@@ -183,31 +172,21 @@ export function FloatingAxisRequirementEditor({
         border: `1px solid ${theme.fgc.border.default}`,
         background: theme.fgc.control.default,
         color: theme.fgc.text.primary,
-        fontSize: 11,
+        fontSize: 12,
     };
 
     return (
-        <div
+        <section
             ref={panelRef}
-            onMouseDown={stopGridEvent}
-            onClick={stopGridEvent}
+            role="group"
+            aria-label={`${axisLabel} resource requirement editor`}
+            className={styles.floatingRequirementPanel}
             style={{
-                position: "fixed",
-                top,
-                left,
-                zIndex: 10000,
-                width: panelWidth,
-                maxHeight: panelMaxHeight,
-                overflowY: "auto",
-                display: "grid",
-                gap: 7,
-                padding: 9,
-                borderRadius: 10,
-                border: `1px solid ${theme.fgc.border.strong ?? theme.fgc.border.default}`,
-                background: theme.fgc.surface.raised,
-                boxShadow: "0 16px 38px rgba(0,0,0,0.36)",
-                boxSizing: "border-box",
-            }}
+                "--requirement-panel-top": `${top}px`,
+                "--requirement-panel-left": `${left}px`,
+                "--requirement-panel-border": theme.fgc.border.strong ?? theme.fgc.border.default,
+                "--requirement-panel-background": theme.fgc.surface.raised,
+            } as React.CSSProperties}
         >
             <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8}}>
                 <strong style={{fontSize: 12, color: theme.fgc.text.primary, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
@@ -223,20 +202,18 @@ export function FloatingAxisRequirementEditor({
                     {requirements.map((requirement, index) => (
                         <span
                             key={`${requirementRenderIds[index] ?? `${requirement.owner}-${requirement.resource}-${requirement.threshold}`}-summary`}
+                            className={styles.requirementSummaryPill}
                             style={{
-                                borderRadius: 999,
-                                padding: "2px 7px",
-                                background: theme.fgc.surface.sunken,
-                                color: theme.fgc.text.secondary,
-                                fontSize: 10,
-                            }}
+                                "--requirement-summary-background": theme.fgc.surface.sunken,
+                                "--requirement-summary-color": theme.fgc.text.secondary,
+                            } as React.CSSProperties}
                         >
                             {formatRequirement(requirement)}
                         </span>
                     ))}
                 </div>
             ) : (
-                <span style={{fontSize: 11, color: theme.fgc.text.secondary}}>No resource requirements yet.</span>
+                <span style={{fontSize: 12, color: theme.fgc.text.secondary}}>No resource requirements yet.</span>
             )}
 
             {requirements.map((requirement, index) => (
@@ -305,6 +282,6 @@ export function FloatingAxisRequirementEditor({
             >
                 + Add Requirement
             </button>
-        </div>
+        </section>
     );
 }

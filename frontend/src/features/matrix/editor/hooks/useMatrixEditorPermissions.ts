@@ -30,3 +30,5 @@ export function useMatrixEditorPermissions({
         canEditSummaries: true,
     };
 }
+
+export type MatrixEditorPermissions = ReturnType<typeof useMatrixEditorPermissions>;

@@ -85,11 +85,11 @@ export async function resolveEditorLinkedReferences({
         const layerLimit = getMaxLayer(state);
         const {rows, columns} = toSolveRowsAndColumns(state, layerLimit);
         const displayedBodyValues = {...baseDisplayedBodyValues};
+        const linkedExpectedValue = depth >= MAX_REFERENCE_DEPTH ? 0 : await resolveExpectedValue(depth + 1);
 
         for (const key of selfReferenceKeys) {
             const cell = state.grid.bodyCells[key];
             const basePreValue = getStaticPreValue(cell);
-            const linkedExpectedValue = depth >= MAX_REFERENCE_DEPTH ? 0 : await resolveExpectedValue(depth + 1);
             displayedBodyValues[key] = basePreValue + linkedExpectedValue;
         }
 
@@ -106,10 +106,10 @@ export async function resolveEditorLinkedReferences({
     }
 
     const nextResolutions = {...existingResolutions};
+    const linkedExpectedValue = await resolveExpectedValue(2);
     for (const key of selfReferenceKeys) {
         const cell = state.grid.bodyCells[key];
         const basePreValue = getStaticPreValue(cell);
-        const linkedExpectedValue = await resolveExpectedValue(2);
         const finalValue = basePreValue + linkedExpectedValue;
         nextResolutions[key] = {
             basePreValue,
