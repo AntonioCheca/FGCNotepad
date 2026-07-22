@@ -1,4 +1,10 @@
 .idea/
+.agents/
+.opencode/
+
+# Tool caches
+.phpunit.result.cache
+**/.phpunit.result.cache
 
 # Local environment overrides
 backend/.env.local
