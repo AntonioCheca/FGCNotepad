@@ -20,11 +20,7 @@ const isPaletteMode = (value: string | null): value is PaletteMode => {
     return value === "light" || value === "dark";
 };
 
-const resolveInitialMode = (): PaletteMode => {
-    if (typeof window === "undefined") {
-        return "light";
-    }
-
+const resolveBrowserMode = (): PaletteMode => {
     const storedMode = localStorage.getItem(THEME_STORAGE_KEY);
     if (isPaletteMode(storedMode)) {
         return storedMode;
@@ -42,7 +38,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => {
-    const [mode, setMode] = useState<PaletteMode>(resolveInitialMode);
+    const [mode, setMode] = useState<PaletteMode>("light");
+    const [browserModeResolved, setBrowserModeResolved] = useState(false);
 
     const toggleColorMode = useCallback(() => {
         setMode((prev) => (prev === "light" ? "dark" : "light"));
@@ -52,8 +49,17 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
     const contextValue = useMemo<ThemeContextType>(() => ({mode, toggleColorMode, theme}), [mode, theme, toggleColorMode]);
 
     useEffect(() => {
+        setMode(resolveBrowserMode());
+        setBrowserModeResolved(true);
+    }, []);
+
+    useEffect(() => {
+        if (!browserModeResolved) {
+            return;
+        }
+
         localStorage.setItem(THEME_STORAGE_KEY, mode);
-    }, [mode]);
+    }, [browserModeResolved, mode]);
 
     useEffect(() => {
         const syncThemeMode = (event: StorageEvent) => {

@@ -47,7 +47,7 @@ export const navigationSections: NavigationSection[] = [
         title: "Replay Lab",
         items: [
             {
-                label: "Review Replays",
+                label: "Replay Lab",
                 href: "/replay-lab",
                 icon: <TimelineIcon/>,
                 requiresAuth: true,

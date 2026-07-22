@@ -1,7 +1,6 @@
 import React from "react";
 
 import {
-    PracticeTaskScheduleType,
     ReplayAnnotation,
     ReplayAnnotationCategory,
     ReplayAnnotationEventKind,
@@ -61,11 +60,6 @@ export function useReplayAnnotationEditor({
     const [eventKind, setEventKind] = React.useState<ReplayAnnotationEventKind>("memory");
     const [category, setCategory] = React.useState<ReplayAnnotationCategory>(() => defaultCategory("memory"));
     const [annotationTitle, setAnnotationTitle] = React.useState("");
-    const [annotationNotes, setAnnotationNotes] = React.useState("");
-    const [annotationAnswer, setAnnotationAnswer] = React.useState("");
-    const [taskScheduleType, setTaskScheduleType] = React.useState<PracticeTaskScheduleType>("once");
-    const [taskOccurrences, setTaskOccurrences] = React.useState("1");
-    const [taskDueDate, setTaskDueDate] = React.useState("");
     const [editingAnnotationId, setEditingAnnotationId] = React.useState<string | null>(null);
 
     const clearSelection = React.useCallback(() => {
@@ -76,34 +70,12 @@ export function useReplayAnnotationEditor({
     const resetAnnotationForm = React.useCallback(() => {
         clearSelection();
         setAnnotationTitle("");
-        setAnnotationNotes("");
-        setAnnotationAnswer("");
-        setTaskScheduleType("once");
-        setTaskOccurrences("1");
-        setTaskDueDate("");
         setEditingAnnotationId(null);
     }, [clearSelection]);
 
     const refreshAnnotations = React.useCallback(async (sessionId: string) => {
         setAnnotations(await listAnnotations(sessionId));
     }, [listAnnotations]);
-
-    const buildAnnotationNotes = React.useCallback((): string | null => {
-        const baseNotes = annotationNotes.trim();
-        if (eventKind !== "task") {
-            return baseNotes || null;
-        }
-
-        const occurrenceCount = Math.max(1, Number.parseInt(taskOccurrences, 10) || 1);
-        const scheduleLines = [
-            "Replay Task Schedule",
-            `Schedule: ${taskScheduleType}`,
-            `Occurrences: ${occurrenceCount}`,
-            taskDueDate ? `Due: ${taskDueDate}` : null,
-        ].filter(Boolean);
-
-        return [baseNotes, scheduleLines.join("\n")].filter(Boolean).join("\n\n");
-    }, [annotationNotes, eventKind, taskDueDate, taskOccurrences, taskScheduleType]);
 
     const markClipStart = React.useCallback(() => {
         setClipStartMs(playbackPosition.timeMs);
@@ -123,12 +95,7 @@ export function useReplayAnnotationEditor({
         setClipEndMs(annotation.endTimeMs);
         setEventKind(annotation.eventKind);
         setCategory(annotation.category);
-        setAnnotationTitle(annotation.title ?? "");
-        setAnnotationNotes(annotation.notes ?? "");
-        setAnnotationAnswer(annotation.answer ?? "");
-        setTaskScheduleType("once");
-        setTaskOccurrences("1");
-        setTaskDueDate("");
+        setAnnotationTitle(annotation.eventKind === "task" ? annotation.title ?? "" : "");
         onSeek(annotation.startTimeMs);
     }, [onSeek]);
 
@@ -153,9 +120,9 @@ export function useReplayAnnotationEditor({
                 endTimeMs: clipEndMs,
                 eventKind,
                 category,
-                title: annotationTitle,
-                notes: buildAnnotationNotes(),
-                answer: eventKind === "memory" ? annotationAnswer : null,
+                title: eventKind === "task" ? annotationTitle : "",
+                notes: null,
+                answer: null,
             };
             if (editingAnnotationId) {
                 await updateAnnotation(editingAnnotationId, payload);
@@ -169,7 +136,7 @@ export function useReplayAnnotationEditor({
         } catch (caughtError: unknown) {
             onError(getReplayLabErrorMessage(caughtError));
         }
-    }, [activeSession, annotationAnswer, annotationTitle, buildAnnotationNotes, category, clipEndMs, clipStartMs, createAnnotation, editingAnnotationId, eventKind, onClearError, onClearNotice, onError, onExportResultChange, onNotice, refreshAnnotations, resetAnnotationForm, updateAnnotation]);
+    }, [activeSession, annotationTitle, category, clipEndMs, clipStartMs, createAnnotation, editingAnnotationId, eventKind, onClearError, onClearNotice, onError, onExportResultChange, onNotice, refreshAnnotations, resetAnnotationForm, updateAnnotation]);
 
     const removeAnnotation = React.useCallback(async (annotationId: string) => {
         if (!activeSession) {
@@ -253,22 +220,12 @@ export function useReplayAnnotationEditor({
         eventKind,
         category,
         annotationTitle,
-        annotationNotes,
-        annotationAnswer,
-        taskScheduleType,
-        taskOccurrences,
-        taskDueDate,
         editingAnnotationId,
         clipDurationMs,
         canSaveAnnotation,
         canMarkRange,
         setCategory,
         setAnnotationTitle,
-        setAnnotationNotes,
-        setAnnotationAnswer,
-        setTaskScheduleType,
-        setTaskOccurrences,
-        setTaskDueDate,
         clearSelection,
         resetAnnotationForm,
         refreshAnnotations,

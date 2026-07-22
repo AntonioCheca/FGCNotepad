@@ -86,7 +86,6 @@ export function SubmitSection({
     return (
         <SectionCard
             title="Submit"
-            description="Finalize title and optional metadata, then submit one clean primary action."
             tone="default"
             variant="finalize"
         >

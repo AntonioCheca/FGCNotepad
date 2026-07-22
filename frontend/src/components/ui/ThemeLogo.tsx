@@ -28,6 +28,7 @@ export default function ThemeLogo({className, collapsed = false}: ThemeLogoProps
                 display: "block",
                 margin: "0 auto",
                 maxWidth: "100%",
+                width: "auto",
                 height: "auto",
             }}
             sizes={`${baseSizeRem}rem`}

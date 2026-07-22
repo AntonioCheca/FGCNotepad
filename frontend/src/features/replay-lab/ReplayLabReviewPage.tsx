@@ -5,13 +5,18 @@ import {AppStack} from "@/src/components/ui/AppStack";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {useReplayAnnotationEditor} from "@/src/features/replay-lab/hooks/useReplayAnnotationEditor";
 import {useReplayCoachSharing} from "@/src/features/replay-lab/hooks/useReplayCoachSharing";
+import {useLocalReplayClipExport} from "@/src/features/replay-lab/hooks/useLocalReplayClipExport";
 import {useReplayReviewWorkflow} from "@/src/features/replay-lab/hooks/useReplayReviewWorkflow";
 import {ReplayReviewLauncher} from "@/src/features/replay-lab/rendering/ReplayReviewLauncher";
 import {ReplayReviewWorkspace} from "@/src/features/replay-lab/rendering/ReplayReviewWorkspace";
 import {getReplayLabErrorMessage} from "@/src/features/replay-lab/replayReviewUtils";
 import type {ReplayAnnotationExportResult, ReplayLabLimits, ReplayReviewSession} from "@/src/types/replayLab";
 
-export function ReplayLabReviewPage() {
+interface ReplayLabReviewPageProps {
+    routeMode: "local" | "upload";
+}
+
+export function ReplayLabReviewPage({routeMode}: ReplayLabReviewPageProps) {
     const {
         loading,
         getReplayLabLimits,
@@ -27,6 +32,7 @@ export function ReplayLabReviewPage() {
         deleteAnnotation,
         saveReviewSession,
         exportReviewSession,
+        uploadAnnotationClip,
         createShareLink,
         listShareLinks,
         revokeShareLink,
@@ -89,6 +95,13 @@ export function ReplayLabReviewPage() {
         onClearNotice: clearNotice,
     });
 
+    const localClipExport = useLocalReplayClipExport({
+        saveReviewSession,
+        uploadAnnotationClip,
+        exportReviewSession,
+        listAnnotations,
+    });
+
     const {refreshAnnotations, resetAnnotationForm, setAnnotations} = annotationEditor;
     const {refreshShareLinks, resetShareState} = coachSharing;
 
@@ -121,10 +134,29 @@ export function ReplayLabReviewPage() {
 
         setError(null);
         setNotice(null);
-        setExporting(true);
+        localClipExport.setError(null);
+        setExporting(routeMode === "upload");
         try {
+            if (routeMode === "local") {
+                if (!localClipExport.isIsolated) {
+                    setError("Local clip generation needs the isolated local route. Reload this page and try again.");
+                    return;
+                }
+                const result = await localClipExport.runExport({
+                    session: workflow.activeSession,
+                    file: workflow.localSourceFile,
+                    annotations: annotationEditor.annotations,
+                    onAnnotationsChange: annotationEditor.setAnnotations,
+                });
+                if (result) {
+                    setExportResult(result);
+                    setNotice(result.failed > 0 ? "Export finished with failures." : "Review exported to practice and study queues.");
+                }
+                return;
+            }
+
             await saveReviewSession(workflow.activeSession.id);
-            if (workflow.selectedVideo?.sourceType === "youtube" || workflow.selectedVideo?.sourceType === "local_file") {
+            if (workflow.selectedVideo?.sourceType === "youtube") {
                 window.location.assign(`/replay-lab/export?sessionId=${encodeURIComponent(workflow.activeSession.id)}`);
                 return;
             }
@@ -148,17 +180,20 @@ export function ReplayLabReviewPage() {
         setExportResult(null);
     };
 
-    const canExport = Boolean(workflow.activeSession && annotationEditor.annotations.length > 0);
+    const isExporting = exporting || localClipExport.busy;
+    const canExport = Boolean(workflow.activeSession && annotationEditor.annotations.length > 0 && (routeMode !== "local" || workflow.localSourceFile));
+    const badgeLabel = routeMode === "local" ? "Local Review" : "Online Review";
 
     return (
         <PageShell
-            title="Replay Lab"
-            subtitle={workflow.isEditorOpen ? workflow.activeSession?.title ?? "Review editor" : "Choose one workflow. Local files stay in your browser; only short exported clips are uploaded."}
-            badgeLabel={workflow.workflowMode === "coaching" ? "Coaching Review" : workflow.workflowMode === "local" ? "Local Review" : "Review Replays"}
+            title={routeMode === "local" ? "Local Replay Lab" : "Online Replay Lab"}
+            badgeLabel={workflow.workflowMode ? badgeLabel : "Review Replays"}
         >
             <AppStack spacing={1.5}>
                 {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
+                {localClipExport.error ? <AppAlert severity="error" onClose={() => localClipExport.setError(null)}>{localClipExport.error}</AppAlert> : null}
                 {notice ? <AppAlert severity="success" onClose={() => setNotice(null)}>{notice}</AppAlert> : null}
+                {routeMode === "local" && !localClipExport.isIsolated ? <AppAlert severity="warning">Local clip generation is unavailable until this page is loaded with isolation headers.</AppAlert> : null}
                 {!workflow.isEditorOpen ? (
                     <ReplayReviewLauncher
                         limits={limits}
@@ -168,6 +203,7 @@ export function ReplayLabReviewPage() {
                         youtubeTitle={workflow.youtubeTitle}
                         loading={loading}
                         startingWorkflow={workflow.startingWorkflow}
+                        routeMode={routeMode}
                         onLocalSourceFileChange={workflow.setLocalSourceFile}
                         onYoutubeUrlChange={workflow.setYoutubeUrl}
                         onYoutubeTitleChange={workflow.setYoutubeTitle}
@@ -178,7 +214,6 @@ export function ReplayLabReviewPage() {
                     />
                 ) : (
                     <ReplayReviewWorkspace
-                        activeSession={workflow.activeSession}
                         selectedVideo={workflow.selectedVideo}
                         workflowMode={workflow.workflowMode}
                         playerLoading={workflow.playerLoading}
@@ -193,17 +228,15 @@ export function ReplayLabReviewPage() {
                         canSaveAnnotation={annotationEditor.canSaveAnnotation}
                         canExport={canExport}
                         loading={loading}
-                        exporting={exporting}
+                        exporting={isExporting}
                         eventKind={annotationEditor.eventKind}
                         category={annotationEditor.category}
                         annotationTitle={annotationEditor.annotationTitle}
-                        annotationNotes={annotationEditor.annotationNotes}
-                        annotationAnswer={annotationEditor.annotationAnswer}
-                        taskScheduleType={annotationEditor.taskScheduleType}
-                        taskOccurrences={annotationEditor.taskOccurrences}
-                        taskDueDate={annotationEditor.taskDueDate}
                         editingAnnotationId={annotationEditor.editingAnnotationId}
                         exportResult={exportResult}
+                        exportLogs={routeMode === "local" ? localClipExport.logs : []}
+                        exportProgress={routeMode === "local" ? localClipExport.progress : 0}
+                        exportStatusLabel={routeMode === "local" ? localClipExport.status : null}
                         shareLabel={coachSharing.shareLabel}
                         shareExpiresAt={coachSharing.shareExpiresAt}
                         sharePassword={coachSharing.sharePassword}
@@ -219,11 +252,6 @@ export function ReplayLabReviewPage() {
                         onEventKindChange={annotationEditor.handleEventKindChange}
                         onCategoryChange={annotationEditor.setCategory}
                         onAnnotationTitleChange={annotationEditor.setAnnotationTitle}
-                        onAnnotationNotesChange={annotationEditor.setAnnotationNotes}
-                        onAnnotationAnswerChange={annotationEditor.setAnnotationAnswer}
-                        onTaskScheduleTypeChange={annotationEditor.setTaskScheduleType}
-                        onTaskOccurrencesChange={annotationEditor.setTaskOccurrences}
-                        onTaskDueDateChange={annotationEditor.setTaskDueDate}
                         onSubmitAnnotation={() => void annotationEditor.submitAnnotation()}
                         onClearSelection={annotationEditor.clearSelection}
                         onResetAnnotationForm={annotationEditor.resetAnnotationForm}

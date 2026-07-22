@@ -28,6 +28,12 @@ function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+export function buildApiUrl(path) {
+    const normalizedPath = String(path).replace(/^\/+/, "");
+
+    return new URL(normalizedPath, API_BASE_URL.endsWith("/") ? API_BASE_URL : `${API_BASE_URL}/`).toString();
+}
+
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {"Content-Type": "application/json"},

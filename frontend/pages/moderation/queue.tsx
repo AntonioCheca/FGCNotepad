@@ -124,7 +124,7 @@ interface QueueFiltersCardProps {
 
 function QueueFiltersCard({contentFilter, stateFilter, sortFilter, loadingQueue, onContentFilterChange, onStateFilterChange, onSortFilterChange, onRefresh}: QueueFiltersCardProps) {
     return (
-        <SectionCard title="Queue Filters" description="Narrow by content type, moderation state, and ordering." variant="review" tone="raised">
+        <SectionCard title="Queue Filters" variant="review" tone="raised">
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "repeat(4, minmax(0, 1fr))"}, gap: 1.1}}>
                 <AppFormControl size="small" fullWidth>
                     <AppInputLabel id="moderation-content-filter-label">Content Type</AppInputLabel>
@@ -171,7 +171,7 @@ interface QueueSectionProps {
 
 function QueueSection({items, loadingQueue, activeReasonRowKey, activeReasonAction, reasonDraftByRowKey, rowErrorByKey, pendingByKey, onDecision, onOpenReason, onCancelReason, onReasonDraftChange}: QueueSectionProps) {
     return (
-        <SectionCard title="Queue" description="Approve to publish, reject/hide with a reason to keep moderation audit clarity." variant="review">
+        <SectionCard title="Queue" variant="review">
             {loadingQueue ? (
                 <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}><AppCircularProgress/></AppBox>
             ) : items.length === 0 ? (
@@ -403,7 +403,6 @@ export default function ModerationQueuePage() {
         <AppContainer maxWidth={false}>
             <PageShell
                 title="Moderation Queue"
-                subtitle="Process pending and flagged content quickly. Decisions apply immediately and keep the queue synchronized."
                 badgeLabel={`Visible items: ${items.length}`}
             >
                 <QueueFiltersCard

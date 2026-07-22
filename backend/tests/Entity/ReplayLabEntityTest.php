@@ -88,7 +88,7 @@ final class ReplayLabEntityTest extends TestCase
             ->setUser($user)
             ->setSourceAnnotation($annotation)
             ->setClip($clip)
-            ->setPrompt('What is happening in this clip?')
+            ->setPrompt('What is this clip?')
             ->setCorrectAnswer('Reactable gap')
             ->setCategory('reactable_gap');
 

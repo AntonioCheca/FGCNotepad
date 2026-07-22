@@ -154,7 +154,11 @@ final class ReplayAnnotationController extends AbstractController
         }
 
         $durationMs = $this->requireFormInt($request, 'durationMs');
-        $clip = $this->clipIngestService->ingest($actor, $annotation, $file, $durationMs);
+        try {
+            $clip = $this->clipIngestService->ingest($actor, $annotation, $file, $durationMs);
+        } catch (BadRequestHttpException $exception) {
+            return new JsonResponse(['message' => $exception->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
         return new JsonResponse($this->responseBuilder->clip($clip), JsonResponse::HTTP_CREATED);
     }

@@ -20,7 +20,7 @@ interface ReplaySavedAnnotationsProps {
 
 export function ReplaySavedAnnotations({annotations, exportResult, onSeek, onEditAnnotation, onRemoveAnnotation}: ReplaySavedAnnotationsProps) {
     return (
-        <SectionCard title="Saved" description={`${annotations.length} marked clips.`} tone="sunken" variant="finalize">
+        <SectionCard title="Saved" tone="sunken" variant="finalize">
             <AppStack spacing={0.75}>
                 {exportResult ? <AppAlert severity={exportResult.failed > 0 ? "warning" : "success"}>Export summary: {exportResult.clipsCreated} clips, {exportResult.tasksCreated} tasks, {exportResult.studyCardsCreated} cards, {exportResult.failed} failed.</AppAlert> : null}
                 {annotations.length === 0 ? <AppTypography color="text.secondary">No annotations yet.</AppTypography> : null}

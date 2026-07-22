@@ -26,7 +26,7 @@ interface ReplayCoachLinkPanelProps {
 
 export function ReplayCoachLinkPanel({shareLabel, shareExpiresAt, sharePassword, sharedReviewUrl, createdShareLink, shareLinks, loading, onShareLabelChange, onShareExpiresAtChange, onSharePasswordChange, onGenerateShareLink, onRevokeCoachLink}: ReplayCoachLinkPanelProps) {
     return (
-        <SectionCard title="Coach link" description="Optional. Share this review with a coach after the YouTube video is loaded." tone="sunken" variant="finalize">
+        <SectionCard title="Coach Link" tone="sunken" variant="finalize">
             <AppStack spacing={1}>
                 <AppStack direction={{xs: "column", md: "row"}} spacing={1} alignItems={{xs: "stretch", md: "center"}}>
                     <AppTextField label="Label" value={shareLabel} onChange={(event) => onShareLabelChange(event.target.value)} sx={{maxWidth: {md: 240}}} />

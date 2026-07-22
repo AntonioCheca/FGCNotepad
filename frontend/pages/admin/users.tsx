@@ -82,7 +82,6 @@ function AdminControls({size, loadingUsers, onSizeChange, onRefresh}: AdminContr
     return (
         <SectionCard
             title="Admin Controls"
-            description="Role updates and deactivations are applied directly through the admin API."
             variant="review"
             tone="raised"
         >
@@ -474,7 +473,6 @@ export default function AdminUsersPage() {
         <AppContainer maxWidth={false}>
             <PageShell
                 title="User Management"
-                subtitle="Manage account roles and deactivate users with explicit safety checks."
                 badgeLabel={`Total users: ${total}`}
             >
                 <AdminControls

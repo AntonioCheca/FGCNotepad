@@ -9,10 +9,7 @@ export default function CreateComboPage() {
 
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
-            <PageShell
-                title="Create Combo"
-                subtitle="Rapid parser verification flow: paste notation, confirm route, fix small mismatches, and submit fast."
-            >
+            <PageShell title="Create Combo">
                 {createdCount > 0 ? (
                     <InlineNotice severity="success">
                         Combo saved. You can keep building and submit another sequence.

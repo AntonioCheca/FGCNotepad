@@ -19,6 +19,8 @@ import {
     type StudyReviewRating,
 } from "@/src/types/replayLab";
 
+const STUDY_CARD_PROMPT = "What is this clip?";
+
 function humanizeCategory(category: string): string {
     return category.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -90,13 +92,11 @@ export function ReplayLabStudyDeckPage() {
     return (
         <PageShell
             title="Study Deck"
-            subtitle="Review due replay cards with permanent clips and the simple Again/Good scheduler."
             badgeLabel="Replay Lab"
         >
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "1.08fr 0.92fr"}, gap: 1.5}}>
                 <SectionCard
                     title="Due card"
-                    description="Identify the situation in the clip, then grade the review. The correct answer appears after submitting."
                     tone="raised"
                     variant="review"
                 >
@@ -112,8 +112,8 @@ export function ReplayLabStudyDeckPage() {
                         ) : null}
                         {activeCard ? (
                             <>
-                                <ReplayClipPlayer clip={activeCard.clip} title={activeCard.prompt} />
-                                <AppTypography variant="h6">{activeCard.prompt}</AppTypography>
+                                <ReplayClipPlayer clip={activeCard.clip} title={STUDY_CARD_PROMPT} />
+                                <AppTypography variant="h6">{STUDY_CARD_PROMPT}</AppTypography>
                                 <AppTypography variant="body2" color="text.secondary">
                                     Due {formatUtcDateTime(activeCard.dueAt)} · interval {activeCard.intervalDays}d · reps {activeCard.repetitionCount} · lapses {activeCard.lapseCount}
                                 </AppTypography>
@@ -132,7 +132,7 @@ export function ReplayLabStudyDeckPage() {
                                 </AppBox>
                                 {reviewResult ? (
                                     <AppAlert severity={reviewResult.review.wasCorrect ? "success" : "warning"}>
-                                        You chose {selectedAnswer ? humanizeCategory(selectedAnswer) : "nothing"}. Correct answer: {reviewResult.card.correctAnswer}. Next due: {formatUtcDateTime(reviewResult.review.nextDueAt)}.
+                                        You chose {selectedAnswer ? humanizeCategory(selectedAnswer) : "nothing"}. Correct answer: {humanizeCategory(reviewResult.card.category)}. Next due: {formatUtcDateTime(reviewResult.review.nextDueAt)}.
                                     </AppAlert>
                                 ) : null}
                                 <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -159,7 +159,6 @@ export function ReplayLabStudyDeckPage() {
 
                 <SectionCard
                     title="Queue status"
-                    description="Only due cards are loaded. Future cards stay hidden until their scheduled time."
                     tone="sunken"
                     variant="finalize"
                 >
@@ -181,7 +180,7 @@ export function ReplayLabStudyDeckPage() {
                                     backgroundColor: theme.fgc.surface.base,
                                 })}
                             >
-                                <AppTypography variant="subtitle2">{card.prompt}</AppTypography>
+                                <AppTypography variant="subtitle2">{STUDY_CARD_PROMPT}</AppTypography>
                                 <AppTypography variant="caption" color="text.secondary">{humanizeCategory(card.category)} · due {formatUtcDateTime(card.dueAt)}</AppTypography>
                             </AppBox>
                         ))}

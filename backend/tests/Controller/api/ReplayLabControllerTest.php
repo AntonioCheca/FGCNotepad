@@ -516,6 +516,29 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         }
     }
 
+    public function testInvalidBrowserClipUploadReturnsUploadFailureReason(): void
+    {
+        $sessionId = $this->createReplaySessionAndReturnId();
+        $annotationId = $this->createAnnotation($sessionId, ReplayAnnotation::EVENT_KIND_MEMORY, 'frame_trap', 'Invalid browser clip');
+        $clipPath = tempnam(sys_get_temp_dir(), 'fgc-browser-clip-invalid-');
+        self::assertIsString($clipPath);
+        file_put_contents($clipPath, 'clip-bytes');
+
+        try {
+            $this->client->request('POST', sprintf('/api/replay-annotations/%s/clip', $annotationId), ['durationMs' => '3500'], [
+                'clip' => new UploadedFile($clipPath, 'browser-clip.mp4', 'video/mp4', UPLOAD_ERR_CANT_WRITE, true),
+            ], $this->getHeaders());
+
+            self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+            $payload = $this->decodeResponsePayload();
+            self::assertStringContainsString('Clip upload failed:', (string) ($payload['message'] ?? ''));
+        } finally {
+            if (is_file($clipPath)) {
+                unlink($clipPath);
+            }
+        }
+    }
+
     public function testTaskScheduleMetadataExportsToPracticeTask(): void
     {
         $sessionId = $this->createReplaySessionAndReturnId();
@@ -585,7 +608,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         $cards = $this->decodeResponsePayload();
         $matchedCard = null;
         foreach ($cards as $card) {
-            if (is_array($card) && 'Remember deleted source' === ($card['prompt'] ?? null)) {
+            if (is_array($card) && 'What is this clip?' === ($card['prompt'] ?? null) && 'frame_trap' === ($card['category'] ?? null)) {
                 $matchedCard = $card;
                 break;
             }
@@ -707,6 +730,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         $tasks = $this->decodeResponsePayload();
         self::assertCount(1, $tasks);
         self::assertSame('Drill anti-air', $tasks[0]['title'] ?? null);
+        self::assertSame('', $tasks[0]['description'] ?? null);
         self::assertNotNull($tasks[0]['clip'] ?? null);
 
         $this->client->request('POST', sprintf('/api/practice-tasks/%s/complete', $tasks[0]['id']), [], [], $this->getHeaders());
@@ -729,7 +753,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
         $cards = $this->decodeResponsePayload();
         self::assertCount(1, $cards);
-        self::assertSame('Remember the trap', $cards[0]['prompt'] ?? null);
+        self::assertSame('What is this clip?', $cards[0]['prompt'] ?? null);
         self::assertArrayNotHasKey('correctAnswer', $cards[0]);
 
         $this->client->request('POST', sprintf('/api/study/cards/%s/review', $cards[0]['id']), [], [], $this->jsonHeaders(), json_encode([
@@ -743,6 +767,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         self::assertSame(1, $review['card']['intervalDays'] ?? null);
         self::assertSame(1, $review['card']['repetitionCount'] ?? null);
         self::assertArrayHasKey('correctAnswer', $review['card']);
+        self::assertSame('Frame Trap', $review['card']['correctAnswer'] ?? null);
     }
 
     private function uploadReplayVideo(): void

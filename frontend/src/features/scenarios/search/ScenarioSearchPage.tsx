@@ -87,7 +87,6 @@ export default function ScenarioSearchPage() {
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell
                 title="Search Scenarios"
-                subtitle="Fast matchup retrieval: lock attacker and trigger move, refine scenario context, and keep reviewing results while filters update."
                 badgeLabel={`${items.length} result${items.length === 1 ? "" : "s"}`}
             >
                 {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}

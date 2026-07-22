@@ -62,7 +62,6 @@ export function ParserVerificationSection({
     return (
         <SectionCard
             title="Parser Verification"
-            description="Confirm parser output quickly. Select a node to edit move, connection, and timing."
             tone="raised"
             variant="review"
         >

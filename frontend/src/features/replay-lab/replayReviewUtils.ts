@@ -21,7 +21,10 @@ export function formatBytes(bytes: number): string {
 
 export function getReplayLabErrorMessage(error: unknown): string {
     if (typeof error === "object" && error !== null && "response" in error) {
-        const response = (error as {response?: {data?: {message?: unknown}; status?: number}}).response;
+        const response = (error as {response?: {data?: {error?: unknown; message?: unknown}; status?: number}}).response;
+        if (typeof response?.data?.error === "string") {
+            return response.data.error;
+        }
         if (typeof response?.data?.message === "string") {
             return response.data.message;
         }

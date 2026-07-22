@@ -34,7 +34,7 @@ export function ScenarioPrimaryFiltersSection({
     onDefenderChange,
 }: ScenarioPrimaryFiltersSectionProps) {
     return (
-        <SectionCard title="Primary Filters" description="Set attacker first, then trigger move. Scenario results refresh automatically." tone="raised" variant="input">
+        <SectionCard title="Primary Filters" tone="raised" variant="input">
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(250px, 1fr) minmax(320px, 1.3fr) minmax(250px, 1fr)"}, gap: 1}}>
                 <AppAutocomplete<ScenarioCharacterOption, false, false, false>
                     options={characterOptions}

@@ -10,10 +10,19 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/replay-lab/export",
+        source: "/replay-lab/:path(local|export)",
         headers: [
           {key: "Cross-Origin-Opener-Policy", value: "same-origin"},
           {key: "Cross-Origin-Embedder-Policy", value: "require-corp"},
+        ],
+      },
+      {
+        source: "/ffmpeg-core/:path*",
+        headers: [
+          {key: "Cross-Origin-Opener-Policy", value: "same-origin"},
+          {key: "Cross-Origin-Embedder-Policy", value: "require-corp"},
+          {key: "Cross-Origin-Resource-Policy", value: "same-origin"},
+          {key: "Cache-Control", value: "public, max-age=31536000, immutable"},
         ],
       },
     ];

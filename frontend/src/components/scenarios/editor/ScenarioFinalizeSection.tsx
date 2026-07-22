@@ -13,7 +13,7 @@ interface ScenarioFinalizeSectionProps {
 
 export function ScenarioFinalizeSection({canSubmit, submitting, submitLabel, onSubmit}: ScenarioFinalizeSectionProps) {
     return (
-        <SectionCard title="Finalize" description="Submit one primary action once setup and matrix are valid." tone="default" variant="finalize">
+        <SectionCard title="Finalize" tone="default" variant="finalize">
             <AppBox sx={{display: "flex", gap: 0.6, alignItems: "center", flexWrap: "wrap"}}>
                 <CheckCircleOutlineIcon fontSize="small" color={canSubmit ? "success" : "disabled"} />
                 <AppTypography variant="body2" color="text.secondary">

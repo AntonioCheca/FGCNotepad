@@ -8,8 +8,12 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "postinstall": "node scripts/copy-ffmpeg-core.mjs",
+    "predev": "node scripts/copy-ffmpeg-core.mjs",
     "dev": "next dev --turbopack",
+    "predev:turbo": "node scripts/copy-ffmpeg-core.mjs",
     "dev:turbo": "next dev --turbopack",
+    "prebuild": "node scripts/copy-ffmpeg-core.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint \"app/**/*.{js,jsx,ts,tsx}\" \"pages/**/*.{js,jsx,ts,tsx}\" \"src/**/*.{js,jsx,ts,tsx}\" \"hooks/**/*.{js,jsx,ts,tsx}\" \"services/**/*.{js,jsx,ts,tsx}\" \"styles/**/*.{js,jsx,ts,tsx}\" \"*.config.{js,mjs,ts}\" --no-error-on-unmatched-pattern",
@@ -22,6 +26,7 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@ffmpeg/core": "^0.12.9",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@hookform/resolvers": "^4.1.2",
     "@mui/icons-material": "^6.4.5",

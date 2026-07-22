@@ -57,7 +57,6 @@ export default function SearchCombosPage() {
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell
                 title="Search Combos"
-                subtitle="High-speed lookup flow: lock character, refine opener and constraints, and browse viable routes immediately."
                 badgeLabel={`${combos.length} result${combos.length === 1 ? "" : "s"}`}
             >
                 {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}

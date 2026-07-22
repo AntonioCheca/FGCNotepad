@@ -1,30 +1,37 @@
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 
 export default function usePersistentState<T>(
     key: string,
     initial: T,
     ignoreNullInitial = false
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState<T>(() => {
-        if (typeof window === "undefined") {
-            return initial;
-        }
+    const initialRef = useRef(initial);
+    const [state, setState] = useState<T>(initial);
+    const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
 
-        try {
-            const saved = localStorage.getItem(key);
-            return saved ? JSON.parse(saved) as T : initial;
-        } catch {
-            return initial;
-        }
-    });
+    initialRef.current = initial;
 
     useEffect(() => {
-        if (ignoreNullInitial && state === null) return; // skip saving null defaults
+        try {
+            const saved = localStorage.getItem(key);
+            setState(saved ? JSON.parse(saved) as T : initialRef.current);
+        } catch {
+            setState(initialRef.current);
+        } finally {
+            setLoadedStorageKey(key);
+        }
+    }, [key]);
+
+    useEffect(() => {
+        if (loadedStorageKey !== key || (ignoreNullInitial && state === null)) {
+            return;
+        }
+
         try {
             localStorage.setItem(key, JSON.stringify(state));
         } catch {
         }
-    }, [key, state, ignoreNullInitial]);
+    }, [key, loadedStorageKey, state, ignoreNullInitial]);
 
     return [state, setState];
 }

@@ -51,7 +51,6 @@ export function ScenarioSetupSection({
     return (
         <SectionCard
             title="Scenario Setup"
-            description="Lock attacker and trigger first, then complete defender and type context."
             tone="default"
             variant="input"
         >

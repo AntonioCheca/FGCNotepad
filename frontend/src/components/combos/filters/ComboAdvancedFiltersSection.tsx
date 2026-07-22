@@ -36,7 +36,7 @@ export function ComboAdvancedFiltersSection({
     onMaxDamageChange,
 }: ComboAdvancedFiltersSectionProps) {
     return (
-        <SectionCard title="Execution and Damage" description="Optional range and move composition tuning." tone="default" variant="review">
+        <SectionCard title="Execution and Damage" tone="default" variant="review">
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(180px, 0.8fr) minmax(240px, 1.2fr) repeat(4, minmax(120px, 1fr))"}, gap: 1}}>
                 <AppTextField select label="Sort" size="small" value={sort} onChange={(event) => onSortChange(event.target.value as ComboSortMode)}>
                     <AppMenuItem value="resourceAdjustedDamage">Resource-adjusted</AppMenuItem>

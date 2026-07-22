@@ -59,8 +59,6 @@ interface AnnotationDraftState {
     eventKind: ReplayAnnotationEventKind;
     category: ReplayAnnotationCategory;
     title: string;
-    notes: string;
-    answer: string;
 }
 
 type AnnotationDraftAction =
@@ -70,8 +68,6 @@ type AnnotationDraftAction =
     | {type: "setEventKind"; eventKind: ReplayAnnotationEventKind}
     | {type: "setCategory"; category: ReplayAnnotationCategory}
     | {type: "setTitle"; title: string}
-    | {type: "setNotes"; notes: string}
-    | {type: "setAnswer"; answer: string}
     | {type: "resetAfterSubmit"};
 
 const INITIAL_ANNOTATION_DRAFT: AnnotationDraftState = {
@@ -80,8 +76,6 @@ const INITIAL_ANNOTATION_DRAFT: AnnotationDraftState = {
     eventKind: "memory",
     category: defaultCategory("memory"),
     title: "",
-    notes: "",
-    answer: "",
 };
 
 function annotationDraftReducer(state: AnnotationDraftState, action: AnnotationDraftAction): AnnotationDraftState {
@@ -98,12 +92,8 @@ function annotationDraftReducer(state: AnnotationDraftState, action: AnnotationD
             return {...state, category: action.category};
         case "setTitle":
             return {...state, title: action.title};
-        case "setNotes":
-            return {...state, notes: action.notes};
-        case "setAnswer":
-            return {...state, answer: action.answer};
         case "resetAfterSubmit":
-            return {...state, clipStartMs: null, clipEndMs: null, title: "", notes: "", answer: ""};
+            return {...state, clipStartMs: null, clipEndMs: null, title: ""};
     }
 }
 
@@ -120,7 +110,7 @@ export function ReplayLabSharedReviewPage() {
     const [sharedPassword, setSharedPassword] = React.useState("");
     const [error, setError] = React.useState<string | null>(null);
     const [notice, setNotice] = React.useState<string | null>(null);
-    const {clipStartMs, clipEndMs, eventKind, category, title, notes, answer} = annotationDraft;
+    const {clipStartMs, clipEndMs, eventKind, category, title} = annotationDraft;
 
     const loadSharedReview = React.useCallback(async (password?: string | null) => {
         if (!token) {
@@ -179,9 +169,9 @@ export function ReplayLabSharedReviewPage() {
                 endFrame: Math.round((clipEndMs / 1000) * (review?.session.video?.fps ?? 60)),
                 eventKind,
                 category,
-                title,
-                notes,
-                answer: eventKind === "memory" ? answer : null,
+                title: eventKind === "task" ? title : "",
+                notes: null,
+                answer: null,
             }, sharedPassword);
             const payload = await getSharedReview(token, sharedPassword);
             setReview(payload);
@@ -199,13 +189,12 @@ export function ReplayLabSharedReviewPage() {
     return (
         <PageShell
             title="Shared Replay Review"
-            subtitle="Review the owner’s replay, inspect existing notes, and propose annotations. Only the owner can export tasks or study cards."
+            subtitle="Review the owner’s replay and propose clip tags. Only the owner can export tasks or study cards."
             badgeLabel="Coach Link"
         >
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "1.1fr 0.9fr"}, gap: 1.5}}>
                 <SectionCard
                     title={review?.session.title ?? "Loading shared review"}
-                    description="Use timestamp controls to mark situations for the replay owner."
                     tone="raised"
                     variant="review"
                 >
@@ -263,17 +252,15 @@ export function ReplayLabSharedReviewPage() {
                         {review?.access.canAnnotate ? (
                             <AppBox sx={{display: "grid", gap: 1}}>
                                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "160px 1fr"}, gap: 1}}>
-                                    <AppTextField select label="Type" value={eventKind} onChange={(event) => handleEventKindChange(event.target.value as ReplayAnnotationEventKind)}>
-                                        <AppMenuItem value="memory">Memory</AppMenuItem>
+                                    <AppTextField select label="Clip kind" value={eventKind} onChange={(event) => handleEventKindChange(event.target.value as ReplayAnnotationEventKind)}>
+                                        <AppMenuItem value="memory">Memory Flashcard</AppMenuItem>
                                         <AppMenuItem value="task">Task</AppMenuItem>
                                     </AppTextField>
-                                    <AppTextField select label="Category" value={category} onChange={(event) => dispatchAnnotationDraft({type: "setCategory", category: event.target.value as ReplayAnnotationCategory})}>
+                                    <AppTextField select label={eventKind === "memory" ? "Flashcard answer" : "Task type"} value={category} onChange={(event) => dispatchAnnotationDraft({type: "setCategory", category: event.target.value as ReplayAnnotationCategory})}>
                                         {categoriesFor(eventKind).map((item) => <AppMenuItem key={item} value={item}>{humanizeCategory(item)}</AppMenuItem>)}
                                     </AppTextField>
                                 </AppBox>
-                                <AppTextField label="Title" value={title} onChange={(event) => dispatchAnnotationDraft({type: "setTitle", title: event.target.value})} />
-                                <AppTextField label="Notes" value={notes} onChange={(event) => dispatchAnnotationDraft({type: "setNotes", notes: event.target.value})} multiline minRows={2} />
-                                {eventKind === "memory" ? <AppTextField label="Correct answer" value={answer} onChange={(event) => dispatchAnnotationDraft({type: "setAnswer", answer: event.target.value})} /> : null}
+                                {eventKind === "task" ? <AppTextField label="Task title" value={title} onChange={(event) => dispatchAnnotationDraft({type: "setTitle", title: event.target.value})} /> : null}
                                 <AppButton type="button" disabled={!canSaveAnnotation || loading} onClick={() => void submitAnnotation()}>
                                     Save Proposal
                                 </AppButton>
@@ -284,7 +271,6 @@ export function ReplayLabSharedReviewPage() {
 
                 <SectionCard
                     title="Existing annotations"
-                    description="Visible notes help coaches avoid duplicating existing owner or coach work."
                     tone="sunken"
                     variant="finalize"
                 >
@@ -309,7 +295,6 @@ export function ReplayLabSharedReviewPage() {
                                     <AppChip size="small" variant="outlined" label={humanizeCategory(annotation.category)} />
                                 </AppStack>
                                 <AppTypography variant="subtitle2">{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
-                                {annotation.notes ? <AppTypography variant="body2" color="text.secondary">{annotation.notes}</AppTypography> : null}
                                 <AppButton type="button" variant="outlined" size="small" onClick={() => setSeekCommand({id: Date.now(), timeMs: annotation.startTimeMs})}>Go To Clip</AppButton>
                             </AppBox>
                         ))}

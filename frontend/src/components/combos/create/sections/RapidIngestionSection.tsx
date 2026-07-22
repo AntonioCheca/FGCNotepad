@@ -29,7 +29,6 @@ export function RapidIngestionSection({
     return (
         <SectionCard
             title="Rapid Combo Ingestion"
-            description="Paste notation, select character, then prefill recognized moves into editable step units."
             tone="default"
             variant="input"
         >

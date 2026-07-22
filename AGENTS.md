@@ -136,6 +136,14 @@ This project uses a tactical editorial visual system anchored to two separate ar
 - Constrain field widths by expected input size (for example short title/damage fields should not span full-width containers on desktop).
 - Prefer compact section spacing and avoid oversized "giant card" treatments for routine form sections.
 
+### Copy density and redundancy
+
+- Prefer one clear title per screen or section; do not add subtitles by default.
+- Remove helper text that restates visible controls, counts, filenames, selected values, button labels, or obvious page purpose.
+- Keep explanatory copy only when it changes user behavior: warnings, privacy/security constraints, destructive actions, validation, permissions, loading/error/empty states, or non-obvious workflow requirements.
+- Avoid repeating the same entity name in page title, section title, card title, and row title; show it once in the highest-value location.
+- When copy is needed, make it short and specific rather than instructional marketing text.
+
 ### Feedback, error, and success rules
 
 - Prefer inline or toast feedback; avoid blocking native dialogs for routine form flows.

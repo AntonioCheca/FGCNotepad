@@ -10,7 +10,7 @@ interface ComboRequirementsFiltersSectionProps {
 
 export function ComboRequirementsFiltersSection({requirements, onRequirementToggle}: ComboRequirementsFiltersSectionProps) {
     return (
-        <SectionCard title="Requirements" description="Lower-priority context filters for niche scenarios and routing checks." tone="sunken" variant="default">
+        <SectionCard title="Requirements" tone="sunken" variant="default">
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 0.75}}>
                 <ToggleRow label="Essential" checked={requirements.isEssential} onChange={(checked) => onRequirementToggle("isEssential", checked)} />
                 <ToggleRow label="Counter hit required" checked={requirements.counterHitRequired} onChange={(checked) => onRequirementToggle("counterHitRequired", checked)} />

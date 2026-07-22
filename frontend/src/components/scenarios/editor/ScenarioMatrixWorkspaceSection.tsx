@@ -40,7 +40,6 @@ export function ScenarioMatrixWorkspaceSection({
     return (
         <SectionCard
             title="Matrix Workspace"
-            description="Keep existing matrix flow; tune outcomes and dynamic combo cells with the refreshed tactical palette."
             tone="raised"
             variant="review"
         >

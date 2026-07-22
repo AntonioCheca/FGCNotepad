@@ -1,5 +1,5 @@
 import React from "react";
-import {useReplayLab} from "@/hooks/useReplayLab";
+import {buildApiUrl} from "@/services/api";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
@@ -23,57 +23,14 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function ReplayClipPlayer({clip, title}: ReplayClipPlayerProps) {
-    const {fetchClipPlaybackBlob} = useReplayLab();
-    const [objectUrl, setObjectUrl] = React.useState<string | null>(null);
-    const [loading, setLoading] = React.useState(false);
+    const playbackUrl = clip ? buildApiUrl(`/replay-clips/${clip.id}/playback`) : null;
+    const [loading, setLoading] = React.useState(Boolean(clip));
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        let cancelled = false;
         setError(null);
-        setObjectUrl((current) => {
-            if (current) {
-                URL.revokeObjectURL(current);
-            }
-            return null;
-        });
-
-        if (!clip) {
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        setLoading(true);
-        void fetchClipPlaybackBlob(clip.id)
-            .then((blob) => {
-                if (!cancelled) {
-                    setObjectUrl(URL.createObjectURL(blob));
-                }
-            })
-            .catch((caughtError: unknown) => {
-                if (!cancelled) {
-                    setError(getErrorMessage(caughtError));
-                }
-            })
-            .finally(() => {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [clip, fetchClipPlaybackBlob]);
-
-    React.useEffect(() => {
-        return () => {
-            if (objectUrl) {
-                URL.revokeObjectURL(objectUrl);
-            }
-        };
-    }, [objectUrl]);
+        setLoading(Boolean(clip));
+    }, [clip]);
 
     return (
         <AppBox
@@ -91,12 +48,19 @@ export function ReplayClipPlayer({clip, title}: ReplayClipPlayerProps) {
             {!clip ? <AppTypography color="text.secondary">No exported clip attached.</AppTypography> : null}
             {loading ? <AppCircularProgress size={24} /> : null}
             {error ? <AppAlert severity="warning" sx={{m: 1}}>{error}</AppAlert> : null}
-            {objectUrl ? (
+            {playbackUrl ? (
                 <video
-                    src={objectUrl}
+                    src={playbackUrl}
                     controls
+                    preload="metadata"
                     playsInline
                     aria-label={title}
+                    onCanPlay={() => setLoading(false)}
+                    onLoadedMetadata={() => setLoading(false)}
+                    onError={() => {
+                        setLoading(false);
+                        setError(getErrorMessage(new Error("Clip playback failed.")));
+                    }}
                     style={{width: "100%", maxHeight: 360, display: "block", backgroundColor: "black"}}
                 />
             ) : null}

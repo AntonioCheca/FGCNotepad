@@ -34,7 +34,7 @@ export function ComboPrimaryFiltersSection({
     onQueryChange,
 }: ComboPrimaryFiltersSectionProps) {
     return (
-        <SectionCard title="Primary Filters" description="Set character first, then opener. Results refresh automatically." tone="raised" variant="input">
+        <SectionCard title="Primary Filters" tone="raised" variant="input">
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(260px, 1fr) minmax(320px, 1.3fr) minmax(220px, 0.9fr)"}, gap: 1}}>
                 <AppAutocomplete<ComboCharacterOption, false, false, false>
                     options={characterOptions}

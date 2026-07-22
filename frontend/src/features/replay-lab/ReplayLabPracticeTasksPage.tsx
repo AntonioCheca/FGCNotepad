@@ -75,13 +75,11 @@ export function ReplayLabPracticeTasksPage() {
     return (
         <PageShell
             title="Practice Tasks"
-            subtitle="Run execution drills generated from replay annotations. Pending tasks remain visible until completed or dismissed."
             badgeLabel="Replay Lab"
         >
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "0.92fr 1.08fr"}, gap: 1.5}}>
                 <SectionCard
                     title="Pending drills"
-                    description="Tasks stay pending until completed or dismissed, even if a due date has passed."
                     tone="raised"
                     variant="review"
                 >
@@ -126,7 +124,6 @@ export function ReplayLabPracticeTasksPage() {
                                         <AppChip size="small" variant="outlined" label={`${task.completedOccurrences}/${task.completedOccurrences + task.remainingOccurrences} done`} />
                                     </AppStack>
                                     <AppTypography variant="subtitle1" sx={{fontWeight: 650}}>{task.title}</AppTypography>
-                                    <AppTypography variant="body2" color="text.secondary">{task.description}</AppTypography>
                                     <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                                         <AppButton type="button" variant={isSelected ? "contained" : "outlined"} onClick={() => setSelectedTaskId(task.id)}>Open</AppButton>
                                         <AppButton type="button" variant="outlined" onClick={() => void completeTask(task)} disabled={loading || task.status !== "pending"}>Complete</AppButton>
@@ -140,7 +137,6 @@ export function ReplayLabPracticeTasksPage() {
 
                 <SectionCard
                     title="Drill clip"
-                    description="Watch the permanent clip, perform the drill, then complete or dismiss the task."
                     tone="sunken"
                     variant="finalize"
                 >
@@ -150,7 +146,6 @@ export function ReplayLabPracticeTasksPage() {
                                 <ReplayClipPlayer clip={selectedTask.clip} title={selectedTask.title} />
                                 <AppBox sx={{display: "grid", gap: 0.45}}>
                                     <AppTypography variant="h6">{selectedTask.title}</AppTypography>
-                                    <AppTypography color="text.secondary">{selectedTask.description}</AppTypography>
                                     <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                                         <AppChip size="small" label={humanizeCategory(selectedTask.category)} />
                                         <AppChip size="small" variant="outlined" label={`Schedule: ${selectedTask.scheduleType.replace(/_/g, " ")}`} />

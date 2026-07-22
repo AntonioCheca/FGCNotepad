@@ -33,8 +33,8 @@ export function ExpectedValueRangeChart({expectedValue, histogram}: ExpectedValu
     const chartBody = !recharts ? (
         <div style={{height: 280, display: "grid", placeItems: "center", color: theme.fgc.text.secondary}}>Loading chart...</div>
     ) : (
-        <div style={{height: 280}}>
-            <recharts.ResponsiveContainer width="100%" height="100%">
+        <div style={{width: "100%", minWidth: 0, height: 280, minHeight: 0}}>
+            <recharts.ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <recharts.BarChart data={chartData} margin={{top: 20, right: 12, left: 2, bottom: 8}} barSize={26}>
                     <recharts.CartesianGrid stroke={theme.fgc.border.subtle} strokeDasharray="3 3" />
                     <recharts.XAxis
@@ -51,7 +51,7 @@ export function ExpectedValueRangeChart({expectedValue, histogram}: ExpectedValu
                         stroke={theme.fgc.feedback.info}
                         strokeWidth={2}
                         strokeDasharray="4 3"
-                        label={{value: "EV", position: "insideTop", fill: "#ffffff", fontSize: 13, fontWeight: 700, offset: 6}}
+                        label={{value: "EV", position: "insideTop", fill: theme.fgc.text.primary, fontSize: 13, fontWeight: 700, offset: 6}}
                     />
                     <recharts.Tooltip
                         contentStyle={{

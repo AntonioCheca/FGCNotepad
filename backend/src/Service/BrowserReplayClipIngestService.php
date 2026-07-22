@@ -42,7 +42,7 @@ final class BrowserReplayClipIngestService
         }
 
         if (!$file->isValid()) {
-            throw new BadRequestHttpException('Clip upload failed.');
+            throw new BadRequestHttpException(sprintf('Clip upload failed: %s', $file->getErrorMessage()));
         }
 
         $sizeBytes = $file->getSize();

@@ -1,5 +1,5 @@
-import {ReplayLabReviewPage} from "@/src/features/replay-lab/ReplayLabReviewPage";
+import {ReplayLabChooserPage} from "@/src/features/replay-lab/ReplayLabChooserPage";
 
 export default function ReplayLabIndexPage() {
-    return <ReplayLabReviewPage />;
+    return <ReplayLabChooserPage />;
 }

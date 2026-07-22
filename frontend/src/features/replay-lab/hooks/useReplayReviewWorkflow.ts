@@ -106,7 +106,7 @@ export function useReplayReviewWorkflow({
         setStartingWorkflow("local");
         try {
             const video = await createLocalFileVideo({filename: localSourceFile.name, sizeBytes: localSourceFile.size});
-            const session = await createReviewSession({videoId: video.id, title: `Local review - ${localSourceFile.name}`});
+            const session = await createReviewSession({videoId: video.id, title: localSourceFile.name});
             await openEditor(session, video, "local", localSourceFile);
             onNotice("Local review ready. The original file stays in your browser.");
             void refreshSessions().catch(() => undefined);

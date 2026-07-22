@@ -5,7 +5,7 @@ import {AppChip} from "@/src/components/ui/AppChip";
 
 interface PageShellProps {
     title: string;
-    subtitle: string;
+    subtitle?: string;
     badgeLabel?: string;
     children: React.ReactNode;
 }
@@ -16,7 +16,7 @@ export function PageShell({title, subtitle, badgeLabel, children}: PageShellProp
             <AppBox sx={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1.5, flexWrap: "wrap", pb: 1.35, borderBottom: "1px solid", borderColor: "divider"}}>
                 <AppBox sx={{display: "grid", gap: 0.45, maxWidth: 860}}>
                     <AppTypography variant="h3">{title}</AppTypography>
-                    <AppTypography variant="body1" color="text.secondary">{subtitle}</AppTypography>
+                    {subtitle ? <AppTypography variant="body1" color="text.secondary">{subtitle}</AppTypography> : null}
                 </AppBox>
                 {badgeLabel ? <AppChip variant="outlined" size="small" label={badgeLabel} /> : null}
             </AppBox>

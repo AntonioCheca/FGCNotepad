@@ -11,6 +11,8 @@ import {formatUtcDateTime} from "@/src/utils/formatDateTime";
 import {ReplayLabLimits, ReplayReviewSession} from "@/src/types/replayLab";
 import {formatBytes, WorkflowMode} from "../replayReviewUtils";
 
+type ReplayReviewRouteMode = "local" | "upload";
+
 interface ReplayReviewLauncherProps {
     limits: ReplayLabLimits | null;
     sessions: ReplayReviewSession[];
@@ -19,6 +21,7 @@ interface ReplayReviewLauncherProps {
     youtubeTitle: string;
     loading: boolean;
     startingWorkflow: WorkflowMode | null;
+    routeMode: ReplayReviewRouteMode;
     onLocalSourceFileChange: (file: File | null) => void;
     onYoutubeUrlChange: (value: string) => void;
     onYoutubeTitleChange: (value: string) => void;
@@ -36,6 +39,7 @@ export function ReplayReviewLauncher({
     youtubeTitle,
     loading,
     startingWorkflow,
+    routeMode,
     onLocalSourceFileChange,
     onYoutubeUrlChange,
     onYoutubeTitleChange,
@@ -44,9 +48,11 @@ export function ReplayReviewLauncher({
     onOpenReviewSession,
     onRemoveSession,
 }: ReplayReviewLauncherProps) {
+    const visibleSessions = sessions.filter((session) => routeMode === "local" ? session.video?.sourceType === "local_file" : session.video?.sourceType === "youtube");
+
     return (
         <AppBox sx={{display: "grid", gap: 1.5}}>
-            <SectionCard title="Choose source file" description="Required for both Local Review and Coaching Review." tone="raised" variant="input">
+            <SectionCard title="Source File" tone="raised" variant="input">
                 <AppStack spacing={1.1}>
                     {limits ? <AppAlert severity="info">Exports are limited to {limits.maxClipDurationSeconds}s clips. Original videos are not uploaded.</AppAlert> : null}
                     <AppStack direction={{xs: "column", sm: "row"}} spacing={1} alignItems={{xs: "stretch", sm: "center"}}>
@@ -62,30 +68,33 @@ export function ReplayReviewLauncher({
             </SectionCard>
 
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "1fr 1fr"}, gap: 1.5}}>
-                <SectionCard title="Local Review" description="Solo review from the selected local file." tone="raised" variant="review">
-                    <AppBox component="form" onSubmit={onStartLocalReview} sx={{display: "grid", gap: 1}}>
-                        <AppTypography color="text.secondary">Use this when you do not need a coach link. Playback and export both use the local source.</AppTypography>
-                        <AppButton type="submit" disabled={loading || !localSourceFile || startingWorkflow !== null}>
-                            {startingWorkflow === "local" ? "Opening..." : "Start Local Review"}
-                        </AppButton>
-                    </AppBox>
-                </SectionCard>
+                {routeMode === "local" ? (
+                    <SectionCard title="Local Review" tone="raised" variant="review">
+                        <AppBox component="form" onSubmit={onStartLocalReview} sx={{display: "grid", gap: 1}}>
+                            <AppButton type="submit" disabled={loading || !localSourceFile || startingWorkflow !== null}>
+                                {startingWorkflow === "local" ? "Opening..." : "Start Local Review"}
+                            </AppButton>
+                        </AppBox>
+                    </SectionCard>
+                ) : null}
 
-                <SectionCard title="Coaching Review" description="YouTube playback for review, local file for export." tone="raised" variant="input">
-                    <AppBox component="form" onSubmit={onStartYouTubeReview} sx={{display: "grid", gap: 1}}>
-                        <AppTextField label="YouTube URL or video ID" value={youtubeUrl} onChange={(event) => onYoutubeUrlChange(event.target.value)} />
-                        <AppTextField label="Review title" value={youtubeTitle} onChange={(event) => onYoutubeTitleChange(event.target.value)} placeholder="Optional" />
-                        <AppButton type="submit" disabled={loading || !localSourceFile || !youtubeUrl.trim() || startingWorkflow !== null}>
-                            {startingWorkflow === "coaching" ? "Opening..." : "Start Coaching Review"}
-                        </AppButton>
-                    </AppBox>
-                </SectionCard>
+                {routeMode === "upload" ? (
+                    <SectionCard title="Online Review" tone="raised" variant="input">
+                        <AppBox component="form" onSubmit={onStartYouTubeReview} sx={{display: "grid", gap: 1}}>
+                            <AppTextField label="YouTube URL or video ID" value={youtubeUrl} onChange={(event) => onYoutubeUrlChange(event.target.value)} />
+                            <AppTextField label="Review title" value={youtubeTitle} onChange={(event) => onYoutubeTitleChange(event.target.value)} placeholder="Optional" />
+                            <AppButton type="submit" disabled={loading || !localSourceFile || !youtubeUrl.trim() || startingWorkflow !== null}>
+                                {startingWorkflow === "coaching" ? "Opening..." : "Start Online Review"}
+                            </AppButton>
+                        </AppBox>
+                    </SectionCard>
+                ) : null}
             </AppBox>
 
-            <SectionCard title="Resume draft" description="For local-only drafts, select the matching local file before reopening." tone="sunken" variant="finalize">
+            <SectionCard title="Resume Draft" tone="sunken" variant="finalize">
                 <AppStack spacing={1}>
-                    {sessions.length === 0 ? <AppTypography color="text.secondary">No review drafts yet.</AppTypography> : null}
-                    {sessions.map((session) => {
+                    {visibleSessions.length === 0 ? <AppTypography color="text.secondary">No review drafts yet.</AppTypography> : null}
+                    {visibleSessions.map((session) => {
                         const video = session.video;
                         const label = video?.sourceType === "youtube" ? "Coaching" : video?.sourceType === "local_file" ? "Local" : "Legacy";
 

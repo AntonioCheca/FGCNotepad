@@ -86,6 +86,7 @@ export default function ReplayLabExportRoute() {
     const [progress, setProgress] = React.useState(0);
     const [result, setResult] = React.useState<ReplayAnnotationExportResult | null>(null);
     const [error, setError] = React.useState<string | null>(null);
+    const [isIsolated, setIsIsolated] = React.useState(false);
 
     React.useEffect(() => () => {
         const ffmpeg = ffmpegRef.current;
@@ -97,6 +98,10 @@ export default function ReplayLabExportRoute() {
         ffmpeg.terminate();
         ffmpegRef.current = null;
         ffmpegEventCleanupRef.current = null;
+    }, []);
+
+    React.useEffect(() => {
+        setIsIsolated(window.crossOriginIsolated);
     }, []);
 
     React.useEffect(() => {
@@ -220,22 +225,18 @@ export default function ReplayLabExportRoute() {
         }
     };
 
-    const isIsolated = typeof window !== "undefined" ? window.crossOriginIsolated : false;
     const selectedFileMismatch = Boolean(expectedFile && file && file.name !== expectedFile.filename);
 
     return (
         <PageShell
             title="Export Replay Clips"
-            subtitle="Use the local original file to generate exact short clips in-browser, then finalize practice tasks and study cards."
             badgeLabel="Replay Lab Export"
         >
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "0.9fr 1.1fr"}, gap: 1.5}}>
-                <SectionCard title="Local exact export" description="The full replay never uploads. Only short generated MP4 clips are sent to the backend." tone="raised" variant="input">
+                <SectionCard title="Source File" tone="raised" variant="input">
                     <AppStack spacing={1.1}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
                         {!isIsolated ? <AppAlert severity="warning">Browser export headers are not active. Restart the frontend dev server and open this page directly.</AppAlert> : null}
-                        <AppTypography variant="subtitle2">{session?.title ?? "No session loaded"}</AppTypography>
-                        <AppTypography color="text.secondary">{annotations.filter((annotation) => !annotation.exportedClip).length} clips ready to generate.</AppTypography>
                         {expectedFile ? (
                             <AppAlert severity="info">Expected source: {expectedFile.filename} ({formatBytes(expectedFile.sizeBytes)}). Re-select that same local file below.</AppAlert>
                         ) : null}
@@ -260,7 +261,7 @@ export default function ReplayLabExportRoute() {
                     </AppStack>
                 </SectionCard>
 
-                <SectionCard title="Clips to create" description="Each saved annotation becomes one exact MP4 clip." tone="sunken" variant="finalize">
+                <SectionCard title="Clips" tone="sunken" variant="finalize">
                     <AppStack spacing={1}>
                         {annotations.map((annotation) => (
                             <AppBox key={annotation.id} sx={(theme) => ({display: "grid", gap: 0.35, p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base})}>
