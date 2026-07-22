@@ -14,14 +14,12 @@ class MixedStrategyGameControllerTest extends AuthenticatedWebTestCase
             ['A1' => ['B1' => 1, 'B2' => 0], 'A2' => ['B1' => 0, 'B2' => 2]]
         ];
 
-        $client = $this->createAuthenticatedClient();
-
-        $client->request(
+        $this->client->request(
             'POST',
             '/api/solve_game',
             [],
             [],
-            $this->getHeaders(),
+            array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']),
             json_encode($payoffMatrix)
         );
 

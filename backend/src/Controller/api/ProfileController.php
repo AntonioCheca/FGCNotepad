@@ -295,7 +295,7 @@ class ProfileController extends AbstractController
     {
         $user = $this->security->getUser();
         if (!$user instanceof User) {
-            throw new UnauthorizedHttpException('Bearer', 'Authentication required.');
+            throw new UnauthorizedHttpException('Session', 'Authentication required.');
         }
 
         return $user;

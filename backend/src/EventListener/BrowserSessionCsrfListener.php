@@ -56,10 +56,6 @@ class BrowserSessionCsrfListener
             return false;
         }
 
-        if (str_starts_with((string) $request->headers->get('Authorization'), 'Bearer ')) {
-            return false;
-        }
-
         return $this->security->getUser() instanceof User;
     }
 }

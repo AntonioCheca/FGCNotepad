@@ -7,7 +7,7 @@ This document defines rules for configuration, environments, Docker/local operat
 - Backend: Symfony/PHP.
 - Frontend: Next.js/React.
 - Database: Postgres.
-- Optional algorithm runtime: Python scripts invoked by Symfony service.
+- Algorithm runtime: PHP services under Symfony.
 - Primary local orchestration: Docker Compose + Makefile helpers.
 
 ## Supported development setups (both are first-class)
@@ -51,13 +51,13 @@ Use existing project commands and avoid introducing parallel tooling unless requ
   - Reversible down path when feasible.
   - No destructive assumptions without explicit approval.
 
-## Python integration policy
+## External runtime integration policy
 
-- Python usage is allowed only when isolated behind one Symfony service boundary.
-- Controllers must call the Symfony service, not Python scripts directly.
-- Python scripts should exchange data through explicit JSON contracts.
+- External runtime usage is allowed only when isolated behind one Symfony service boundary.
+- Controllers must call the Symfony service, not external scripts directly.
+- External scripts should exchange data through explicit JSON contracts.
 - Handle process failure and invalid output deterministically.
-- If migrating Python logic into PHP is proposed, treat it as explicit scoped work, not opportunistic refactor.
+- If migrating external runtime logic into PHP is proposed, treat it as explicit scoped work, not opportunistic refactor.
 
 ## Build, lint, and validation expectations
 
@@ -89,4 +89,4 @@ Do not provide long design documents during approval steps.
 - No secret leakage or unsafe defaults introduced.
 - Existing Docker/local workflow remains functional.
 - Any schema-affecting change was explicitly confirmed first.
-- Python/Symfony integration boundaries remain clean and testable.
+- External runtime/Symfony integration boundaries remain clean and testable.

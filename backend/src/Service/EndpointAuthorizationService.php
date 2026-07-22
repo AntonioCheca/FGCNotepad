@@ -16,7 +16,7 @@ class EndpointAuthorizationService
     public function requireAuthenticatedUser(mixed $securityUser, string $message = 'Authentication required.'): User
     {
         if (!$securityUser instanceof User) {
-            throw new UnauthorizedHttpException('Bearer', $message);
+            throw new UnauthorizedHttpException('Session', $message);
         }
 
         return $securityUser;

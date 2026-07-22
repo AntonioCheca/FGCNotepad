@@ -23,7 +23,7 @@ Implement new work following existing domains and naming patterns:
 - Connection types: list connection metadata.
 - Combos/sequences: list/create/read/update/delete and full combo creation.
 - Posts/forum: create/read/list/update/delete posts with tags/components.
-- Mixed strategy game solver: controller delegates to a single service that invokes Python.
+- Mixed strategy game solver: controller delegates to a single PHP service.
 - Data ingestion commands: frame-data download/import and minimum fixtures generation.
 
 ## Mandatory coding standards
@@ -69,8 +69,8 @@ Implement new work following existing domains and naming patterns:
 
 - Create or update a service when business behavior is non-trivial.
 - Services should be deterministic and directly testable.
-- Python interaction is allowed only through dedicated Symfony services.
-- If Python is used, keep a single backend entry service that owns script invocation and output decoding.
+- External runtime interaction is allowed only through dedicated Symfony services.
+- If an external runtime is used, keep a single backend entry service that owns invocation and output decoding.
 
 ## Repository and query rules
 
@@ -104,7 +104,7 @@ This applies to both major and minor schema changes.
   - Repository behavior: query/result tests where behavior is custom.
 - Avoid mocks unless external boundary cannot reasonably be exercised.
 - Do not merge backend behavior changes without passing backend tests.
-- For Python-backed behavior, test both service output contract and controller response behavior.
+- For solver behavior, test both service output contract and controller response behavior.
 
 ## API contract guidelines
 

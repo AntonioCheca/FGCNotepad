@@ -12,30 +12,18 @@ security:
                 property: username
 
     firewalls:
-        # API login (stateless JWT login endpoint)
-        login:
-            pattern: ^/api/login_check
-            stateless: true
-            user_checker: App\Security\ApiUserChecker
-            json_login:
-                check_path: /api/login_check
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
-
         # Main API firewall
         api:
             pattern: ^/api
             stateless: false
             provider: app_user_provider
             user_checker: App\Security\ApiUserChecker
-            entry_point: jwt
             json_login:
-                check_path: api_browser_login
+                check_path: /api/login
                 username_path: username
                 password_path: password
                 success_handler: App\Security\BrowserLoginSuccessHandler
                 failure_handler: App\Security\BrowserLoginFailureHandler
-            jwt: ~  # kept temporarily for non-browser clients and migration safety
 
         # Dev tools, profiler, assets
         dev:
@@ -61,7 +49,6 @@ security:
         - { path: ^/api/admin, roles: ROLE_ADMIN }
         - { path: ^/api/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/login$, roles: PUBLIC_ACCESS }
-        - { path: ^/api/login_check, roles: PUBLIC_ACCESS }
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/shared-review, roles: PUBLIC_ACCESS }
         - { path: ^/api/scenarios, roles: PUBLIC_ACCESS, methods: [GET] }

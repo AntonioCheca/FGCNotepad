@@ -136,10 +136,6 @@ class ContentFlagControllerTest extends AuthenticatedWebTestCase
     private function getJsonHeaders(): array
     {
         $headers = $this->getHeaders();
-        if (isset($headers['HTTP_Authorization'])) {
-            $headers['HTTP_AUTHORIZATION'] = $headers['HTTP_Authorization'];
-        }
-
         $headers['CONTENT_TYPE'] = 'application/json';
 
         return $headers;

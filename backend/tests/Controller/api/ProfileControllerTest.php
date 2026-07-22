@@ -107,7 +107,7 @@ class ProfileControllerTest extends AuthenticatedWebTestCase
 
         $this->client->request(
             'POST',
-            '/api/login_check',
+                '/api/login',
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
@@ -118,7 +118,7 @@ class ProfileControllerTest extends AuthenticatedWebTestCase
         );
         $loginPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
         $authHeaders = [
-            'HTTP_AUTHORIZATION' => sprintf('Bearer %s', (string) ($loginPayload['token'] ?? '')),
+            'HTTP_X_CSRF_TOKEN' => (string) ($loginPayload['csrfToken'] ?? ''),
             'CONTENT_TYPE' => 'application/json',
         ];
 
@@ -141,7 +141,7 @@ class ProfileControllerTest extends AuthenticatedWebTestCase
             sprintf('/api/profile/combo-knowledge?characterId=%s', $character->getId()?->toRfc4122()),
             [],
             [],
-            ['HTTP_AUTHORIZATION' => $authHeaders['HTTP_AUTHORIZATION']]
+            []
         );
 
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());

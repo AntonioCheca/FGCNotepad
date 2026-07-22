@@ -238,7 +238,7 @@ class ComboSequenceAuthorizationTest extends DatabaseTestCase
     {
         $this->client->request(
             'POST',
-            '/api/login_check',
+            '/api/login',
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
@@ -251,7 +251,7 @@ class ComboSequenceAuthorizationTest extends DatabaseTestCase
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
 
         return [
-            'HTTP_AUTHORIZATION' => sprintf('Bearer %s', (string) ($payload['token'] ?? '')),
+            'HTTP_X_CSRF_TOKEN' => (string) ($payload['csrfToken'] ?? ''),
             'CONTENT_TYPE' => 'application/json',
         ];
     }

@@ -69,7 +69,7 @@ class ContentFlagController extends AbstractController
     private function requireAuthenticatedUser(?User $user): User
     {
         if (!$user instanceof User) {
-            throw new UnauthorizedHttpException('Bearer', 'Authentication required to flag content.');
+            throw new UnauthorizedHttpException('Session', 'Authentication required to flag content.');
         }
 
         return $user;

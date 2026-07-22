@@ -23,7 +23,7 @@ This rule protects global theming and avoids one-by-one UI rewrites.
 
 Frontend work should follow existing domains and folder patterns:
 
-- Auth flows (login/register + token-aware API access).
+- Auth flows (login/register + session and CSRF-aware API access).
 - Home and navigation layout components.
 - Forum post editor and tag-driven interactions.
 - Combo creation/list/filter tables and step-based editors.

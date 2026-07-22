@@ -791,14 +791,14 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         }
         $this->entityManager?->flush();
 
-        $this->client->request('POST', '/api/login_check', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $username,
             'password' => 'testpassword',
         ]));
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
         $payload = $this->decodeResponsePayload();
 
-        return ['HTTP_AUTHORIZATION' => sprintf('Bearer %s', (string) ($payload['token'] ?? ''))];
+        return ['HTTP_X_CSRF_TOKEN' => (string) ($payload['csrfToken'] ?? '')];
     }
 
     /**

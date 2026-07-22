@@ -16,7 +16,6 @@ services:
     expose:
       - "9000"
     volumes:
-      - jwt_keys:/var/www/html/config/jwt
       - replay_storage:/var/www/html/var/replay-storage
       - replay_imports:/var/www/html/var/replay-imports
     depends_on:
@@ -74,7 +73,6 @@ services:
 
 volumes:
   pgdata:
-  jwt_keys:
   replay_storage:
   replay_imports:
 

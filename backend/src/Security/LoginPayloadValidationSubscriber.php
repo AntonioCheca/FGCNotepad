@@ -12,7 +12,6 @@ class LoginPayloadValidationSubscriber implements EventSubscriberInterface
 {
     private const LOGIN_PATHS = [
         '/api/login' => true,
-        '/api/login_check' => true,
     ];
 
     public static function getSubscribedEvents(): array

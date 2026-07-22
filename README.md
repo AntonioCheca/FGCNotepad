@@ -12,11 +12,11 @@ FGCNotepad is a forum-wiki hybrid for fighting game analysis from a game theory 
 - Frontend: Next.js 16, React 19, TypeScript, npm `10.8.1`.
 - Node.js: `>=22.13.0` for host development and frontend validation.
 - Database: PostgreSQL 15.
-- Optional solver/runtime work: Python, called through Symfony services.
+- Mixed strategy solver: PHP service using Multiplicative Weights Update.
 
 ## Repository Structure
 
-- `backend/`: Symfony API, Doctrine entities/migrations, services, tests, and Python integration files.
+- `backend/`: Symfony API, Doctrine entities/migrations, services, and tests.
 - `frontend/`: Next.js app, React UI, hooks, services, styles, and frontend checks.
 - `docker/`: development and production Nginx/Docker support files.
 - `scripts/`: production deploy and backup helpers.
@@ -29,8 +29,8 @@ FGCNotepad is a forum-wiki hybrid for fighting game analysis from a game theory 
 
 - Use tracked examples as references: `backend/.env.example`, `backend/.env.test.example`, `frontend/.env.example`, and `.env.prod.example`.
 - Keep real local overrides in ignored files such as `backend/.env.local`, `backend/.env.test.local`, or `frontend/.env.local`.
-- Keep real production values in ignored `.env.prod` on the server. Never commit production secrets or JWT private keys.
-- Generate JWT keys with `make create-jwt-keys` for Docker development or `make local-create-jwt-keys` for local host development.
+- Keep real production values in ignored `.env.prod` on the server. Never commit production secrets.
+- Browser/API authentication uses Symfony sessions with CSRF protection.
 
 ## Development Paths
 
@@ -45,7 +45,6 @@ make build
 make up
 make composer-install
 make npm-install
-make create-jwt-keys
 make create-test-database
 make migrate
 make migrate-test
@@ -87,7 +86,7 @@ Frontend: `http://localhost:3000`.
 - `make up`: start Docker development services.
 - `make stop`: stop Docker development services.
 - `make logs`: follow Docker service logs.
-- `make local-setup`: install dependencies, create JWT keys, create databases, and run migrations for host development.
+- `make local-setup`: install dependencies, create databases, and run migrations for host development.
 - `make local-serve`: start the local Symfony server.
 - `make local-frontend`: start the local Next.js dev server.
 - `make check`: run the canonical validation workflow.
@@ -110,7 +109,6 @@ make check
 - Run production migrations explicitly with `docker compose -f docker-compose.prod.yml exec backend php bin/console doctrine:migrations:migrate --no-interaction`.
 - PostgreSQL is bound to `127.0.0.1:5432` in production for SSH tunnel access only. Do not open PostgreSQL to the public internet.
 - `NEXT_PUBLIC_API_URL=/api` is the production frontend API setting.
-- Production JWT keys live in the `jwt_keys` Docker volume and must not be committed.
 - `scripts/deploy-prod.sh` and `scripts/backup-prod-db.sh` provide deploy and backup helpers.
 
 ## More Documentation

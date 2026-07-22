@@ -11,15 +11,6 @@ class Kernel extends BaseKernel
 {
     use MicroKernelTrait;
 
-    public function __construct(string $environment, bool $debug)
-    {
-        if ('prod' === $environment && $this->isTruthyEnvValue('DISABLE_JWT')) {
-            throw new \LogicException('DISABLE_JWT=true is not allowed in production.');
-        }
-
-        parent::__construct($environment, $debug);
-    }
-
     protected function build(ContainerBuilder $container): void
     {
         parent::build($container);
@@ -38,20 +29,4 @@ class Kernel extends BaseKernel
         });
     }
 
-    private function isTruthyEnvValue(string $name): bool
-    {
-        $values = [$_SERVER[$name] ?? null, $_ENV[$name] ?? null, getenv($name)];
-
-        foreach ($values as $value) {
-            if (false === $value || null === $value) {
-                continue;
-            }
-
-            if (in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

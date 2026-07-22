@@ -8,7 +8,6 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 abstract class AuthenticatedWebTestCase extends DatabaseTestCase
 {
-    private string $jwtToken = '';
     private array $headers = [];
 
     protected function createAuthenticatedClient(): KernelBrowser
@@ -27,7 +26,7 @@ abstract class AuthenticatedWebTestCase extends DatabaseTestCase
 
         $this->entityManager->flush();
 
-        $this->client->request('POST', '/api/login_check', [], [],
+        $this->client->request('POST', '/api/login', [], [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
                 'username' => 'testuser',
@@ -36,7 +35,8 @@ abstract class AuthenticatedWebTestCase extends DatabaseTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $this->jwtToken = json_decode($this->client->getResponse()->getContent(), true)['token'];
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->headers['HTTP_X_CSRF_TOKEN'] = (string) ($payload['csrfToken'] ?? '');
 
         return $this->client;
     }
@@ -45,14 +45,6 @@ abstract class AuthenticatedWebTestCase extends DatabaseTestCase
     {
         parent::setUp();
         $this->client = $this->createAuthenticatedClient();
-        $this->addAuthorizationToHeaders();
-    }
-
-    protected function addAuthorizationToHeaders(): void
-    {
-        if ('' !== $this->jwtToken) {
-            $this->headers['HTTP_AUTHORIZATION'] = sprintf('Bearer %s', $this->jwtToken);
-        }
     }
 
     protected function addContentTypeJsonToHeaders(): void

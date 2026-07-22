@@ -4,7 +4,7 @@
 
 ### Current backend conventions
 
-- Symfony JSON APIs live under `/api/*` and are protected by JWT unless explicitly public.
+- Symfony JSON APIs live under `/api/*` and use Symfony session authentication with CSRF protection unless explicitly public.
 - Controllers parse requests, perform HTTP/auth orchestration, and delegate domain behavior to services.
 - New backend behavior should use dedicated services and response builders instead of large controller payload assembly.
 - Entities use Doctrine attributes, strict typing, repositories per entity, and Postgres as the source of truth.
