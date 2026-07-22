@@ -1,7 +1,7 @@
 {
     "name": "symfony/skeleton",
     "type": "project",
-    "license": "proprietary",
+    "license": "AGPL-3.0-only",
     "description": "A minimal Symfony project recommended to create bare bones applications",
     "minimum-stability": "stable",
     "prefer-stable": true,

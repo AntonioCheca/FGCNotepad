@@ -1,361 +1,133 @@
 # FGCNotepad
 
-FGCNotepad is a forum-wiki hybrid platform designed to analyze fighting games from a Game Theory perspective. It helps
-players break down matchups, explore optimal combos and oki setups, and structure in-depth strategic thinking. The
-platform is currently focused on Street Fighter 6, with plans for extensibility in the future.
+<p align="center">
+  <img src="frontend/public/logos/fgt-completo-color-pos.svg" alt="FGCNotepad logo" width="480">
+</p>
 
-### Project Structure
+FGCNotepad is a forum-wiki hybrid for fighting game analysis from a game theory perspective. It helps players study matchups, combos, oki setups, scenarios, and strategic decisions, with the current data focus on Street Fighter 6.
 
-Backend is Symfony/PHP, frontend is Next.js/React, and the database is PostgreSQL.
+## Stack
 
-## Getting Started
+- Backend: Symfony 7.2, PHP `>=8.2`, Composer, Doctrine ORM.
+- Frontend: Next.js 16, React 19, TypeScript, npm `10.8.1`.
+- Node.js: `>=22.13.0` for host development and frontend validation.
+- Database: PostgreSQL 15.
+- Optional solver/runtime work: Python, called through Symfony services.
 
-### Expected Tooling
+## Repository Structure
 
-- PHP `>=8.2` with required Symfony extensions such as `pdo_pgsql`, `curl`, `mbstring`, `xml`, and `zip`.
-- Node.js `>=20`; Node 20 is the recommended local baseline.
-- npm is the current frontend package manager. Do not use Bun, pnpm, or yarn for this project baseline.
-- Composer is used for backend PHP dependencies.
-- PostgreSQL 15 is used by `docker-compose.yml`.
-- Symfony CLI is used by the local backend server commands.
+- `backend/`: Symfony API, Doctrine entities/migrations, services, tests, and Python integration files.
+- `frontend/`: Next.js app, React UI, hooks, services, styles, and frontend checks.
+- `docker/`: development and production Nginx/Docker support files.
+- `scripts/`: production deploy and backup helpers.
+- `docs/`: specialised planning and feature notes.
+- `AGENTS.md`: required entry point for AI-assisted work.
+- `BACKEND_FEATURE_MASTER.md`, `FRONTEND_FEATURE_MASTER.md`, `CONFIG_OPS_MASTER.md`: detailed implementation rules.
+- `CONTRIBUTING.md`: fork, branch, pull request, and review workflow.
 
-### Environment Files
+## Environment Files
 
-- Backend defaults are tracked in `backend/.env` for Symfony compatibility.
-- Safe setup reference values are in `backend/.env.example` and `frontend/.env.example`.
-- Test setup reference values are in `backend/.env.test.example`.
-- Production setup reference values are in `.env.prod.example`.
-- Real local overrides should go in ignored files such as `backend/.env.local`, `backend/.env.dev.local`, `backend/.env.test.local`, or `frontend/.env.local`.
-- Real production values should go in ignored `.env.prod` on the server.
-- Generate local JWT keys with `make local-create-jwt-keys` for host development or `make create-jwt-keys` for Docker development.
+- Use tracked examples as references: `backend/.env.example`, `backend/.env.test.example`, `frontend/.env.example`, and `.env.prod.example`.
+- Keep real local overrides in ignored files such as `backend/.env.local`, `backend/.env.test.local`, or `frontend/.env.local`.
+- Keep real production values in ignored `.env.prod` on the server. Never commit production secrets or JWT private keys.
+- Generate JWT keys with `make create-jwt-keys` for Docker development or `make local-create-jwt-keys` for local host development.
 
-### Option A: Docker Development
+## Development Paths
 
-`docker-compose.yml` is the development Compose file. It keeps bind mounts and manual dev commands for local convenience.
+### Docker Development
 
-Docker development is the recommended workflow for Linux contributors and deployment-like parity.
+Recommended for Linux contributors and deployment-parity work.
 
-Prerequisites:
-
-- Docker and Docker Compose
-
-One-time setup:
+`docker-compose.yml` is the development Compose file. It starts PostgreSQL, Symfony PHP-FPM, Nginx, and a frontend container with bind-mounted source.
 
 ```bash
 make build
 make up
 make composer-install
+make npm-install
 make create-jwt-keys
 make create-test-database
 make migrate
 make migrate-test
 ```
 
-Development:
-
-- `make build` builds the containers.
-- `make up` starts containers with `docker compose up`; it does not build them.
-- Direct Compose command: `docker compose up -d`.
-- `make stop` stops containers.
-- `make logs` follows service logs.
-
-Once running, access the frontend via http://localhost:3000.
-
-### Option B: Production Docker Compose
-
-`docker-compose.prod.yml` is the production Compose file for a single-machine AWS Lightsail deployment. It builds production images, uses Nginx as the only public proxy, keeps Postgres off the public internet, and stores Postgres/JWT/replay data in Docker volumes.
-
-One-time server setup:
+Run the frontend dev server in the frontend container when needed:
 
 ```bash
-cp .env.prod.example .env.prod
-# Edit .env.prod with real secrets before starting containers.
+make frontend-dev
 ```
 
-Set the production domain and CORS pattern in `.env.prod`. The example file keeps these values in one place so the domain can be changed later without editing Docker or Nginx config.
+Frontend: `http://localhost:3000`. Backend through development Nginx: `http://localhost:8000`.
 
-Public registration is disabled in production by default. Set `REGISTRATION_ENABLED=true` in `.env.prod` and restart the backend container only when public signups should be open.
+### Local Host Development
 
-Production start:
+Recommended for Windows contributors.
 
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-Production routing:
-
-- Public HTTP: `80:80` through Nginx.
-- Frontend: Nginx proxies `/` to the Next container.
-- Backend API: Nginx routes `/api` to Symfony PHP-FPM.
-- Postgres: bound to `127.0.0.1:5432` for SSH tunnel access only.
-- Healthcheck: `/api/health` returns `{"status":"ok"}` through the production proxy.
-
-Production API URL:
-
-```env
-NEXT_PUBLIC_API_URL=/api
-```
-
-Production migrations:
-
-```bash
-docker compose -f docker-compose.prod.yml exec backend php bin/console doctrine:migrations:migrate --no-interaction
-```
-
-Production Symfony check:
-
-```bash
-docker compose -f docker-compose.prod.yml exec backend php bin/console about --env=prod
-```
-
-Production JWT keys:
-
-```bash
-docker compose -f docker-compose.prod.yml exec backend php bin/console lexik:jwt:generate-keypair
-```
-
-The generated JWT keys live in the `jwt_keys` Docker volume mounted at `/var/www/html/config/jwt`. Private keys must not be committed to Git.
-
-Safe Postgres access from PHPStorm:
-
-```bash
-ssh -L 5433:localhost:5432 ubuntu@SERVER_IP
-```
-
-Then configure PHPStorm with:
-
-- Host: `localhost`
-- Port: `5433`
-- Database: value from `POSTGRES_DB` in `.env.prod`
-- User: value from `POSTGRES_USER` in `.env.prod`
-- Password: value from `POSTGRES_PASSWORD` in `.env.prod`
-
-Do not open port `5432` in the Lightsail firewall. The backend connects to Postgres over the Docker network at `postgres:5432`.
-
-Manual production deploy:
-
-```bash
-bash scripts/deploy-prod.sh
-```
-
-The deploy script runs `git pull --ff-only`, builds images, starts services, runs Doctrine migrations explicitly, and checks Symfony prod runtime.
-
-Production database backup:
-
-```bash
-bash scripts/backup-prod-db.sh
-```
-
-Backups are written to ignored `backups/postgres/` files with timestamped `.sql.gz` names. The script keeps the latest 8 backups by default; override with `BACKUP_RETENTION=12 bash scripts/backup-prod-db.sh`.
-
-Restore a production backup into the local Docker dev database:
-
-```bash
-gunzip -c backups/postgres/backup-file.sql.gz | docker exec -i fgc_postgres psql -U fgc_user -d fgc_db
-```
-
-During beta, create a backup weekly and before large deploys.
-
-Replay Lab production note:
-
-- Browser export at `/replay-lab/export` uses `ffmpeg.wasm` in the user's browser and uploads MP4 clips to the backend.
-- Uploaded clips are stored in the `replay_storage` Docker volume.
-- Server-side export requires `ffmpeg` in the backend image and is not enabled in the first production Dockerfile.
-
-Compose file ownership:
-
-- `docker-compose.yml` is the canonical development Compose file.
-- `docker-compose.prod.yml` is the canonical production Compose file.
-- `backend/compose.yaml` is a Symfony-generated helper file and is not used for deployment.
-
-### Option C: Local Development
-
-Local host development is the recommended Windows workflow.
-
-Prerequisites:
-
-- PHP `>=8.2`
-- Node.js `>=20`
-- npm
-- PostgreSQL 15 or compatible local PostgreSQL server
-- Composer
-- Symfony CLI
-
-Database setup:
-
-1. Create a PostgreSQL database and user.
-2. Use `backend/.env.example` as the safe reference for required variables.
-3. Put machine-specific connection details in `backend/.env.local`.
-
-Windows local test DB setup (required for `make check-backend`):
-
-1. Copy `backend/.env.test.example` values into `backend/.env.test.local` when your host/test credentials differ.
-2. Keep `POSTGRES_DB` set to the base name (for example `fgc_db`); Symfony appends `_test` in test env.
-3. Create and migrate the test database with:
-
-```bash
-make local-create-test-database
-make local-migrate-test
-```
-
-4. Run backend validation with:
-
-```bash
-make check-backend
-```
-
-One-time setup:
+Install PHP `>=8.2`, Composer, Node.js `>=22.13.0`, npm, PostgreSQL 15 or compatible, and Symfony CLI. Put machine-specific database settings in `backend/.env.local` and test settings in `backend/.env.test.local` when needed.
 
 ```bash
 make local-setup
 ```
 
-Or step by step:
+Run the app in two terminals:
 
 ```bash
-make local-composer-install
-make local-npm-install
-make local-create-jwt-keys
-make local-create-database
-make local-create-test-database
-make local-migrate
-make local-migrate-test
+make local-serve
 ```
 
-Development:
-
 ```bash
-# Terminal 1 - Backend
-make local-serve
-
-# Terminal 2 - Frontend
 make local-frontend
 ```
 
-Once running, access the frontend via http://localhost:3000.
+Frontend: `http://localhost:3000`.
 
-### Makefile Commands
+## Main Commands
 
-- `make help` lists available commands.
-- `make build` builds Docker containers.
-- `make up` starts Docker containers.
-- `make stop` stops Docker containers.
-- `make logs` follows Docker service logs.
-- `make composer-install` installs backend dependencies in Docker.
-- `make npm-install` installs frontend dependencies in Docker.
-- `make create-jwt-keys` generates Symfony JWT keys in Docker.
-- `make migrate` runs backend database migrations in Docker.
-- `make migrate-test` runs test database migrations in Docker.
-- `make create-test-database` creates the Docker test database.
-- `make bash` opens a shell inside the backend container.
-- `make psql` opens PostgreSQL CLI inside the database container.
-- `make local-setup` runs the local host setup sequence.
-- `make local-test` runs backend PHPUnit locally.
+- `make help`: list available project commands.
+- `make up`: start Docker development services.
+- `make stop`: stop Docker development services.
+- `make logs`: follow Docker service logs.
+- `make local-setup`: install dependencies, create JWT keys, create databases, and run migrations for host development.
+- `make local-serve`: start the local Symfony server.
+- `make local-frontend`: start the local Next.js dev server.
+- `make check`: run the canonical validation workflow.
 
-### Validation
+## Validation
 
-- `make check` runs frontend and backend validation.
-- `make check-frontend` runs `npm run check` in `frontend/`.
-- `make check-backend` runs `composer check` in `backend/`.
-- `make audit` runs frontend and backend security audits.
-- `make audit-frontend` runs `npm audit` in `frontend/`.
-- `make audit-backend` runs `composer audit` in `backend/`.
+Run this before opening a pull request:
 
-Frontend scripts:
+```bash
+make check
+```
 
-- `npm run typecheck` runs TypeScript without emitting output.
-- `npm test` runs existing `node:test` test files.
-- `npm run lint` runs ESLint CLI with the existing flat config.
-- `npm run check` runs typecheck, tests, then lint.
+`make check` runs `npm run check` in `frontend/` and `composer check` in `backend/`. That currently includes frontend type checks, frontend tests, ESLint, React Doctor, backend PHPUnit, and PHPStan. No separate React Doctor command is required.
 
-Backend scripts:
+## Production Notes
 
-- `composer test` runs PHPUnit.
-- `composer phpstan` runs PHPStan with a 1G memory limit.
-- `composer check` runs PHPUnit, then PHPStan.
+- `docker-compose.prod.yml` is the production Compose file. It builds production images, runs Nginx as the public entry point, and keeps application services on the Docker network.
+- Copy `.env.prod.example` to ignored `.env.prod` on the server and fill in real secrets before starting production.
+- Start production with `docker compose -f docker-compose.prod.yml up -d --build`.
+- Run production migrations explicitly with `docker compose -f docker-compose.prod.yml exec backend php bin/console doctrine:migrations:migrate --no-interaction`.
+- PostgreSQL is bound to `127.0.0.1:5432` in production for SSH tunnel access only. Do not open PostgreSQL to the public internet.
+- `NEXT_PUBLIC_API_URL=/api` is the production frontend API setting.
+- Production JWT keys live in the `jwt_keys` Docker volume and must not be committed.
+- `scripts/deploy-prod.sh` and `scripts/backup-prod-db.sh` provide deploy and backup helpers.
 
-Known baseline failures:
+## More Documentation
 
-- Frontend `node:test` tests compile through the existing TypeScript compiler before running on Node.
-- Frontend lint currently reports warnings (no lint errors), so `make check-frontend` passes.
-- Backend PHPUnit requires a reachable test database; configure `backend/.env.test.local` and run `make local-create-test-database` + `make local-migrate-test` when host defaults do not match.
-- Security audit commands currently report advisories. Remediation is tracked as follow-up tickets below.
+- Contribution workflow: `CONTRIBUTING.md`.
+- AI agent rules: `AGENTS.md`.
+- Backend architecture and rules: `BACKEND_FEATURE_MASTER.md`.
+- Frontend architecture and UI rules: `FRONTEND_FEATURE_MASTER.md`.
+- Config, operations, and deployment conventions: `CONFIG_OPS_MASTER.md`.
+- FAT frame-data attribution: `docs/FAT_ATTRIBUTION.md`.
+- Replay Lab notes: `docs/replay-lab-0x-plan.md`.
+- Brand asset notice: `NOTICE.md`.
 
-Audit follow-up tickets:
+## License
 
-- `SEC-FE-001`: Upgrade `axios`/`follow-redirects` chain in `frontend/` and re-run `make audit-frontend`.
-- `SEC-FE-002`: Upgrade `next`/`postcss` in `frontend/` and validate app-router/cache related advisories.
-- `SEC-FE-003`: Evaluate `react-use` major upgrade path required to remediate `js-cookie` advisory.
-- `SEC-BE-001`: Upgrade Symfony components to patched ranges (`>=7.4.12` where applicable) and re-run `make audit-backend`.
-- `SEC-BE-002`: Upgrade `twig/twig` to `>=3.26.0` and validate template/sandbox compatibility.
-- `SEC-BE-003`: Upgrade `league/commonmark` and re-verify markdown sanitization behavior.
-- `SEC-BE-004`: Upgrade dev dependency `phpunit/phpunit` to a patched version and re-run backend checks.
+FGCNotepad source code is licensed under `AGPL-3.0-only`. See `LICENSE`.
 
-Future tickets should address these failures directly instead of hiding them from validation commands.
+Logo and brand assets are covered separately in `NOTICE.md`.
 
-## ✍️ Contribution Guidelines
-
-We follow Clean Code principles:
-
-- Descriptive variable and class names
-
-- Short, focused functions
-
-- Low indentation levels
-
-- Self-documenting code, no comments unless justified
-
-Pull Requests
-
-- Fork the repository
-- Create a feature branch
-- Submit a pull request for review
-- Backend code should include tests (PHPUnit) where applicable
-- Documentation is optional if the code is clean
-- No front-end test suite is currently in place
-
-## 🎨 Theme Tokens
-
-The tactical/editorial theme is configured in `frontend/styles/theme.ts` and consumed through semantic tokens.
-
-- Light mode now uses neutral product surfaces (`background.default`, `background.paper`, `surface.subtle`) with brand colors kept as accents.
-- Cream is reserved for highlight usage (`highlight.surface`) instead of full page backgrounds.
-- Dark mode surface roles are explicit and reusable: `app.canvas`, `app.sidebar`, `surface.base`, `surface.raised`, `surface.sunken`, and `control.default`.
-- Dark mode accent semantics are strict: `accent.parser`, `accent.primary`, `accent.selected`, `accent.warning`, `accent.success`, `accent.danger`.
-- Active navigation and parser states should use `accent.selected`; parser actions should use `accent.parser`; warnings/success/danger must use matching semantic accent tokens only.
-
-When styling feature pages (including Create Combo), prefer semantic token usage over hardcoded color values.
-
-## 🧭 Roadmap
-
-### ✅ Current Features
-
-- Create and edit posts using a Lexical editor
-- Tag moves directly inside posts
-- Model and solve payoff tables with a Mixed Equilibrium optimiser
-- Define and analyze in-game scenarios
-
-### 🛣️ In Progress / Planned
-
-- Excel-like payoff matrix input UX
-- Secondary table referencing for scenario trees
-- Improved modeling for combos
-- Automatically suggest optimal combo paths starting from a selected move
-- Support for hit-confirmability (whether something is a read or can be reacted to)
-- Add Drive Gauge and Meter as resources in analysis
-- Support for moderator roles to help with content review
-- Replay integration: automatically extract data from uploaded match videos
-
-## 📜 License
-
-MIT License
-
-## Issues
-
-For bugs, feature requests, or discussion:
-
-Open a GitHub Issue
-
-Use GitHub Discussions
-
-Or reach out to us through the Discord
+FAT frame-data attribution is documented separately in `docs/FAT_ATTRIBUTION.md`.
