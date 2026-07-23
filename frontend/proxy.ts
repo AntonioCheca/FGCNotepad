@@ -7,7 +7,7 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 function resolveBackendMeUrl(request: NextRequest): URL {
-    const configuredUrl = process.env.NEXT_PUBLIC_API_URL;
+    const configuredUrl = process.env.NEXT_SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL;
     const apiBaseUrl = configuredUrl || "http://127.0.0.1:8000/api";
     const parsedUrl = new URL(apiBaseUrl, request.nextUrl.origin);
 

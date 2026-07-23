@@ -36,6 +36,7 @@ services:
         required: false
     environment:
       NEXT_PUBLIC_API_URL: /api
+      NEXT_SERVER_API_URL: http://nginx:80/api
     expose:
       - "3000"
     depends_on:

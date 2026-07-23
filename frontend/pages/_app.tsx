@@ -16,6 +16,7 @@ export default function App({Component, pageProps}: AppProps) {
     return (
         <>
             <Head>
+                <title>FG Theory</title>
                 <link rel="icon" href="/logos/favicon-color-pos.svg"/>
                 <meta name="theme-color" content="#1e3c72"/>
             </Head>

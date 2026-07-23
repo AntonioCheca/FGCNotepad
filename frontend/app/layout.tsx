@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "FGC Notepad",
+    title: "FG Theory",
     description: "Fighting game matchup notes, combo study, and scenario analysis.",
 };
 
