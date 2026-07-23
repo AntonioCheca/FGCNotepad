@@ -9,29 +9,29 @@ type ThemeLogoProps = {
 export default function ThemeLogo({className, collapsed = false}: ThemeLogoProps) {
     const {mode} = useMode();
 
-    const src = mode === "light"
-        ? "/logos/favicon-color-pos.svg"
-        : "/logos/favicon-color-neg.svg";
+    const src = collapsed
+        ? (mode === "light" ? "/logos/favicon-color-pos.svg" : "/logos/favicon-color-neg.svg")
+        : (mode === "light" ? "/logos/fgt-simp-color-pos.svg" : "/logos/fgt-simp-color-neg.svg");
 
-    const baseSizeRem = collapsed ? 2 : 3;
-    const baseSizePx = baseSizeRem * 16;
+    const width = collapsed ? 40 : 172;
+    const height = collapsed ? 40 : 51;
 
     return (
         <Image
             src={src}
-            alt="Logo"
+            alt="FG Theory"
             className={className}
-            width={baseSizePx}
-            height={baseSizePx * 0.66}
+            width={width}
+            height={height}
             priority
             style={{
                 display: "block",
                 margin: "0 auto",
                 maxWidth: "100%",
-                width: "auto",
-                height: "auto",
+                width,
+                height,
             }}
-            sizes={`${baseSizeRem}rem`}
+            sizes={`${width}px`}
         />
     );
 }
