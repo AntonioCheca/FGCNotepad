@@ -38,12 +38,6 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
             $scalingNormalizer: '@App\Service\FrameDataScalingNormalizerService'
-    App\Command\ImportSupercomboCombosCommand:
-        arguments:
-            $projectDir: '%kernel.project_dir%'
-    App\Command\ImportNewChallengerCombosCommand:
-        arguments:
-            $projectDir: '%kernel.project_dir%'
     App\Service\ComboValueEstimator:
         arguments:
             $driveBarValue: '%app.combo_resource.drive_bar_value%'
