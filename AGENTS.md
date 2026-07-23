@@ -52,6 +52,19 @@ Do not present long design docs in approval steps; provide concise action bullet
 - Do not perform opportunistic rewrites outside the feature scope.
 - Keep files understandable by reading; comments only for non-obvious behavior.
 
+## Lightsail VM production command notes
+
+- Production runs on the Lightsail VM from `~/FGCNotepad` using `docker-compose.prod.yml`.
+- VM commands usually need `sudo docker compose -f docker-compose.prod.yml ...`.
+- Before deploy instructions, remind the user that `.env.prod` is ignored and must be reviewed manually after pulling changes.
+- Production env rows that commonly need manual review after deploy-related changes: `APP_PUBLIC_DOMAIN`, `CORS_ALLOW_ORIGIN`, `SYMFONY_TRUSTED_HOSTS`, `NEXT_PUBLIC_API_URL`, `NEXT_SERVER_API_URL`, and `REGISTRATION_ENABLED`.
+- Use `sudo docker compose -f docker-compose.prod.yml config` to validate production Compose on the VM.
+- Use `sudo docker compose -f docker-compose.prod.yml exec -T backend php bin/console doctrine:migrations:migrate --no-interaction` for production migrations.
+- Use `sudo docker compose -f docker-compose.prod.yml exec -T backend php bin/console app:registration-invite:create --label="alpha-tester-name"` to create a one-time registration invite code.
+- Use `sudo docker compose -f docker-compose.prod.yml exec -T nginx nginx -t` to validate production Nginx after TLS/config changes.
+- Current HTTPS/TLS production cert files are expected only on the VM at `/opt/fightinggametheory/secrets/tls/cloudflare-origin.pem` and `/opt/fightinggametheory/secrets/tls/cloudflare-origin.key`; never commit or print their contents.
+- Production Nginx publishes only ports `80` and `443`; Postgres remains bound to `127.0.0.1:5432` and app services remain internal.
+
 ## React Doctor workflow
 
 When running React Doctor from `frontend/` on Windows, use the non-interactive command with the explicit Node 24 PATH override:

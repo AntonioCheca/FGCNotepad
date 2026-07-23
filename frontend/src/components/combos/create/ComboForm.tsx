@@ -60,6 +60,8 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 translateErrors={controller.translateErrors}
                 onSelectStep={controller.setSelectedStepIndex}
                 onChangeStep={controller.handleChangeStep}
+                onAddStep={controller.handleAddStep}
+                onRemoveStep={controller.handleRemoveStep}
             />
 
             <SubmitSection

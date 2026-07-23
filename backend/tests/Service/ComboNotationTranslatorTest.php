@@ -53,6 +53,7 @@ class ComboNotationTranslatorTest extends TestCase
             ['id' => 4, 'name' => 'Super Cancel'],
             ['id' => 5, 'name' => 'Target Combo'],
             ['id' => 6, 'name' => 'Link'],
+            ['id' => 7, 'name' => 'DR Cancel'],
         ];
     }
 
@@ -217,6 +218,34 @@ class ComboNotationTranslatorTest extends TestCase
         self::assertCount(1, $result['steps']);
         self::assertSame(120, $result['steps'][0]['child_sequence_id']);
         self::assertSame('236K > P', $result['steps'][0]['token']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateDriveRushCancelConnector(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('2LP DRC 2LP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(7, $result['steps'][1]['connection_type_id']);
+        self::assertSame('DR Cancel', $result['steps'][1]['connection_type_name']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateDriveRushCancelWithSurroundingCancelSeparators(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('2LP XX DR XX 2LP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(7, $result['steps'][1]['connection_type_id']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateDriveRushCancelWithArrowSeparators(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('2LP > DR > 2LP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(7, $result['steps'][1]['connection_type_id']);
         self::assertSame([], $result['errors']);
     }
 }

@@ -6,6 +6,7 @@ final class ComboNotationTranslator
 {
     private const CONNECTOR_CANCEL = 'XX';
     private const CONNECTOR_TARGET_COMBO = 'TC';
+    private const CONNECTOR_ARROW = '>';
 
     /**
      * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
@@ -96,6 +97,11 @@ final class ComboNotationTranslator
             if (null !== $connector) {
                 if ([] === $resolvedMoves) {
                     $warnings[] = sprintf('Connector "%s" at token %d was ignored because it appears before any move.', $token, $cursor + 1);
+                    ++$cursor;
+                    continue;
+                }
+
+                if ('cancel' === $connector && 'drive_rush_cancel' === $pendingConnector) {
                     ++$cursor;
                     continue;
                 }
@@ -379,7 +385,7 @@ final class ComboNotationTranslator
 
             return [
                 'tokenCount' => $tokenCount,
-                'rawToken' => implode(' ', $segmentTokens),
+                'rawToken' => $this->formatAliasToken($alias['rawAlias']),
                 'normalizedToken' => $normalizedSegment,
                 'leaf' => $alias['leaf'],
             ];
@@ -398,6 +404,11 @@ final class ComboNotationTranslator
     private function normalizeForAliasComparison(string $normalizedToken): string
     {
         return str_replace('>', self::CONNECTOR_CANCEL, $normalizedToken);
+    }
+
+    private function formatAliasToken(string $token): string
+    {
+        return preg_replace('/\s*>\s*/', ' > ', $token) ?? $token;
     }
 
     /**
@@ -526,7 +537,7 @@ final class ComboNotationTranslator
      */
     private function tokenizeNotation(string $notation): array
     {
-        $prepared = preg_replace('/(XX|TC)/i', ' $1 ', $notation) ?? $notation;
+        $prepared = preg_replace('/(XX|TC|DRC?|>)/i', ' $1 ', $notation) ?? $notation;
         $tokens = preg_split('/[\s,]+/', trim($prepared));
 
         if (false === $tokens) {
@@ -546,6 +557,8 @@ final class ComboNotationTranslator
     private function normalizeConnector(string $token): ?string
     {
         return match ($token) {
+            'DR', 'DRC' => 'drive_rush_cancel',
+            self::CONNECTOR_ARROW => 'cancel',
             self::CONNECTOR_CANCEL => 'cancel',
             self::CONNECTOR_TARGET_COMBO => 'target_combo',
             default => null,
@@ -570,6 +583,10 @@ final class ComboNotationTranslator
 
         if ('cancel' === $explicitConnector) {
             return $this->isSuperMoveType($currentMoveType) ? 'super_cancel' : 'special_cancel';
+        }
+
+        if ('drive_rush_cancel' === $explicitConnector) {
+            return 'drive_rush_cancel';
         }
 
         $candidateConnections = [];
@@ -683,6 +700,7 @@ final class ComboNotationTranslator
             'chain' => ['chain'],
             'special_cancel' => ['specialcancel', 'special', 'cancel'],
             'super_cancel' => ['supercancel', 'super'],
+            'drive_rush_cancel' => ['drcancel', 'driverushcancel', 'drc'],
             'target_combo' => ['targetcombo', 'tc'],
             'link' => ['link'],
         ];
@@ -726,6 +744,10 @@ final class ComboNotationTranslator
 
         if (in_array($normalized, ['special', 'specialcancel', 'supercancel', 'super', 'cancel'], true)) {
             return self::CONNECTOR_CANCEL;
+        }
+
+        if (in_array($normalized, ['drcancel', 'driverushcancel', 'drc'], true)) {
+            return 'DRC';
         }
 
         return null;

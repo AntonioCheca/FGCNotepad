@@ -450,7 +450,11 @@ class ComboSequenceController extends AbstractController
                 continue;
             }
 
-            $resolvedMoves[] = $moveByLeafId[$childSequenceId];
+            $move = $moveByLeafId[$childSequenceId];
+            $move['connectionTypeName'] = isset($step['connection_type_name']) && is_string($step['connection_type_name'])
+                ? $step['connection_type_name']
+                : null;
+            $resolvedMoves[] = $move;
         }
 
         $estimation = $this->sf6ComboDamageEstimatorService->estimate(

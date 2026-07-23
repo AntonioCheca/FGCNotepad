@@ -18,6 +18,7 @@ import type {
 import {
     buildCreateFullComboPayload,
     buildRequirementsPayload,
+    createEmptyStep,
     emptyRequirements,
     FormNotice,
     getCompletedStepsCount,
@@ -135,6 +136,65 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 return updateDraftStep(currentStep, update);
             }),
         );
+
+        if (Object.prototype.hasOwnProperty.call(update, "move")) {
+            setParseTokens((previousTokens) => previousTokens.map((token, tokenIndex) => {
+                if (tokenIndex !== index) {
+                    return token;
+                }
+
+                return {
+                    ...token,
+                    status: update.move?.id ? "parsed" : "pending",
+                    child_sequence_id: update.move?.id ?? null,
+                    reason: null,
+                };
+            }));
+        }
+    };
+
+    const handleAddStep = () => {
+        setSteps((previousSteps) => [...previousSteps, createEmptyStep()]);
+        setParseTokens((previousTokens) => [
+            ...previousTokens,
+            {
+                index: previousTokens.length + 1,
+                token: "Manual",
+                normalizedToken: "MANUAL",
+                status: "pending",
+                child_sequence_id: null,
+                reason: null,
+            },
+        ]);
+        setSelectedStepIndex(steps.length);
+    };
+
+    const handleRemoveStep = (index: number) => {
+        setSteps((previousSteps) => previousSteps.filter((_, stepIndex) => stepIndex !== index));
+        setParseTokens((previousTokens) => previousTokens
+            .filter((_, tokenIndex) => tokenIndex !== index)
+            .map((token, tokenIndex) => ({...token, index: tokenIndex + 1})));
+        setTranslateErrors((previousErrors) => previousErrors
+            .filter((error) => error.index !== index + 1)
+            .map((error) => error.index > index + 1 ? {...error, index: error.index - 1} : error));
+
+        setSelectedStepIndex((currentIndex) => {
+            const nextLength = Math.max(steps.length - 1, 0);
+            if (nextLength === 0) {
+                return null;
+            }
+            if (currentIndex === null) {
+                return Math.min(index, nextLength - 1);
+            }
+            if (currentIndex === index) {
+                return Math.min(index, nextLength - 1);
+            }
+            if (currentIndex > index) {
+                return currentIndex - 1;
+            }
+
+            return currentIndex;
+        });
     };
 
     const handleRequirementToggle = (key: (typeof requirementToggles)[number]["key"], checked: boolean) => {
@@ -391,6 +451,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setShowAdvancedConditions,
         clearDraft,
         handleChangeStep,
+        handleAddStep,
+        handleRemoveStep,
         handleRequirementToggle,
         handleFillDetails,
         handleSubmit,

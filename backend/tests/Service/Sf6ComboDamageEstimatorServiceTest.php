@@ -41,6 +41,18 @@ final class Sf6ComboDamageEstimatorServiceTest extends TestCase
         self::assertSame(840, $result['estimatedDamage']);
     }
 
+    public function testEstimateAppliesDriveRushCancelScalingFromConnectedMove(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'connectionTypeName' => 'Initial Move'],
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'connectionTypeName' => 'DR Cancel'],
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'connectionTypeName' => 'Link'],
+        ]);
+
+        self::assertSame([1000, 850, 680], $result['stepDamages']);
+        self::assertSame(2530, $result['estimatedDamage']);
+    }
+
     public function testEstimateAppliesSuperMinimumFloorWhenLevelKnown(): void
     {
         $moves = [];

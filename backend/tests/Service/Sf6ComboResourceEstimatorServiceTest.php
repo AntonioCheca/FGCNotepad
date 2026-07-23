@@ -65,4 +65,47 @@ final class Sf6ComboResourceEstimatorServiceTest extends TestCase
         self::assertSame(2.0, $result['driveUsed']);
         self::assertSame(0.172, $result['driveGain']);
     }
+
+    public function testEstimateAddsThreeDriveBarsForEachDriveRushCancel(): void
+    {
+        $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());
+
+        $result = $service->estimate([
+            [
+                'moveType' => 'normal',
+                'notation' => '2LP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 4,
+                'active' => 3,
+                'hitstop' => 10,
+                'recovery' => 11,
+                'connectionTypeName' => 'Initial Move',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '2LP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 4,
+                'active' => 3,
+                'hitstop' => 10,
+                'recovery' => 11,
+                'connectionTypeName' => 'DR Cancel',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '2LP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 4,
+                'active' => 3,
+                'hitstop' => 10,
+                'recovery' => 11,
+                'connectionTypeName' => 'DR Cancel',
+            ],
+        ]);
+
+        self::assertSame(6.0, $result['driveUsed']);
+    }
 }

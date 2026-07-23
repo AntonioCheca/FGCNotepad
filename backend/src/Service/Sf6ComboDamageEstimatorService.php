@@ -17,7 +17,8 @@ final class Sf6ComboDamageEstimatorService
      *   scalingComboHits?:int|null,
      *   scalingComboExtraPercent?:int|null,
      *   scalingMultiplierPercent?:int|null,
-     *   damageParts?:list<int>
+     *   damageParts?:list<int>,
+     *   connectionTypeName?:string|null
      * }> $moves
      * @param array{perfectParry?:bool,driveRushMidCombo?:bool,driveImpactState?:string,specialCancelIntoSa3?:bool,superArtLevels?:array<int,int>} $options
      *
@@ -49,8 +50,13 @@ final class Sf6ComboDamageEstimatorService
         $comboPenaltyRemainingHits = 0;
         $comboPenaltyExtraPercent = 0;
         $hitCursor = 0;
+        $driveRushCancelMultiplier = 1.0;
 
         foreach ($moves as $index => $move) {
+            if ($this->isDriveRushCancel($move['connectionTypeName'] ?? null)) {
+                $driveRushCancelMultiplier *= 0.85;
+            }
+
             $moveType = mb_strtolower(trim($move['moveType']));
             $isSuper = str_contains($moveType, 'super');
             $damageParts = $this->readDamageParts($move);
@@ -72,7 +78,11 @@ final class Sf6ComboDamageEstimatorService
                     $scale *= 0.85;
                 }
 
-                if ($driveRushMidCombo || $perfectParry) {
+                if ($driveRushCancelMultiplier < 1.0) {
+                    $scale *= $driveRushCancelMultiplier;
+                }
+
+                if ($driveRushMidCombo || $perfectParry || $driveRushCancelMultiplier < 1.0) {
                     $scale = floor($scale);
                 }
 
@@ -103,7 +113,7 @@ final class Sf6ComboDamageEstimatorService
                     $scale = 4.0;
                 }
 
-                if ($scale < 10.0 && !($perfectParry || $driveRushMidCombo)) {
+                if ($scale < 10.0 && !($perfectParry || $driveRushMidCombo || $driveRushCancelMultiplier < 1.0)) {
                     $scale = 10.0;
                 }
 
@@ -202,6 +212,17 @@ final class Sf6ComboDamageEstimatorService
         $normalizedNotation = mb_strtoupper(trim($notation));
 
         return in_array($normalizedNotation, ['LP+LK', '4LP+LK', '6LP+LK'], true);
+    }
+
+    private function isDriveRushCancel(?string $connectionTypeName): bool
+    {
+        if (null === $connectionTypeName) {
+            return false;
+        }
+
+        $normalized = mb_strtolower(trim($connectionTypeName));
+
+        return in_array($normalized, ['dr cancel', 'drive rush cancel', 'drc'], true);
     }
 
     /**

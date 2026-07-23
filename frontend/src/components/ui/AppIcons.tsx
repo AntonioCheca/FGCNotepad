@@ -11,6 +11,7 @@ export {default as ChevronRightIcon} from "@mui/icons-material/ChevronRight";
 export {default as Brightness4Icon} from "@mui/icons-material/Brightness4";
 export {default as Brightness7Icon} from "@mui/icons-material/Brightness7";
 export {default as DeleteIcon} from "@mui/icons-material/Delete";
+export {default as AddIcon} from "@mui/icons-material/Add";
 export {default as BoltIcon} from "@mui/icons-material/Bolt";
 export {default as CheckCircleOutlineIcon} from "@mui/icons-material/CheckCircleOutline";
 export {default as ErrorOutlineIcon} from "@mui/icons-material/ErrorOutline";

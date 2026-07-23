@@ -1,11 +1,14 @@
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
+import {AppIconButton} from "@/src/components/ui/AppIconButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {
+    AddIcon,
+    DeleteIcon,
     ErrorOutlineIcon,
     TimelineIcon,
     WarningAmberIcon,
@@ -36,6 +39,8 @@ interface ParserVerificationSectionProps {
     translateErrors: TranslateErrorToken[];
     onSelectStep: (index: number) => void;
     onChangeStep: (index: number, update: Partial<StepDraft>) => void;
+    onAddStep: () => void;
+    onRemoveStep: (index: number) => void;
 }
 
 export function ParserVerificationSection({
@@ -54,6 +59,8 @@ export function ParserVerificationSection({
     translateErrors,
     onSelectStep,
     onChangeStep,
+    onAddStep,
+    onRemoveStep,
 }: ParserVerificationSectionProps) {
     if (!hasParseResult) {
         return null;
@@ -111,8 +118,31 @@ export function ParserVerificationSection({
                                         minWidth: 118,
                                         maxWidth: 170,
                                         cursor: mappedStepIndex !== undefined ? "pointer" : "default",
+                                        position: "relative",
                                     }}
                                 >
+                                    {mappedStepIndex !== undefined ? (
+                                        <AppIconButton
+                                            type="button"
+                                            size="small"
+                                            aria-label={`Remove step ${mappedStepIndex + 1}`}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                onRemoveStep(mappedStepIndex);
+                                            }}
+                                            sx={{
+                                                position: "absolute",
+                                                top: 2,
+                                                right: 2,
+                                                width: 18,
+                                                height: 18,
+                                                color: "fgc.action.danger",
+                                                "&:hover": {backgroundColor: "fgc.parser.nodeWarningBg"},
+                                            }}
+                                        >
+                                            <DeleteIcon sx={{fontSize: 13}} />
+                                        </AppIconButton>
+                                    ) : null}
                                     <AppTypography variant="caption" color="text.secondary" sx={{fontWeight: 600}}>
                                         Step {token.index}
                                     </AppTypography>
@@ -140,6 +170,27 @@ export function ParserVerificationSection({
                             </AppBox>
                         );
                     })}
+                    <AppButton
+                        type="button"
+                        size="small"
+                        variant="outlined"
+                        color="secondary"
+                        aria-label="Add combo step"
+                        onClick={onAddStep}
+                        sx={{
+                            minWidth: 36,
+                            height: 24,
+                            px: 0.5,
+                            borderColor: "fgc.parser.connector",
+                            color: "fgc.icon.muted",
+                            "&:hover": {
+                                borderColor: "fgc.parser.nodeSelectedBorder",
+                                backgroundColor: "fgc.parser.nodeSelectedBg",
+                            },
+                        }}
+                    >
+                        <AddIcon sx={{fontSize: 16}} />
+                    </AppButton>
                 </AppBox>
 
                 <AppBox

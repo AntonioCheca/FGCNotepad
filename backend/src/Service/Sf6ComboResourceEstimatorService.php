@@ -7,6 +7,7 @@ final class Sf6ComboResourceEstimatorService
     private const DRIVE_BAR_UNITS = 10000.0;
     private const SUPER_BAR_UNITS = 10000.0;
     private const PASSIVE_DRIVE_REGEN_PER_FRAME = 40;
+    private const DRIVE_RUSH_CANCEL_COST_UNITS = 30000;
 
     public function __construct(private Sf6ComboFrameLengthEstimatorService $frameLengthEstimator)
     {
@@ -47,6 +48,10 @@ final class Sf6ComboResourceEstimatorService
                 $driveUsedUnitsFromFrameData += abs($driveGain);
             }
 
+            if ($this->isDriveRushCancel($move['connectionTypeName'] ?? null)) {
+                $driveUsedUnitsFromFrameData += self::DRIVE_RUSH_CANCEL_COST_UNITS;
+            }
+
             $onHitSelfSuperMeterGain = $this->readSignedMeterValue($move['onHitSelfSuperMeterGain'] ?? null);
             if ($onHitSelfSuperMeterGain > 0) {
                 $superGainFromMoves += $onHitSelfSuperMeterGain;
@@ -82,6 +87,17 @@ final class Sf6ComboResourceEstimatorService
     private function toBars(int $units, float $barUnits): float
     {
         return round($units / $barUnits, 4);
+    }
+
+    private function isDriveRushCancel(?string $connectionTypeName): bool
+    {
+        if (null === $connectionTypeName) {
+            return false;
+        }
+
+        $normalized = strtolower(trim($connectionTypeName));
+
+        return in_array($normalized, ['dr cancel', 'drive rush cancel', 'drc'], true);
     }
 
     private function inferSuperCostUnits(string $moveType, string $notation): int
