@@ -36,7 +36,7 @@ services:
         required: false
     environment:
       NEXT_PUBLIC_API_URL: /api
-      NEXT_SERVER_API_URL: https://fightinggametheory.com/api
+      NEXT_SERVER_API_URL: http://nginx:8080/api
     expose:
       - "3000"
     depends_on:
