@@ -3,8 +3,10 @@
 namespace App\Tests\Controller;
 
 use App\Controller\AuthController;
+use App\Repository\RegistrationInviteCodeRepository;
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\RegistrationInviteCodeService;
 use App\Service\RegistrationService;
 use App\Tests\DatabaseTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -232,6 +234,25 @@ class AuthControllerTest extends DatabaseTestCase
         $this->assertResponseStatusCodeSame(400);
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
         $this->assertSame('Username and password are required.', $payload['message'] ?? null);
+    }
+
+    public function testRegistrationInviteCodeIsMarkedUsedWhenRegistrationSucceeds(): void
+    {
+        $inviteCodeService = static::getContainer()->get(RegistrationInviteCodeService::class);
+        $registrationService = static::getContainer()->get(RegistrationService::class);
+        $inviteCodeRepository = static::getContainer()->get(RegistrationInviteCodeRepository::class);
+        $result = $inviteCodeService->createInviteCode('alpha tester');
+        $inviteCode = $result['inviteCode'];
+
+        self::assertFalse($inviteCode->isUsed());
+
+        $user = $registrationService->register($this->nextUsername('inviteduser'), 'newpassword', $inviteCode);
+        $this->entityManager->refresh($inviteCode);
+
+        self::assertTrue($inviteCode->isUsed());
+        self::assertSame($user->getId()?->toRfc4122(), $inviteCode->getUsedBy()?->getId()?->toRfc4122());
+        self::assertNotNull($inviteCode->getUsedAt());
+        self::assertNull($inviteCodeRepository->findUnusedByCodeHash($inviteCode->getCodeHash()));
     }
 
     private function nextUsername(string $prefix): string

@@ -1,7 +1,11 @@
 # FGCNotepad
 
 <p align="center">
-  <img src="frontend/public/logos/fgt-completo-color-pos.svg" alt="FGCNotepad logo" width="480">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/public/logos/fgt-completo-color-neg.svg">
+    <source media="(prefers-color-scheme: light)" srcset="frontend/public/logos/fgt-completo-color-pos.svg">
+    <img src="frontend/public/logos/fgt-completo-color-pos.svg" alt="FGCNotepad logo" width="480">
+  </picture>
 </p>
 
 FGCNotepad is a forum-wiki hybrid for fighting game analysis from a game theory perspective. It helps players study matchups, combos, oki setups, scenarios, and strategic decisions, with the current data focus on Street Fighter 6.

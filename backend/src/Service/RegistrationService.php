@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\User;
+use App\Entity\RegistrationInviteCode;
 use App\Repository\UserRepository;
 use App\Util\Enum\UserRole;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,7 +19,7 @@ class RegistrationService
     ) {
     }
 
-    public function register(string $username, string $plainPassword): User
+    public function register(string $username, string $plainPassword, ?RegistrationInviteCode $inviteCode = null): User
     {
         $normalizedUsername = trim($username);
         if ('' === $normalizedUsername) {
@@ -38,6 +39,10 @@ class RegistrationService
         $user->setUsername($normalizedUsername);
         $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));
         $user->setRoles([UserRole::USER->value]);
+
+        if (null !== $inviteCode) {
+            $inviteCode->markUsedBy($user);
+        }
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
