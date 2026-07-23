@@ -3,6 +3,7 @@
 backend/.env.local
 backend/.env.*.local
 backend/config/jwt/
+docker/certs/
 backend/vendor
 backend/var
 frontend/.env.local

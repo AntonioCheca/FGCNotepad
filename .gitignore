@@ -14,6 +14,7 @@ frontend/.env.local
 frontend/.env.*.local
 .env.prod
 backups/
+docker/certs/
 
 # Generated frontend vendor assets
 frontend/public/ffmpeg-core/
