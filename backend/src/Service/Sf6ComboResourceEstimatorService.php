@@ -33,12 +33,20 @@ final class Sf6ComboResourceEstimatorService
         $frameEstimation = $this->frameLengthEstimator->estimate($moves);
 
         $driveGainFromMoves = 0;
+        $driveUsedUnitsFromFrameData = 0;
         $superGainFromMoves = 0;
         $superUsedUnitsFromFrameData = 0;
         $superUsedUnitsFromInference = 0;
 
         foreach ($moves as $move) {
-            $driveGainFromMoves += $this->readMeterValue($move['driveGain'] ?? null);
+            $driveGain = $this->readSignedMeterValue($move['driveGain'] ?? null);
+            if ($driveGain > 0) {
+                $driveGainFromMoves += $driveGain;
+            }
+            if ($driveGain < 0) {
+                $driveUsedUnitsFromFrameData += abs($driveGain);
+            }
+
             $onHitSelfSuperMeterGain = $this->readSignedMeterValue($move['onHitSelfSuperMeterGain'] ?? null);
             if ($onHitSelfSuperMeterGain > 0) {
                 $superGainFromMoves += $onHitSelfSuperMeterGain;
@@ -57,18 +65,13 @@ final class Sf6ComboResourceEstimatorService
         $superUsedUnits = $superUsedUnitsFromFrameData > 0 ? $superUsedUnitsFromFrameData : $superUsedUnitsFromInference;
 
         return [
-            'driveUsed' => 0.0,
+            'driveUsed' => $this->toBars($driveUsedUnitsFromFrameData, self::DRIVE_BAR_UNITS),
             'driveGain' => $this->toBars($driveGainFromMoves + $passiveDriveGain, self::DRIVE_BAR_UNITS),
             'superUsed' => $this->toBars($superUsedUnits, self::SUPER_BAR_UNITS),
             'superGain' => $this->toBars($superGainFromMoves, self::SUPER_BAR_UNITS),
             'totalFrames' => $frameEstimation['totalFrames'],
             'warnings' => $frameEstimation['warnings'],
         ];
-    }
-
-    private function readMeterValue(mixed $value): int
-    {
-        return is_int($value) && $value > 0 ? $value : 0;
     }
 
     private function readSignedMeterValue(mixed $value): int

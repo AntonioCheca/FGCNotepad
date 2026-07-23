@@ -618,6 +618,29 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertEquals(1.0, $payload['superUsed']);
     }
 
+    public function testEstimateResourcesUsesNegativeDriveGainForDriveCost(): void
+    {
+        $character = $this->seedAkumaResourceEstimateData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-resources',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => '2LP XX 236PP',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertEquals(2.0, $payload['driveUsed']);
+    }
+
     public function testCreateFullComboPersistsRequirementsAndSpecificCharacter(): void
     {
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
@@ -1170,6 +1193,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->persistLeafSequence($character, $leafType, $visibility, '2LP', 'normal', '["ch","sp","su"]', 300, null, null, null, null, null, null, 4, 2, 8, 10, 150, 300, 300);
         $this->persistLeafSequence($character, $leafType, $visibility, '5LK', 'normal', '["sp","su"]', 300, null, null, null, null, null, null, 6, 2, 8, 11, 150, 300, 300);
         $this->persistLeafSequence($character, $leafType, $visibility, '214LK', 'special', '["su"]', 600, null, null, null, null, null, null, 12, 3, 10, 16, 250, 400, 400);
+        $this->persistLeafSequence($character, $leafType, $visibility, '236PP', 'special', null, 1200, null, null, null, null, null, null, 7, 4, 12, 20, -20000, 500, 0);
         $this->persistLeafSequence($character, $leafType, $visibility, '236236P', 'super', null, 2000, null, null, null, null, null, null, 8, 8, 20, 30, 0, 500, -10000);
 
         $this->entityManager->flush();

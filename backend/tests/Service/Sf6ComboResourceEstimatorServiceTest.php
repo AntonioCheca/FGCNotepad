@@ -43,4 +43,26 @@ final class Sf6ComboResourceEstimatorServiceTest extends TestCase
         self::assertSame(1.0, $result['superUsed']);
         self::assertSame(0.05, $result['superGain']);
     }
+
+    public function testEstimateTreatsNegativeDriveGainAsDriveUsed(): void
+    {
+        $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());
+
+        $result = $service->estimate([
+            [
+                'moveType' => 'special',
+                'notation' => '236PP',
+                'driveGain' => -20000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 7,
+                'active' => 4,
+                'hitstop' => 12,
+                'recovery' => 20,
+                'connectionTypeName' => 'Special',
+            ],
+        ]);
+
+        self::assertSame(2.0, $result['driveUsed']);
+        self::assertSame(0.172, $result['driveGain']);
+    }
 }
