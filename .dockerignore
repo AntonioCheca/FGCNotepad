@@ -2,7 +2,7 @@
 .idea
 backend/.env.local
 backend/.env.*.local
-backend/config/jwt/*.pem
+backend/config/jwt/
 backend/vendor
 backend/var
 frontend/.env.local

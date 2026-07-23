@@ -25,10 +25,7 @@
 ###< symfony/asset-mapper ###
 
 /data
-
-###> lexik/jwt-authentication-bundle ###
-/config/jwt/*.pem
-###< lexik/jwt-authentication-bundle ###
+/config/jwt/
 
 ###> phpstan/phpstan ###
 phpstan.neon

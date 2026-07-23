@@ -6,7 +6,6 @@ FROM php:8.2-fpm
 RUN apt-get update && apt-get install -y \
     git unzip zip curl \
     libpq-dev \
-    python3 python3-pip python3-venv \
     && docker-php-ext-install pdo pdo_pgsql
 
 # --------------------------
@@ -40,15 +39,6 @@ COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 # --------------------------
 WORKDIR /var/www/html
 RUN chown -R www-data:www-data /var/www/html
-
-# --------------------------
-# Python: create and install in virtualenv
-# --------------------------
-COPY backend/python_requirements.txt .
-RUN python3 -m venv /opt/venv \
- && /opt/venv/bin/pip install --no-cache-dir -r python_requirements.txt
-
-ENV PATH="/opt/venv/bin:$PATH"
 
 # --------------------------
 # Switch to www-data user
