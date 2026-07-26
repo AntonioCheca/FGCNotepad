@@ -105,6 +105,40 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         self::assertSame('Initial Move', $persistedStep->getConnectionType()?->getName());
     }
 
+    public function testCreateFromPayloadRecalculatesResourceMetricsFromSteps(): void
+    {
+        $this->persistCreationLookups();
+        $initialConnection = (new ConnectionType())->setName('Initial Move');
+        $this->entityManager->persist($initialConnection);
+
+        $leafSequence = $this->persistLeafSequence(-20000, 7, 4, 12, 20);
+        $this->entityManager->flush();
+
+        $sequence = $this->service->createFromPayload([
+            'name' => 'Jamie OD Combo',
+            'description' => 'Spends drive',
+            'visibility' => 'public',
+            'metrics' => [
+                'damage' => 1200,
+                'driveCost' => 0,
+                'driveGain' => 0,
+            ],
+        ], 'combo', [
+            [
+                'child_sequence_id' => $leafSequence->getId(),
+                'ordinal_in_combo' => 1,
+                'connection_type_id' => $initialConnection->getId(),
+            ],
+        ]);
+
+        $metrics = $sequence->getComboMetrics();
+        self::assertInstanceOf(ComboMetrics::class, $metrics);
+        self::assertSame(2.0, $metrics->getDriveCost());
+        self::assertSame(0.172, $metrics->getDriveGain());
+        self::assertSame(0.1, $metrics->getMinimumDriveCost());
+        self::assertSame(2.1, $metrics->getMinimumDriveCostNoBurnout());
+    }
+
     public function testCreateFromPayloadConvertsRequirementValidationToBadRequest(): void
     {
         $this->persistCreationLookups();
@@ -139,13 +173,28 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         $this->entityManager->flush();
     }
 
-    private function persistLeafSequence(): ComboSequences
+    private function persistLeafSequence(?int $driveGain = null, ?int $startup = null, ?int $active = null, ?int $hitstop = null, ?int $recovery = null): ComboSequences
     {
         $character = (new Character())->setName('Jamie');
         $move = (new Move())
             ->setCharacter($character)
             ->setNumpadNotation('2LP');
         $frameData = (new FrameData())->setMoveType('normal');
+        if (null !== $driveGain) {
+            $frameData->setDriveGain($driveGain);
+        }
+        if (null !== $startup) {
+            $frameData->setStartup($startup);
+        }
+        if (null !== $active) {
+            $frameData->setActive($active);
+        }
+        if (null !== $hitstop) {
+            $frameData->setHitstop($hitstop);
+        }
+        if (null !== $recovery) {
+            $frameData->setRecovery($recovery);
+        }
         $move->setFrameData($frameData);
 
         $leafType = $this->entityManager->getRepository(ComboSequenceType::class)->findOneBy(['name' => 'leaf']);

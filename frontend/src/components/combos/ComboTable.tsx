@@ -21,13 +21,15 @@ interface ComboTableProps {
     onSortChange: (field: ComboSortField, direction: ComboSortDirection) => void;
 }
 
-const sortableHeaders: Array<{field: ComboSortField; label: string; seasonOnlyDesc?: boolean}> = [
+const sortableHeaders: Array<{field: ComboSortField; label: string | string[]; seasonOnlyDesc?: boolean}> = [
     {field: "damage", label: "Damage"},
-    {field: "resourceAdjustedDamage", label: "Resource adjusted"},
+    {field: "resourceAdjustedDamage", label: ["Res.", "Adj."]},
     {field: "driveCost", label: "Drive"},
+    {field: "minimumDriveCost", label: ["Min", "Drive"]},
+    {field: "minimumDriveCostNoBurnout", label: ["Safe", "Drive"]},
     {field: "superCost", label: "Super"},
-    {field: "driveGain", label: "Gained Drive"},
-    {field: "superGain", label: "Gained Super"},
+    {field: "driveGain", label: ["Drive", "Gain"]},
+    {field: "superGain", label: ["Super", "Gain"]},
     {field: "seasonStartDate", label: "Season", seasonOnlyDesc: true},
 ];
 
@@ -50,10 +52,11 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
         );
     }
 
-    const renderSortableHeader = ({field, label, seasonOnlyDesc}: {field: ComboSortField; label: string; seasonOnlyDesc?: boolean}) => {
+    const renderSortableHeader = ({field, label, seasonOnlyDesc}: {field: ComboSortField; label: string | string[]; seasonOnlyDesc?: boolean}) => {
         const active = sort === field;
         const nextDirection: ComboSortDirection = seasonOnlyDesc ? "desc" : active && sortDirection === "desc" ? "asc" : "desc";
         const Icon = active && sortDirection === "asc" && !seasonOnlyDesc ? ArrowUpwardIcon : ArrowDownwardIcon;
+        const labelLines = Array.isArray(label) ? label : [label];
 
         return (
             <AppTableCell key={field} sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken", whiteSpace: "nowrap"}}>
@@ -64,9 +67,19 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                     color="secondary"
                     onClick={() => onSortChange(field, nextDirection)}
                     endIcon={<Icon fontSize="small" />}
-                    sx={{minWidth: 0, px: 0.5, color: active ? "fgc.accent.selected" : "text.primary", fontWeight: 800}}
+                    sx={{
+                        minWidth: 0,
+                        px: 0.35,
+                        color: active ? "fgc.accent.selected" : "text.primary",
+                        fontWeight: 800,
+                        lineHeight: 1.05,
+                        textAlign: "center",
+                        "& .MuiButton-endIcon": {ml: 0.25},
+                    }}
                 >
-                    {label}
+                    <AppBox component="span" sx={{display: "grid", gap: 0.05}}>
+                        {labelLines.map((line) => <AppBox key={line} component="span">{line}</AppBox>)}
+                    </AppBox>
                 </AppButton>
             </AppTableCell>
         );
@@ -80,13 +93,13 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                         <AppTableRow>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Title</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Character</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Moves</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Starter</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Ender</AppTableCell>
                             {sortableHeaders.map(renderSortableHeader)}
                         </AppTableRow>
                     </AppTableHead>
                     <AppTableBody>
                         {combos.map((combo) => {
-                            const moves = combo.moves ?? [];
                             const season = combo.season
                                 ? combo.season
                                 : "-";
@@ -131,10 +144,13 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                         </AppBox>
                                     </AppTableCell>
                                     <AppTableCell>{combo.characterName ?? "-"}</AppTableCell>
-                                    <AppTableCell>{moves.join(", ") || "-"}</AppTableCell>
+                                    <AppTableCell>{combo.starter ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.ender ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.resourceAdjustedDamage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.driveCost ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.minimumDriveCost ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.minimumDriveCostNoBurnout ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.superCost ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.driveGain ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.superGain ?? "-"}</AppTableCell>

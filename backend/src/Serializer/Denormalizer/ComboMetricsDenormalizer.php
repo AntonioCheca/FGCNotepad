@@ -39,6 +39,8 @@ class ComboMetricsDenormalizer implements DenormalizerInterface, DenormalizerAwa
         $metrics
             ->setDriveCost($this->extractNullableFloat($data['driveCost'] ?? null))
             ->setDriveGain($this->extractNullableFloat($data['driveGain'] ?? null))
+            ->setMinimumDriveCost($this->extractNullableFloat($data['minimumDriveCost'] ?? null))
+            ->setMinimumDriveCostNoBurnout($this->extractNullableFloat($data['minimumDriveCostNoBurnout'] ?? null))
             ->setSuperCost($this->extractNullableFloat($data['superCost'] ?? null))
             ->setSuperGain($this->extractNullableFloat($data['superGain'] ?? null));
 

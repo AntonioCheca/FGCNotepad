@@ -40,6 +40,8 @@ final class Sf6ComboResourceEstimatorServiceTest extends TestCase
         self::assertSame(60, $result['totalFrames']);
         self::assertSame(0.0, $result['driveUsed']);
         self::assertSame(0.27, $result['driveGain']);
+        self::assertSame(0.0, $result['minimumDriveCost']);
+        self::assertSame(0.1, $result['minimumDriveCostNoBurnout']);
         self::assertSame(1.0, $result['superUsed']);
         self::assertSame(0.05, $result['superGain']);
     }
@@ -64,6 +66,8 @@ final class Sf6ComboResourceEstimatorServiceTest extends TestCase
 
         self::assertSame(2.0, $result['driveUsed']);
         self::assertSame(0.172, $result['driveGain']);
+        self::assertSame(0.1, $result['minimumDriveCost']);
+        self::assertSame(2.1, $result['minimumDriveCostNoBurnout']);
     }
 
     public function testEstimateAddsThreeDriveBarsForEachDriveRushCancel(): void
@@ -107,5 +111,128 @@ final class Sf6ComboResourceEstimatorServiceTest extends TestCase
         ]);
 
         self::assertSame(6.0, $result['driveUsed']);
+    }
+
+    public function testEstimateCalculatesMinimumDriveAcrossDriveSpendTimeline(): void
+    {
+        $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());
+
+        $result = $service->estimate([
+            [
+                'moveType' => 'normal',
+                'notation' => '5MP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 10,
+                'active' => 5,
+                'hitstop' => 10,
+                'recovery' => 25,
+                'connectionTypeName' => 'Initial Move',
+            ],
+            [
+                'moveType' => 'drive',
+                'notation' => 'Drive Rush',
+                'driveGain' => -10000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Link',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '5HP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 10,
+                'active' => 5,
+                'hitstop' => 10,
+                'recovery' => 25,
+                'connectionTypeName' => 'Link',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '2MP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 8,
+                'active' => 3,
+                'hitstop' => 10,
+                'recovery' => 20,
+                'connectionTypeName' => 'DR Cancel',
+            ],
+        ]);
+
+        self::assertSame(4.0, $result['driveUsed']);
+        self::assertSame(0.564, $result['driveGain']);
+        self::assertSame(0.9, $result['minimumDriveCost']);
+        self::assertSame(3.7, $result['minimumDriveCostNoBurnout']);
+    }
+
+    public function testEstimateRequiresEnoughDriveToAvoidBurnoutBeforeFutureDriveSpend(): void
+    {
+        $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());
+
+        $result = $service->estimate([
+            [
+                'moveType' => 'drive',
+                'notation' => 'Drive Rush',
+                'driveGain' => -10000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Initial Move',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '5HP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 10,
+                'active' => 5,
+                'hitstop' => 10,
+                'recovery' => 25,
+                'connectionTypeName' => 'Link',
+            ],
+            [
+                'moveType' => 'drive',
+                'notation' => 'OD Fireball',
+                'driveGain' => -20000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Special',
+            ],
+        ]);
+
+        self::assertSame(1.1, $result['minimumDriveCost']);
+        self::assertSame(2.9, $result['minimumDriveCostNoBurnout']);
+    }
+
+    public function testEstimateReturnsNullWhenNoBurnoutRouteRequiresMoreThanFullDrive(): void
+    {
+        $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());
+
+        $result = $service->estimate([
+            [
+                'moveType' => 'drive',
+                'notation' => 'Expensive Sequence',
+                'driveGain' => -70000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Initial Move',
+            ],
+        ]);
+
+        self::assertSame(0.1, $result['minimumDriveCost']);
+        self::assertNull($result['minimumDriveCostNoBurnout']);
     }
 }

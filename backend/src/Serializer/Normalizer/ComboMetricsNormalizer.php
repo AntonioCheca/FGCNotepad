@@ -20,6 +20,8 @@ class ComboMetricsNormalizer implements NormalizerInterface
             'difficultyLevel' => $object->getDifficultyLevel(),
             'driveCost' => $object->getDriveCost(),
             'driveGain' => $object->getDriveGain(),
+            'minimumDriveCost' => $object->getMinimumDriveCost(),
+            'minimumDriveCostNoBurnout' => $object->getMinimumDriveCostNoBurnout(),
             'superCost' => $object->getSuperCost(),
             'superGain' => $object->getSuperGain(),
             'resourceAdjustedDamage' => $object->getResourceAdjustedDamage(),

@@ -14,7 +14,7 @@ import {ComboPrimaryFiltersSection} from "./filters/ComboPrimaryFiltersSection";
 import {ComboRequirementsFiltersSection} from "./filters/ComboRequirementsFiltersSection";
 import {DEFAULT_COMBO_FILTER_SORT} from "./filters/comboFilterConstants";
 import type {ComboFiltersProps, ComboSearchFilters} from "./filters/comboFilterTypes";
-import {buildComboSearchFilters, countActiveComboFilters, normalizeCharacterOptions, normalizeRequirementObjectOptions} from "./filters/comboFilterUtils";
+import {buildComboSearchFilters, normalizeCharacterOptions, normalizeRequirementObjectOptions} from "./filters/comboFilterUtils";
 import {useComboFilterState} from "./filters/useComboFilterState";
 import {useComboMoveSearch} from "./filters/useComboMoveSearch";
 import type {RequirementObjectOption} from "@/src/types/combo";
@@ -39,7 +39,6 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         setMaxDamage,
         setRequirementToggle,
         setRequirementObject,
-        setMoveTypes,
         toggleAdvancedFilters,
         clearFilters,
     } = useComboFilterState();
@@ -77,7 +76,6 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         selectedCharacter,
         searchMoves,
     });
-    const activeFilterCount = React.useMemo(() => countActiveComboFilters(state), [state]);
     const normalizedFilters = React.useMemo(() => buildComboSearchFilters(state), [state]);
 
     React.useEffect(() => {
@@ -105,7 +103,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
 
     return (
         <AppPaper variant="outlined" sx={{p: {xs: 1.25, md: 1.5}, mb: 2, borderRadius: 2.5, display: "grid", gap: 1}}>
-            <ComboFiltersHeader activeFilterCount={activeFilterCount} />
+            <ComboFiltersHeader />
 
             <ComboPrimaryFiltersSection
                 characterOptions={characterOptions}
@@ -142,12 +140,10 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
             <AppCollapse in={state.showAdvancedFilters} timeout={200} unmountOnExit>
                 <AppBox sx={{display: "grid", gap: 1, pt: 0.75}}>
                     <ComboAdvancedFiltersSection
-                        moveTypes={state.moveTypes}
                         minDifficulty={state.minDifficulty}
                         maxDifficulty={state.maxDifficulty}
                         minDamage={state.minDamage}
                         maxDamage={state.maxDamage}
-                        onMoveTypesChange={setMoveTypes}
                         onMinDifficultyChange={setMinDifficulty}
                         onMaxDifficultyChange={setMaxDifficulty}
                         onMinDamageChange={setMinDamage}

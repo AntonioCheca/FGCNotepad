@@ -4,7 +4,6 @@ import {DEFAULT_COMBO_FILTER_STATE} from "./comboFilterConstants";
 import type {
     ComboFilterState,
     ComboMoveSearchOption,
-    ComboMoveType,
     ComboRequirementFilterKey,
     ComboSortDirection,
     ComboSortField,
@@ -20,7 +19,6 @@ type ComboFilterAction =
     | {type: "setDifficultyRange"; minDifficulty?: string; maxDifficulty?: string}
     | {type: "setDamageRange"; minDamage?: string; maxDamage?: string}
     | {type: "setRequirementToggle"; key: ComboRequirementFilterKey; checked: boolean}
-    | {type: "setMoveTypes"; value: ComboMoveType[]}
     | {type: "setRequirementObject"; objectName: string; status: string}
     | {type: "setSort"; field: ComboSortField; direction?: ComboSortDirection}
     | {type: "toggleAdvancedFilters"}
@@ -56,8 +54,6 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
             return {...state, requirements: {...state.requirements, [action.key]: action.checked}};
         case "setRequirementObject":
             return {...state, requirements: {...state.requirements, requirementObjectName: action.objectName, requirementObjectStatus: action.status}};
-        case "setMoveTypes":
-            return {...state, moveTypes: action.value};
         case "setSort":
             return {...state, sort: action.field, sortDirection: action.direction ?? state.sortDirection};
         case "toggleAdvancedFilters":
@@ -85,7 +81,6 @@ export function useComboFilterState() {
         setMaxDamage: (value: string) => dispatch({type: "setDamageRange", maxDamage: value}),
         setRequirementToggle: (key: ComboRequirementFilterKey, checked: boolean) => dispatch({type: "setRequirementToggle", key, checked}),
         setRequirementObject: (objectName: string, status: string) => dispatch({type: "setRequirementObject", objectName, status}),
-        setMoveTypes: (value: ComboMoveType[]) => dispatch({type: "setMoveTypes", value}),
         setSort: (field: ComboSortField, direction?: ComboSortDirection) => dispatch({type: "setSort", field, direction}),
         toggleAdvancedFilters: () => dispatch({type: "toggleAdvancedFilters"}),
         clearFilters: () => dispatch({type: "clearFilters"}),

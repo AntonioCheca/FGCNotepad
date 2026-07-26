@@ -12,6 +12,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Index(name: "idx_combo_metrics_difficulty_level", columns: ["difficulty_level"])]
 #[ORM\Index(name: "idx_combo_metrics_resource_adjusted_damage", columns: ["resource_adjusted_damage"])]
 #[ORM\Index(name: "idx_combo_metrics_drive_cost", columns: ["drive_cost"])]
+#[ORM\Index(name: "idx_combo_metrics_minimum_drive_cost", columns: ["minimum_drive_cost"])]
+#[ORM\Index(name: "idx_combo_metrics_minimum_drive_cost_no_burnout", columns: ["minimum_drive_cost_no_burnout"])]
 #[ORM\Index(name: "idx_combo_metrics_super_cost", columns: ["super_cost"])]
 #[ORM\Index(name: "idx_combo_metrics_drive_gain", columns: ["drive_gain"])]
 #[ORM\Index(name: "idx_combo_metrics_super_gain", columns: ["super_gain"])]
@@ -42,6 +44,14 @@ class ComboMetrics
     #[ORM\Column(name: 'drive_gain', nullable: true)]
     #[Groups(['combo:read'])]
     private ?float $driveGain = null;
+
+    #[ORM\Column(name: 'minimum_drive_cost', nullable: true)]
+    #[Groups(['combo:read'])]
+    private ?float $minimumDriveCost = null;
+
+    #[ORM\Column(name: 'minimum_drive_cost_no_burnout', nullable: true)]
+    #[Groups(['combo:read'])]
+    private ?float $minimumDriveCostNoBurnout = null;
 
     #[ORM\Column(name: 'super_cost', nullable: true)]
     #[Groups(['combo:read'])]
@@ -116,6 +126,30 @@ class ComboMetrics
     public function setDriveGain(?float $driveGain): static
     {
         $this->driveGain = $driveGain;
+
+        return $this;
+    }
+
+    public function getMinimumDriveCost(): ?float
+    {
+        return $this->minimumDriveCost;
+    }
+
+    public function setMinimumDriveCost(?float $minimumDriveCost): static
+    {
+        $this->minimumDriveCost = $minimumDriveCost;
+
+        return $this;
+    }
+
+    public function getMinimumDriveCostNoBurnout(): ?float
+    {
+        return $this->minimumDriveCostNoBurnout;
+    }
+
+    public function setMinimumDriveCostNoBurnout(?float $minimumDriveCostNoBurnout): static
+    {
+        $this->minimumDriveCostNoBurnout = $minimumDriveCostNoBurnout;
 
         return $this;
     }

@@ -1,6 +1,5 @@
-export type ComboSortField = "damage" | "resourceAdjustedDamage" | "driveCost" | "superCost" | "driveGain" | "superGain" | "seasonStartDate";
+export type ComboSortField = "damage" | "resourceAdjustedDamage" | "driveCost" | "minimumDriveCost" | "minimumDriveCostNoBurnout" | "superCost" | "driveGain" | "superGain" | "seasonStartDate";
 export type ComboSortDirection = "asc" | "desc";
-export type ComboMoveType = "drive" | "super" | "special" | "normal";
 
 export interface ComboMoveSearchOption {
     id: string;
@@ -38,7 +37,6 @@ export interface ComboFilterState {
     minDamage: string;
     maxDamage: string;
     requirements: ComboRequirementFilters;
-    moveTypes: ComboMoveType[];
     sort: ComboSortField;
     sortDirection: ComboSortDirection;
     showAdvancedFilters: boolean;
@@ -62,7 +60,6 @@ export interface ComboSearchFilters {
     notCrouchingRequired?: boolean;
     requirementObjectName?: string;
     requirementObjectStatus?: string;
-    moveTypes?: string[];
     sort?: ComboSortField;
     sortDirection?: ComboSortDirection;
 }

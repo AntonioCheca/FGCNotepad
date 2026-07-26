@@ -199,7 +199,7 @@ class ComboSequenceController extends AbstractController
 
         $trimmed = trim($value);
 
-        return in_array($trimmed, ['damage', 'resourceAdjustedDamage', 'driveCost', 'superCost', 'driveGain', 'superGain', 'seasonStartDate'], true)
+        return in_array($trimmed, ['damage', 'resourceAdjustedDamage', 'driveCost', 'minimumDriveCost', 'minimumDriveCostNoBurnout', 'superCost', 'driveGain', 'superGain', 'seasonStartDate'], true)
             ? $trimmed
             : 'resourceAdjustedDamage';
     }
@@ -610,6 +610,8 @@ class ComboSequenceController extends AbstractController
         return new JsonResponse([
             'driveUsed' => $estimation['driveUsed'],
             'driveGain' => $estimation['driveGain'],
+            'minimumDriveCost' => $estimation['minimumDriveCost'],
+            'minimumDriveCostNoBurnout' => $estimation['minimumDriveCostNoBurnout'],
             'superUsed' => $estimation['superUsed'],
             'superGain' => $estimation['superGain'],
             'totalFrames' => $estimation['totalFrames'],

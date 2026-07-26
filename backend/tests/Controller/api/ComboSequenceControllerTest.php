@@ -566,6 +566,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertEquals(0.0, $payload['driveUsed']);
         $this->assertEquals(0.338, $payload['driveGain']);
+        $this->assertEquals(0.0, $payload['minimumDriveCost']);
+        $this->assertEquals(0.1, $payload['minimumDriveCostNoBurnout']);
         $this->assertEquals(0.0, $payload['superUsed']);
         $this->assertEquals(0.09, $payload['superGain']);
         $this->assertSame(72, $payload['totalFrames']);
@@ -640,6 +642,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertEquals(2.0, $payload['driveUsed']);
+        $this->assertEquals(0.1, $payload['minimumDriveCost']);
+        $this->assertNotNull($payload['minimumDriveCostNoBurnout']);
     }
 
     public function testCreateFullComboPersistsRequirementsAndSpecificCharacter(): void
@@ -703,7 +707,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('2', $specificRequirement->getStatusRequired());
     }
 
-    public function testCreateFullComboPersistsResourceMetrics(): void
+    public function testCreateFullComboRecalculatesResourceMetricsFromSteps(): void
     {
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
 
@@ -732,15 +736,17 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
         $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
         $this->assertSame(2400, $responsePayload['comboMetrics']['damage']);
-        $this->assertEquals(2.5, $responsePayload['comboMetrics']['driveCost']);
-        $this->assertEquals(0.5, $responsePayload['comboMetrics']['driveGain']);
-        $this->assertEquals(1.0, $responsePayload['comboMetrics']['superCost']);
+        $this->assertEquals(0.0, $responsePayload['comboMetrics']['driveCost']);
+        $this->assertEquals(0.0, $responsePayload['comboMetrics']['driveGain']);
+        $this->assertEquals(0.0, $responsePayload['comboMetrics']['minimumDriveCost']);
+        $this->assertEquals(0.1, $responsePayload['comboMetrics']['minimumDriveCostNoBurnout']);
+        $this->assertEquals(0.0, $responsePayload['comboMetrics']['superCost']);
         $this->assertEquals(0.0, $responsePayload['comboMetrics']['superGain']);
-        $this->assertEquals(1500.0, $responsePayload['comboMetrics']['resourceAdjustedDamage']);
+        $this->assertEquals(2400.0, $responsePayload['comboMetrics']['resourceAdjustedDamage']);
 
         $createdSequence = $this->entityManager->getRepository(ComboSequences::class)->find($responsePayload['id']);
         $this->assertInstanceOf(ComboSequences::class, $createdSequence);
-        $this->assertEquals(1500.0, $createdSequence->getComboMetrics()?->getResourceAdjustedDamage());
+        $this->assertEquals(2400.0, $createdSequence->getComboMetrics()?->getResourceAdjustedDamage());
     }
 
     public function testUpdateComboPersistsFullComboPayload(): void
@@ -802,7 +808,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('Updated Combo', $payload['name']);
         $this->assertSame('Updated route notes', $payload['description']);
         $this->assertSame(2300, $payload['comboMetrics']['damage']);
-        $this->assertEquals(1550.0, $payload['comboMetrics']['resourceAdjustedDamage']);
+        $this->assertEquals(2300.0, $payload['comboMetrics']['resourceAdjustedDamage']);
         $this->assertTrue($payload['comboRequirement']['punish_counter_required']);
         $this->assertTrue($payload['comboRequirement']['corner_required']);
         $this->assertTrue($payload['comboRequirement']['not_crouching_required']);
@@ -810,7 +816,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
         $updatedSequence = $this->entityManager->getRepository(ComboSequences::class)->find($comboId);
         $this->assertInstanceOf(ComboSequences::class, $updatedSequence);
-        $this->assertEquals(1550.0, $updatedSequence->getComboMetrics()?->getResourceAdjustedDamage());
+        $this->assertEquals(2300.0, $updatedSequence->getComboMetrics()?->getResourceAdjustedDamage());
     }
 
     public function testListCanSortByResourceAdjustedDamage(): void

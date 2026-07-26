@@ -238,6 +238,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
             'damage' => 'metrics.damage',
             'resourceAdjustedDamage' => 'metrics.resourceAdjustedDamage',
             'driveCost' => 'metrics.driveCost',
+            'minimumDriveCost' => 'metrics.minimumDriveCost',
+            'minimumDriveCostNoBurnout' => 'metrics.minimumDriveCostNoBurnout',
             'superCost' => 'metrics.superCost',
             'driveGain' => 'metrics.driveGain',
             'superGain' => 'metrics.superGain',
@@ -563,7 +565,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
         }
 
         if (null !== $availableDrive) {
-            $qb->andWhere('(metrics.driveCost IS NULL OR metrics.driveCost <= :availableDrive)')
+            $qb->andWhere('((metrics.minimumDriveCost IS NOT NULL AND metrics.minimumDriveCost <= :availableDrive) OR (metrics.minimumDriveCost IS NULL AND (metrics.driveCost IS NULL OR metrics.driveCost <= :availableDrive)))')
                 ->setParameter('availableDrive', $availableDrive);
         }
 

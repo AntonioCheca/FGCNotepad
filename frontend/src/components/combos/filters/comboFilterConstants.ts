@@ -1,15 +1,6 @@
-import type {ComboFilterState, ComboMoveType, ComboRequirementFilters, ComboSortField} from "./comboFilterTypes";
+import type {ComboFilterState, ComboRequirementFilters, ComboSortField} from "./comboFilterTypes";
 
 export const DEFAULT_COMBO_FILTER_SORT: ComboSortField = "resourceAdjustedDamage";
-
-export const MOVE_TYPE_VALUES: ComboMoveType[] = ["drive", "super", "special", "normal"];
-
-export const MOVE_TYPE_LABELS: Record<ComboMoveType, string> = {
-    drive: "Drive",
-    super: "Super",
-    special: "Special",
-    normal: "Normal",
-};
 
 export const DEFAULT_COMBO_REQUIREMENTS: ComboRequirementFilters = {
     isEssential: false,
@@ -35,7 +26,6 @@ export const DEFAULT_COMBO_FILTER_STATE: ComboFilterState = {
     minDamage: "",
     maxDamage: "",
     requirements: DEFAULT_COMBO_REQUIREMENTS,
-    moveTypes: [],
     sort: DEFAULT_COMBO_FILTER_SORT,
     sortDirection: "desc",
     showAdvancedFilters: false,

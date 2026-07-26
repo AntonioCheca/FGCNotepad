@@ -103,7 +103,6 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         notCrouchingRequired: state.requirements.notCrouchingRequired ? true : undefined,
         requirementObjectName: state.requirements.requirementObjectName || undefined,
         requirementObjectStatus: state.requirements.requirementObjectStatus || undefined,
-        moveTypes: state.moveTypes.length > 0 ? state.moveTypes : undefined,
         sort: state.sort,
         sortDirection: state.sortDirection,
     };
@@ -128,7 +127,6 @@ export function countActiveComboFilters(state: ComboFilterState): number {
         state.requirements.notCrouchingRequired,
         state.requirements.requirementObjectName !== "",
         state.requirements.requirementObjectStatus !== "",
-        state.moveTypes.length > 0,
         state.sort !== DEFAULT_COMBO_FILTER_SORT,
     ];
 

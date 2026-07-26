@@ -25,6 +25,7 @@ final class ComboSequenceCreationService
         private readonly ComboRequirementFactory $comboRequirementFactory,
         private readonly ComboStepFactory $comboStepFactory,
         private readonly ComboValueEstimator $comboValueEstimator,
+        private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
     ) {
     }
 
@@ -55,6 +56,7 @@ final class ComboSequenceCreationService
         $this->persistMetrics($sequence, $payload);
         $this->persistRequirement($sequence, $payload);
         $this->persistSteps($sequence, $stepsPayload);
+        $this->recalculateMetricsFromSteps($sequence);
 
         $this->entityManager->flush();
 
@@ -85,6 +87,8 @@ final class ComboSequenceCreationService
             ->setDamage((int) $payload['metrics']['damage'])
             ->setDriveCost($this->extractNullableFloat($payload['metrics']['driveCost'] ?? null))
             ->setDriveGain($this->extractNullableFloat($payload['metrics']['driveGain'] ?? null))
+            ->setMinimumDriveCost($this->extractNullableFloat($payload['metrics']['minimumDriveCost'] ?? null))
+            ->setMinimumDriveCostNoBurnout($this->extractNullableFloat($payload['metrics']['minimumDriveCostNoBurnout'] ?? null))
             ->setSuperCost($this->extractNullableFloat($payload['metrics']['superCost'] ?? null))
             ->setSuperGain($this->extractNullableFloat($payload['metrics']['superGain'] ?? null));
 
@@ -143,5 +147,15 @@ final class ComboSequenceCreationService
         foreach ($this->comboStepFactory->createFromPayload($sequence, $stepsPayload) as $step) {
             $this->entityManager->persist($step);
         }
+    }
+
+    private function recalculateMetricsFromSteps(ComboSequences $sequence): void
+    {
+        if (!$sequence->getComboMetrics() instanceof ComboMetrics || 0 === $sequence->getSteps()->count()) {
+            return;
+        }
+
+        $this->comboMetricsResourceRecalculationService->recalculate($sequence);
+        $this->comboValueEstimator->applyEstimatedValue($sequence->getComboMetrics());
     }
 }

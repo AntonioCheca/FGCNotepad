@@ -135,6 +135,8 @@ export interface EstimateComboDamageResponse extends TranslateComboNotationRespo
 export interface EstimateComboResourcesResponse extends TranslateComboNotationResponse {
     driveUsed: number;
     driveGain: number;
+    minimumDriveCost: number | null;
+    minimumDriveCostNoBurnout: number | null;
     superUsed: number;
     superGain: number;
     totalFrames: number;
@@ -151,9 +153,13 @@ export interface ComboRow {
     moderationState: string;
     characterName: string;
     moves: string[];
+    starter: string;
+    ender: string;
     damage: number | string;
     resourceAdjustedDamage: number | string;
     driveCost: number | string;
+    minimumDriveCost: number | string;
+    minimumDriveCostNoBurnout: number | string;
     driveGain: number | string;
     superCost: number | string;
     superGain: number | string;
@@ -199,15 +205,21 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         }
     }
 
+    const moves = moveNamesFromLegacyField.length > 0 ? moveNamesFromLegacyField : moveNamesFromSteps;
+
     return {
         id: combo.id,
         title: combo.name ?? "-",
         moderationState: combo.moderationState ?? "approved",
         characterName: combo.character?.name ?? "-",
-        moves: moveNamesFromLegacyField.length > 0 ? moveNamesFromLegacyField : moveNamesFromSteps,
+        moves,
+        starter: moves[0] ?? "-",
+        ender: moves.length > 0 ? moves[moves.length - 1] : "-",
         damage: combo.comboMetrics?.damage ?? "-",
         resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",
         driveCost: combo.comboMetrics?.driveCost ?? "-",
+        minimumDriveCost: combo.comboMetrics?.minimumDriveCost ?? "-",
+        minimumDriveCostNoBurnout: combo.comboMetrics?.minimumDriveCostNoBurnout ?? "-",
         driveGain: combo.comboMetrics?.driveGain ?? "-",
         superCost: combo.comboMetrics?.superCost ?? "-",
         superGain: combo.comboMetrics?.superGain ?? "-",
@@ -267,6 +279,8 @@ export interface ComboDetailView {
     damage: number | string;
     resourceAdjustedDamage: number | string;
     driveCost: number | string;
+    minimumDriveCost: number | string;
+    minimumDriveCostNoBurnout: number | string;
     driveGain: number | string;
     superCost: number | string;
     superGain: number | string;
@@ -286,6 +300,8 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
         damage: combo.comboMetrics?.damage ?? "-",
         resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",
         driveCost: combo.comboMetrics?.driveCost ?? "-",
+        minimumDriveCost: combo.comboMetrics?.minimumDriveCost ?? "-",
+        minimumDriveCostNoBurnout: combo.comboMetrics?.minimumDriveCostNoBurnout ?? "-",
         driveGain: combo.comboMetrics?.driveGain ?? "-",
         superCost: combo.comboMetrics?.superCost ?? "-",
         superGain: combo.comboMetrics?.superGain ?? "-",
@@ -304,6 +320,8 @@ export interface ComboMetricsApi {
     damage?: number | string;
     difficultyLevel?: number | string | null;
     driveCost?: number | string | null;
+    minimumDriveCost?: number | string | null;
+    minimumDriveCostNoBurnout?: number | string | null;
     driveGain?: number | string | null;
     superCost?: number | string | null;
     superGain?: number | string | null;

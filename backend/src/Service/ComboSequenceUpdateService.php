@@ -18,6 +18,7 @@ final class ComboSequenceUpdateService
         private readonly ComboRequirementFactory $comboRequirementFactory,
         private readonly ComboStepFactory $comboStepFactory,
         private readonly ComboValueEstimator $comboValueEstimator,
+        private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
     ) {
     }
 
@@ -62,6 +63,8 @@ final class ComboSequenceUpdateService
             $this->replaceSteps($sequence, $payload['steps']);
         }
 
+        $this->recalculateMetricsFromSteps($sequence);
+
         return $sequence;
     }
 
@@ -83,6 +86,8 @@ final class ComboSequenceUpdateService
             ->setDamage($damage)
             ->setDriveCost($this->readNullableFloat($metricsPayload['driveCost'] ?? null, 'metrics.driveCost'))
             ->setDriveGain($this->readNullableFloat($metricsPayload['driveGain'] ?? null, 'metrics.driveGain'))
+            ->setMinimumDriveCost($this->readNullableFloat($metricsPayload['minimumDriveCost'] ?? null, 'metrics.minimumDriveCost'))
+            ->setMinimumDriveCostNoBurnout($this->readNullableFloat($metricsPayload['minimumDriveCostNoBurnout'] ?? null, 'metrics.minimumDriveCostNoBurnout'))
             ->setSuperCost($this->readNullableFloat($metricsPayload['superCost'] ?? null, 'metrics.superCost'))
             ->setSuperGain($this->readNullableFloat($metricsPayload['superGain'] ?? null, 'metrics.superGain'));
 
@@ -155,6 +160,16 @@ final class ComboSequenceUpdateService
         foreach ($this->comboStepFactory->createFromPayload($sequence, $stepsPayload) as $step) {
             $this->entityManager->persist($step);
         }
+    }
+
+    private function recalculateMetricsFromSteps(ComboSequences $sequence): void
+    {
+        if (!$sequence->getComboMetrics() instanceof ComboMetrics || 0 === $sequence->getSteps()->count()) {
+            return;
+        }
+
+        $this->comboMetricsResourceRecalculationService->recalculate($sequence);
+        $this->comboValueEstimator->applyEstimatedValue($sequence->getComboMetrics());
     }
 
     private function readInteger(mixed $value, string $field): int
