@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Table(name: 'season', schema: 'sf6')]
+#[ORM\Index(name: 'idx_season_start_date', columns: ['start_date'])]
 #[ORM\Entity(repositoryClass: SeasonRepository::class)]
 class Season
 {

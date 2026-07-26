@@ -12,6 +12,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ComboSequencesRepository::class)]
 #[ORM\Table(name: "combo_sequence", schema: "sf6")]
+#[ORM\Index(name: "idx_combo_sequence_is_essential", columns: ["is_essential"])]
 class ComboSequences
 {
     #[ORM\Id]

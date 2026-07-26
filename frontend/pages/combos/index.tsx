@@ -10,6 +10,7 @@ import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import useCombos from "@/hooks/useCombos";
 import {ComboRow, mapComboToRow} from "@/src/types/combo";
+import type {ComboSortDirection, ComboSortField} from "@/src/components/combos/filters/comboFilterTypes";
 
 export default function SearchCombosPage() {
     const {fetchCombos} = useCombos();
@@ -19,6 +20,30 @@ export default function SearchCombosPage() {
     const [hasLoadedAtLeastOnce, setHasLoadedAtLeastOnce] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const requestSequence = useRef(0);
+
+    const areFiltersEqual = useCallback((left: ComboSearchFilters, right: ComboSearchFilters): boolean => {
+        return JSON.stringify(left) === JSON.stringify(right);
+    }, []);
+
+    const handleFiltersChange = useCallback((newFilters: ComboSearchFilters) => {
+        setFilters((currentFilters) => {
+            const nextFilters = {
+                ...newFilters,
+                sort: currentFilters.sort ?? "resourceAdjustedDamage",
+                sortDirection: currentFilters.sortDirection ?? "desc",
+            } satisfies ComboSearchFilters;
+
+            return areFiltersEqual(currentFilters, nextFilters) ? currentFilters : nextFilters;
+        });
+    }, [areFiltersEqual]);
+
+    const handleSortChange = useCallback((field: ComboSortField, direction: ComboSortDirection) => {
+        setFilters((currentFilters) => ({
+            ...currentFilters,
+            sort: field,
+            sortDirection: field === "seasonStartDate" ? "desc" : direction,
+        }));
+    }, []);
 
     const loadCombos = useCallback(async () => {
         const currentRequestId = requestSequence.current + 1;
@@ -60,9 +85,7 @@ export default function SearchCombosPage() {
                 badgeLabel={`${combos.length} result${combos.length === 1 ? "" : "s"}`}
             >
                 {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}
-                <ComboFilters onChange={(newFilters) => {
-                    setFilters(newFilters);
-                }} />
+                <ComboFilters onChange={handleFiltersChange} />
 
                 {loading && hasLoadedAtLeastOnce ? (
                     <AppBox sx={{display: "flex", justifyContent: "flex-end", pb: 0.5}}>
@@ -76,7 +99,12 @@ export default function SearchCombosPage() {
                         <AppTypography variant="body2" color="text.secondary">Loading combos...</AppTypography>
                     </AppBox>
                 ) : (
-                    <ComboTable combos={combos} />
+                    <ComboTable
+                        combos={combos}
+                        sort={filters.sort ?? "resourceAdjustedDamage"}
+                        sortDirection={filters.sortDirection ?? "desc"}
+                        onSortChange={handleSortChange}
+                    />
                 )}
             </PageShell>
         </AppContainer>

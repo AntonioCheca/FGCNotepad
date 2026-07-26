@@ -19,7 +19,6 @@ use App\Service\ComboSequenceCreationService;
 use App\Service\ComboSequenceUpdateService;
 use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
-use App\Service\ComboValueEstimator;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
 use App\Service\RequirementSpecificCharacterCatalog;
@@ -46,7 +45,6 @@ class ComboSequenceController extends AbstractController
         private ConnectionTypeRepository    $connectionTypeRepository,
         private ComboSequenceCreationService $comboSequenceCreationService,
         private ComboSequenceUpdateService $comboSequenceUpdateService,
-        private ComboValueEstimator $comboValueEstimator,
         private EndpointAuthorizationService $endpointAuthorizationService,
         private Security $security,
         private ModerationTransitionService $moderationTransitionService,
@@ -82,6 +80,7 @@ class ComboSequenceController extends AbstractController
             'q' => $this->normalizeStringFilter($request->query->get('q')),
             'characterId' => $this->normalizeStringFilter($request->query->get('characterId')),
             'firstMoveId' => $this->normalizeStringFilter($request->query->get('firstMoveId')),
+            'enderMoveId' => $this->normalizeStringFilter($request->query->get('enderMoveId')),
             'seasonId' => $this->normalizeIntegerFilter($request->query->get('seasonId')),
             'minDamage' => $this->normalizeIntegerFilter($request->query->get('minDamage')),
             'maxDamage' => $this->normalizeIntegerFilter($request->query->get('maxDamage')),
@@ -95,6 +94,10 @@ class ComboSequenceController extends AbstractController
             'notCrouchingRequired' => $this->normalizeBooleanFilter($request->query->get('notCrouchingRequired')),
             'isEssential' => $this->normalizeBooleanFilter($request->query->get('isEssential')),
             'moveTypes' => array_values($normalizedMoveTypes),
+            'requirementObjectName' => $this->normalizeStringFilter($request->query->get('requirementObjectName')),
+            'requirementObjectStatus' => $this->normalizeStringFilter($request->query->get('requirementObjectStatus')),
+            'sort' => $this->normalizeSortFilter($request->query->get('sort')),
+            'sortDirection' => $this->normalizeSortDirectionFilter($request->query->get('sortDirection')),
         ];
 
         $limit = $request->query->getInt('size', 100);
@@ -105,9 +108,6 @@ class ComboSequenceController extends AbstractController
             $limit,
             $actor instanceof User ? $actor : null,
         );
-        if ('resourceAdjustedDamage' === $request->query->get('sort')) {
-            $sequences = $this->comboValueEstimator->sortByEstimatedValue($sequences);
-        }
         $json = $this->serializer->serialize($sequences, 'json');
 
         return new JsonResponse($json, 200, [], true);
@@ -189,6 +189,28 @@ class ComboSequenceController extends AbstractController
         }
 
         return null;
+    }
+
+    private function normalizeSortFilter(mixed $value): string
+    {
+        if (!is_string($value)) {
+            return 'resourceAdjustedDamage';
+        }
+
+        $trimmed = trim($value);
+
+        return in_array($trimmed, ['damage', 'resourceAdjustedDamage', 'driveCost', 'superCost', 'driveGain', 'superGain', 'seasonStartDate'], true)
+            ? $trimmed
+            : 'resourceAdjustedDamage';
+    }
+
+    private function normalizeSortDirectionFilter(mixed $value): string
+    {
+        if (!is_string($value)) {
+            return 'desc';
+        }
+
+        return 'asc' === mb_strtolower(trim($value)) ? 'asc' : 'desc';
     }
 
 

@@ -1,4 +1,5 @@
-export type ComboSortMode = "resourceAdjustedDamage" | "created";
+export type ComboSortField = "damage" | "resourceAdjustedDamage" | "driveCost" | "superCost" | "driveGain" | "superGain" | "seasonStartDate";
+export type ComboSortDirection = "asc" | "desc";
 export type ComboMoveType = "drive" | "super" | "special" | "normal";
 
 export interface ComboMoveSearchOption {
@@ -19,22 +20,27 @@ export interface ComboRequirementFilters {
     airborneRequired: boolean;
     midScreenRequired: boolean;
     notCrouchingRequired: boolean;
+    requirementObjectName: string;
+    requirementObjectStatus: string;
 }
 
-export type ComboRequirementFilterKey = keyof ComboRequirementFilters;
+export type ComboRequirementFilterKey = Exclude<keyof ComboRequirementFilters, "requirementObjectName" | "requirementObjectStatus">;
 
 export interface ComboFilterState {
     query: string;
     characterId: string;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
+    enderMove: ComboMoveSearchOption | null;
+    enderMoveQuery: string;
     minDifficulty: string;
     maxDifficulty: string;
     minDamage: string;
     maxDamage: string;
     requirements: ComboRequirementFilters;
     moveTypes: ComboMoveType[];
-    sort: ComboSortMode;
+    sort: ComboSortField;
+    sortDirection: ComboSortDirection;
     showAdvancedFilters: boolean;
 }
 
@@ -42,6 +48,7 @@ export interface ComboSearchFilters {
     q?: string;
     characterId?: string;
     firstMoveId?: string;
+    enderMoveId?: string;
     minDifficulty?: number;
     maxDifficulty?: number;
     minDamage?: number;
@@ -53,8 +60,11 @@ export interface ComboSearchFilters {
     airborneRequired?: boolean;
     midScreenRequired?: boolean;
     notCrouchingRequired?: boolean;
+    requirementObjectName?: string;
+    requirementObjectStatus?: string;
     moveTypes?: string[];
-    sort?: ComboSortMode;
+    sort?: ComboSortField;
+    sortDirection?: ComboSortDirection;
 }
 
 export interface ComboFiltersProps {

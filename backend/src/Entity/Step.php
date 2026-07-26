@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: StepRepository::class)]
 #[ORM\Table(name: "step_combo", schema: "sf6")]
+#[ORM\Index(name: "idx_step_combo_parent_ordinal_child", columns: ["parent_sequence_id", "ordinal_in_combo", "child_sequence_id"])]
 class Step
 {
     #[ORM\Id]

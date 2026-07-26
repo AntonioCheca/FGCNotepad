@@ -9,6 +9,12 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ComboRequirementRepository::class)]
 #[ORM\Table(name: "combo_requirement", schema: "sf6")]
+#[ORM\Index(name: "idx_combo_requirement_counter_hit", columns: ["counter_hit_required"])]
+#[ORM\Index(name: "idx_combo_requirement_punish_counter", columns: ["punish_counter_required"])]
+#[ORM\Index(name: "idx_combo_requirement_corner", columns: ["corner_required"])]
+#[ORM\Index(name: "idx_combo_requirement_airborne", columns: ["airborne_required"])]
+#[ORM\Index(name: "idx_combo_requirement_mid_screen", columns: ["mid_screen_required"])]
+#[ORM\Index(name: "idx_combo_requirement_not_crouching", columns: ["not_crouching_required"])]
 class ComboRequirement
 {
     #[ORM\Id]

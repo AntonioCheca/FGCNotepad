@@ -10,12 +10,18 @@ interface ComboPrimaryFiltersSectionProps {
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
     firstMoveOptions: ComboMoveSearchOption[];
-    searchingMoves: boolean;
+    searchingFirstMoves: boolean;
+    enderMove: ComboMoveSearchOption | null;
+    enderMoveQuery: string;
+    enderMoveOptions: ComboMoveSearchOption[];
+    searchingEnderMoves: boolean;
     query: string;
     compactFieldSx: object;
     onCharacterChange: (value: ComboCharacterOption | null) => void;
     onFirstMoveChange: (value: ComboMoveSearchOption | null) => void;
     onFirstMoveQueryChange: (value: string) => void;
+    onEnderMoveChange: (value: ComboMoveSearchOption | null) => void;
+    onEnderMoveQueryChange: (value: string) => void;
     onQueryChange: (value: string) => void;
 }
 
@@ -25,17 +31,23 @@ export function ComboPrimaryFiltersSection({
     firstMove,
     firstMoveQuery,
     firstMoveOptions,
-    searchingMoves,
+    searchingFirstMoves,
+    enderMove,
+    enderMoveQuery,
+    enderMoveOptions,
+    searchingEnderMoves,
     query,
     compactFieldSx,
     onCharacterChange,
     onFirstMoveChange,
     onFirstMoveQueryChange,
+    onEnderMoveChange,
+    onEnderMoveQueryChange,
     onQueryChange,
 }: ComboPrimaryFiltersSectionProps) {
     return (
         <SectionCard title="Primary Filters" tone="raised" variant="input">
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(260px, 1fr) minmax(320px, 1.3fr) minmax(220px, 0.9fr)"}, gap: 1}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(180px, 0.85fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(180px, 0.8fr)"}, gap: 1}}>
                 <AppAutocomplete<ComboCharacterOption, false, false, false>
                     options={characterOptions}
                     value={selectedCharacter}
@@ -49,7 +61,7 @@ export function ComboPrimaryFiltersSection({
                     options={firstMoveOptions}
                     value={firstMove}
                     inputValue={firstMoveQuery}
-                    loading={searchingMoves}
+                    loading={searchingFirstMoves}
                     filterOptions={(options) => options}
                     onChange={(_, value) => onFirstMoveChange(value)}
                     onInputChange={(_, value) => onFirstMoveQueryChange(value)}
@@ -57,6 +69,20 @@ export function ComboPrimaryFiltersSection({
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     noOptionsText="No moves found"
                     renderInput={(params) => <AppTextField {...params} label="First move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
+                />
+
+                <AppAutocomplete<ComboMoveSearchOption, false, false, false>
+                    options={enderMoveOptions}
+                    value={enderMove}
+                    inputValue={enderMoveQuery}
+                    loading={searchingEnderMoves}
+                    filterOptions={(options) => options}
+                    onChange={(_, value) => onEnderMoveChange(value)}
+                    onInputChange={(_, value) => onEnderMoveQueryChange(value)}
+                    getOptionLabel={(option) => option.summary}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="No moves found"
+                    renderInput={(params) => <AppTextField {...params} label="Ender move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
                 />
 
                 <AppTextField label="Search title" value={query} onChange={(event) => onQueryChange(event.target.value)} size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />

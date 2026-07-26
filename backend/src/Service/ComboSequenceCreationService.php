@@ -24,6 +24,7 @@ final class ComboSequenceCreationService
         private readonly SeasonRepository $seasonRepository,
         private readonly ComboRequirementFactory $comboRequirementFactory,
         private readonly ComboStepFactory $comboStepFactory,
+        private readonly ComboValueEstimator $comboValueEstimator,
     ) {
     }
 
@@ -86,6 +87,8 @@ final class ComboSequenceCreationService
             ->setDriveGain($this->extractNullableFloat($payload['metrics']['driveGain'] ?? null))
             ->setSuperCost($this->extractNullableFloat($payload['metrics']['superCost'] ?? null))
             ->setSuperGain($this->extractNullableFloat($payload['metrics']['superGain'] ?? null));
+
+        $this->comboValueEstimator->applyEstimatedValue($metrics);
 
         $sequence->setComboMetrics($metrics);
         $this->entityManager->persist($metrics);

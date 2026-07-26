@@ -1,4 +1,5 @@
 import {DEFAULT_COMBO_FILTER_SORT} from "./comboFilterConstants";
+import type {RequirementObjectOption} from "@/src/types/combo";
 import type {ComboCharacterOption, ComboFilterState, ComboMoveSearchOption, ComboSearchFilters} from "./comboFilterTypes";
 
 export function parseOptionalNumber(value: string): number | undefined {
@@ -57,11 +58,38 @@ export function filterComboMovesForCharacter(options: ComboMoveSearchOption[], c
     return options.filter((entry) => entry.summary.toLowerCase().startsWith(characterNamePrefix));
 }
 
+export function normalizeRequirementObjectOptions(value: unknown): RequirementObjectOption[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((entry) => {
+            if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+                return null;
+            }
+
+            const record = entry as {name?: unknown; status_type?: unknown; max_status?: unknown};
+            if (typeof record.name !== "string" || (record.status_type !== "integer" && record.status_type !== "boolean")) {
+                return null;
+            }
+
+            return {
+                name: record.name,
+                status_type: record.status_type,
+                max_status: typeof record.max_status === "number" ? record.max_status : null,
+            } satisfies RequirementObjectOption;
+        })
+        .filter((entry): entry is RequirementObjectOption => entry !== null)
+        .sort((left, right) => left.name.localeCompare(right.name));
+}
+
 export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFilters {
     return {
         q: state.query.trim() || undefined,
         characterId: state.characterId || undefined,
         firstMoveId: state.firstMove?.id ?? undefined,
+        enderMoveId: state.enderMove?.id ?? undefined,
         minDifficulty: parseOptionalNumber(state.minDifficulty),
         maxDifficulty: parseOptionalNumber(state.maxDifficulty),
         minDamage: parseOptionalNumber(state.minDamage),
@@ -73,8 +101,11 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         airborneRequired: state.requirements.airborneRequired ? true : undefined,
         midScreenRequired: state.requirements.midScreenRequired ? true : undefined,
         notCrouchingRequired: state.requirements.notCrouchingRequired ? true : undefined,
+        requirementObjectName: state.requirements.requirementObjectName || undefined,
+        requirementObjectStatus: state.requirements.requirementObjectStatus || undefined,
         moveTypes: state.moveTypes.length > 0 ? state.moveTypes : undefined,
         sort: state.sort,
+        sortDirection: state.sortDirection,
     };
 }
 
@@ -83,6 +114,7 @@ export function countActiveComboFilters(state: ComboFilterState): number {
         state.query.trim() !== "",
         state.characterId !== "",
         state.firstMove !== null,
+        state.enderMove !== null,
         state.minDifficulty.trim() !== "",
         state.maxDifficulty.trim() !== "",
         state.minDamage.trim() !== "",
@@ -94,6 +126,8 @@ export function countActiveComboFilters(state: ComboFilterState): number {
         state.requirements.airborneRequired,
         state.requirements.midScreenRequired,
         state.requirements.notCrouchingRequired,
+        state.requirements.requirementObjectName !== "",
+        state.requirements.requirementObjectStatus !== "",
         state.moveTypes.length > 0,
         state.sort !== DEFAULT_COMBO_FILTER_SORT,
     ];

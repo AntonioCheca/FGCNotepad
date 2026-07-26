@@ -7,13 +7,20 @@ use App\Entity\ComboSequences;
 
 final class ComboValueEstimator
 {
-    public function __construct(
-        private readonly float $driveBarValue,
-        private readonly float $superBarValue,
-    ) {
-    }
+    private const DRIVE_BAR_VALUE = 200.0;
+    private const SUPER_BAR_VALUE = 500.0;
 
     public function estimateMetricsValue(?ComboMetrics $metrics): ?float
+    {
+        return $this->estimateMetricsValueV1($metrics);
+    }
+
+    public function applyEstimatedValue(ComboMetrics $metrics): void
+    {
+        $metrics->setResourceAdjustedDamage($this->estimateMetricsValue($metrics));
+    }
+
+    private function estimateMetricsValueV1(?ComboMetrics $metrics): ?float
     {
         if (null === $metrics || null === $metrics->getDamage()) {
             return null;
@@ -23,8 +30,8 @@ final class ComboValueEstimator
         $netSuperCost = ($metrics->getSuperCost() ?? 0.0) - ($metrics->getSuperGain() ?? 0.0);
 
         return (float) $metrics->getDamage()
-            - ($netDriveCost * $this->driveBarValue)
-            - ($netSuperCost * $this->superBarValue);
+            - ($netDriveCost * self::DRIVE_BAR_VALUE)
+            - ($netSuperCost * self::SUPER_BAR_VALUE);
     }
 
     /**

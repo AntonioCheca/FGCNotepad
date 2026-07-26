@@ -38,10 +38,6 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
             $scalingNormalizer: '@App\Service\FrameDataScalingNormalizerService'
-    App\Service\ComboValueEstimator:
-        arguments:
-            $driveBarValue: '%app.combo_resource.drive_bar_value%'
-            $superBarValue: '%app.combo_resource.super_bar_value%'
     App\Service\ScenarioLayerSolveService:
         arguments:
             $cachePool: '@cache.app'
@@ -76,11 +72,6 @@ services:
     App\Service\ReplayClipGeneratorInterface: '@App\Service\FfmpegReplayClipGenerator'
     App\Serializer\Normalizer\:
         resource: '../src/Serializer/Normalizer'
-        tags:
-            - { name: serializer.normalizer, priority: 100 }
-    App\Serializer\Normalizer\ComboMetricsNormalizer:
-        arguments:
-            $comboValueEstimator: '@App\Service\ComboValueEstimator'
         tags:
             - { name: serializer.normalizer, priority: 100 }
     App\Serializer\Denormalizer\:

@@ -8,6 +8,13 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ComboMetricsRepository::class)]
 #[ORM\Table(name: "combo_metrics", schema: "sf6")]
+#[ORM\Index(name: "idx_combo_metrics_damage", columns: ["damage"])]
+#[ORM\Index(name: "idx_combo_metrics_difficulty_level", columns: ["difficulty_level"])]
+#[ORM\Index(name: "idx_combo_metrics_resource_adjusted_damage", columns: ["resource_adjusted_damage"])]
+#[ORM\Index(name: "idx_combo_metrics_drive_cost", columns: ["drive_cost"])]
+#[ORM\Index(name: "idx_combo_metrics_super_cost", columns: ["super_cost"])]
+#[ORM\Index(name: "idx_combo_metrics_drive_gain", columns: ["drive_gain"])]
+#[ORM\Index(name: "idx_combo_metrics_super_gain", columns: ["super_gain"])]
 class ComboMetrics
 {
     #[ORM\Id]
@@ -43,6 +50,10 @@ class ComboMetrics
     #[ORM\Column(name: 'super_gain', nullable: true)]
     #[Groups(['combo:read'])]
     private ?float $superGain = null;
+
+    #[ORM\Column(name: 'resource_adjusted_damage', nullable: true)]
+    #[Groups(['combo:read'])]
+    private ?float $resourceAdjustedDamage = null;
 
     public function getId(): ?int
     {
@@ -129,6 +140,18 @@ class ComboMetrics
     public function setSuperGain(?float $superGain): static
     {
         $this->superGain = $superGain;
+
+        return $this;
+    }
+
+    public function getResourceAdjustedDamage(): ?float
+    {
+        return $this->resourceAdjustedDamage;
+    }
+
+    public function setResourceAdjustedDamage(?float $resourceAdjustedDamage): static
+    {
+        $this->resourceAdjustedDamage = $resourceAdjustedDamage;
 
         return $this;
     }

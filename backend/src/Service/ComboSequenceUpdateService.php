@@ -17,6 +17,7 @@ final class ComboSequenceUpdateService
         private readonly EntityManagerInterface $entityManager,
         private readonly ComboRequirementFactory $comboRequirementFactory,
         private readonly ComboStepFactory $comboStepFactory,
+        private readonly ComboValueEstimator $comboValueEstimator,
     ) {
     }
 
@@ -84,6 +85,8 @@ final class ComboSequenceUpdateService
             ->setDriveGain($this->readNullableFloat($metricsPayload['driveGain'] ?? null, 'metrics.driveGain'))
             ->setSuperCost($this->readNullableFloat($metricsPayload['superCost'] ?? null, 'metrics.superCost'))
             ->setSuperGain($this->readNullableFloat($metricsPayload['superGain'] ?? null, 'metrics.superGain'));
+
+        $this->comboValueEstimator->applyEstimatedValue($metrics);
     }
 
     private function replaceRequirements(ComboSequences $sequence, mixed $requirementsPayload): void

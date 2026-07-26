@@ -1,6 +1,6 @@
-import type {ComboFilterState, ComboMoveType, ComboRequirementFilters, ComboSortMode} from "./comboFilterTypes";
+import type {ComboFilterState, ComboMoveType, ComboRequirementFilters, ComboSortField} from "./comboFilterTypes";
 
-export const DEFAULT_COMBO_FILTER_SORT: ComboSortMode = "resourceAdjustedDamage";
+export const DEFAULT_COMBO_FILTER_SORT: ComboSortField = "resourceAdjustedDamage";
 
 export const MOVE_TYPE_VALUES: ComboMoveType[] = ["drive", "super", "special", "normal"];
 
@@ -19,6 +19,8 @@ export const DEFAULT_COMBO_REQUIREMENTS: ComboRequirementFilters = {
     airborneRequired: false,
     midScreenRequired: false,
     notCrouchingRequired: false,
+    requirementObjectName: "",
+    requirementObjectStatus: "",
 };
 
 export const DEFAULT_COMBO_FILTER_STATE: ComboFilterState = {
@@ -26,6 +28,8 @@ export const DEFAULT_COMBO_FILTER_STATE: ComboFilterState = {
     characterId: "",
     firstMove: null,
     firstMoveQuery: "",
+    enderMove: null,
+    enderMoveQuery: "",
     minDifficulty: "",
     maxDifficulty: "",
     minDamage: "",
@@ -33,5 +37,6 @@ export const DEFAULT_COMBO_FILTER_STATE: ComboFilterState = {
     requirements: DEFAULT_COMBO_REQUIREMENTS,
     moveTypes: [],
     sort: DEFAULT_COMBO_FILTER_SORT,
+    sortDirection: "desc",
     showAdvancedFilters: false,
 };

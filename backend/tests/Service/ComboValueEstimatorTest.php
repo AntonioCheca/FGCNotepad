@@ -18,7 +18,7 @@ final class ComboValueEstimatorTest extends TestCase
             ->setSuperCost(1.0)
             ->setSuperGain(0.0);
 
-        $estimator = new ComboValueEstimator(200.0, 500.0);
+        $estimator = new ComboValueEstimator();
 
         self::assertSame(1700.0, $estimator->estimateMetricsValue($metrics));
     }
@@ -26,7 +26,7 @@ final class ComboValueEstimatorTest extends TestCase
     public function testMissingResourceValuesAreTreatedAsZero(): void
     {
         $metrics = (new ComboMetrics())->setDamage(1800);
-        $estimator = new ComboValueEstimator(200.0, 500.0);
+        $estimator = new ComboValueEstimator();
 
         self::assertSame(1800.0, $estimator->estimateMetricsValue($metrics));
     }
@@ -47,9 +47,23 @@ final class ComboValueEstimatorTest extends TestCase
             ->setSequence($efficient)
             ->setDamage(2000));
 
-        $estimator = new ComboValueEstimator(200.0, 500.0);
+        $estimator = new ComboValueEstimator();
         $sorted = $estimator->sortByEstimatedValue([$expensive, $efficient]);
 
         self::assertSame('Efficient', $sorted[0]->getName());
+    }
+
+    public function testApplyEstimatedValuePersistsCurrentFormulaResultOnMetrics(): void
+    {
+        $metrics = (new ComboMetrics())
+            ->setDamage(2500)
+            ->setDriveCost(2.0)
+            ->setDriveGain(0.5)
+            ->setSuperCost(1.0)
+            ->setSuperGain(0.0);
+
+        (new ComboValueEstimator())->applyEstimatedValue($metrics);
+
+        self::assertSame(1700.0, $metrics->getResourceAdjustedDamage());
     }
 }

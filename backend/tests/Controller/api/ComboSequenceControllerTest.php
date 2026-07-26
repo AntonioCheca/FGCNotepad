@@ -15,6 +15,7 @@ use App\Entity\Season;
 use App\Entity\Step;
 use App\Entity\User;
 use App\Entity\Visibility;
+use App\Service\ComboValueEstimator;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use App\Util\Enum\ModerationState;
 use Symfony\Component\HttpFoundation\Response;
@@ -736,6 +737,10 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertEquals(1.0, $responsePayload['comboMetrics']['superCost']);
         $this->assertEquals(0.0, $responsePayload['comboMetrics']['superGain']);
         $this->assertEquals(1500.0, $responsePayload['comboMetrics']['resourceAdjustedDamage']);
+
+        $createdSequence = $this->entityManager->getRepository(ComboSequences::class)->find($responsePayload['id']);
+        $this->assertInstanceOf(ComboSequences::class, $createdSequence);
+        $this->assertEquals(1500.0, $createdSequence->getComboMetrics()?->getResourceAdjustedDamage());
     }
 
     public function testUpdateComboPersistsFullComboPayload(): void
@@ -797,10 +802,15 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('Updated Combo', $payload['name']);
         $this->assertSame('Updated route notes', $payload['description']);
         $this->assertSame(2300, $payload['comboMetrics']['damage']);
+        $this->assertEquals(1550.0, $payload['comboMetrics']['resourceAdjustedDamage']);
         $this->assertTrue($payload['comboRequirement']['punish_counter_required']);
         $this->assertTrue($payload['comboRequirement']['corner_required']);
         $this->assertTrue($payload['comboRequirement']['not_crouching_required']);
         $this->assertCount(1, $payload['steps']);
+
+        $updatedSequence = $this->entityManager->getRepository(ComboSequences::class)->find($comboId);
+        $this->assertInstanceOf(ComboSequences::class, $updatedSequence);
+        $this->assertEquals(1550.0, $updatedSequence->getComboMetrics()?->getResourceAdjustedDamage());
     }
 
     public function testListCanSortByResourceAdjustedDamage(): void
@@ -841,6 +851,159 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('Efficient Damage', $payload[0]['name']);
         $this->assertEquals(2000.0, $payload[0]['comboMetrics']['resourceAdjustedDamage']);
         $this->assertEquals(1400.0, $payload[1]['comboMetrics']['resourceAdjustedDamage']);
+    }
+
+    public function testListCanFilterByEnderMoveAndSpecificObjectRequirement(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $connectionType = new ConnectionType();
+        $connectionType->setName('Initial Move');
+        $this->entityManager->persist($connectionType);
+
+        $character = new Character();
+        $character->setName('Jamie');
+        $this->entityManager->persist($character);
+
+        $starter = $this->createLeafForFilters($character, $leafType, $visibility, '2MP', 'normal');
+        $targetEnder = $this->createLeafForFilters($character, $leafType, $visibility, '214P', 'special');
+        $wrongEnder = $this->createLeafForFilters($character, $leafType, $visibility, '236K', 'special');
+
+        $matching = $this->createComboForFilters('Drink Oki Ender', $comboType, $visibility, $starter, $targetEnder, $connectionType, 2100, 4, false, false);
+        $specificRequirement = new RequirementSpecificCharacter();
+        $specificRequirement->setObjectName('Drinks');
+        $specificRequirement->setStatusRequired('2');
+        $matching->getComboRequirement()?->setRequirementSpecificCharacter($specificRequirement);
+        $this->entityManager->persist($specificRequirement);
+
+        $this->createComboForFilters('Wrong Ender', $comboType, $visibility, $starter, $wrongEnder, $connectionType, 2200, 4, false, false);
+
+        $wrongObject = $this->createComboForFilters('Wrong Object', $comboType, $visibility, $starter, $targetEnder, $connectionType, 2300, 4, false, false);
+        $wrongSpecificRequirement = new RequirementSpecificCharacter();
+        $wrongSpecificRequirement->setObjectName('Denjin Charge');
+        $wrongSpecificRequirement->setStatusRequired('true');
+        $wrongObject->getComboRequirement()?->setRequirementSpecificCharacter($wrongSpecificRequirement);
+        $this->entityManager->persist($wrongSpecificRequirement);
+
+        $this->entityManager->flush();
+
+        $this->client->request(
+            'GET',
+            sprintf(
+                '/api/combo-sequences?enderMoveId=%s&requirementObjectName=Drinks&requirementObjectStatus=2',
+                urlencode((string) $targetEnder->getMove()?->getId())
+            ),
+            [],
+            [],
+            $this->getHeaders(),
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(1, $payload);
+        $this->assertSame($matching->getName(), $payload[0]['name']);
+    }
+
+    public function testListCanSortMetricColumnsAndSeasonDescending(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $connectionType = new ConnectionType();
+        $connectionType->setName('Initial Move');
+        $this->entityManager->persist($connectionType);
+
+        $character = new Character();
+        $character->setName('Luke');
+        $this->entityManager->persist($character);
+
+        $starter = $this->createLeafForFilters($character, $leafType, $visibility, '5MP', 'normal');
+        $oldSeason = (new Season())->setName('Old')->setStartDate(new \DateTimeImmutable('2024-01-01'));
+        $newSeason = (new Season())->setName('New')->setStartDate(new \DateTimeImmutable('2026-01-01'));
+        $this->entityManager->persist($oldSeason);
+        $this->entityManager->persist($newSeason);
+
+        $older = $this->createComboForFilters('Older Low Drive', $comboType, $visibility, $starter, null, $connectionType, 1500, 3, false, false, 1.0, 0.0, 0.0, 0.0);
+        $older->addSeason($oldSeason);
+        $newer = $this->createComboForFilters('Newer High Drive', $comboType, $visibility, $starter, null, $connectionType, 1800, 3, false, false, 3.0, 0.0, 0.0, 0.0);
+        $newer->addSeason($newSeason);
+
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/api/combo-sequences?sort=driveCost&sortDirection=asc', [], [], $this->getHeaders());
+        $drivePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame('Older Low Drive', $drivePayload[0]['name']);
+
+        $this->client->request('GET', '/api/combo-sequences?sort=seasonStartDate&sortDirection=asc', [], [], $this->getHeaders());
+        $seasonPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame('Newer High Drive', $seasonPayload[0]['name']);
+    }
+
+    public function testListSortsNullMetricValuesLastInBothDirections(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $connectionType = new ConnectionType();
+        $connectionType->setName('Initial Move');
+        $this->entityManager->persist($connectionType);
+
+        $character = new Character();
+        $character->setName('Ryu');
+        $this->entityManager->persist($character);
+
+        $starter = $this->createLeafForFilters($character, $leafType, $visibility, '5MP', 'normal');
+        $lowDrive = $this->createComboForFilters('Low Drive Cost', $comboType, $visibility, $starter, null, $connectionType, 1500, 3, false, false, 1.0, 0.0, 0.0, 0.0);
+        $highDrive = $this->createComboForFilters('High Drive Cost', $comboType, $visibility, $starter, null, $connectionType, 1500, 3, false, false, 3.0, 0.0, 0.0, 0.0);
+        $nullDrive = $this->createComboForFilters('Null Drive Cost', $comboType, $visibility, $starter, null, $connectionType, 1500, 3, false, false, null, 0.0, 0.0, 0.0);
+
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/api/combo-sequences?sort=driveCost&sortDirection=asc', [], [], $this->getHeaders());
+        $ascendingPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame($lowDrive->getName(), $ascendingPayload[0]['name']);
+        $this->assertSame($highDrive->getName(), $ascendingPayload[1]['name']);
+        $this->assertSame($nullDrive->getName(), $ascendingPayload[2]['name']);
+
+        $this->client->request('GET', '/api/combo-sequences?sort=driveCost&sortDirection=desc', [], [], $this->getHeaders());
+        $descendingPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame($highDrive->getName(), $descendingPayload[0]['name']);
+        $this->assertSame($lowDrive->getName(), $descendingPayload[1]['name']);
+        $this->assertSame($nullDrive->getName(), $descendingPayload[2]['name']);
     }
 
     public function testCreateFullComboRejectsCounterAndPunishCounterAtSameTime(): void
@@ -1417,6 +1580,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $metrics->setDriveGain($driveGain);
         $metrics->setSuperCost($superCost);
         $metrics->setSuperGain($superGain);
+        (new ComboValueEstimator())->applyEstimatedValue($metrics);
         $combo->setComboMetrics($metrics);
 
         $requirement = new ComboRequirement();

@@ -50,6 +50,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     q?: string|null,
      *     characterId?: string|null,
      *     firstMoveId?: string|null,
+     *     enderMoveId?: string|null,
      *     seasonId?: int|null,
      *     minDamage?: int|null,
      *     maxDamage?: int|null,
@@ -62,7 +63,11 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     midScreenRequired?: bool|null,
      *     notCrouchingRequired?: bool|null,
      *     isEssential?: bool|null,
-     *     moveTypes?: list<string>
+     *     moveTypes?: list<string>,
+     *     requirementObjectName?: string|null,
+     *     requirementObjectStatus?: string|null,
+     *     sort?: string|null,
+     *     sortDirection?: string|null
      * } $filters
      *
      * @return list<ComboSequences>
@@ -78,7 +83,6 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->addSelect('comboType', 'metrics', 'requirement')
             ->andWhere('comboType.name != :leafType')
             ->setParameter('leafType', 'leaf')
-            ->orderBy('combo.id', 'ASC')
             ->setMaxResults($safeLimit)
             ->distinct();
 
@@ -115,6 +119,22 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 $qb->andWhere('starterMove.id = :firstMoveId')
                     ->setParameter('firstMoveId', $firstMoveId);
             }
+        }
+
+        $enderMoveId = isset($filters['enderMoveId']) && is_string($filters['enderMoveId']) ? trim($filters['enderMoveId']) : '';
+        if ('' !== $enderMoveId) {
+            $lastStepSubQuery = $this->getEntityManager()->createQueryBuilder()
+                ->select('MAX(lastStep.ordinal_in_combo)')
+                ->from(Step::class, 'lastStep')
+                ->where('lastStep.parent_sequence = combo')
+                ->getDQL();
+
+            $qb->innerJoin('combo.steps', 'enderStep')
+                ->innerJoin('enderStep.child_sequence', 'enderSequence')
+                ->innerJoin('enderSequence.move', 'enderMove')
+                ->andWhere(sprintf('enderStep.ordinal_in_combo = (%s)', $lastStepSubQuery))
+                ->andWhere('enderMove.id = :enderMoveId')
+                ->setParameter('enderMoveId', $enderMoveId);
         }
 
         $seasonId = isset($filters['seasonId']) && is_int($filters['seasonId']) ? $filters['seasonId'] : null;
@@ -172,6 +192,19 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('isEssential', $filters['isEssential']);
         }
 
+        $requirementObjectName = isset($filters['requirementObjectName']) && is_string($filters['requirementObjectName']) ? trim($filters['requirementObjectName']) : '';
+        $requirementObjectStatus = isset($filters['requirementObjectStatus']) && is_string($filters['requirementObjectStatus']) ? trim($filters['requirementObjectStatus']) : '';
+        if ('' !== $requirementObjectName) {
+            $qb->innerJoin('requirement.requirementSpecificCharacters', 'specificRequirement')
+                ->andWhere('specificRequirement.object_name = :requirementObjectName')
+                ->setParameter('requirementObjectName', $requirementObjectName);
+
+            if ('' !== $requirementObjectStatus) {
+                $qb->andWhere('specificRequirement.status_required = :requirementObjectStatus')
+                    ->setParameter('requirementObjectStatus', $requirementObjectStatus);
+            }
+        }
+
         $moveTypes = isset($filters['moveTypes']) && is_array($filters['moveTypes']) ? array_values($filters['moveTypes']) : [];
         if ([] !== $moveTypes) {
             $moveTypeSubQuery = $this->getEntityManager()->createQueryBuilder()
@@ -188,7 +221,49 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('moveTypes', $moveTypes);
         }
 
+        $this->applySort($qb, $filters);
+
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @param array{sort?: string|null, sortDirection?: string|null} $filters
+     */
+    private function applySort(\Doctrine\ORM\QueryBuilder $qb, array $filters): void
+    {
+        $sort = isset($filters['sort']) && is_string($filters['sort']) ? $filters['sort'] : 'resourceAdjustedDamage';
+        $direction = isset($filters['sortDirection']) && 'asc' === strtolower((string) $filters['sortDirection']) ? 'ASC' : 'DESC';
+
+        $sortColumns = [
+            'damage' => 'metrics.damage',
+            'resourceAdjustedDamage' => 'metrics.resourceAdjustedDamage',
+            'driveCost' => 'metrics.driveCost',
+            'superCost' => 'metrics.superCost',
+            'driveGain' => 'metrics.driveGain',
+            'superGain' => 'metrics.superGain',
+        ];
+
+        if ('seasonStartDate' === $sort) {
+            $qb->leftJoin('combo.season', 'sortSeason')
+                ->addSelect('MAX(sortSeason.start_date) AS HIDDEN latestSeasonStartDate')
+                ->addSelect('CASE WHEN MAX(sortSeason.start_date) IS NULL THEN 1 ELSE 0 END AS HIDDEN latestSeasonStartDateIsNull')
+                ->addGroupBy('combo.id')
+                ->addGroupBy('comboType.id')
+                ->addGroupBy('metrics.id')
+                ->addGroupBy('requirement.id')
+                ->orderBy('latestSeasonStartDateIsNull', 'ASC')
+                ->addOrderBy('latestSeasonStartDate', 'DESC')
+                ->addOrderBy('combo.id', 'ASC');
+
+            return;
+        }
+
+        $sortColumn = $sortColumns[$sort] ?? $sortColumns['resourceAdjustedDamage'];
+        $sortNullAlias = sprintf('%sIsNull', $sort);
+        $qb->addSelect(sprintf('CASE WHEN %s IS NULL THEN 1 ELSE 0 END AS HIDDEN %s', $sortColumn, $sortNullAlias))
+            ->orderBy($sortNullAlias, 'ASC')
+            ->addOrderBy($sortColumn, $direction)
+            ->addOrderBy('combo.id', 'ASC');
     }
 
     /**

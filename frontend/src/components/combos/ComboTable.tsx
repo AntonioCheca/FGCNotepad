@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type {ComboSortDirection, ComboSortField} from "./filters/comboFilterTypes";
 import {AppBox} from "@/src/components/ui/AppBox";
+import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
 import {AppPaper} from "@/src/components/ui/AppPaper";
 import {AppTable} from "@/src/components/ui/AppTable";
@@ -9,15 +11,27 @@ import {AppTableContainer} from "@/src/components/ui/AppTableContainer";
 import {AppTableHead} from "@/src/components/ui/AppTableHead";
 import {AppTableRow} from "@/src/components/ui/AppTableRow";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import {PendingActionsIcon} from "@/src/components/ui/AppIcons";
-import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
+import {ArrowDownwardIcon, ArrowUpwardIcon, PendingActionsIcon} from "@/src/components/ui/AppIcons";
 import {ComboRow} from "@/src/types/combo";
 
 interface ComboTableProps {
     combos: ComboRow[];
+    sort: ComboSortField;
+    sortDirection: ComboSortDirection;
+    onSortChange: (field: ComboSortField, direction: ComboSortDirection) => void;
 }
 
-export default function ComboTable({combos}: ComboTableProps) {
+const sortableHeaders: Array<{field: ComboSortField; label: string; seasonOnlyDesc?: boolean}> = [
+    {field: "damage", label: "Damage"},
+    {field: "resourceAdjustedDamage", label: "Resource adjusted"},
+    {field: "driveCost", label: "Drive"},
+    {field: "superCost", label: "Super"},
+    {field: "driveGain", label: "Gained Drive"},
+    {field: "superGain", label: "Gained Super"},
+    {field: "seasonStartDate", label: "Season", seasonOnlyDesc: true},
+];
+
+export default function ComboTable({combos, sort, sortDirection, onSortChange}: ComboTableProps) {
     if (combos.length === 0) {
         return (
             <AppPaper
@@ -36,6 +50,28 @@ export default function ComboTable({combos}: ComboTableProps) {
         );
     }
 
+    const renderSortableHeader = ({field, label, seasonOnlyDesc}: {field: ComboSortField; label: string; seasonOnlyDesc?: boolean}) => {
+        const active = sort === field;
+        const nextDirection: ComboSortDirection = seasonOnlyDesc ? "desc" : active && sortDirection === "desc" ? "asc" : "desc";
+        const Icon = active && sortDirection === "asc" && !seasonOnlyDesc ? ArrowUpwardIcon : ArrowDownwardIcon;
+
+        return (
+            <AppTableCell key={field} sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken", whiteSpace: "nowrap"}}>
+                <AppButton
+                    type="button"
+                    variant="text"
+                    size="small"
+                    color="secondary"
+                    onClick={() => onSortChange(field, nextDirection)}
+                    endIcon={<Icon fontSize="small" />}
+                    sx={{minWidth: 0, px: 0.5, color: active ? "fgc.accent.selected" : "text.primary", fontWeight: 800}}
+                >
+                    {label}
+                </AppButton>
+            </AppTableCell>
+        );
+    };
+
     return (
         <AppPaper variant="outlined" sx={{borderRadius: 2.5, overflow: "hidden", borderColor: "fgc.border.default"}}>
             <AppTableContainer sx={{maxHeight: "calc(100vh - 275px)", backgroundColor: "fgc.surface.base"}}>
@@ -45,12 +81,7 @@ export default function ComboTable({combos}: ComboTableProps) {
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Title</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Character</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Moves</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Damage</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Resource-Adjusted</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Resources</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Season</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Audit Status</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Flag</AppTableCell>
+                            {sortableHeaders.map(renderSortableHeader)}
                         </AppTableRow>
                     </AppTableHead>
                     <AppTableBody>
@@ -103,18 +134,11 @@ export default function ComboTable({combos}: ComboTableProps) {
                                     <AppTableCell>{moves.join(", ") || "-"}</AppTableCell>
                                     <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.resourceAdjustedDamage ?? "-"}</AppTableCell>
-                                    <AppTableCell>
-                                        D {combo.driveCost}/{combo.driveGain} · S {combo.superCost}/{combo.superGain}
-                                    </AppTableCell>
+                                    <AppTableCell>{combo.driveCost ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.superCost ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.driveGain ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.superGain ?? "-"}</AppTableCell>
                                     <AppTableCell>{season}</AppTableCell>
-                                    <AppTableCell>
-                                        {combo.needsTechnicalReview ? (
-                                            <AppChip size="small" label="Pending technical review" color="warning" variant="outlined" />
-                                        ) : (
-                                            <AppChip size="small" label="Fully audited" color="success" variant="outlined" />
-                                        )}
-                                    </AppTableCell>
-                                    <AppTableCell><ContentFlagButton targetType="combo" targetId={combo.id} /></AppTableCell>
                                 </AppTableRow>
                             );
                         })}

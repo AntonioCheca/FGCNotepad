@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: RequirementSpecificCharacterRepository::class)]
 #[ORM\Table(name: "requirement_specific_character", schema: "sf6")]
+#[ORM\Index(name: "idx_requirement_specific_character_object_status", columns: ["object_name", "status_required"])]
 class RequirementSpecificCharacter
 {
     #[ORM\Id]

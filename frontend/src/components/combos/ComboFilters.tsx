@@ -1,6 +1,7 @@
 import React from "react";
 
 import {useCharacters} from "@/hooks/useCharacters";
+import useCombos from "@/hooks/useCombos";
 import useMoves from "@/hooks/useMoves";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
@@ -13,31 +14,36 @@ import {ComboPrimaryFiltersSection} from "./filters/ComboPrimaryFiltersSection";
 import {ComboRequirementsFiltersSection} from "./filters/ComboRequirementsFiltersSection";
 import {DEFAULT_COMBO_FILTER_SORT} from "./filters/comboFilterConstants";
 import type {ComboFiltersProps, ComboSearchFilters} from "./filters/comboFilterTypes";
-import {buildComboSearchFilters, countActiveComboFilters, normalizeCharacterOptions} from "./filters/comboFilterUtils";
+import {buildComboSearchFilters, countActiveComboFilters, normalizeCharacterOptions, normalizeRequirementObjectOptions} from "./filters/comboFilterUtils";
 import {useComboFilterState} from "./filters/useComboFilterState";
-import {useComboFirstMoveSearch} from "./filters/useComboFirstMoveSearch";
+import {useComboMoveSearch} from "./filters/useComboMoveSearch";
+import type {RequirementObjectOption} from "@/src/types/combo";
 
 export type {ComboSearchFilters};
 
 export default function ComboFilters({onChange}: ComboFiltersProps) {
     const {characters} = useCharacters();
     const {searchMoves} = useMoves();
+    const {fetchRequirementObjects} = useCombos();
     const {
         state,
         setQuery,
         selectCharacter,
         setFirstMove,
         setFirstMoveQuery,
+        setEnderMove,
+        setEnderMoveQuery,
         setMinDifficulty,
         setMaxDifficulty,
         setMinDamage,
         setMaxDamage,
         setRequirementToggle,
+        setRequirementObject,
         setMoveTypes,
-        setSort,
         toggleAdvancedFilters,
         clearFilters,
     } = useComboFilterState();
+    const [requirementObjectOptions, setRequirementObjectOptions] = React.useState<RequirementObjectOption[]>([]);
 
     const compactFieldSx = React.useMemo(
         () => ({
@@ -59,14 +65,26 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
 
         return characterOptions.find((character) => character.id === state.characterId) ?? null;
     }, [state.characterId, characterOptions]);
-    const {firstMoveOptions, searchingMoves, clearFirstMoveOptions} = useComboFirstMoveSearch({
-        firstMoveQuery: state.firstMoveQuery,
+    const {moveOptions: firstMoveOptions, searchingMoves: searchingFirstMoves, clearMoveOptions: clearFirstMoveOptions} = useComboMoveSearch({
+        moveQuery: state.firstMoveQuery,
+        characterId: state.characterId,
+        selectedCharacter,
+        searchMoves,
+    });
+    const {moveOptions: enderMoveOptions, searchingMoves: searchingEnderMoves, clearMoveOptions: clearEnderMoveOptions} = useComboMoveSearch({
+        moveQuery: state.enderMoveQuery,
         characterId: state.characterId,
         selectedCharacter,
         searchMoves,
     });
     const activeFilterCount = React.useMemo(() => countActiveComboFilters(state), [state]);
     const normalizedFilters = React.useMemo(() => buildComboSearchFilters(state), [state]);
+
+    React.useEffect(() => {
+        fetchRequirementObjects()
+            .then((result: unknown) => setRequirementObjectOptions(normalizeRequirementObjectOptions(result)))
+            .catch(() => setRequirementObjectOptions([]));
+    }, [fetchRequirementObjects]);
 
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -81,8 +99,9 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
     const handleClearFilters = React.useCallback(() => {
         clearFilters();
         clearFirstMoveOptions();
+        clearEnderMoveOptions();
         onChange({sort: DEFAULT_COMBO_FILTER_SORT});
-    }, [clearFilters, clearFirstMoveOptions, onChange]);
+    }, [clearEnderMoveOptions, clearFilters, clearFirstMoveOptions, onChange]);
 
     return (
         <AppPaper variant="outlined" sx={{p: {xs: 1.25, md: 1.5}, mb: 2, borderRadius: 2.5, display: "grid", gap: 1}}>
@@ -94,15 +113,22 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                 firstMove={state.firstMove}
                 firstMoveQuery={state.firstMoveQuery}
                 firstMoveOptions={firstMoveOptions}
-                searchingMoves={searchingMoves}
+                searchingFirstMoves={searchingFirstMoves}
+                enderMove={state.enderMove}
+                enderMoveQuery={state.enderMoveQuery}
+                enderMoveOptions={enderMoveOptions}
+                searchingEnderMoves={searchingEnderMoves}
                 query={state.query}
                 compactFieldSx={compactFieldSx}
                 onCharacterChange={(value) => {
                     selectCharacter(value?.id ?? "");
                     clearFirstMoveOptions();
+                    clearEnderMoveOptions();
                 }}
                 onFirstMoveChange={setFirstMove}
                 onFirstMoveQueryChange={setFirstMoveQuery}
+                onEnderMoveChange={setEnderMove}
+                onEnderMoveQueryChange={setEnderMoveQuery}
                 onQueryChange={setQuery}
             />
 
@@ -116,13 +142,11 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
             <AppCollapse in={state.showAdvancedFilters} timeout={200} unmountOnExit>
                 <AppBox sx={{display: "grid", gap: 1, pt: 0.75}}>
                     <ComboAdvancedFiltersSection
-                        sort={state.sort}
                         moveTypes={state.moveTypes}
                         minDifficulty={state.minDifficulty}
                         maxDifficulty={state.maxDifficulty}
                         minDamage={state.minDamage}
                         maxDamage={state.maxDamage}
-                        onSortChange={setSort}
                         onMoveTypesChange={setMoveTypes}
                         onMinDifficultyChange={setMinDifficulty}
                         onMaxDifficultyChange={setMaxDifficulty}
@@ -130,7 +154,12 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                         onMaxDamageChange={setMaxDamage}
                     />
 
-                    <ComboRequirementsFiltersSection requirements={state.requirements} onRequirementToggle={setRequirementToggle} />
+                    <ComboRequirementsFiltersSection
+                        requirements={state.requirements}
+                        requirementObjectOptions={requirementObjectOptions}
+                        onRequirementToggle={setRequirementToggle}
+                        onRequirementObjectChange={setRequirementObject}
+                    />
                 </AppBox>
             </AppCollapse>
         </AppPaper>

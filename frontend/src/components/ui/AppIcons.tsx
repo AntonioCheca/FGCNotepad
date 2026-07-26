@@ -19,3 +19,5 @@ export {default as PendingActionsIcon} from "@mui/icons-material/PendingActions"
 export {default as ScheduleIcon} from "@mui/icons-material/Schedule";
 export {default as TimelineIcon} from "@mui/icons-material/Timeline";
 export {default as WarningAmberIcon} from "@mui/icons-material/WarningAmber";
+export {default as ArrowUpwardIcon} from "@mui/icons-material/ArrowUpward";
+export {default as ArrowDownwardIcon} from "@mui/icons-material/ArrowDownward";
