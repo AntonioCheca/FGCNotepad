@@ -16,6 +16,7 @@ import {AppDialogContent} from "@/src/components/ui/AppDialogContent";
 import {AppDialogTitle} from "@/src/components/ui/AppDialogTitle";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppTypography} from "@/src/components/ui/AppTypography";
+import {ComboReadOnlySummary} from "@/src/components/combos/ComboReadOnlySummary";
 import {ParserVerificationSection} from "@/src/components/combos/create/sections/ParserVerificationSection";
 import {SubmitSection} from "@/src/components/combos/create/sections/SubmitSection";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
@@ -40,10 +41,6 @@ import type {
     TranslateParsedToken,
 } from "@/src/types/combo";
 import {mapComboToDetailView} from "@/src/types/combo";
-
-function getAuditStatusLabel(needsTechnicalReview: boolean): string {
-    return needsTechnicalReview ? "Usable - pending technical review" : "Fully audited";
-}
 
 function formatField(value: number | string | null | undefined): string {
     if (value === null || value === undefined || value === "") {
@@ -338,14 +335,10 @@ export default function ComboDetailPage() {
             </AppSnackbar>
 
             <AppBox component="form" onSubmit={handleSave} sx={{display: "grid", gap: {xs: 1.5, md: 1.75}, width: "100%", maxWidth: 1160, mx: "auto"}}>
-                <AppBox sx={{display: "grid", gap: 1, gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) auto"}, alignItems: "start"}}>
-                    <AppBox sx={{display: "grid", gap: 0.5}}>
-                        <AppTypography variant="h4">{combo.title}</AppTypography>
-                        <AppTypography variant="body2" color="text.secondary">
-                            {combo.characterName} · {getAuditStatusLabel(combo.needsTechnicalReview)} · Seasons {combo.seasonLabels.length > 0 ? combo.seasonLabels.join(", ") : "-"}
-                        </AppTypography>
-                        <AppTypography variant="body2" color="text.secondary">
-                            Damage {combo.damage} · Resource-adjusted {combo.resourceAdjustedDamage} · Drive {combo.driveCost}/{combo.driveGain} · Super {combo.superCost}/{combo.superGain}
+                <AppBox sx={{display: "grid", gap: 1.2, gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) auto"}, alignItems: "start"}}>
+                    <AppBox sx={{display: "grid", gap: 0.25}}>
+                        <AppTypography variant="h2" sx={{fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 0.95}}>
+                            {combo.characterName}
                         </AppTypography>
                     </AppBox>
                     <AppBox sx={{display: "flex", gap: 1, justifyContent: {xs: "flex-start", md: "flex-end"}, flexWrap: "wrap"}}>
@@ -356,6 +349,48 @@ export default function ComboDetailPage() {
                         {canModerate ? <AppButton type="button" variant="outlined" color="error" disabled={saving} onClick={() => setDeleteDialogOpen(true)}>Delete</AppButton> : null}
                     </AppBox>
                 </AppBox>
+
+                {editMode ? (
+                    <SubmitSection
+                        sectionTitle="Combo Details"
+                        title={title}
+                        damage={damage}
+                        driveCost={driveCost}
+                        driveGain={driveGain}
+                        superCost={superCost}
+                        superGain={superGain}
+                        description={description}
+                        notes={notes}
+                        canSubmit={canSubmit && !saving}
+                        showAdvancedConditions={showAdvancedConditions}
+                        requirements={requirements}
+                        activeRequirementsCount={activeRequirementsCount}
+                        requirementObjects={requirementObjects}
+                        selectedRequirementObject={selectedRequirementObject}
+                        specificRequirementStatus={specificRequirementStatus}
+                        selectedObjectIsInteger={selectedObjectIsInteger}
+                        selectedObjectIsBoolean={selectedObjectIsBoolean}
+                        submitLabel="Save Combo"
+                        onTitleChange={setTitle}
+                        onDamageChange={setDamage}
+                        onDriveCostChange={setDriveCost}
+                        onDriveGainChange={setDriveGain}
+                        onSuperCostChange={setSuperCost}
+                        onSuperGainChange={setSuperGain}
+                        onDescriptionChange={setDescription}
+                        onNotesChange={setNotes}
+                        onToggleAdvancedConditions={() => setShowAdvancedConditions((previous) => !previous)}
+                        onResetDraft={() => resetDraftFromCombo(combo, leafs, connections)}
+                        onRequirementToggle={handleRequirementToggle}
+                        onSpecificRequirementObjectChange={(value) => {
+                            setSpecificRequirementObject(value?.name ?? "");
+                            setSpecificRequirementStatus("");
+                        }}
+                        onSpecificRequirementStatusChange={setSpecificRequirementStatus}
+                    />
+                ) : (
+                    <ComboReadOnlySummary combo={combo} />
+                )}
 
                 <ParserVerificationSection
                     hasParseResult={steps.length > 0}
@@ -378,47 +413,23 @@ export default function ComboDetailPage() {
                     onRemoveStep={handleRemoveStep}
                 />
 
-                <SubmitSection
-                    sectionTitle="Combo Details"
-                    title={title}
-                    damage={damage}
-                    driveCost={driveCost}
-                    driveGain={driveGain}
-                    superCost={superCost}
-                    superGain={superGain}
-                    description={description}
-                    notes={notes}
-                    canSubmit={canSubmit && !saving}
-                    showAdvancedConditions={showAdvancedConditions}
-                    requirements={requirements}
-                    activeRequirementsCount={activeRequirementsCount}
-                    requirementObjects={requirementObjects}
-                    selectedRequirementObject={selectedRequirementObject}
-                    specificRequirementStatus={specificRequirementStatus}
-                    selectedObjectIsInteger={selectedObjectIsInteger}
-                    selectedObjectIsBoolean={selectedObjectIsBoolean}
-                    readOnly={!editMode}
-                    submitLabel="Save Combo"
-                    onTitleChange={setTitle}
-                    onDamageChange={setDamage}
-                    onDriveCostChange={setDriveCost}
-                    onDriveGainChange={setDriveGain}
-                    onSuperCostChange={setSuperCost}
-                    onSuperGainChange={setSuperGain}
-                    onDescriptionChange={setDescription}
-                    onNotesChange={setNotes}
-                    onToggleAdvancedConditions={() => setShowAdvancedConditions((previous) => !previous)}
-                    onResetDraft={() => resetDraftFromCombo(combo, leafs, connections)}
-                    onRequirementToggle={handleRequirementToggle}
-                    onSpecificRequirementObjectChange={(value) => {
-                        setSpecificRequirementObject(value?.name ?? "");
-                        setSpecificRequirementStatus("");
-                    }}
-                    onSpecificRequirementStatusChange={setSpecificRequirementStatus}
-                />
-
                 <Link href="/combos" style={{textDecoration: "none"}}>
-                    <AppTypography variant="body2">Back to Search Combos</AppTypography>
+                    <AppButton
+                        type="button"
+                        variant="outlined"
+                        color="secondary"
+                        sx={{
+                            justifySelf: "start",
+                            px: 1.8,
+                            py: 0.8,
+                            borderColor: "fgc.border.strong",
+                            backgroundColor: "fgc.surface.subtle",
+                            color: "text.primary",
+                            fontWeight: 700,
+                        }}
+                    >
+                        Back to Search Combos
+                    </AppButton>
                 </Link>
             </AppBox>
 
