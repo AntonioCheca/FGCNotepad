@@ -63,7 +63,7 @@ export function ScenarioSetupSection({
                         <AppSelect labelId="scenario-type-label" label="Scenario Type" value={scenarioType} onChange={(event) => onScenarioTypeChange(event.target.value as ScenarioType)}>
                             <AppMenuItem value="oki">Oki</AppMenuItem>
                             <AppMenuItem value="aggregated_oki">Aggregated Oki</AppMenuItem>
-                            <AppMenuItem value="blockstun">Blockstun</AppMenuItem>
+                            <AppMenuItem value="blockstring">Blockstring</AppMenuItem>
                         </AppSelect>
                     </AppFormControl>
                 </AppBox>

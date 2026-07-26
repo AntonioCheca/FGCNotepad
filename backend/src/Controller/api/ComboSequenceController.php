@@ -16,6 +16,7 @@ use App\Service\ComboNotationDictionaryTranslator;
 use App\Service\NotationCanonicalizer;
 use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ComboSequenceCreationService;
+use App\Service\ComboSequenceUpdateService;
 use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\ComboValueEstimator;
@@ -44,6 +45,7 @@ class ComboSequenceController extends AbstractController
         private ComboSequencesRepository    $comboSequencesRepository,
         private ConnectionTypeRepository    $connectionTypeRepository,
         private ComboSequenceCreationService $comboSequenceCreationService,
+        private ComboSequenceUpdateService $comboSequenceUpdateService,
         private ComboValueEstimator $comboValueEstimator,
         private EndpointAuthorizationService $endpointAuthorizationService,
         private Security $security,
@@ -646,10 +648,6 @@ class ComboSequenceController extends AbstractController
             throw new BadRequestHttpException('Invalid JSON payload.');
         }
 
-        if (isset($data['type'])) {
-            throw new BadRequestHttpException('Cannot change type of ComboSequence');
-        }
-
         if (array_key_exists('isEssential', $data)) {
             try {
                 $this->endpointAuthorizationService->assertCanManageEssentialFlag($actor);
@@ -657,10 +655,10 @@ class ComboSequenceController extends AbstractController
                 return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
             }
             $sequence->setIsEssential($this->normalizeEssentialValue($data['isEssential']));
+            unset($data['isEssential']);
         }
 
-        $sequence->setName($data['name'] ?? $sequence->getName());
-        $sequence->setDescription($data['description'] ?? $sequence->getDescription());
+        $this->comboSequenceUpdateService->updateFromPayload($sequence, $data);
         $this->moderationTransitionService->submitComboForReview($sequence);
 
         $this->entityManager->flush();

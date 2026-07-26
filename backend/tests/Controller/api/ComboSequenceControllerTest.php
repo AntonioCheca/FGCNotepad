@@ -489,7 +489,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertSame(2440, $payload['estimatedDamage']);
         $this->assertSame([1400, 1040], $payload['stepDamages']);
-        $this->assertSame('6HP XX 6HP', $payload['steps'][0]['token']);
+        $this->assertSame('6HP > 6HP', $payload['steps'][0]['token']);
         $this->assertSame([], $payload['errors']);
     }
 
@@ -736,6 +736,71 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertEquals(1.0, $responsePayload['comboMetrics']['superCost']);
         $this->assertEquals(0.0, $responsePayload['comboMetrics']['superGain']);
         $this->assertEquals(1500.0, $responsePayload['comboMetrics']['resourceAdjustedDamage']);
+    }
+
+    public function testUpdateComboPersistsFullComboPayload(): void
+    {
+        [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
+
+        $createPayload = [
+            'name' => 'Original Combo',
+            'metrics' => [
+                'damage' => 1200,
+            ],
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $connectionType->getId(),
+                ],
+            ],
+        ];
+
+        $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode($createPayload));
+        $this->assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $createResponse = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $comboId = (int) $createResponse['id'];
+
+        $updatePayload = [
+            'name' => 'Updated Combo',
+            'description' => 'Updated route notes',
+            'metrics' => [
+                'damage' => 2300,
+                'driveCost' => 1.5,
+                'driveGain' => 0.25,
+                'superCost' => 1,
+                'superGain' => 0,
+            ],
+            'requirements' => [
+                'counter_hit_required' => false,
+                'punish_counter_required' => true,
+                'corner_required' => true,
+                'airborne_required' => false,
+                'mid_screen_required' => false,
+                'not_crouching_required' => true,
+            ],
+            'steps' => [
+                [
+                    'child_sequence_id' => $leafSequence->getId(),
+                    'ordinal_in_combo' => 1,
+                    'connection_type_id' => $connectionType->getId(),
+                ],
+            ],
+        ];
+
+        $this->client->request('PATCH', sprintf('/api/combo-sequences/%d', $comboId), [], [], $this->getJsonHeaders(), json_encode($updatePayload));
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame('Updated Combo', $payload['name']);
+        $this->assertSame('Updated route notes', $payload['description']);
+        $this->assertSame(2300, $payload['comboMetrics']['damage']);
+        $this->assertTrue($payload['comboRequirement']['punish_counter_required']);
+        $this->assertTrue($payload['comboRequirement']['corner_required']);
+        $this->assertTrue($payload['comboRequirement']['not_crouching_required']);
+        $this->assertCount(1, $payload['steps']);
     }
 
     public function testListCanSortByResourceAdjustedDamage(): void

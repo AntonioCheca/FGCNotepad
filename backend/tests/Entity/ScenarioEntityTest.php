@@ -60,4 +60,11 @@ class ScenarioEntityTest extends DatabaseTestCase
 
         self::assertSame('aggregated_oki', $scenario->getScenarioType());
     }
+
+    public function testScenarioTypeSupportsBlockstring(): void
+    {
+        $scenario = (new Scenario())->setScenarioType('blockstring');
+
+        self::assertSame('blockstring', $scenario->getScenarioType());
+    }
 }

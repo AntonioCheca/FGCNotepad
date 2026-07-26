@@ -171,7 +171,7 @@ class Scenario
     public function setScenarioType(string $scenarioType): static
     {
         $normalized = trim(mb_strtolower($scenarioType));
-        $this->scenarioType = in_array($normalized, ['oki', 'blockstun', 'aggregated_oki'], true) ? $normalized : 'oki';
+        $this->scenarioType = in_array($normalized, ['oki', 'blockstring', 'aggregated_oki'], true) ? $normalized : 'oki';
 
         return $this;
     }

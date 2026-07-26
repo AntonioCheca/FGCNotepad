@@ -36,8 +36,8 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
 
         $this->client->request('POST', '/api/scenarios', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
-            'name' => 'Corner Oki Test',
-            'scenarioType' => 'oki',
+            'name' => 'Corner Blockstring Test',
+            'scenarioType' => 'blockstring',
             'defenderCharacterId' => $defender->getId()?->toRfc4122(),
             'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
             'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
@@ -51,14 +51,32 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
 
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
-        self::assertSame('Corner Oki Test', $payload['name']);
-        self::assertSame('oki', $payload['scenarioType']);
+        self::assertSame('Corner Blockstring Test', $payload['name']);
+        self::assertSame('blockstring', $payload['scenarioType']);
+        self::assertSame('Blockstring', $payload['typeLabel']);
         self::assertSame($defender->getId()?->toRfc4122(), $payload['defenderCharacterId']);
         self::assertSame($attacker->getId()?->toRfc4122(), $payload['attackerCharacterId']);
         self::assertSame($triggerMove->getId()?->toRfc4122(), $payload['triggerMoveId']);
         self::assertSame('matrix-editor', $payload['matrix']['kind']);
         self::assertSame([1], $payload['matrix']['axes']['rowLayers']);
         self::assertSame([1], $payload['matrix']['axes']['columnLayers']);
+    }
+
+    public function testCreateScenarioRejectsOldBlockstunScenarioType(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $this->client->request('POST', '/api/scenarios', [], [], array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']), json_encode([
+            'name' => 'Old Blockstun Test',
+            'scenarioType' => 'blockstun',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildMatrixPayload(),
+        ]));
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('scenarioType must be either oki, blockstring, or aggregated_oki.', (string) $this->client->getResponse()->getContent());
     }
 
     public function testCreateScenarioPersistsAxisLayers(): void

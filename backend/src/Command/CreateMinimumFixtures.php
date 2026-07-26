@@ -6,6 +6,7 @@ use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\Move;
 use App\Entity\Season;
+use App\Entity\ScenarioType;
 use App\Entity\Visibility;
 use App\Repository\CharacterRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,6 +44,17 @@ class CreateMinimumFixtures extends Command
                 $vis->setName($v);
                 $this->em->persist($vis);
                 $output->writeln("Inserted Visibility: $v");
+            }
+        }
+
+        $scenarioTypeRepo = $this->em->getRepository(ScenarioType::class);
+        foreach (['Oki', 'Blockstring', 'Aggregated Oki'] as $name) {
+            $existing = $scenarioTypeRepo->findOneBy(['name' => $name]);
+            if (!$existing) {
+                $scenarioType = new ScenarioType();
+                $scenarioType->setName($name);
+                $this->em->persist($scenarioType);
+                $output->writeln("Inserted ScenarioType: $name");
             }
         }
 

@@ -37,6 +37,7 @@ interface ParserVerificationSectionProps {
     connectionsLoading: boolean;
     translateWarnings: string[];
     translateErrors: TranslateErrorToken[];
+    readOnly?: boolean;
     onSelectStep: (index: number) => void;
     onChangeStep: (index: number, update: Partial<StepDraft>) => void;
     onAddStep: () => void;
@@ -57,6 +58,7 @@ export function ParserVerificationSection({
     connectionsLoading,
     translateWarnings,
     translateErrors,
+    readOnly = false,
     onSelectStep,
     onChangeStep,
     onAddStep,
@@ -121,7 +123,7 @@ export function ParserVerificationSection({
                                         position: "relative",
                                     }}
                                 >
-                                    {mappedStepIndex !== undefined ? (
+                                    {mappedStepIndex !== undefined && !readOnly ? (
                                         <AppIconButton
                                             type="button"
                                             size="small"
@@ -170,7 +172,7 @@ export function ParserVerificationSection({
                             </AppBox>
                         );
                     })}
-                    <AppButton
+                    {!readOnly ? <AppButton
                         type="button"
                         size="small"
                         variant="outlined"
@@ -190,7 +192,7 @@ export function ParserVerificationSection({
                         }}
                     >
                         <AddIcon sx={{fontSize: 16}} />
-                    </AppButton>
+                    </AppButton> : null}
                 </AppBox>
 
                 <AppBox
@@ -205,7 +207,7 @@ export function ParserVerificationSection({
                     }}
                 >
                     <AppTypography variant="subtitle2" sx={{fontWeight: 650}}>
-                        {selectedStep ? `Edit Parsed Step ${(selectedStepIndex as number) + 1}` : "Step Editor"}
+                        {selectedStep ? `${readOnly ? "Step" : "Edit Parsed Step"} ${(selectedStepIndex as number) + 1}` : "Step Editor"}
                     </AppTypography>
 
                     {selectedStep && selectedStepIndex !== null ? (
@@ -217,6 +219,7 @@ export function ParserVerificationSection({
                                 onChange={(value) => onChangeStep(selectedStepIndex, {move: value})}
                                 getOptionLabel={(option) => option?.name ?? ""}
                                 disableClearable={false}
+                                disabled={readOnly}
                             />
                             <WrappedAutocomplete<ConnectionType>
                                 label="Connection"
@@ -226,6 +229,7 @@ export function ParserVerificationSection({
                                 getOptionLabel={(option) => option?.name ?? ""}
                                 loading={connectionsLoading}
                                 disableClearable={false}
+                                disabled={readOnly}
                             />
 
                             {isDelayConnection(selectedStep.connection) ? (
@@ -237,6 +241,7 @@ export function ParserVerificationSection({
                                             color="secondary"
                                             variant={(selectedStep.delay_type ?? "fixed") === "fixed" ? "contained" : "outlined"}
                                             onClick={() => onChangeStep(selectedStepIndex, {delay_type: "fixed"})}
+                                            disabled={readOnly}
                                         >
                                             Fixed
                                         </AppButton>
@@ -246,6 +251,7 @@ export function ParserVerificationSection({
                                             color="secondary"
                                             variant={(selectedStep.delay_type ?? "fixed") === "window" ? "contained" : "outlined"}
                                             onClick={() => onChangeStep(selectedStepIndex, {delay_type: "window"})}
+                                            disabled={readOnly}
                                         >
                                             Window
                                         </AppButton>
@@ -257,6 +263,7 @@ export function ParserVerificationSection({
                                             value={selectedStep.delay_frames ?? ""}
                                             onChange={(event) => onChangeStep(selectedStepIndex, {delay_frames: event.target.value})}
                                             inputMode="numeric"
+                                            disabled={readOnly}
                                         />
                                     ) : (
                                         <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75}}>
@@ -265,12 +272,14 @@ export function ParserVerificationSection({
                                                 value={selectedStep.delay_min_frames ?? ""}
                                                 onChange={(event) => onChangeStep(selectedStepIndex, {delay_min_frames: event.target.value})}
                                                 inputMode="numeric"
+                                                disabled={readOnly}
                                             />
                                             <AppTextField
                                                 label="Delay Max"
                                                 value={selectedStep.delay_max_frames ?? ""}
                                                 onChange={(event) => onChangeStep(selectedStepIndex, {delay_max_frames: event.target.value})}
                                                 inputMode="numeric"
+                                                disabled={readOnly}
                                             />
                                         </AppBox>
                                     )}

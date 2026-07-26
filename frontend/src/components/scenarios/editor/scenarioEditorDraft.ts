@@ -26,7 +26,7 @@ export function getScenarioDraftStorageKey(currentScenarioId: string | null): st
 }
 
 function isScenarioType(value: unknown): value is ScenarioType {
-    return value === "oki" || value === "blockstun" || value === "aggregated_oki";
+    return value === "oki" || value === "blockstring" || value === "aggregated_oki";
 }
 
 function isMoveOption(value: unknown): value is MoveOption {

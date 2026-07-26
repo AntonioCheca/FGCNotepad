@@ -90,6 +90,25 @@ class ComboSequenceAuthorizationTest extends DatabaseTestCase
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testNonOwnerUserCannotDeleteCombo(): void
+    {
+        $this->seedComboMeta();
+        $owner = $this->createUser('owner_user', [UserRole::USER]);
+        $nonOwner = $this->createUser('other_user', [UserRole::USER]);
+        $combo = $this->createCombo($owner);
+
+        $headers = $this->loginHeaders($nonOwner->getUsername(), 'testpassword');
+        $this->client->request(
+            'DELETE',
+            sprintf('/api/combo-sequences/%d', $combo->getId()),
+            [],
+            [],
+            $headers
+        );
+
+        self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testOwnerCannotSetComboEssentialFlag(): void
     {
         $this->seedComboMeta();

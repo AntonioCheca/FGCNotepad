@@ -4,7 +4,7 @@ import api from "@/services/api";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 
-export type ScenarioType = "oki" | "blockstun" | "aggregated_oki";
+export type ScenarioType = "oki" | "blockstring" | "aggregated_oki";
 
 export interface AggregatedDefenseCatalogItem {
     key: string;

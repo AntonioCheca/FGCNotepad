@@ -238,6 +238,7 @@ export interface ComboStep {
     child_sequence_id: number | null;
     child_sequence_name: string | null;
     ordinal_in_combo: number;
+    connection_type_id: number | null;
     connection_type_name: string | null;
     delay_min_frames: number | null;
     delay_max_frames: number | null;
@@ -261,6 +262,7 @@ export interface ComboDetailView {
     id: number;
     title: string;
     description: string;
+    characterId: string | null;
     characterName: string;
     damage: number | string;
     resourceAdjustedDamage: number | string;
@@ -279,6 +281,7 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
         id: combo.id,
         title: combo.name ?? "-",
         description: combo.description ?? "",
+        characterId: combo.character?.id !== undefined ? String(combo.character.id) : null,
         characterName: combo.character?.name ?? "-",
         damage: combo.comboMetrics?.damage ?? "-",
         resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",

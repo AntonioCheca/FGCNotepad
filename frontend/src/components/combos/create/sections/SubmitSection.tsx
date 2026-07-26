@@ -36,6 +36,9 @@ interface SubmitSectionProps {
     specificRequirementStatus: string;
     selectedObjectIsInteger: boolean;
     selectedObjectIsBoolean: boolean;
+    readOnly?: boolean;
+    submitLabel?: string;
+    sectionTitle?: string;
     onTitleChange: (value: string) => void;
     onDamageChange: (value: string) => void;
     onDriveCostChange: (value: string) => void;
@@ -69,6 +72,9 @@ export function SubmitSection({
     specificRequirementStatus,
     selectedObjectIsInteger,
     selectedObjectIsBoolean,
+    readOnly = false,
+    submitLabel = "Create Combo",
+    sectionTitle = "Submit",
     onTitleChange,
     onDamageChange,
     onDriveCostChange,
@@ -85,7 +91,7 @@ export function SubmitSection({
 }: SubmitSectionProps) {
     return (
         <SectionCard
-            title="Submit"
+            title={sectionTitle}
             tone="default"
             variant="finalize"
         >
@@ -95,14 +101,17 @@ export function SubmitSection({
                     value={title}
                     onChange={(event) => onTitleChange(event.target.value)}
                     required
-                    helperText="Auto-filled from notation when possible."
+                    helperText={readOnly ? undefined : "Auto-filled from notation when possible."}
+                    disabled={readOnly}
                 />
-                <AppButton type="submit" variant="contained" color="primary" disabled={!canSubmit} sx={{minWidth: 180, minHeight: 40, alignSelf: {md: "center"}}}>
-                    Create Combo
-                </AppButton>
+                {!readOnly ? (
+                    <AppButton type="submit" variant="contained" color="primary" disabled={!canSubmit} sx={{minWidth: 180, minHeight: 40, alignSelf: {md: "center"}}}>
+                        {submitLabel}
+                    </AppButton>
+                ) : null}
             </AppBox>
 
-            <ActionBar>
+            {!readOnly ? <ActionBar>
                 <AppButton
                     type="button"
                     variant="text"
@@ -115,7 +124,7 @@ export function SubmitSection({
                 <AppButton type="button" variant="text" color="secondary" onClick={onResetDraft} sx={{color: "text.secondary"}}>
                     Reset Draft
                 </AppButton>
-            </ActionBar>
+            </ActionBar> : null}
 
             <AppBox sx={{display: "grid", gap: 1, pt: 0.5}}>
                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "160px minmax(220px, 1fr)"}, gap: 1, alignItems: "center"}}>
@@ -125,22 +134,26 @@ export function SubmitSection({
                         onChange={(event) => onDamageChange(event.target.value)}
                         inputMode="numeric"
                         required
+                        disabled={readOnly}
                     />
-                    <AppTypography variant="body2" color="text.secondary">
+                    {!readOnly ? <AppTypography variant="body2" color="text.secondary">
                         Auto-filled from Fill Details and visible before creation.
-                    </AppTypography>
+                    </AppTypography> : null}
                 </AppBox>
                 <AppTextField
                     label="Description"
                     value={description}
                     onChange={(event) => onDescriptionChange(event.target.value)}
+                    disabled={readOnly}
                 />
-                <AppTextField
-                    label="Notes"
-                    value={notes}
-                    onChange={(event) => onNotesChange(event.target.value)}
-                    helperText="Local notes only."
-                />
+                {!readOnly ? (
+                    <AppTextField
+                        label="Notes"
+                        value={notes}
+                        onChange={(event) => onNotesChange(event.target.value)}
+                        helperText="Local notes only."
+                    />
+                ) : null}
             </AppBox>
 
             {showAdvancedConditions ? (
@@ -151,24 +164,28 @@ export function SubmitSection({
                             value={driveCost}
                             onChange={(event) => onDriveCostChange(event.target.value)}
                             inputMode="decimal"
+                            disabled={readOnly}
                         />
                         <AppTextField
                             label="Drive Gain"
                             value={driveGain}
                             onChange={(event) => onDriveGainChange(event.target.value)}
                             inputMode="decimal"
+                            disabled={readOnly}
                         />
                         <AppTextField
                             label="Super Cost"
                             value={superCost}
                             onChange={(event) => onSuperCostChange(event.target.value)}
                             inputMode="decimal"
+                            disabled={readOnly}
                         />
                         <AppTextField
                             label="Super Gain"
                             value={superGain}
                             onChange={(event) => onSuperGainChange(event.target.value)}
                             inputMode="decimal"
+                            disabled={readOnly}
                         />
                     </AppBox>
                     <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 1}}>
@@ -178,7 +195,8 @@ export function SubmitSection({
                                 label={label}
                                 checked={Boolean(requirements[key])}
                                 disabled={
-                                    (key === "counter_hit_required" && Boolean(requirements.punish_counter_required))
+                                    readOnly
+                                    || (key === "counter_hit_required" && Boolean(requirements.punish_counter_required))
                                     || (key === "punish_counter_required" && Boolean(requirements.counter_hit_required))
                                 }
                                 onChange={(checked) => onRequirementToggle(key, checked)}
@@ -196,6 +214,7 @@ export function SubmitSection({
                         getOptionLabel={(option) => option?.name ?? ""}
                         disableClearable={false}
                         sx={{maxWidth: {md: 460}}}
+                        disabled={readOnly}
                     />
 
                     {selectedObjectIsInteger ? (
@@ -206,6 +225,7 @@ export function SubmitSection({
                             inputMode="numeric"
                             helperText={`Value between 1 and ${selectedRequirementObject?.max_status}`}
                             sx={{maxWidth: 220}}
+                            disabled={readOnly}
                         />
                     ) : null}
 
@@ -217,12 +237,12 @@ export function SubmitSection({
                 </AppBox>
             ) : null}
 
-            <AppBox sx={{display: "flex", gap: 0.6, alignItems: "center", flexWrap: "wrap"}}>
+            {!readOnly ? <AppBox sx={{display: "flex", gap: 0.6, alignItems: "center", flexWrap: "wrap"}}>
                 <CheckCircleOutlineIcon fontSize="small" color={canSubmit ? "success" : "disabled"} />
                 <AppTypography variant="body2" color="text.secondary">
                     Ready: {canSubmit ? "yes" : "missing title, step move, or connection"}
                 </AppTypography>
-            </AppBox>
+            </AppBox> : null}
         </SectionCard>
     );
 }

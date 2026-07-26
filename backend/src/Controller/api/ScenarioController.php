@@ -466,8 +466,8 @@ class ScenarioController extends AbstractController
             }
 
             $normalizedScenarioType = mb_strtolower($scenarioType);
-            if (!in_array($normalizedScenarioType, ['oki', 'blockstun', 'aggregated_oki'], true)) {
-                throw new BadRequestHttpException('scenarioType must be either oki, blockstun, or aggregated_oki.');
+            if (!in_array($normalizedScenarioType, ['oki', 'blockstring', 'aggregated_oki'], true)) {
+                throw new BadRequestHttpException('scenarioType must be either oki, blockstring, or aggregated_oki.');
             }
 
             $scenario->setScenarioType($normalizedScenarioType);

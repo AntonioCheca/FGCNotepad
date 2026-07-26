@@ -3,7 +3,7 @@ import type {ScenarioSearchFilterState, ScenarioTypeOption} from "./scenarioSear
 export const SCENARIO_TYPE_OPTIONS: ScenarioTypeOption[] = [
     {label: "Oki", value: "oki"},
     {label: "Aggregated Oki", value: "aggregated_oki"},
-    {label: "Blockstun", value: "blockstun"},
+    {label: "Blockstring", value: "blockstring"},
 ];
 
 export const DEFAULT_SCENARIO_SEARCH_FILTER_STATE: ScenarioSearchFilterState = {
