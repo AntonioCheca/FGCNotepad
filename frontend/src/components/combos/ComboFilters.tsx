@@ -9,6 +9,7 @@ import {AppCollapse} from "@/src/components/ui/AppCollapse";
 import {AppPaper} from "@/src/components/ui/AppPaper";
 import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
 import {ComboAdvancedFiltersSection} from "./filters/ComboAdvancedFiltersSection";
+import {ComboDriveWindowsFiltersSection} from "./filters/ComboDriveWindowsFiltersSection";
 import {ComboFiltersHeader} from "./filters/ComboFiltersHeader";
 import {ComboPrimaryFiltersSection} from "./filters/ComboPrimaryFiltersSection";
 import {ComboRequirementsFiltersSection} from "./filters/ComboRequirementsFiltersSection";
@@ -37,6 +38,9 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         setMaxDifficulty,
         setMinDamage,
         setMaxDamage,
+        addDriveWindow,
+        removeDriveWindow,
+        setDriveWindowRange,
         setRequirementToggle,
         setRequirementObject,
         toggleAdvancedFilters,
@@ -148,6 +152,13 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                         onMaxDifficultyChange={setMaxDifficulty}
                         onMinDamageChange={setMinDamage}
                         onMaxDamageChange={setMaxDamage}
+                    />
+
+                    <ComboDriveWindowsFiltersSection
+                        driveWindows={state.driveWindows}
+                        onAddDriveWindow={addDriveWindow}
+                        onRemoveDriveWindow={removeDriveWindow}
+                        onDriveWindowRangeChange={setDriveWindowRange}
                     />
 
                     <ComboRequirementsFiltersSection

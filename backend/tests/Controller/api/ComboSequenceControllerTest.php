@@ -1012,6 +1012,61 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame($nullDrive->getName(), $descendingPayload[2]['name']);
     }
 
+    public function testListFiltersByDriveMetricWindows(): void
+    {
+        $comboType = new ComboSequenceType();
+        $comboType->setName('combo');
+        $this->entityManager->persist($comboType);
+
+        $leafType = new ComboSequenceType();
+        $leafType->setName('leaf');
+        $this->entityManager->persist($leafType);
+
+        $visibility = new Visibility();
+        $visibility->setName('public');
+        $this->entityManager->persist($visibility);
+
+        $connectionType = new ConnectionType();
+        $connectionType->setName('Initial Move');
+        $this->entityManager->persist($connectionType);
+
+        $character = new Character();
+        $character->setName('Kimberly');
+        $this->entityManager->persist($character);
+
+        $starter = $this->createLeafForFilters($character, $leafType, $visibility, '5LK', 'normal');
+        $low = $this->createComboForFilters('Low Drive Window', $comboType, $visibility, $starter, null, $connectionType, 1200, 2, false, false, 2.4, 0.0, 0.0, 0.0, 1.5, 2.5);
+        $target = $this->createComboForFilters('Target Drive Window', $comboType, $visibility, $starter, null, $connectionType, 1600, 3, false, false, 4.2, 0.0, 0.0, 0.0, 3.5, 4.5);
+        $high = $this->createComboForFilters('High Drive Window', $comboType, $visibility, $starter, null, $connectionType, 1900, 4, false, false, 5.6, 0.0, 0.0, 0.0, 5.1, 5.8);
+        $nullMetrics = $this->createComboForFilters('Null Drive Window', $comboType, $visibility, $starter, null, $connectionType, 1400, 2, false, false, null, 0.0, 0.0, 0.0, null, null);
+
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/api/combo-sequences?minDriveCost=3&maxDriveCost=5&sort=driveCost&sortDirection=asc', [], [], $this->getHeaders());
+        $drivePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame([$target->getName()], array_column($drivePayload, 'name'));
+        $this->assertNotContains($low->getName(), array_column($drivePayload, 'name'));
+        $this->assertNotContains($high->getName(), array_column($drivePayload, 'name'));
+        $this->assertNotContains($nullMetrics->getName(), array_column($drivePayload, 'name'));
+
+        $this->client->request('GET', '/api/combo-sequences?minMinimumDriveCost=3.4&sort=minimumDriveCost&sortDirection=asc', [], [], $this->getHeaders());
+        $minimumDriveMinPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame([$target->getName(), $high->getName()], array_column($minimumDriveMinPayload, 'name'));
+
+        $this->client->request('GET', '/api/combo-sequences?maxMinimumDriveCost=3.6&sort=minimumDriveCost&sortDirection=asc', [], [], $this->getHeaders());
+        $minimumDriveMaxPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame([$low->getName(), $target->getName()], array_column($minimumDriveMaxPayload, 'name'));
+
+        $this->client->request('GET', '/api/combo-sequences?minMinimumDriveCostNoBurnout=4&maxMinimumDriveCostNoBurnout=5&sort=minimumDriveCostNoBurnout&sortDirection=asc', [], [], $this->getHeaders());
+        $safeDrivePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame([$target->getName()], array_column($safeDrivePayload, 'name'));
+    }
+
     public function testCreateFullComboRejectsCounterAndPunishCounterAtSameTime(): void
     {
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
@@ -1569,7 +1624,9 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         ?float $driveCost = null,
         ?float $driveGain = null,
         ?float $superCost = null,
-        ?float $superGain = null
+        ?float $superGain = null,
+        ?float $minimumDriveCost = null,
+        ?float $minimumDriveCostNoBurnout = null
     ): ComboSequences {
         $combo = new ComboSequences();
         $combo->setName($name);
@@ -1584,6 +1641,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $metrics->setDifficultyLevel($difficulty);
         $metrics->setDriveCost($driveCost);
         $metrics->setDriveGain($driveGain);
+        $metrics->setMinimumDriveCost($minimumDriveCost);
+        $metrics->setMinimumDriveCostNoBurnout($minimumDriveCostNoBurnout);
         $metrics->setSuperCost($superCost);
         $metrics->setSuperGain($superGain);
         (new ComboValueEstimator())->applyEstimatedValue($metrics);

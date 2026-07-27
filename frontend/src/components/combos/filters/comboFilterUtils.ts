@@ -1,6 +1,5 @@
-import {DEFAULT_COMBO_FILTER_SORT} from "./comboFilterConstants";
 import type {RequirementObjectOption} from "@/src/types/combo";
-import type {ComboCharacterOption, ComboFilterState, ComboMoveSearchOption, ComboSearchFilters} from "./comboFilterTypes";
+import type {ComboCharacterOption, ComboDriveWindowFilter, ComboFilterState, ComboMoveSearchOption, ComboSearchFilters} from "./comboFilterTypes";
 
 export function parseOptionalNumber(value: string): number | undefined {
     const normalized = value.trim();
@@ -10,6 +9,30 @@ export function parseOptionalNumber(value: string): number | undefined {
 
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? Math.trunc(parsed) : undefined;
+}
+
+function parseOptionalFloat(value: string): number | undefined {
+    const normalized = value.trim();
+    if (normalized === "") {
+        return undefined;
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function buildDriveWindowRange(filter: ComboDriveWindowFilter): {min?: number; max?: number} {
+    if (!filter.enabled) {
+        return {};
+    }
+
+    const min = parseOptionalFloat(filter.min);
+    const max = parseOptionalFloat(filter.max);
+    if (min === undefined || max === undefined) {
+        return {min, max};
+    }
+
+    return min <= max ? {min, max} : {min: max, max: min};
 }
 
 export function normalizeCharacterOptions(value: unknown): ComboCharacterOption[] {
@@ -85,6 +108,10 @@ export function normalizeRequirementObjectOptions(value: unknown): RequirementOb
 }
 
 export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFilters {
+    const driveCostRange = buildDriveWindowRange(state.driveWindows.driveCost);
+    const minimumDriveCostRange = buildDriveWindowRange(state.driveWindows.minimumDriveCost);
+    const minimumDriveCostNoBurnoutRange = buildDriveWindowRange(state.driveWindows.minimumDriveCostNoBurnout);
+
     return {
         q: state.query.trim() || undefined,
         characterId: state.characterId || undefined,
@@ -94,6 +121,12 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         maxDifficulty: parseOptionalNumber(state.maxDifficulty),
         minDamage: parseOptionalNumber(state.minDamage),
         maxDamage: parseOptionalNumber(state.maxDamage),
+        minDriveCost: driveCostRange.min,
+        maxDriveCost: driveCostRange.max,
+        minMinimumDriveCost: minimumDriveCostRange.min,
+        maxMinimumDriveCost: minimumDriveCostRange.max,
+        minMinimumDriveCostNoBurnout: minimumDriveCostNoBurnoutRange.min,
+        maxMinimumDriveCostNoBurnout: minimumDriveCostNoBurnoutRange.max,
         isEssential: state.requirements.isEssential ? true : undefined,
         counterHitRequired: state.requirements.counterHitRequired ? true : undefined,
         punishCounterRequired: state.requirements.punishCounterRequired ? true : undefined,
@@ -106,29 +139,4 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         sort: state.sort,
         sortDirection: state.sortDirection,
     };
-}
-
-export function countActiveComboFilters(state: ComboFilterState): number {
-    const active = [
-        state.query.trim() !== "",
-        state.characterId !== "",
-        state.firstMove !== null,
-        state.enderMove !== null,
-        state.minDifficulty.trim() !== "",
-        state.maxDifficulty.trim() !== "",
-        state.minDamage.trim() !== "",
-        state.maxDamage.trim() !== "",
-        state.requirements.isEssential,
-        state.requirements.counterHitRequired,
-        state.requirements.punishCounterRequired,
-        state.requirements.cornerRequired,
-        state.requirements.airborneRequired,
-        state.requirements.midScreenRequired,
-        state.requirements.notCrouchingRequired,
-        state.requirements.requirementObjectName !== "",
-        state.requirements.requirementObjectStatus !== "",
-        state.sort !== DEFAULT_COMBO_FILTER_SORT,
-    ];
-
-    return active.filter(Boolean).length;
 }

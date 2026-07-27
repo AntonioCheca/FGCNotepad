@@ -1,5 +1,14 @@
 export type ComboSortField = "damage" | "resourceAdjustedDamage" | "driveCost" | "minimumDriveCost" | "minimumDriveCostNoBurnout" | "superCost" | "driveGain" | "superGain" | "seasonStartDate";
 export type ComboSortDirection = "asc" | "desc";
+export type ComboDriveWindowMetric = "driveCost" | "minimumDriveCost" | "minimumDriveCostNoBurnout";
+
+export interface ComboDriveWindowFilter {
+    enabled: boolean;
+    min: string;
+    max: string;
+}
+
+export type ComboDriveWindowFilters = Record<ComboDriveWindowMetric, ComboDriveWindowFilter>;
 
 export interface ComboMoveSearchOption {
     id: string;
@@ -36,6 +45,7 @@ export interface ComboFilterState {
     maxDifficulty: string;
     minDamage: string;
     maxDamage: string;
+    driveWindows: ComboDriveWindowFilters;
     requirements: ComboRequirementFilters;
     sort: ComboSortField;
     sortDirection: ComboSortDirection;
@@ -51,6 +61,12 @@ export interface ComboSearchFilters {
     maxDifficulty?: number;
     minDamage?: number;
     maxDamage?: number;
+    minDriveCost?: number;
+    maxDriveCost?: number;
+    minMinimumDriveCost?: number;
+    maxMinimumDriveCost?: number;
+    minMinimumDriveCostNoBurnout?: number;
+    maxMinimumDriveCostNoBurnout?: number;
     isEssential?: boolean;
     counterHitRequired?: boolean;
     punishCounterRequired?: boolean;

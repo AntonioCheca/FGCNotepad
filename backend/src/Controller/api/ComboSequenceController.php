@@ -84,6 +84,12 @@ class ComboSequenceController extends AbstractController
             'seasonId' => $this->normalizeIntegerFilter($request->query->get('seasonId')),
             'minDamage' => $this->normalizeIntegerFilter($request->query->get('minDamage')),
             'maxDamage' => $this->normalizeIntegerFilter($request->query->get('maxDamage')),
+            'minDriveCost' => $this->normalizeFloatFilter($request->query->get('minDriveCost')),
+            'maxDriveCost' => $this->normalizeFloatFilter($request->query->get('maxDriveCost')),
+            'minMinimumDriveCost' => $this->normalizeFloatFilter($request->query->get('minMinimumDriveCost')),
+            'maxMinimumDriveCost' => $this->normalizeFloatFilter($request->query->get('maxMinimumDriveCost')),
+            'minMinimumDriveCostNoBurnout' => $this->normalizeFloatFilter($request->query->get('minMinimumDriveCostNoBurnout')),
+            'maxMinimumDriveCostNoBurnout' => $this->normalizeFloatFilter($request->query->get('maxMinimumDriveCostNoBurnout')),
             'minDifficulty' => $this->normalizeIntegerFilter($request->query->get('minDifficulty')),
             'maxDifficulty' => $this->normalizeIntegerFilter($request->query->get('maxDifficulty')),
             'counterHitRequired' => $this->normalizeBooleanFilter($request->query->get('counterHitRequired')),
@@ -170,6 +176,24 @@ class ComboSequenceController extends AbstractController
         }
 
         return (int) $trimmed;
+    }
+
+    private function normalizeFloatFilter(mixed $value): ?float
+    {
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ('' === $trimmed || !is_numeric($trimmed)) {
+            return null;
+        }
+
+        return (float) $trimmed;
     }
 
     private function normalizeBooleanFilter(mixed $value): ?bool

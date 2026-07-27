@@ -3,6 +3,7 @@ import React from "react";
 import {DEFAULT_COMBO_FILTER_STATE} from "./comboFilterConstants";
 import type {
     ComboFilterState,
+    ComboDriveWindowMetric,
     ComboMoveSearchOption,
     ComboRequirementFilterKey,
     ComboSortDirection,
@@ -18,6 +19,9 @@ type ComboFilterAction =
     | {type: "setEnderMoveQuery"; value: string}
     | {type: "setDifficultyRange"; minDifficulty?: string; maxDifficulty?: string}
     | {type: "setDamageRange"; minDamage?: string; maxDamage?: string}
+    | {type: "addDriveWindow"; metric: ComboDriveWindowMetric}
+    | {type: "removeDriveWindow"; metric: ComboDriveWindowMetric}
+    | {type: "setDriveWindowRange"; metric: ComboDriveWindowMetric; min?: string; max?: string}
     | {type: "setRequirementToggle"; key: ComboRequirementFilterKey; checked: boolean}
     | {type: "setRequirementObject"; objectName: string; status: string}
     | {type: "setSort"; field: ComboSortField; direction?: ComboSortDirection}
@@ -50,6 +54,34 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
                 minDamage: action.minDamage ?? state.minDamage,
                 maxDamage: action.maxDamage ?? state.maxDamage,
             };
+        case "addDriveWindow":
+            return {
+                ...state,
+                driveWindows: {
+                    ...state.driveWindows,
+                    [action.metric]: {enabled: true, min: "0", max: "6"},
+                },
+            };
+        case "removeDriveWindow":
+            return {
+                ...state,
+                driveWindows: {
+                    ...state.driveWindows,
+                    [action.metric]: {enabled: false, min: "", max: ""},
+                },
+            };
+        case "setDriveWindowRange":
+            return {
+                ...state,
+                driveWindows: {
+                    ...state.driveWindows,
+                    [action.metric]: {
+                        ...state.driveWindows[action.metric],
+                        min: action.min ?? state.driveWindows[action.metric].min,
+                        max: action.max ?? state.driveWindows[action.metric].max,
+                    },
+                },
+            };
         case "setRequirementToggle":
             return {...state, requirements: {...state.requirements, [action.key]: action.checked}};
         case "setRequirementObject":
@@ -79,6 +111,9 @@ export function useComboFilterState() {
         setMaxDifficulty: (value: string) => dispatch({type: "setDifficultyRange", maxDifficulty: value}),
         setMinDamage: (value: string) => dispatch({type: "setDamageRange", minDamage: value}),
         setMaxDamage: (value: string) => dispatch({type: "setDamageRange", maxDamage: value}),
+        addDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "addDriveWindow", metric}),
+        removeDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "removeDriveWindow", metric}),
+        setDriveWindowRange: (metric: ComboDriveWindowMetric, min?: string, max?: string) => dispatch({type: "setDriveWindowRange", metric, min, max}),
         setRequirementToggle: (key: ComboRequirementFilterKey, checked: boolean) => dispatch({type: "setRequirementToggle", key, checked}),
         setRequirementObject: (objectName: string, status: string) => dispatch({type: "setRequirementObject", objectName, status}),
         setSort: (field: ComboSortField, direction?: ComboSortDirection) => dispatch({type: "setSort", field, direction}),

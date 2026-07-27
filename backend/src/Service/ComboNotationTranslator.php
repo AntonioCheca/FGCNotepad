@@ -67,6 +67,40 @@ final class ComboNotationTranslator
                 }
             }
 
+            $driveRushResolution = $this->resolveDriveRushToken($normalizedToken, $resolvedMoves, $pendingConnector, $leafIndex, $token, $warnings);
+            if ('connector' === $driveRushResolution['kind']) {
+                $pendingConnector = 'drive_rush_cancel';
+                ++$cursor;
+                continue;
+            }
+
+            if ('move' === $driveRushResolution['kind']) {
+                $leaf = $driveRushResolution['leaf'];
+                $resolvedMoves[] = [
+                    'token' => $token,
+                    'normalizedToken' => $normalizedToken,
+                    'leafId' => $leaf['id'],
+                    'moveType' => $leaf['moveType'],
+                    'connector' => null,
+                    'cancelTypeCodes' => $leaf['cancelTypeCodes'],
+                    'notation' => $leaf['notation'],
+                    'parsedTokenIndex' => count($parsedTokens),
+                ];
+
+                $parsedTokens[] = [
+                    'index' => $cursor + 1,
+                    'token' => $token,
+                    'normalizedToken' => $normalizedToken,
+                    'status' => 'parsed',
+                    'child_sequence_id' => $leaf['id'],
+                    'reason' => null,
+                ];
+
+                $pendingConnector = null;
+                ++$cursor;
+                continue;
+            }
+
             $segment = $this->matchLongestAliasAtCursor($tokens, $cursor, $leafAliases);
             if (null !== $segment) {
                 $resolvedMoves[] = [
@@ -101,7 +135,7 @@ final class ComboNotationTranslator
                     continue;
                 }
 
-                if ('cancel' === $connector && 'drive_rush_cancel' === $pendingConnector) {
+                if ('cancel' === $connector && ('drive_rush_cancel' === $pendingConnector || $this->isRawDriveRushMove($resolvedMoves[count($resolvedMoves) - 1]['normalizedToken']))) {
                     ++$cursor;
                     continue;
                 }
@@ -174,6 +208,7 @@ final class ComboNotationTranslator
                     $move['moveType'],
                     $previousMove['cancelTypeCodes'],
                     $move['cancelTypeCodes'],
+                    $move['normalizedToken'],
                 );
             }
 
@@ -509,6 +544,50 @@ final class ComboNotationTranslator
     }
 
     /**
+     * @param array<int, array{token:string, normalizedToken:string, leafId:int, moveType:string|null, connector:string|null, cancelTypeCodes:array<int, string>, notation:string, parsedTokenIndex:int}> $resolvedMoves
+     * @param array<string, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}> $leafIndex
+     *
+     * @return array{kind:'none'|'connector'|'move', leaf?:array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}}
+     */
+    private function resolveDriveRushToken(
+        string $normalizedToken,
+        array $resolvedMoves,
+        ?string $pendingConnector,
+        array $leafIndex,
+        string $rawToken,
+        array &$warnings
+    ): array {
+        if ('DRC' === $normalizedToken) {
+            return ['kind' => 'connector'];
+        }
+
+        if (!$this->isRawDriveRushMove($normalizedToken)) {
+            return ['kind' => 'none'];
+        }
+
+        $previousMove = [] === $resolvedMoves ? null : $resolvedMoves[count($resolvedMoves) - 1];
+        if ('cancel' === $pendingConnector && null !== $previousMove && !$this->isSpecialLikeMoveType($previousMove['moveType'])) {
+            return ['kind' => 'connector'];
+        }
+
+        $leaf = $leafIndex['DR'] ?? null;
+        if (null === $leaf) {
+            return ['kind' => 'connector'];
+        }
+
+        if (null === $pendingConnector && null !== $previousMove && $this->isNormalMoveType($previousMove['moveType'])) {
+            $warnings[] = sprintf('Token "%s" after a normal was parsed as Raw Drive Rush. If you meant DRC, write either "xx DR" or "DRC".', $rawToken);
+        }
+
+        return ['kind' => 'move', 'leaf' => $leaf];
+    }
+
+    private function isRawDriveRushMove(string $normalizedToken): bool
+    {
+        return in_array($normalizedToken, ['DR', 'DRIVERUSH', 'RAWDRIVERUSH'], true);
+    }
+
+    /**
      * @return array<int, string>
      */
     private function buildGenericStrengthCandidates(string $normalizedToken): array
@@ -537,6 +616,10 @@ final class ComboNotationTranslator
      */
     private function tokenizeNotation(string $notation): array
     {
+        $notation = preg_replace('/\b(?:raw\s+)?drive\s+rush\s+cancel\b/i', ' DRC ', $notation) ?? $notation;
+        $notation = preg_replace('/\bdr\s+cancel\b/i', ' DRC ', $notation) ?? $notation;
+        $notation = preg_replace('/\braw\s+drive\s+rush\b/i', ' DR ', $notation) ?? $notation;
+        $notation = preg_replace('/\bdrive\s+rush\b/i', ' DR ', $notation) ?? $notation;
         $prepared = preg_replace('/(XX|TC|DRC?|>)/i', ' $1 ', $notation) ?? $notation;
         $tokens = preg_split('/[\s,]+/', trim($prepared));
 
@@ -575,10 +658,15 @@ final class ComboNotationTranslator
         ?string $currentMoveType,
         array $previousMoveCancelTypeCodes,
         array $currentMoveCancelTypeCodes,
+        string $currentNormalizedToken,
     ): string
     {
         if ('target_combo' === $explicitConnector) {
             return 'target_combo';
+        }
+
+        if ($this->isRawDriveRushMove($currentNormalizedToken)) {
+            return 'link';
         }
 
         if ('cancel' === $explicitConnector) {
@@ -662,6 +750,15 @@ final class ComboNotationTranslator
         }
 
         return 'normal' === strtolower($moveType);
+    }
+
+    private function isSpecialLikeMoveType(?string $moveType): bool
+    {
+        if (null === $moveType) {
+            return false;
+        }
+
+        return in_array(strtolower($moveType), ['special', 'movement-special', 'command-grab', 'super', 'drive'], true);
     }
 
     /**

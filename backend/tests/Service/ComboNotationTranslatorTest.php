@@ -44,6 +44,7 @@ class ComboNotationTranslatorTest extends TestCase
             ['id' => 118, 'notation' => '6HP>6HP', 'moveType' => 'normal', 'cancelTypeCodes' => []],
             ['id' => 119, 'notation' => '236K', 'moveType' => 'special', 'cancelTypeCodes' => []],
             ['id' => 120, 'notation' => '236K>P', 'moveType' => 'special', 'cancelTypeCodes' => []],
+            ['id' => 121, 'notation' => 'DR', 'moveType' => 'drive', 'cancelTypeCodes' => []],
         ];
 
         $this->connectionTypes = [
@@ -246,6 +247,50 @@ class ComboNotationTranslatorTest extends TestCase
 
         self::assertCount(2, $result['steps']);
         self::assertSame(7, $result['steps'][1]['connection_type_id']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateRawDriveRushAtStartWithCancelSeparatorAsNotationGlue(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('DR XX 5MP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(121, $result['steps'][0]['child_sequence_id']);
+        self::assertSame('Initial Move', $result['steps'][0]['connection_type_name']);
+        self::assertSame('Link', $result['steps'][1]['connection_type_name']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateBareDriveRushAfterNormalAsRawMoveWithWarning(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('5HP DR 5HP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(3, $result['steps']);
+        self::assertSame(121, $result['steps'][1]['child_sequence_id']);
+        self::assertSame('Link', $result['steps'][1]['connection_type_name']);
+        self::assertStringContainsString('If you meant DRC', $result['warnings'][0] ?? '');
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateDriveRushAfterSpecialCancelSeparatorAsRawMove(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('236MK XX DR XX 5MP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(3, $result['steps']);
+        self::assertSame(121, $result['steps'][1]['child_sequence_id']);
+        self::assertSame('Link', $result['steps'][1]['connection_type_name']);
+        self::assertSame('Link', $result['steps'][2]['connection_type_name']);
+        self::assertSame([], $result['warnings']);
+        self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateDriveRushPhraseAsRawMove(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('Raw Drive Rush, 5MP', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(121, $result['steps'][0]['child_sequence_id']);
+        self::assertSame('Link', $result['steps'][1]['connection_type_name']);
         self::assertSame([], $result['errors']);
     }
 }

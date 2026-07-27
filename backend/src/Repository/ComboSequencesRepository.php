@@ -54,6 +54,12 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     seasonId?: int|null,
      *     minDamage?: int|null,
      *     maxDamage?: int|null,
+     *     minDriveCost?: float|null,
+     *     maxDriveCost?: float|null,
+     *     minMinimumDriveCost?: float|null,
+     *     maxMinimumDriveCost?: float|null,
+     *     minMinimumDriveCostNoBurnout?: float|null,
+     *     maxMinimumDriveCostNoBurnout?: float|null,
      *     minDifficulty?: int|null,
      *     maxDifficulty?: int|null,
      *     counterHitRequired?: bool|null,
@@ -156,6 +162,12 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('maxDamage', $maxDamage);
         }
 
+        $this->applyMetricRangeFilters($qb, $filters, [
+            ['minDriveCost', 'maxDriveCost', 'metrics.driveCost'],
+            ['minMinimumDriveCost', 'maxMinimumDriveCost', 'metrics.minimumDriveCost'],
+            ['minMinimumDriveCostNoBurnout', 'maxMinimumDriveCostNoBurnout', 'metrics.minimumDriveCostNoBurnout'],
+        ]);
+
         $minDifficulty = isset($filters['minDifficulty']) && is_int($filters['minDifficulty']) ? $filters['minDifficulty'] : null;
         if (null !== $minDifficulty) {
             $qb->andWhere('metrics.difficultyLevel >= :minDifficulty')
@@ -224,6 +236,34 @@ class ComboSequencesRepository extends ServiceEntityRepository
         $this->applySort($qb, $filters);
 
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @param list<array{0:string, 1:string, 2:string}> $rangeFilters
+     */
+    private function applyMetricRangeFilters(\Doctrine\ORM\QueryBuilder $qb, array $filters, array $rangeFilters): void
+    {
+        foreach ($rangeFilters as [$minKey, $maxKey, $column]) {
+            $minValue = isset($filters[$minKey]) && is_float($filters[$minKey]) ? $filters[$minKey] : null;
+            $maxValue = isset($filters[$maxKey]) && is_float($filters[$maxKey]) ? $filters[$maxKey] : null;
+
+            if (null === $minValue && null === $maxValue) {
+                continue;
+            }
+
+            $qb->andWhere(sprintf('%s IS NOT NULL', $column));
+
+            if (null !== $minValue) {
+                $qb->andWhere(sprintf('%s >= :%s', $column, $minKey))
+                    ->setParameter($minKey, $minValue);
+            }
+
+            if (null !== $maxValue) {
+                $qb->andWhere(sprintf('%s <= :%s', $column, $maxKey))
+                    ->setParameter($maxKey, $maxValue);
+            }
+        }
     }
 
     /**

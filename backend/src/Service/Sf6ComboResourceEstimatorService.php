@@ -37,31 +37,41 @@ final class Sf6ComboResourceEstimatorService
 
         $frameEstimation = $this->frameLengthEstimator->estimate($moves);
 
-        $driveGainFromMoves = 0;
+        $driveGainUnitsTotal = 0;
         $driveUsedUnitsFromFrameData = 0;
         $superGainFromMoves = 0;
         $superUsedUnitsFromFrameData = 0;
         $superUsedUnitsFromInference = 0;
         $timelineSteps = [];
+        $driveGainLocked = false;
 
         foreach ($moves as $index => $move) {
             $driveGain = $this->readSignedMeterValue($move['driveGain'] ?? null);
             $driveCostUnits = 0;
             $driveGainUnits = 0;
-            if ($driveGain > 0) {
-                $driveGainFromMoves += $driveGain;
-                $driveGainUnits += $driveGain;
-            }
             if ($driveGain < 0) {
                 $driveCostUnits += abs($driveGain);
             }
 
             if ($this->isDriveRushCancel($move['connectionTypeName'] ?? null)) {
                 $driveCostUnits += self::DRIVE_RUSH_CANCEL_COST_UNITS;
+                $driveGainLocked = true;
+            }
+
+            if ($this->isLevelThreeSuper((string) ($move['moveType'] ?? ''), (string) ($move['notation'] ?? ''))) {
+                $driveGainLocked = false;
+            }
+
+            if (!$driveGainLocked) {
+                if ($driveGain > 0) {
+                    $driveGainUnits += $driveGain;
+                }
+
+                $driveGainUnits += ($frameEstimation['stepFrames'][$index] ?? 0) * self::PASSIVE_DRIVE_REGEN_PER_FRAME;
             }
 
             $driveUsedUnitsFromFrameData += $driveCostUnits;
-            $driveGainUnits += ($frameEstimation['stepFrames'][$index] ?? 0) * self::PASSIVE_DRIVE_REGEN_PER_FRAME;
+            $driveGainUnitsTotal += $driveGainUnits;
             $timelineSteps[] = [
                 'driveCost' => $this->toBars($driveCostUnits, self::DRIVE_BAR_UNITS),
                 'driveGain' => $this->toBars($driveGainUnits, self::DRIVE_BAR_UNITS),
@@ -80,13 +90,11 @@ final class Sf6ComboResourceEstimatorService
             }
         }
 
-        $passiveDriveGain = $frameEstimation['totalFrames'] * self::PASSIVE_DRIVE_REGEN_PER_FRAME;
-
         $superUsedUnits = $superUsedUnitsFromFrameData > 0 ? $superUsedUnitsFromFrameData : $superUsedUnitsFromInference;
 
         return [
             'driveUsed' => $this->toBars($driveUsedUnitsFromFrameData, self::DRIVE_BAR_UNITS),
-            'driveGain' => $this->toBars($driveGainFromMoves + $passiveDriveGain, self::DRIVE_BAR_UNITS),
+            'driveGain' => $this->toBars($driveGainUnitsTotal, self::DRIVE_BAR_UNITS),
             'minimumDriveCost' => $this->calculateMinimumDrive($timelineSteps, false),
             'minimumDriveCostNoBurnout' => $this->calculateMinimumDrive($timelineSteps, true),
             'superUsed' => $this->toBars($superUsedUnits, self::SUPER_BAR_UNITS),
@@ -115,6 +123,20 @@ final class Sf6ComboResourceEstimatorService
         $normalized = strtolower(trim($connectionTypeName));
 
         return in_array($normalized, ['dr cancel', 'drive rush cancel', 'drc'], true);
+    }
+
+    private function isLevelThreeSuper(string $moveType, string $notation): bool
+    {
+        if ('super' !== strtolower(trim($moveType))) {
+            return false;
+        }
+
+        $normalizedNotation = strtoupper(trim($notation));
+
+        return str_contains($normalizedNotation, 'SA3')
+            || str_contains($normalizedNotation, 'CA')
+            || str_contains($normalizedNotation, 'LEVEL3')
+            || str_contains($normalizedNotation, 'CRITICAL');
     }
 
     /**

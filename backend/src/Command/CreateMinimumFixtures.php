@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
+use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Entity\Season;
 use App\Entity\ScenarioType;
@@ -115,6 +116,29 @@ class CreateMinimumFixtures extends Command
                     $this->em->persist($move);
                     $output->writeln("Inserted Movement Move for {$character->getName()}: $label ($notation)");
                 }
+            }
+
+            $driveRushMove = $moveRepo->findOneBy([
+                'numpadNotation' => 'DR',
+                'character' => $character,
+            ]);
+
+            if (!$driveRushMove) {
+                $driveRushMove = new Move();
+                $driveRushMove->setNumpadNotation('DR');
+                $driveRushMove->setCharacter($character);
+                $this->em->persist($driveRushMove);
+                $output->writeln("Inserted Raw Drive Rush Move for {$character->getName()}: Raw Drive Rush (DR)");
+            }
+
+            if (!$driveRushMove->getFrameData()) {
+                $frameData = new FrameData();
+                $frameData->setMoveType('drive');
+                $frameData->setCancelsTo('[]');
+                $frameData->setDamage(0);
+                $frameData->setDriveGain(-10000);
+                $driveRushMove->setFrameData($frameData);
+                $this->em->persist($frameData);
             }
         }
 
