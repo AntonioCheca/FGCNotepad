@@ -5,6 +5,7 @@ import type {
     ComboFilterState,
     ComboDriveWindowMetric,
     ComboMoveSearchOption,
+    ComboBooleanFilterValue,
     ComboRequirementFilterKey,
     ComboSortDirection,
     ComboSortField,
@@ -22,7 +23,7 @@ type ComboFilterAction =
     | {type: "addDriveWindow"; metric: ComboDriveWindowMetric}
     | {type: "removeDriveWindow"; metric: ComboDriveWindowMetric}
     | {type: "setDriveWindowRange"; metric: ComboDriveWindowMetric; min?: string; max?: string}
-    | {type: "setRequirementToggle"; key: ComboRequirementFilterKey; checked: boolean}
+    | {type: "setRequirementToggle"; key: ComboRequirementFilterKey; value: ComboBooleanFilterValue}
     | {type: "setRequirementObject"; objectName: string; status: string}
     | {type: "setAddedObject"; objectName: string; status: string}
     | {type: "setConsumedObject"; objectName: string}
@@ -85,7 +86,7 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
                 },
             };
         case "setRequirementToggle":
-            return {...state, requirements: {...state.requirements, [action.key]: action.checked}};
+            return {...state, requirements: {...state.requirements, [action.key]: action.value}};
         case "setRequirementObject":
             return {...state, requirements: {...state.requirements, requirementObjectName: action.objectName, requirementObjectStatus: action.status}};
         case "setAddedObject":
@@ -120,7 +121,7 @@ export function useComboFilterState() {
         addDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "addDriveWindow", metric}),
         removeDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "removeDriveWindow", metric}),
         setDriveWindowRange: (metric: ComboDriveWindowMetric, min?: string, max?: string) => dispatch({type: "setDriveWindowRange", metric, min, max}),
-        setRequirementToggle: (key: ComboRequirementFilterKey, checked: boolean) => dispatch({type: "setRequirementToggle", key, checked}),
+        setRequirementToggle: (key: ComboRequirementFilterKey, value: ComboBooleanFilterValue) => dispatch({type: "setRequirementToggle", key, value}),
         setRequirementObject: (objectName: string, status: string) => dispatch({type: "setRequirementObject", objectName, status}),
         setAddedObject: (objectName: string, status: string) => dispatch({type: "setAddedObject", objectName, status}),
         setConsumedObject: (objectName: string) => dispatch({type: "setConsumedObject", objectName}),

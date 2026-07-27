@@ -67,8 +67,8 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
             'description' => 'Works only at 2 drinks',
             'requirements' => [
                 'counter_hit_required' => true,
-                'mid_screen_required' => true,
                 'not_crouching_required' => true,
+                'side_switches_required' => true,
                 'combo_object_states' => [[
                     'object_key' => 'jamie_drinks',
                     'object_name' => 'Drinks',
@@ -90,8 +90,8 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         $persistedRequirement = $this->entityManager->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $sequence]);
         self::assertInstanceOf(ComboRequirement::class, $persistedRequirement);
         self::assertTrue($persistedRequirement->isCounterHitRequired());
-        self::assertTrue($persistedRequirement->isMidScreenRequired());
         self::assertTrue($persistedRequirement->isNotCrouchingRequired());
+        self::assertTrue($persistedRequirement->isSideSwitchesRequired());
 
         $specificRequirement = $persistedRequirement->getRequirementSpecificCharacter();
         self::assertInstanceOf(CharacterObjectState::class, $specificRequirement);

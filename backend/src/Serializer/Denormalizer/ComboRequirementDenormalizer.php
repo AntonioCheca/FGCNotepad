@@ -40,8 +40,8 @@ class ComboRequirementDenormalizer implements DenormalizerInterface
         $requirement->setPunishCounterRequired((bool) ($data['punish_counter_required'] ?? false));
         $requirement->setCornerRequired((bool) ($data['corner_required'] ?? false));
         $requirement->setAirborneRequired((bool) ($data['airborne_required'] ?? false));
-        $requirement->setMidScreenRequired((bool) ($data['mid_screen_required'] ?? false));
         $requirement->setNotCrouchingRequired((bool) ($data['not_crouching_required'] ?? false));
+        $requirement->setSideSwitchesRequired((bool) ($data['side_switches_required'] ?? false));
 
         $objectStatePayloads = [];
         if (isset($data['combo_object_states']) && is_array($data['combo_object_states'])) {

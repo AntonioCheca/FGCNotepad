@@ -66,7 +66,6 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     punishCounterRequired?: bool|null,
      *     cornerRequired?: bool|null,
      *     airborneRequired?: bool|null,
-     *     midScreenRequired?: bool|null,
      *     notCrouchingRequired?: bool|null,
      *     isEssential?: bool|null,
      *     moveTypes?: list<string>,
@@ -188,8 +187,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
             'punishCounterRequired' => 'requirement.punish_counter_required',
             'cornerRequired' => 'requirement.corner_required',
             'airborneRequired' => 'requirement.airborne_required',
-            'midScreenRequired' => 'requirement.mid_screen_required',
             'notCrouchingRequired' => 'requirement.not_crouching_required',
+            'sideSwitchesRequired' => 'requirement.side_switches_required',
         ];
 
         foreach ($booleanRequirementFilters as $filterKey => $columnName) {
@@ -198,7 +197,10 @@ class ComboSequencesRepository extends ServiceEntityRepository
             }
 
             $parameterName = sprintf('%sValue', $filterKey);
-            $qb->andWhere(sprintf('%s = :%s', $columnName, $parameterName))
+            $expression = false === $filters[$filterKey]
+                ? sprintf('(requirement.id IS NULL OR %s = :%s)', $columnName, $parameterName)
+                : sprintf('%s = :%s', $columnName, $parameterName);
+            $qb->andWhere($expression)
                 ->setParameter($parameterName, $filters[$filterKey]);
         }
 
@@ -653,10 +655,6 @@ class ComboSequencesRepository extends ServiceEntityRepository
             if (!in_array('corner', $allowedPositions, true)) {
                 $qb->andWhere('(comboRequirement.id IS NULL OR comboRequirement.corner_required = false)');
             }
-            if (!in_array('midscreen', $allowedPositions, true)) {
-                $qb->andWhere('(comboRequirement.id IS NULL OR comboRequirement.mid_screen_required = false)');
-            }
-
             $characterStatuses = is_array($comboContext['characterStatuses'] ?? null) ? $comboContext['characterStatuses'] : [];
             if ([] === $characterStatuses) {
                 $qb->andWhere('requirementSpecificCharacter.id IS NULL');

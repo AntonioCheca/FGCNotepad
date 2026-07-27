@@ -11,8 +11,8 @@ const conditionLabels: Array<{key: keyof ComboRequirement; label: string}> = [
     {key: "punish_counter_required", label: "Punish Counter required"},
     {key: "corner_required", label: "Corner required"},
     {key: "airborne_required", label: "Opponent airborne required"},
-    {key: "mid_screen_required", label: "Mid-screen required"},
     {key: "not_crouching_required", label: "Opponent not crouching"},
+    {key: "side_switches_required", label: "Side switches required"},
 ];
 
 function hasValue(value: number | string): boolean {

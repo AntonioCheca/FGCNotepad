@@ -122,8 +122,8 @@ final class ComboSequenceUpdateService
                 ->setPunishCounterRequired(false)
                 ->setCornerRequired(false)
                 ->setAirborneRequired(false)
-                ->setMidScreenRequired(false)
-                ->setNotCrouchingRequired(false);
+                ->setNotCrouchingRequired(false)
+                ->setSideSwitchesRequired(false);
             $existingRequirement->getCharacterObjectStates()->clear();
 
             return;
@@ -134,8 +134,8 @@ final class ComboSequenceUpdateService
             ->setPunishCounterRequired((bool) $nextRequirement->isPunishCounterRequired())
             ->setCornerRequired((bool) $nextRequirement->isCornerRequired())
             ->setAirborneRequired((bool) $nextRequirement->isAirborneRequired())
-            ->setMidScreenRequired((bool) $nextRequirement->isMidScreenRequired())
-            ->setNotCrouchingRequired((bool) $nextRequirement->isNotCrouchingRequired());
+            ->setNotCrouchingRequired((bool) $nextRequirement->isNotCrouchingRequired())
+            ->setSideSwitchesRequired($nextRequirement->isSideSwitchesRequired());
 
         $existingRequirement->getCharacterObjectStates()->clear();
         foreach ($nextRequirement->getCharacterObjectStates() as $objectState) {

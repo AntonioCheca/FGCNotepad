@@ -85,8 +85,8 @@ export interface ComboRequirementsPayload {
     punish_counter_required?: boolean;
     corner_required?: boolean;
     airborne_required?: boolean;
-    mid_screen_required?: boolean;
     not_crouching_required?: boolean;
+    side_switches_required?: boolean;
     requirement_specific_character?: RequirementSpecificCharacterPayload;
     combo_object_states?: RequirementSpecificCharacterPayload[];
 }
@@ -258,8 +258,8 @@ export interface ComboRequirement {
     punish_counter_required?: boolean;
     corner_required?: boolean;
     airborne_required?: boolean;
-    mid_screen_required?: boolean;
     not_crouching_required?: boolean;
+    side_switches_required?: boolean;
     requirement_specific_character?: {
         object_key?: string | null;
         character_name?: string | null;

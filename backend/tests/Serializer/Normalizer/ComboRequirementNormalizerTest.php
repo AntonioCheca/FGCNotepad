@@ -31,7 +31,6 @@ class ComboRequirementNormalizerTest extends DatabaseTestCase
             ->setPunishCounterRequired(false)
             ->setCornerRequired(true)
             ->setAirborneRequired(false)
-            ->setMidScreenRequired(true)
             ->setNotCrouchingRequired(true);
 
         $this->entityManager->persist($requirement);
@@ -44,7 +43,6 @@ class ComboRequirementNormalizerTest extends DatabaseTestCase
         $this->assertFalse($data['punish_counter_required']);
         $this->assertTrue($data['corner_required']);
         $this->assertFalse($data['airborne_required']);
-        $this->assertTrue($data['mid_screen_required']);
         $this->assertTrue($data['not_crouching_required']);
         $this->assertSame([], $data['combo_object_states']);
         $this->assertNull($data['requirement_specific_character']);

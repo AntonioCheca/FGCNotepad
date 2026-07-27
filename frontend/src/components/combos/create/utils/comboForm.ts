@@ -16,8 +16,8 @@ export type RequirementToggleKey =
     | "punish_counter_required"
     | "corner_required"
     | "airborne_required"
-    | "mid_screen_required"
-    | "not_crouching_required";
+    | "not_crouching_required"
+    | "side_switches_required";
 
 export type FormNotice = {
     severity: "success" | "info" | "warning" | "error";
@@ -29,8 +29,8 @@ export const requirementToggles: Array<{ key: RequirementToggleKey; label: strin
     {key: "punish_counter_required", label: "Punish Counter Required"},
     {key: "corner_required", label: "Corner Required"},
     {key: "airborne_required", label: "Airborne Required"},
-    {key: "mid_screen_required", label: "Mid Screen Required"},
     {key: "not_crouching_required", label: "Opponent Not Crouching"},
+    {key: "side_switches_required", label: "Side Switches Required"},
 ];
 
 export const emptyRequirements: ComboRequirementsPayload = {
@@ -38,8 +38,8 @@ export const emptyRequirements: ComboRequirementsPayload = {
     punish_counter_required: false,
     corner_required: false,
     airborne_required: false,
-    mid_screen_required: false,
     not_crouching_required: false,
+    side_switches_required: false,
 };
 
 export function createEmptyStep(): StepDraft {

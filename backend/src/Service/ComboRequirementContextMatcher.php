@@ -40,10 +40,6 @@ class ComboRequirementContextMatcher
             return false;
         }
 
-        if (true === $requirement->isMidScreenRequired() && !in_array('midscreen', $allowedPositions, true)) {
-            return false;
-        }
-
         return true;
     }
 

@@ -13,8 +13,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: "idx_combo_requirement_punish_counter", columns: ["punish_counter_required"])]
 #[ORM\Index(name: "idx_combo_requirement_corner", columns: ["corner_required"])]
 #[ORM\Index(name: "idx_combo_requirement_airborne", columns: ["airborne_required"])]
-#[ORM\Index(name: "idx_combo_requirement_mid_screen", columns: ["mid_screen_required"])]
 #[ORM\Index(name: "idx_combo_requirement_not_crouching", columns: ["not_crouching_required"])]
+#[ORM\Index(name: "idx_combo_requirement_side_switches", columns: ["side_switches_required"])]
 class ComboRequirement
 {
     #[ORM\Id]
@@ -39,10 +39,10 @@ class ComboRequirement
     private ?bool $airborne_required = null;
 
     #[ORM\Column]
-    private ?bool $mid_screen_required = null;
-
-    #[ORM\Column]
     private ?bool $not_crouching_required = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $side_switches_required = false;
 
     /**
      * @var Collection<int, CharacterObjectState>
@@ -125,18 +125,6 @@ class ComboRequirement
         return $this;
     }
 
-    public function isMidScreenRequired(): ?bool
-    {
-        return $this->mid_screen_required;
-    }
-
-    public function setMidScreenRequired(bool $mid_screen_required): static
-    {
-        $this->mid_screen_required = $mid_screen_required;
-
-        return $this;
-    }
-
     public function isNotCrouchingRequired(): ?bool
     {
         return $this->not_crouching_required;
@@ -145,6 +133,18 @@ class ComboRequirement
     public function setNotCrouchingRequired(bool $not_crouching_required): static
     {
         $this->not_crouching_required = $not_crouching_required;
+
+        return $this;
+    }
+
+    public function isSideSwitchesRequired(): bool
+    {
+        return $this->side_switches_required;
+    }
+
+    public function setSideSwitchesRequired(bool $side_switches_required): static
+    {
+        $this->side_switches_required = $side_switches_required;
 
         return $this;
     }

@@ -24,8 +24,8 @@ class ComboRequirementFactory
         $punishCounterRequired = (bool) ($requirements['punish_counter_required'] ?? false);
         $cornerRequired = (bool) ($requirements['corner_required'] ?? false);
         $airborneRequired = (bool) ($requirements['airborne_required'] ?? false);
-        $midScreenRequired = (bool) ($requirements['mid_screen_required'] ?? false);
         $notCrouchingRequired = (bool) ($requirements['not_crouching_required'] ?? false);
+        $sideSwitchesRequired = (bool) ($requirements['side_switches_required'] ?? false);
 
         $objectStatePayloads = $this->objectStatePayloads($requirements);
 
@@ -41,8 +41,8 @@ class ComboRequirementFactory
             || $punishCounterRequired
             || $cornerRequired
             || $airborneRequired
-            || $midScreenRequired
-            || $notCrouchingRequired;
+            || $notCrouchingRequired
+            || $sideSwitchesRequired;
 
         if (!$hasBooleanRequirement && !$hasObjectStates) {
             return null;
@@ -54,8 +54,8 @@ class ComboRequirementFactory
             ->setPunishCounterRequired($punishCounterRequired)
             ->setCornerRequired($cornerRequired)
             ->setAirborneRequired($airborneRequired)
-            ->setMidScreenRequired($midScreenRequired)
-            ->setNotCrouchingRequired($notCrouchingRequired);
+            ->setNotCrouchingRequired($notCrouchingRequired)
+            ->setSideSwitchesRequired($sideSwitchesRequired);
 
         foreach ($objectStates as $objectState) {
             $comboRequirement->addCharacterObjectState($objectState);

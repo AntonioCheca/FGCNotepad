@@ -59,8 +59,8 @@ function getInitialRequirements(combo: ComboDetailView | null): ComboRequirement
         punish_counter_required: source?.punish_counter_required ?? false,
         corner_required: source?.corner_required ?? false,
         airborne_required: source?.airborne_required ?? false,
-        mid_screen_required: source?.mid_screen_required ?? false,
         not_crouching_required: source?.not_crouching_required ?? false,
+        side_switches_required: source?.side_switches_required ?? false,
     };
 
     const objectStates = source?.combo_object_states ?? (source?.requirement_specific_character ? [source.requirement_specific_character] : []);

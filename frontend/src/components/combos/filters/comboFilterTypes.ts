@@ -1,6 +1,7 @@
 export type ComboSortField = "damage" | "resourceAdjustedDamage" | "driveCost" | "minimumDriveCost" | "minimumDriveCostNoBurnout" | "superCost" | "driveGain" | "superGain" | "seasonStartDate";
 export type ComboSortDirection = "asc" | "desc";
 export type ComboDriveWindowMetric = "driveCost" | "minimumDriveCost" | "minimumDriveCostNoBurnout";
+export type ComboBooleanFilterValue = "" | "true" | "false";
 
 export interface ComboDriveWindowFilter {
     enabled: boolean;
@@ -21,13 +22,13 @@ export interface ComboCharacterOption {
 }
 
 export interface ComboRequirementFilters {
-    isEssential: boolean;
-    counterHitRequired: boolean;
-    punishCounterRequired: boolean;
-    cornerRequired: boolean;
-    airborneRequired: boolean;
-    midScreenRequired: boolean;
-    notCrouchingRequired: boolean;
+    isEssential: ComboBooleanFilterValue;
+    counterHitRequired: ComboBooleanFilterValue;
+    punishCounterRequired: ComboBooleanFilterValue;
+    cornerRequired: ComboBooleanFilterValue;
+    airborneRequired: ComboBooleanFilterValue;
+    notCrouchingRequired: ComboBooleanFilterValue;
+    sideSwitchesRequired: ComboBooleanFilterValue;
     requirementObjectName: string;
     requirementObjectStatus: string;
     addedObjectName: string;
@@ -75,8 +76,8 @@ export interface ComboSearchFilters {
     punishCounterRequired?: boolean;
     cornerRequired?: boolean;
     airborneRequired?: boolean;
-    midScreenRequired?: boolean;
     notCrouchingRequired?: boolean;
+    sideSwitchesRequired?: boolean;
     requirementObjectName?: string;
     requirementObjectStatus?: string;
     addedObjectName?: string;

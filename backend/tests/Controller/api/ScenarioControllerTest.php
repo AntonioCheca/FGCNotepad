@@ -1030,7 +1030,6 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
             ->setPunishCounterRequired($punishCounter)
             ->setCornerRequired($cornerRequired)
             ->setAirborneRequired(false)
-            ->setMidScreenRequired(false)
             ->setNotCrouchingRequired(false);
         if (null !== $statusObjectName && null !== $statusRequired) {
             $requirement->setRequirementSpecificCharacter(

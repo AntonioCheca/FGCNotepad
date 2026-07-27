@@ -1,5 +1,5 @@
 import type {RequirementObjectOption} from "@/src/types/combo";
-import type {ComboCharacterOption, ComboDriveWindowFilter, ComboFilterState, ComboMoveSearchOption, ComboSearchFilters} from "./comboFilterTypes";
+import type {ComboBooleanFilterValue, ComboCharacterOption, ComboDriveWindowFilter, ComboFilterState, ComboMoveSearchOption, ComboSearchFilters} from "./comboFilterTypes";
 
 export function parseOptionalNumber(value: string): number | undefined {
     const normalized = value.trim();
@@ -33,6 +33,18 @@ function buildDriveWindowRange(filter: ComboDriveWindowFilter): {min?: number; m
     }
 
     return min <= max ? {min, max} : {min: max, max: min};
+}
+
+function parseBooleanFilter(value: ComboBooleanFilterValue): boolean | undefined {
+    if (value === "true") {
+        return true;
+    }
+
+    if (value === "false") {
+        return false;
+    }
+
+    return undefined;
 }
 
 export function normalizeCharacterOptions(value: unknown): ComboCharacterOption[] {
@@ -143,13 +155,13 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         maxMinimumDriveCost: minimumDriveCostRange.max,
         minMinimumDriveCostNoBurnout: minimumDriveCostNoBurnoutRange.min,
         maxMinimumDriveCostNoBurnout: minimumDriveCostNoBurnoutRange.max,
-        isEssential: state.requirements.isEssential ? true : undefined,
-        counterHitRequired: state.requirements.counterHitRequired ? true : undefined,
-        punishCounterRequired: state.requirements.punishCounterRequired ? true : undefined,
-        cornerRequired: state.requirements.cornerRequired ? true : undefined,
-        airborneRequired: state.requirements.airborneRequired ? true : undefined,
-        midScreenRequired: state.requirements.midScreenRequired ? true : undefined,
-        notCrouchingRequired: state.requirements.notCrouchingRequired ? true : undefined,
+        isEssential: parseBooleanFilter(state.requirements.isEssential),
+        counterHitRequired: parseBooleanFilter(state.requirements.counterHitRequired),
+        punishCounterRequired: parseBooleanFilter(state.requirements.punishCounterRequired),
+        cornerRequired: parseBooleanFilter(state.requirements.cornerRequired),
+        airborneRequired: parseBooleanFilter(state.requirements.airborneRequired),
+        notCrouchingRequired: parseBooleanFilter(state.requirements.notCrouchingRequired),
+        sideSwitchesRequired: parseBooleanFilter(state.requirements.sideSwitchesRequired),
         requirementObjectName: state.requirements.requirementObjectName || undefined,
         requirementObjectStatus: state.requirements.requirementObjectStatus || undefined,
         addedObjectName: state.requirements.addedObjectName || undefined,

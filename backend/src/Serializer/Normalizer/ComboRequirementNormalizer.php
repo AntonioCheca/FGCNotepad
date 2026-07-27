@@ -33,8 +33,8 @@ class ComboRequirementNormalizer implements NormalizerInterface
             'punish_counter_required' => $object->isPunishCounterRequired(),
             'corner_required' => $object->isCornerRequired(),
             'airborne_required' => $object->isAirborneRequired(),
-            'mid_screen_required' => $object->isMidScreenRequired(),
             'not_crouching_required' => $object->isNotCrouchingRequired(),
+            'side_switches_required' => $object->isSideSwitchesRequired(),
             'combo_object_states' => $normalizedObjectStates,
             'requirement_specific_character' => null !== $firstObjectState ? [
                 'id' => $firstObjectState->getId(),

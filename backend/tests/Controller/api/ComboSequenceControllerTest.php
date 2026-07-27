@@ -98,8 +98,9 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
             true,
             true
         );
+        $matching->getComboRequirement()?->setSideSwitchesRequired(true);
 
-        $this->createComboForFilters(
+        $notSideSwitching = $this->createComboForFilters(
             'Ryu Meterless',
             $comboType,
             $visibility,
@@ -117,7 +118,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->client->request(
             'GET',
             sprintf(
-                '/api/combo-sequences?q=punish&characterId=%s&firstMoveId=%s&minDamage=2000&maxDifficulty=7&counterHitRequired=true&isEssential=true&moveTypes[]=drive',
+                '/api/combo-sequences?q=punish&characterId=%s&firstMoveId=%s&minDamage=2000&maxDifficulty=7&counterHitRequired=true&sideSwitchesRequired=true&isEssential=true&moveTypes[]=drive',
                 urlencode((string) $character->getId()),
                 urlencode((string) $firstMove->getMove()?->getId())
             ),
@@ -133,6 +134,24 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertCount(1, $payload);
         $this->assertSame($matching->getName(), $payload[0]['name']);
         $this->assertSame(ModerationState::APPROVED->value, $payload[0]['moderationState']);
+
+        $this->client->request(
+            'GET',
+            sprintf(
+                '/api/combo-sequences?characterId=%s&sideSwitchesRequired=false&isEssential=false',
+                urlencode((string) $character->getId())
+            ),
+            [],
+            [],
+            $this->getHeaders(),
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(1, $payload);
+        $this->assertSame($notSideSwitching->getName(), $payload[0]['name']);
     }
 
     public function testListIncludesOwnPendingCombosButHidesOthers(): void
@@ -241,7 +260,6 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $missingMetricsRequirement->setPunishCounterRequired(false);
         $missingMetricsRequirement->setCornerRequired(false);
         $missingMetricsRequirement->setAirborneRequired(false);
-        $missingMetricsRequirement->setMidScreenRequired(false);
         $missingMetricsRequirement->setNotCrouchingRequired(false);
         $missingMetrics->setComboRequirement($missingMetricsRequirement);
 
@@ -713,7 +731,6 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
                 'punish_counter_required' => false,
                 'corner_required' => false,
                 'airborne_required' => false,
-                'mid_screen_required' => true,
                 'not_crouching_required' => true,
                 'combo_object_states' => [[
                     'object_key' => 'jamie_drinks',
@@ -755,7 +772,6 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         ]);
         $this->assertInstanceOf(ComboRequirement::class, $persistedRequirement);
         $this->assertTrue($persistedRequirement->isCounterHitRequired());
-        $this->assertTrue($persistedRequirement->isMidScreenRequired());
         $this->assertTrue($persistedRequirement->isNotCrouchingRequired());
 
         $specificRequirement = $persistedRequirement->getRequirementSpecificCharacter();
@@ -846,7 +862,6 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
                 'punish_counter_required' => true,
                 'corner_required' => true,
                 'airborne_required' => false,
-                'mid_screen_required' => false,
                 'not_crouching_required' => true,
             ],
             'steps' => [
@@ -1720,7 +1735,6 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $requirement->setPunishCounterRequired(false);
         $requirement->setCornerRequired(false);
         $requirement->setAirborneRequired(false);
-        $requirement->setMidScreenRequired(false);
         $requirement->setNotCrouchingRequired(false);
         $combo->setComboRequirement($requirement);
 

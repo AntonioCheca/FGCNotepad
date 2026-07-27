@@ -229,7 +229,6 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
             ->setPunishCounterRequired($punishCounterRequired)
             ->setCornerRequired(false)
             ->setAirborneRequired(false)
-            ->setMidScreenRequired(false)
             ->setNotCrouchingRequired(false);
         $this->entityManager->persist($requirement);
 
