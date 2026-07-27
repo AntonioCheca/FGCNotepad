@@ -10,7 +10,7 @@ use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\FrameData;
 use App\Entity\Move;
-use App\Entity\RequirementSpecificCharacter;
+use App\Entity\CharacterObjectState;
 use App\Entity\Season;
 use App\Entity\Step;
 use App\Entity\Visibility;
@@ -69,10 +69,12 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
                 'counter_hit_required' => true,
                 'mid_screen_required' => true,
                 'not_crouching_required' => true,
-                'requirement_specific_character' => [
+                'combo_object_states' => [[
+                    'object_key' => 'jamie_drinks',
                     'object_name' => 'Drinks',
                     'status_required' => '2',
-                ],
+                    'added_relative' => '1',
+                ]],
             ],
         ], 'combo', [
             [
@@ -92,9 +94,11 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         self::assertTrue($persistedRequirement->isNotCrouchingRequired());
 
         $specificRequirement = $persistedRequirement->getRequirementSpecificCharacter();
-        self::assertInstanceOf(RequirementSpecificCharacter::class, $specificRequirement);
+        self::assertInstanceOf(CharacterObjectState::class, $specificRequirement);
+        self::assertSame('jamie_drinks', $specificRequirement->getObjectKey());
         self::assertSame('Drinks', $specificRequirement->getObjectName());
         self::assertSame('2', $specificRequirement->getStatusRequired());
+        self::assertSame('1', $specificRequirement->getAddedRelative());
 
         $persistedStep = $this->entityManager->getRepository(Step::class)->findOneBy([
             'parent_sequence' => $sequence,

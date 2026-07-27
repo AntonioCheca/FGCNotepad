@@ -5,7 +5,7 @@ namespace App\Tests\Controller\api;
 use App\Entity\Character;
 use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
-use App\Entity\RequirementSpecificCharacter;
+use App\Entity\CharacterObjectState;
 use App\Entity\ComboSequences;
 use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
@@ -660,10 +660,12 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
                 'airborne_required' => false,
                 'mid_screen_required' => true,
                 'not_crouching_required' => true,
-                'requirement_specific_character' => [
+                'combo_object_states' => [[
+                    'object_key' => 'jamie_drinks',
                     'object_name' => 'Drinks',
                     'status_required' => '2',
-                ],
+                    'added_relative' => '1',
+                ]],
             ],
             'steps' => [
                 [
@@ -702,9 +704,11 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertTrue($persistedRequirement->isNotCrouchingRequired());
 
         $specificRequirement = $persistedRequirement->getRequirementSpecificCharacter();
-        $this->assertInstanceOf(RequirementSpecificCharacter::class, $specificRequirement);
+        $this->assertInstanceOf(CharacterObjectState::class, $specificRequirement);
+        $this->assertSame('jamie_drinks', $specificRequirement->getObjectKey());
         $this->assertSame('Drinks', $specificRequirement->getObjectName());
         $this->assertSame('2', $specificRequirement->getStatusRequired());
+        $this->assertSame('1', $specificRequirement->getAddedRelative());
     }
 
     public function testCreateFullComboRecalculatesResourceMetricsFromSteps(): void
@@ -886,7 +890,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $wrongEnder = $this->createLeafForFilters($character, $leafType, $visibility, '236K', 'special');
 
         $matching = $this->createComboForFilters('Drink Oki Ender', $comboType, $visibility, $starter, $targetEnder, $connectionType, 2100, 4, false, false);
-        $specificRequirement = new RequirementSpecificCharacter();
+        $specificRequirement = new CharacterObjectState();
+        $specificRequirement->setObjectKey('jamie_drinks');
         $specificRequirement->setObjectName('Drinks');
         $specificRequirement->setStatusRequired('2');
         $matching->getComboRequirement()?->setRequirementSpecificCharacter($specificRequirement);
@@ -895,7 +900,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->createComboForFilters('Wrong Ender', $comboType, $visibility, $starter, $wrongEnder, $connectionType, 2200, 4, false, false);
 
         $wrongObject = $this->createComboForFilters('Wrong Object', $comboType, $visibility, $starter, $targetEnder, $connectionType, 2300, 4, false, false);
-        $wrongSpecificRequirement = new RequirementSpecificCharacter();
+        $wrongSpecificRequirement = new CharacterObjectState();
+        $wrongSpecificRequirement->setObjectKey('ryu_denjin_charge');
         $wrongSpecificRequirement->setObjectName('Denjin Charge');
         $wrongSpecificRequirement->setStatusRequired('true');
         $wrongObject->getComboRequirement()?->setRequirementSpecificCharacter($wrongSpecificRequirement);
@@ -1376,12 +1382,16 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $denjin = array_values(array_filter($payload, static fn (array $item): bool => $item['name'] === 'Denjin Charge'));
 
         $this->assertCount(1, $drinks);
+        $this->assertSame('jamie_drinks', $drinks[0]['object_key']);
+        $this->assertSame('Jamie - Drinks', $drinks[0]['display_name']);
         $this->assertSame('integer', $drinks[0]['status_type']);
         $this->assertSame(4, $drinks[0]['max_status']);
+        $this->assertTrue($drinks[0]['can_be_added_relative']);
 
         $this->assertCount(1, $denjin);
         $this->assertSame('boolean', $denjin[0]['status_type']);
         $this->assertNull($denjin[0]['max_status']);
+        $this->assertTrue($denjin[0]['can_be_consumed']);
     }
 
     private function getJsonHeaders(): array

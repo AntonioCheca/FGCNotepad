@@ -12,6 +12,9 @@ export const DEFAULT_COMBO_REQUIREMENTS: ComboRequirementFilters = {
     notCrouchingRequired: false,
     requirementObjectName: "",
     requirementObjectStatus: "",
+    addedObjectName: "",
+    addedObjectStatus: "",
+    consumedObjectName: "",
 };
 
 export const DEFAULT_COMBO_DRIVE_WINDOWS: ComboDriveWindowFilters = {

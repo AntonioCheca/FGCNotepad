@@ -92,19 +92,35 @@ export function normalizeRequirementObjectOptions(value: unknown): RequirementOb
                 return null;
             }
 
-            const record = entry as {name?: unknown; status_type?: unknown; max_status?: unknown};
+            const record = entry as {
+                object_key?: unknown;
+                name?: unknown;
+                character_name?: unknown;
+                display_name?: unknown;
+                status_type?: unknown;
+                max_status?: unknown;
+                can_be_consumed?: unknown;
+                can_be_added_relative?: unknown;
+                can_be_added_absolute?: unknown;
+            };
             if (typeof record.name !== "string" || (record.status_type !== "integer" && record.status_type !== "boolean")) {
                 return null;
             }
 
             return {
+                object_key: typeof record.object_key === "string" ? record.object_key : record.name,
                 name: record.name,
+                character_name: typeof record.character_name === "string" ? record.character_name : "",
+                display_name: typeof record.display_name === "string" ? record.display_name : record.name,
                 status_type: record.status_type,
                 max_status: typeof record.max_status === "number" ? record.max_status : null,
+                can_be_consumed: record.can_be_consumed === true,
+                can_be_added_relative: record.can_be_added_relative === true,
+                can_be_added_absolute: record.can_be_added_absolute === true,
             } satisfies RequirementObjectOption;
         })
         .filter((entry): entry is RequirementObjectOption => entry !== null)
-        .sort((left, right) => left.name.localeCompare(right.name));
+        .sort((left, right) => left.display_name.localeCompare(right.display_name));
 }
 
 export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFilters {
@@ -136,6 +152,9 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         notCrouchingRequired: state.requirements.notCrouchingRequired ? true : undefined,
         requirementObjectName: state.requirements.requirementObjectName || undefined,
         requirementObjectStatus: state.requirements.requirementObjectStatus || undefined,
+        addedObjectName: state.requirements.addedObjectName || undefined,
+        addedObjectStatus: state.requirements.addedObjectStatus || undefined,
+        consumedObjectName: state.requirements.consumedObjectName || undefined,
         sort: state.sort,
         sortDirection: state.sortDirection,
     };

@@ -32,10 +32,27 @@ function getConditionLines(requirements: ComboRequirement | null): string[] {
         .filter(({key}) => Boolean(requirements[key]))
         .map(({label}) => label);
 
-    const specificRequirement = requirements.requirement_specific_character;
-    if (specificRequirement?.object_name) {
-        const status = specificRequirement.status_required;
-        lines.push(`${specificRequirement.object_name}${status !== undefined ? ` = ${String(status)}` : ""}`);
+    const objectStates = requirements.combo_object_states ?? (requirements.requirement_specific_character ? [requirements.requirement_specific_character] : []);
+    for (const objectState of objectStates) {
+        if (!objectState.object_name) {
+            continue;
+        }
+
+        const parts = [];
+        if (objectState.status_required !== undefined && objectState.status_required !== null) {
+            parts.push(`requires ${String(objectState.status_required)}`);
+        }
+        if (objectState.consumed) {
+            parts.push("consumes");
+        }
+        if (objectState.added_relative !== undefined && objectState.added_relative !== null) {
+            parts.push(`adds +${String(objectState.added_relative)}`);
+        }
+        if (objectState.added_absolute !== undefined && objectState.added_absolute !== null) {
+            parts.push(`ends at ${String(objectState.added_absolute)}`);
+        }
+
+        lines.push(`${objectState.object_name}${parts.length > 0 ? `: ${parts.join(", ")}` : ""}`);
     }
 
     return lines;

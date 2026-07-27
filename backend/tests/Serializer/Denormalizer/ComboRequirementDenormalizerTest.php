@@ -6,21 +6,19 @@ namespace App\Tests\Serializer\Denormalizer;
 
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
+use App\Tests\DatabaseTestCase;
 use App\Tests\TestEntityFactory;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
-use Doctrine\ORM\EntityManagerInterface;
 
-class ComboRequirementDenormalizerTest extends KernelTestCase
+class ComboRequirementDenormalizerTest extends DatabaseTestCase
 {
-    private EntityManagerInterface $em;
     private Serializer $serializer;
 
     protected function setUp(): void
     {
-        self::bootKernel();
-        $this->em = self::getContainer()->get(EntityManagerInterface::class);
+        parent::setUp();
+
         $serializer = self::getContainer()->get(SerializerInterface::class);
         $this->assertInstanceOf(Serializer::class, $serializer);
         $this->serializer = $serializer;
@@ -28,9 +26,10 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
 
     public function testDenormalize(): void
     {
-        $factory = new TestEntityFactory($this->em);
+        $this->assertNotNull($this->entityManager);
+        $factory = new TestEntityFactory($this->entityManager);
         $sequence = $factory->createComboSequence();
-        $this->em->flush();
+        $this->entityManager->flush();
 
         $sequenceId = $sequence->getId();
 
@@ -39,10 +38,13 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
             'counter_hit_required' => true,
             'corner_required' => false,
             'not_crouching_required' => true,
-            'requirement_specific_character' => [
+            'combo_object_states' => [[
+                'object_key' => 'manon_medals',
+                'character_name' => 'Manon',
                 'object_name' => 'Medals',
-                'status_required' => '5'
-            ]
+                'status_required' => '5',
+                'added_relative' => '1',
+            ]]
         ];
 
         /** @var ComboRequirement $object */
@@ -55,10 +57,12 @@ class ComboRequirementDenormalizerTest extends KernelTestCase
         $this->assertSame($sequence->getId(), $object->getSequence()?->getId());
         $specificCharacter = $object->getRequirementSpecificCharacter();
         $this->assertNotNull($specificCharacter);
+        $this->assertSame('manon_medals', $specificCharacter->getObjectKey());
         $this->assertSame('Medals', $specificCharacter->getObjectName());
         $this->assertSame('5', $specificCharacter->getStatusRequired());
+        $this->assertSame('1', $specificCharacter->getAddedRelative());
 
-        $this->em->remove($sequence);
-        $this->em->flush();
+        $this->entityManager->remove($sequence);
+        $this->entityManager->flush();
     }
 }

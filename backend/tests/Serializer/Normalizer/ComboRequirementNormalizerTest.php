@@ -6,20 +6,19 @@ namespace App\Tests\Serializer\Normalizer;
 
 use App\Entity\ComboRequirement;
 use App\Serializer\Normalizer\ComboRequirementNormalizer;
+use App\Tests\DatabaseTestCase;
 use App\Tests\TestEntityFactory;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class ComboRequirementNormalizerTest extends KernelTestCase
+class ComboRequirementNormalizerTest extends DatabaseTestCase
 {
-    private EntityManagerInterface $em;
     private TestEntityFactory $factory;
 
     protected function setUp(): void
     {
-        self::bootKernel();
-        $this->em = self::getContainer()->get(EntityManagerInterface::class);
-        $this->factory = new TestEntityFactory($this->em);
+        parent::setUp();
+
+        $this->assertNotNull($this->entityManager);
+        $this->factory = new TestEntityFactory($this->entityManager);
     }
 
     public function testNormalizeWithoutSpecificCharacterRequirement(): void
@@ -35,8 +34,8 @@ class ComboRequirementNormalizerTest extends KernelTestCase
             ->setMidScreenRequired(true)
             ->setNotCrouchingRequired(true);
 
-        $this->em->persist($requirement);
-        $this->em->flush();
+        $this->entityManager->persist($requirement);
+        $this->entityManager->flush();
 
         $normalizer = new ComboRequirementNormalizer();
         $data = $normalizer->normalize($requirement);
@@ -47,6 +46,7 @@ class ComboRequirementNormalizerTest extends KernelTestCase
         $this->assertFalse($data['airborne_required']);
         $this->assertTrue($data['mid_screen_required']);
         $this->assertTrue($data['not_crouching_required']);
+        $this->assertSame([], $data['combo_object_states']);
         $this->assertNull($data['requirement_specific_character']);
     }
 }

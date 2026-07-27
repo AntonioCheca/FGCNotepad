@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Entity\RequirementSpecificCharacter;
+use App\Entity\CharacterObjectState;
 use App\Entity\Scenario;
 use App\Entity\ScenarioComboContext;
 use Doctrine\ORM\EntityManagerInterface;
@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 class ScenarioComboContextService
 {
     public function __construct(
-        private readonly RequirementSpecificCharacterCatalog $catalog,
+        private readonly CharacterObjectCatalog $catalog,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -84,7 +84,7 @@ class ScenarioComboContextService
         return [
             'positionLock' => $context->getPositionLock(),
             'characterStatuses' => array_map(
-                static fn (RequirementSpecificCharacter $status): array => [
+                static fn (CharacterObjectState $status): array => [
                     'id' => $status->getId(),
                     'object_name' => $status->getObjectName(),
                     'status_required' => $status->getStatusRequired(),
@@ -127,7 +127,7 @@ class ScenarioComboContextService
     }
 
     /** @param array<string, mixed> $payload */
-    private function buildCharacterStatus(array $payload, string $path): RequirementSpecificCharacter
+    private function buildCharacterStatus(array $payload, string $path): CharacterObjectState
     {
         $objectName = $this->catalog->normalizeObjectName($payload['object_name'] ?? $payload['objectName'] ?? null);
         if (null === $objectName) {
@@ -144,7 +144,11 @@ class ScenarioComboContextService
             throw new BadRequestHttpException(sprintf('%s.status_required is required.', $path));
         }
 
-        return (new RequirementSpecificCharacter())
+        $definition = $this->catalog->definition($objectName);
+
+        return (new CharacterObjectState())
+            ->setObjectKey(is_array($definition) ? $definition['object_key'] : null)
+            ->setCharacterName(is_array($definition) ? $definition['character_name'] : null)
             ->setObjectName($objectName)
             ->setStatusRequired($statusRequired);
     }

@@ -28,13 +28,13 @@ class ScenarioComboContext
     private string $positionLock = self::POSITION_VIEWER_DEFAULT_MIDSCREEN;
 
     /**
-     * @var Collection<int, RequirementSpecificCharacter>
+     * @var Collection<int, CharacterObjectState>
      */
-    #[ORM\ManyToMany(targetEntity: RequirementSpecificCharacter::class, cascade: ['persist', 'remove'])]
+    #[ORM\ManyToMany(targetEntity: CharacterObjectState::class, cascade: ['persist', 'remove'])]
     #[ORM\JoinTable(
-        name: 'sf6.scenario_requirement_specific_character',
+        name: 'sf6.scenario_character_object_state',
         joinColumns: [new ORM\JoinColumn(name: 'scenario_context_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')],
-        inverseJoinColumns: [new ORM\JoinColumn(name: 'requirement_specific_character_id', referencedColumnName: 'id', unique: true, nullable: false, onDelete: 'CASCADE')]
+        inverseJoinColumns: [new ORM\JoinColumn(name: 'character_object_state_id', referencedColumnName: 'id', unique: true, nullable: false, onDelete: 'CASCADE')]
     )]
     private Collection $characterStatuses;
 
@@ -87,14 +87,14 @@ class ScenarioComboContext
     }
 
     /**
-     * @return Collection<int, RequirementSpecificCharacter>
+     * @return Collection<int, CharacterObjectState>
      */
     public function getCharacterStatuses(): Collection
     {
         return $this->characterStatuses;
     }
 
-    public function addCharacterStatus(RequirementSpecificCharacter $status): static
+    public function addCharacterStatus(CharacterObjectState $status): static
     {
         if (!$this->characterStatuses->contains($status)) {
             $this->characterStatuses->add($status);

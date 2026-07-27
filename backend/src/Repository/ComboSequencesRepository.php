@@ -72,6 +72,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     moveTypes?: list<string>,
      *     requirementObjectName?: string|null,
      *     requirementObjectStatus?: string|null,
+     *     addedObjectName?: string|null,
+     *     addedObjectStatus?: string|null,
+     *     consumedObjectName?: string|null,
      *     sort?: string|null,
      *     sortDirection?: string|null
      * } $filters
@@ -207,14 +210,36 @@ class ComboSequencesRepository extends ServiceEntityRepository
         $requirementObjectName = isset($filters['requirementObjectName']) && is_string($filters['requirementObjectName']) ? trim($filters['requirementObjectName']) : '';
         $requirementObjectStatus = isset($filters['requirementObjectStatus']) && is_string($filters['requirementObjectStatus']) ? trim($filters['requirementObjectStatus']) : '';
         if ('' !== $requirementObjectName) {
-            $qb->innerJoin('requirement.requirementSpecificCharacters', 'specificRequirement')
-                ->andWhere('specificRequirement.object_name = :requirementObjectName')
+            $qb->innerJoin('requirement.characterObjectStates', 'specificRequirement')
+                ->andWhere('(specificRequirement.objectKey = :requirementObjectName OR specificRequirement.objectName = :requirementObjectName)')
                 ->setParameter('requirementObjectName', $requirementObjectName);
 
             if ('' !== $requirementObjectStatus) {
-                $qb->andWhere('specificRequirement.status_required = :requirementObjectStatus')
+                $qb->andWhere('specificRequirement.statusRequired = :requirementObjectStatus')
                     ->setParameter('requirementObjectStatus', $requirementObjectStatus);
             }
+        }
+
+        $addedObjectName = isset($filters['addedObjectName']) && is_string($filters['addedObjectName']) ? trim($filters['addedObjectName']) : '';
+        $addedObjectStatus = isset($filters['addedObjectStatus']) && is_string($filters['addedObjectStatus']) ? trim($filters['addedObjectStatus']) : '';
+        if ('' !== $addedObjectName) {
+            $qb->innerJoin('requirement.characterObjectStates', 'addedObjectState')
+                ->andWhere('(addedObjectState.objectKey = :addedObjectName OR addedObjectState.objectName = :addedObjectName)')
+                ->andWhere('(addedObjectState.addedRelative IS NOT NULL OR addedObjectState.addedAbsolute IS NOT NULL)')
+                ->setParameter('addedObjectName', $addedObjectName);
+
+            if ('' !== $addedObjectStatus) {
+                $qb->andWhere('(addedObjectState.addedRelative = :addedObjectStatus OR addedObjectState.addedAbsolute = :addedObjectStatus)')
+                    ->setParameter('addedObjectStatus', $addedObjectStatus);
+            }
+        }
+
+        $consumedObjectName = isset($filters['consumedObjectName']) && is_string($filters['consumedObjectName']) ? trim($filters['consumedObjectName']) : '';
+        if ('' !== $consumedObjectName) {
+            $qb->innerJoin('requirement.characterObjectStates', 'consumedObjectState')
+                ->andWhere('(consumedObjectState.objectKey = :consumedObjectName OR consumedObjectState.objectName = :consumedObjectName)')
+                ->andWhere('consumedObjectState.consumed = true')
+                ->setParameter('consumedObjectName', $consumedObjectName);
         }
 
         $moveTypes = isset($filters['moveTypes']) && is_array($filters['moveTypes']) ? array_values($filters['moveTypes']) : [];
@@ -425,7 +450,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->innerJoin('starterSequence.move', 'starterMove')
             ->innerJoin('starterMove.character', 'attackerCharacter')
             ->leftJoin('combo.comboRequirement', 'comboRequirement')
-            ->leftJoin('comboRequirement.requirementSpecificCharacters', 'requirementSpecificCharacter')
+            ->leftJoin('comboRequirement.characterObjectStates', 'requirementSpecificCharacter')
             ->where('comboType.name = :comboTypeName')
             ->andWhere('combo.moderationState = :approvedState')
             ->andWhere('attackerCharacter.id = :attackerCharacterId')
@@ -645,7 +670,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
 
                     $objectParameter = sprintf('statusObject%d', $statusIndex);
                     $valueParameter = sprintf('statusValue%d', $statusIndex);
-                    $statusExpressions[] = sprintf('(requirementSpecificCharacter.object_name = :%s AND requirementSpecificCharacter.status_required <= :%s)', $objectParameter, $valueParameter);
+                    $statusExpressions[] = sprintf('(requirementSpecificCharacter.objectName = :%s AND requirementSpecificCharacter.statusRequired <= :%s)', $objectParameter, $valueParameter);
                     $qb->setParameter($objectParameter, $objectName)
                         ->setParameter($valueParameter, $statusRequired);
                     ++$statusIndex;

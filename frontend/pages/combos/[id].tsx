@@ -32,6 +32,7 @@ import {
 import type {
     ComboDetailApi,
     ComboDetailView,
+    ComboObjectStateDraft,
     ComboRequirementsPayload,
     ComboStep,
     ConnectionType,
@@ -62,11 +63,9 @@ function getInitialRequirements(combo: ComboDetailView | null): ComboRequirement
         not_crouching_required: source?.not_crouching_required ?? false,
     };
 
-    if (source?.requirement_specific_character?.object_name && source.requirement_specific_character.status_required !== undefined) {
-        requirements.requirement_specific_character = {
-            object_name: source.requirement_specific_character.object_name,
-            status_required: source.requirement_specific_character.status_required,
-        };
+    const objectStates = source?.combo_object_states ?? (source?.requirement_specific_character ? [source.requirement_specific_character] : []);
+    if (objectStates.length > 0) {
+        requirements.combo_object_states = objectStates;
     }
 
     return requirements;
@@ -79,6 +78,20 @@ function getSpecificRequirementObjectName(combo: ComboDetailView | null): string
 function getSpecificRequirementStatus(combo: ComboDetailView | null): string {
     const status = combo?.requirements?.requirement_specific_character?.status_required;
     return status === undefined || status === null ? "" : String(status);
+}
+
+function getObjectStates(combo: ComboDetailView | null): ComboObjectStateDraft[] {
+    const objectStates = combo?.requirements?.combo_object_states ?? (combo?.requirements?.requirement_specific_character ? [combo.requirements.requirement_specific_character] : []);
+
+    return objectStates
+        .filter((objectState) => typeof objectState.object_key === "string" && objectState.object_key.length > 0)
+        .map((objectState) => ({
+            object_key: String(objectState.object_key),
+            status_required: objectState.status_required === undefined || objectState.status_required === null ? "" : String(objectState.status_required),
+            consumed: objectState.consumed === true,
+            added_relative: objectState.added_relative === undefined || objectState.added_relative === null ? "" : String(objectState.added_relative),
+            added_absolute: objectState.added_absolute === undefined || objectState.added_absolute === null ? "" : String(objectState.added_absolute),
+        }));
 }
 
 function mapStepToDraft(step: ComboStep, combo: ComboDetailView, leafs: LeafSequenceOption[], connections: ConnectionType[]): StepDraft {
@@ -155,6 +168,7 @@ export default function ComboDetailPage() {
     const [requirements, setRequirements] = React.useState<ComboRequirementsPayload>(emptyRequirements);
     const [specificRequirementObject, setSpecificRequirementObject] = React.useState("");
     const [specificRequirementStatus, setSpecificRequirementStatus] = React.useState("");
+    const [objectStates, setObjectStates] = React.useState<ComboObjectStateDraft[]>([]);
     const [steps, setSteps] = React.useState<StepDraft[]>([]);
     const [selectedStepIndex, setSelectedStepIndex] = React.useState<number | null>(0);
 
@@ -170,6 +184,7 @@ export default function ComboDetailPage() {
         setRequirements(getInitialRequirements(nextCombo));
         setSpecificRequirementObject(getSpecificRequirementObjectName(nextCombo));
         setSpecificRequirementStatus(getSpecificRequirementStatus(nextCombo));
+        setObjectStates(getObjectStates(nextCombo));
         const nextSteps = nextCombo.steps.map((step) => mapStepToDraft(step, nextCombo, nextLeafs, nextConnections));
         setSteps(nextSteps);
         setSelectedStepIndex(nextSteps.length > 0 ? 0 : null);
@@ -214,9 +229,11 @@ export default function ComboDetailPage() {
     }, [comboId, fetchConnections, fetchLeafs, fetchRequirementObjects, getCombo, resetDraftFromCombo]);
 
     const selectedRequirementObject = requirementObjects.find((option) => option.name === specificRequirementObject) ?? null;
-    const selectedObjectIsBoolean = selectedRequirementObject?.status_type === "boolean";
-    const selectedObjectIsInteger = selectedRequirementObject?.status_type === "integer";
-    const activeRequirementsCount = requirementToggles.filter(({key}) => Boolean(requirements[key])).length + (specificRequirementObject ? 1 : 0);
+    const activeRequirementsCount = requirementToggles.filter(({key}) => Boolean(requirements[key])).length + objectStates.length;
+    const characterRequirementObjects = React.useMemo(
+        () => requirementObjects.filter((option) => option.character_name.toLowerCase() === combo?.characterName.toLowerCase()),
+        [combo?.characterName, requirementObjects],
+    );
     const selectedStep = selectedStepIndex !== null ? steps[selectedStepIndex] ?? null : null;
     const verificationTokens = React.useMemo(() => buildTokens(steps), [steps]);
     const tokenToStepIndex = React.useMemo(() => new Map(steps.map((_, index) => [index + 1, index])), [steps]);
@@ -258,7 +275,7 @@ export default function ComboDetailPage() {
             return;
         }
 
-        const requirementsResult = buildRequirementsPayload({requirements, specificRequirementObject, specificRequirementStatus, selectedRequirementObject});
+        const requirementsResult = buildRequirementsPayload({requirements, specificRequirementObject, specificRequirementStatus, selectedRequirementObject, objectStates, requirementObjects: characterRequirementObjects});
         if (requirementsResult.error) {
             setToast({severity: "error", message: requirementsResult.error});
             return;
@@ -365,11 +382,8 @@ export default function ComboDetailPage() {
                         showAdvancedConditions={showAdvancedConditions}
                         requirements={requirements}
                         activeRequirementsCount={activeRequirementsCount}
-                        requirementObjects={requirementObjects}
-                        selectedRequirementObject={selectedRequirementObject}
-                        specificRequirementStatus={specificRequirementStatus}
-                        selectedObjectIsInteger={selectedObjectIsInteger}
-                        selectedObjectIsBoolean={selectedObjectIsBoolean}
+                        requirementObjects={characterRequirementObjects}
+                        objectStates={objectStates}
                         submitLabel="Save Combo"
                         onTitleChange={setTitle}
                         onDamageChange={setDamage}
@@ -382,11 +396,7 @@ export default function ComboDetailPage() {
                         onToggleAdvancedConditions={() => setShowAdvancedConditions((previous) => !previous)}
                         onResetDraft={() => resetDraftFromCombo(combo, leafs, connections)}
                         onRequirementToggle={handleRequirementToggle}
-                        onSpecificRequirementObjectChange={(value) => {
-                            setSpecificRequirementObject(value?.name ?? "");
-                            setSpecificRequirementStatus("");
-                        }}
-                        onSpecificRequirementStatusChange={setSpecificRequirementStatus}
+                        onObjectStatesChange={setObjectStates}
                     />
                 ) : (
                     <ComboReadOnlySummary combo={combo} />

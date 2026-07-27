@@ -19,7 +19,7 @@ use App\Service\ScenarioResourceContextService;
 use App\Service\ScenarioComboContextService;
 use App\Service\ResolveScenarioDynamicComboCellsService;
 use App\Service\ResolveDynamicComboCellService;
-use App\Service\RequirementSpecificCharacterCatalog;
+use App\Service\CharacterObjectCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -52,7 +52,7 @@ class ScenarioController extends AbstractController
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
         private readonly ScenarioResourceContextService $scenarioResourceContextService,
         private readonly ScenarioComboContextService $scenarioComboContextService,
-        private readonly RequirementSpecificCharacterCatalog $requirementSpecificCharacterCatalog,
+        private readonly CharacterObjectCatalog $requirementSpecificCharacterCatalog,
         private readonly EndpointAuthorizationService $endpointAuthorizationService,
         private readonly ModerationTransitionService $moderationTransitionService,
     ) {

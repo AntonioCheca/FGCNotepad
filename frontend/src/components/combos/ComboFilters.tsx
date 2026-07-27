@@ -43,6 +43,8 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         setDriveWindowRange,
         setRequirementToggle,
         setRequirementObject,
+        setAddedObject,
+        setConsumedObject,
         toggleAdvancedFilters,
         clearFilters,
     } = useComboFilterState();
@@ -166,6 +168,8 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                         requirementObjectOptions={requirementObjectOptions}
                         onRequirementToggle={setRequirementToggle}
                         onRequirementObjectChange={setRequirementObject}
+                        onAddedObjectChange={setAddedObject}
+                        onConsumedObjectChange={setConsumedObject}
                     />
                 </AppBox>
             </AppCollapse>

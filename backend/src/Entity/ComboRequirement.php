@@ -45,19 +45,19 @@ class ComboRequirement
     private ?bool $not_crouching_required = null;
 
     /**
-     * @var Collection<int, RequirementSpecificCharacter>
+     * @var Collection<int, CharacterObjectState>
      */
-    #[ORM\ManyToMany(targetEntity: RequirementSpecificCharacter::class, cascade: ['persist', 'remove'])]
+    #[ORM\ManyToMany(targetEntity: CharacterObjectState::class, cascade: ['persist', 'remove'])]
     #[ORM\JoinTable(
-        name: 'sf6.combo_requirement_specific_character',
+        name: 'sf6.combo_requirement_object_state',
         joinColumns: [new ORM\JoinColumn(name: 'combo_requirement_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')],
-        inverseJoinColumns: [new ORM\JoinColumn(name: 'requirement_specific_character_id', referencedColumnName: 'id', unique: true, nullable: false, onDelete: 'CASCADE')]
+        inverseJoinColumns: [new ORM\JoinColumn(name: 'character_object_state_id', referencedColumnName: 'id', unique: true, nullable: false, onDelete: 'CASCADE')]
     )]
-    private Collection $requirementSpecificCharacters;
+    private Collection $characterObjectStates;
 
     public function __construct()
     {
-        $this->requirementSpecificCharacters = new ArrayCollection();
+        $this->characterObjectStates = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -149,35 +149,59 @@ class ComboRequirement
         return $this;
     }
 
-    public function getRequirementSpecificCharacter(): ?RequirementSpecificCharacter
+    public function getCharacterObjectState(): ?CharacterObjectState
     {
-        $first = $this->requirementSpecificCharacters->first();
+        $first = $this->characterObjectStates->first();
 
         return false === $first ? null : $first;
     }
 
+    public function getRequirementSpecificCharacter(): ?CharacterObjectState
+    {
+        return $this->getCharacterObjectState();
+    }
+
     /**
-     * @return Collection<int, RequirementSpecificCharacter>
+     * @return Collection<int, CharacterObjectState>
+     */
+    public function getCharacterObjectStates(): Collection
+    {
+        return $this->characterObjectStates;
+    }
+
+    /**
+     * @return Collection<int, CharacterObjectState>
      */
     public function getRequirementSpecificCharacters(): Collection
     {
-        return $this->requirementSpecificCharacters;
+        return $this->getCharacterObjectStates();
+
     }
 
-    public function setRequirementSpecificCharacter(RequirementSpecificCharacter $requirementSpecificCharacter): static
+    public function setCharacterObjectState(CharacterObjectState $characterObjectState): static
     {
-        $this->requirementSpecificCharacters->clear();
-        $this->requirementSpecificCharacters->add($requirementSpecificCharacter);
+        $this->characterObjectStates->clear();
+        $this->characterObjectStates->add($characterObjectState);
 
         return $this;
     }
 
-    public function addRequirementSpecificCharacter(RequirementSpecificCharacter $requirementSpecificCharacter): static
+    public function setRequirementSpecificCharacter(CharacterObjectState $characterObjectState): static
     {
-        if (!$this->requirementSpecificCharacters->contains($requirementSpecificCharacter)) {
-            $this->requirementSpecificCharacters->add($requirementSpecificCharacter);
+        return $this->setCharacterObjectState($characterObjectState);
+    }
+
+    public function addCharacterObjectState(CharacterObjectState $characterObjectState): static
+    {
+        if (!$this->characterObjectStates->contains($characterObjectState)) {
+            $this->characterObjectStates->add($characterObjectState);
         }
 
         return $this;
+    }
+
+    public function addRequirementSpecificCharacter(CharacterObjectState $characterObjectState): static
+    {
+        return $this->addCharacterObjectState($characterObjectState);
     }
 }

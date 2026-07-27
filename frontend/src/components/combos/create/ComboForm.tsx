@@ -77,11 +77,8 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 showAdvancedConditions={controller.showAdvancedConditions}
                 requirements={controller.requirements}
                 activeRequirementsCount={controller.activeRequirements.length}
-                requirementObjects={controller.requirementObjects}
-                selectedRequirementObject={controller.selectedRequirementObject}
-                specificRequirementStatus={controller.specificRequirementStatus}
-                selectedObjectIsInteger={controller.selectedObjectIsInteger}
-                selectedObjectIsBoolean={controller.selectedObjectIsBoolean}
+                requirementObjects={controller.characterRequirementObjects}
+                objectStates={controller.objectStates}
                 onTitleChange={controller.setTitle}
                 onDamageChange={controller.setDamage}
                 onDriveCostChange={controller.setDriveCost}
@@ -93,11 +90,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 onToggleAdvancedConditions={() => controller.setShowAdvancedConditions((prev) => !prev)}
                 onResetDraft={controller.clearDraft}
                 onRequirementToggle={controller.handleRequirementToggle}
-                onSpecificRequirementObjectChange={(value) => {
-                    controller.setSpecificRequirementObject(value?.name ?? "");
-                    controller.setSpecificRequirementStatus("");
-                }}
-                onSpecificRequirementStatusChange={controller.setSpecificRequirementStatus}
+                onObjectStatesChange={controller.setObjectStates}
             />
         </AppBox>
     );

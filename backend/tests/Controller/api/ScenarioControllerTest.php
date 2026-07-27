@@ -10,7 +10,7 @@ use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\FrameData;
 use App\Entity\Move;
-use App\Entity\RequirementSpecificCharacter;
+use App\Entity\CharacterObjectState;
 use App\Entity\Scenario;
 use App\Entity\Step;
 use App\Entity\User;
@@ -1034,7 +1034,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
             ->setNotCrouchingRequired(false);
         if (null !== $statusObjectName && null !== $statusRequired) {
             $requirement->setRequirementSpecificCharacter(
-                (new RequirementSpecificCharacter())
+                (new CharacterObjectState())
                     ->setObjectName($statusObjectName)
                     ->setStatusRequired($statusRequired)
             );

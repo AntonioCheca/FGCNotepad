@@ -30,9 +30,12 @@ export interface ComboRequirementFilters {
     notCrouchingRequired: boolean;
     requirementObjectName: string;
     requirementObjectStatus: string;
+    addedObjectName: string;
+    addedObjectStatus: string;
+    consumedObjectName: string;
 }
 
-export type ComboRequirementFilterKey = Exclude<keyof ComboRequirementFilters, "requirementObjectName" | "requirementObjectStatus">;
+export type ComboRequirementFilterKey = Exclude<keyof ComboRequirementFilters, "requirementObjectName" | "requirementObjectStatus" | "addedObjectName" | "addedObjectStatus" | "consumedObjectName">;
 
 export interface ComboFilterState {
     query: string;
@@ -76,6 +79,9 @@ export interface ComboSearchFilters {
     notCrouchingRequired?: boolean;
     requirementObjectName?: string;
     requirementObjectStatus?: string;
+    addedObjectName?: string;
+    addedObjectStatus?: string;
+    consumedObjectName?: string;
     sort?: ComboSortField;
     sortDirection?: ComboSortDirection;
 }

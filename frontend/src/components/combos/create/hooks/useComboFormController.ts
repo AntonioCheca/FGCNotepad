@@ -6,6 +6,7 @@ import usePersistentState from "@/hooks/usePersistentState";
 import type {
     CharacterOption,
     ComboRequirementsPayload,
+    ComboObjectStateDraft,
     LeafSequenceOption,
     RequirementObjectOption,
     StepDraft,
@@ -49,6 +50,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [requirements, setRequirements] = usePersistentState<ComboRequirementsPayload>("comboForm.requirements", emptyRequirements);
     const [specificRequirementObject, setSpecificRequirementObject] = usePersistentState<string>("comboForm.requirements.object_name", "");
     const [specificRequirementStatus, setSpecificRequirementStatus] = usePersistentState<string>("comboForm.requirements.status_required", "");
+    const [objectStates, setObjectStates] = usePersistentState<ComboObjectStateDraft[]>("comboForm.requirements.object_states", [], true);
     const [translateWarnings, setTranslateWarnings] = useState<string[]>([]);
     const [translateErrors, setTranslateErrors] = useState<TranslateErrorToken[]>([]);
     const [parseTokens, setParseTokens] = useState<TranslateParsedToken[]>([]);
@@ -74,6 +76,15 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 setNotice({severity: "warning", message: "Requirement metadata could not be loaded. You can still create a basic combo."});
             });
     }, [fetchConnections, fetchRequirementObjects]);
+
+    const characterRequirementObjects = useMemo(() => {
+        const characterName = character?.name ?? "";
+        if (!characterName) {
+            return [];
+        }
+
+        return requirementObjects.filter((option) => option.character_name.toLowerCase() === characterName.toLowerCase());
+    }, [character?.name, requirementObjects]);
 
     useEffect(() => {
         const selectedCharacterId = character?.id;
@@ -119,6 +130,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setRequirements(emptyRequirements);
         setSpecificRequirementObject("");
         setSpecificRequirementStatus("");
+        setObjectStates([]);
         setTranslateWarnings([]);
         setTranslateErrors([]);
         setParseTokens([]);
@@ -333,6 +345,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             specificRequirementObject,
             specificRequirementStatus,
             selectedRequirementObject,
+            objectStates,
+            requirementObjects: characterRequirementObjects,
         });
 
         if (requirementsResult.error) {
@@ -414,6 +428,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         translateWarnings,
         translateErrors,
         requirementObjects,
+        characterRequirementObjects,
+        objectStates,
         notice,
         parseSuccessToastOpen,
         selectedStepIndex,
@@ -446,6 +462,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setNotationInput,
         setSpecificRequirementObject,
         setSpecificRequirementStatus,
+        setObjectStates,
         setParseSuccessToastOpen,
         setSelectedStepIndex,
         setShowAdvancedConditions,

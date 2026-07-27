@@ -21,7 +21,7 @@ use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
-use App\Service\RequirementSpecificCharacterCatalog;
+use App\Service\CharacterObjectCatalog;
 use App\Util\Enum\ModerationState;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -102,6 +102,9 @@ class ComboSequenceController extends AbstractController
             'moveTypes' => array_values($normalizedMoveTypes),
             'requirementObjectName' => $this->normalizeStringFilter($request->query->get('requirementObjectName')),
             'requirementObjectStatus' => $this->normalizeStringFilter($request->query->get('requirementObjectStatus')),
+            'addedObjectName' => $this->normalizeStringFilter($request->query->get('addedObjectName')),
+            'addedObjectStatus' => $this->normalizeStringFilter($request->query->get('addedObjectStatus')),
+            'consumedObjectName' => $this->normalizeStringFilter($request->query->get('consumedObjectName')),
             'sort' => $this->normalizeSortFilter($request->query->get('sort')),
             'sortDirection' => $this->normalizeSortDirectionFilter($request->query->get('sortDirection')),
         ];
@@ -144,9 +147,11 @@ class ComboSequenceController extends AbstractController
     }
 
     #[Route('/requirements/objects', name: 'requirement_objects', methods: ['GET'])]
-    public function listRequirementObjects(RequirementSpecificCharacterCatalog $catalog): JsonResponse
+    public function listRequirementObjects(Request $request, CharacterObjectCatalog $catalog): JsonResponse
     {
-        return new JsonResponse($catalog->listForApi(), JsonResponse::HTTP_OK);
+        $characterName = $this->normalizeStringFilter($request->query->get('characterName'));
+
+        return new JsonResponse($catalog->listForApi($characterName), JsonResponse::HTTP_OK);
     }
 
     private function normalizeStringFilter(mixed $value): ?string

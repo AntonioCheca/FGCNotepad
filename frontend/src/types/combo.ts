@@ -51,14 +51,33 @@ export interface CreateFullComboPayload {
 }
 
 export interface RequirementSpecificCharacterPayload {
-    object_name: string;
-    status_required: string | number | boolean;
+    object_key?: string | null;
+    character_name?: string | null;
+    object_name?: string;
+    status_required?: string | number | boolean | null;
+    consumed?: boolean;
+    added_relative?: string | number | boolean | null;
+    added_absolute?: string | number | boolean | null;
 }
 
 export interface RequirementObjectOption {
+    object_key: string;
     name: string;
+    character_name: string;
+    display_name: string;
     status_type: "integer" | "boolean";
     max_status: number | null;
+    can_be_consumed: boolean;
+    can_be_added_relative: boolean;
+    can_be_added_absolute: boolean;
+}
+
+export interface ComboObjectStateDraft {
+    object_key: string;
+    status_required: string;
+    consumed: boolean;
+    added_relative: string;
+    added_absolute: string;
 }
 
 export interface ComboRequirementsPayload {
@@ -69,6 +88,7 @@ export interface ComboRequirementsPayload {
     mid_screen_required?: boolean;
     not_crouching_required?: boolean;
     requirement_specific_character?: RequirementSpecificCharacterPayload;
+    combo_object_states?: RequirementSpecificCharacterPayload[];
 }
 
 export interface TranslateComboNotationPayload {
@@ -240,9 +260,15 @@ export interface ComboRequirement {
     mid_screen_required?: boolean;
     not_crouching_required?: boolean;
     requirement_specific_character?: {
+        object_key?: string | null;
+        character_name?: string | null;
         object_name?: string;
-        status_required?: string | number | boolean;
+        status_required?: string | number | boolean | null;
+        consumed?: boolean;
+        added_relative?: string | number | boolean | null;
+        added_absolute?: string | number | boolean | null;
     } | null;
+    combo_object_states?: RequirementSpecificCharacterPayload[];
 }
 
 export interface ComboStep {

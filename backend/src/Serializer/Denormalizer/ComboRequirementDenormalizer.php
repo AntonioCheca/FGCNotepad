@@ -4,7 +4,7 @@ namespace App\Serializer\Denormalizer;
 
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
-use App\Entity\RequirementSpecificCharacter;
+use App\Entity\CharacterObjectState;
 use App\Repository\ComboSequencesRepository;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -43,20 +43,37 @@ class ComboRequirementDenormalizer implements DenormalizerInterface
         $requirement->setMidScreenRequired((bool) ($data['mid_screen_required'] ?? false));
         $requirement->setNotCrouchingRequired((bool) ($data['not_crouching_required'] ?? false));
 
-        // Handle nested character-specific requirement if present
-        if (isset($data['requirement_specific_character'])) {
-            $charReq = $requirement->getRequirementSpecificCharacter() ?? new RequirementSpecificCharacter();
+        $objectStatePayloads = [];
+        if (isset($data['combo_object_states']) && is_array($data['combo_object_states'])) {
+            $objectStatePayloads = array_values(array_filter($data['combo_object_states'], 'is_array'));
+        } elseif (isset($data['requirement_specific_character']) && is_array($data['requirement_specific_character'])) {
+            $objectStatePayloads = [$data['requirement_specific_character']];
+        }
 
-            // Use the correct property names from the entity
-            if (isset($data['requirement_specific_character']['object_name'])) {
-                $charReq->setObjectName($data['requirement_specific_character']['object_name']);
+        $requirement->getCharacterObjectStates()->clear();
+        foreach ($objectStatePayloads as $payload) {
+            $objectState = new CharacterObjectState();
+            if (isset($payload['object_key'])) {
+                $objectState->setObjectKey((string) $payload['object_key']);
+            }
+            if (isset($payload['character_name'])) {
+                $objectState->setCharacterName((string) $payload['character_name']);
+            }
+            if (isset($payload['object_name'])) {
+                $objectState->setObjectName((string) $payload['object_name']);
+            }
+            if (array_key_exists('status_required', $payload)) {
+                $objectState->setStatusRequired(null === $payload['status_required'] ? null : (string) $payload['status_required']);
+            }
+            $objectState->setConsumed((bool) ($payload['consumed'] ?? false));
+            if (array_key_exists('added_relative', $payload)) {
+                $objectState->setAddedRelative(null === $payload['added_relative'] ? null : (string) $payload['added_relative']);
+            }
+            if (array_key_exists('added_absolute', $payload)) {
+                $objectState->setAddedAbsolute(null === $payload['added_absolute'] ? null : (string) $payload['added_absolute']);
             }
 
-            if (isset($data['requirement_specific_character']['status_required'])) {
-                $charReq->setStatusRequired($data['requirement_specific_character']['status_required']);
-            }
-
-            $requirement->setRequirementSpecificCharacter($charReq);
+            $requirement->addCharacterObjectState($objectState);
         }
 
         return $requirement;

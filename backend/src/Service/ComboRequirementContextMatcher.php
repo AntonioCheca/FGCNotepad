@@ -3,7 +3,7 @@
 namespace App\Service;
 
 use App\Entity\ComboRequirement;
-use App\Entity\RequirementSpecificCharacter;
+use App\Entity\CharacterObjectState;
 
 class ComboRequirementContextMatcher
 {
@@ -20,7 +20,11 @@ class ComboRequirementContextMatcher
             return false;
         }
 
-        foreach ($requirement->getRequirementSpecificCharacters() as $statusRequirement) {
+        foreach ($requirement->getCharacterObjectStates() as $statusRequirement) {
+            if (null === $statusRequirement->getStatusRequired()) {
+                continue;
+            }
+
             if (!$this->matchesCharacterStatus($statusRequirement, $context['characterStatuses'])) {
                 return false;
             }
@@ -44,7 +48,7 @@ class ComboRequirementContextMatcher
     }
 
     /** @param array<string,string> $availableStatuses */
-    private function matchesCharacterStatus(RequirementSpecificCharacter $requirement, array $availableStatuses): bool
+    private function matchesCharacterStatus(CharacterObjectState $requirement, array $availableStatuses): bool
     {
         $objectName = $requirement->getObjectName();
         $requiredValue = $requirement->getStatusRequired();

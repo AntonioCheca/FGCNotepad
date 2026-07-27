@@ -1,16 +1,16 @@
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
+import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import {WrappedAutocomplete} from "@/src/components/ui/WrappedAutocomplete";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
-import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {ToggleRow} from "@/src/components/ui/tactical/ToggleRow";
 import {CheckCircleOutlineIcon} from "@/src/components/ui/AppIcons";
 import type {
     ComboRequirementsPayload,
+    ComboObjectStateDraft,
     RequirementObjectOption,
 } from "@/src/types/combo";
 import {
@@ -32,10 +32,7 @@ interface SubmitSectionProps {
     requirements: ComboRequirementsPayload;
     activeRequirementsCount: number;
     requirementObjects: RequirementObjectOption[];
-    selectedRequirementObject: RequirementObjectOption | null;
-    specificRequirementStatus: string;
-    selectedObjectIsInteger: boolean;
-    selectedObjectIsBoolean: boolean;
+    objectStates: ComboObjectStateDraft[];
     readOnly?: boolean;
     submitLabel?: string;
     sectionTitle?: string;
@@ -50,8 +47,7 @@ interface SubmitSectionProps {
     onToggleAdvancedConditions: () => void;
     onResetDraft: () => void;
     onRequirementToggle: (key: RequirementToggleKey, checked: boolean) => void;
-    onSpecificRequirementObjectChange: (value: RequirementObjectOption | null) => void;
-    onSpecificRequirementStatusChange: (value: string) => void;
+    onObjectStatesChange: (value: ComboObjectStateDraft[]) => void;
 }
 
 export function SubmitSection({
@@ -68,10 +64,7 @@ export function SubmitSection({
     requirements,
     activeRequirementsCount,
     requirementObjects,
-    selectedRequirementObject,
-    specificRequirementStatus,
-    selectedObjectIsInteger,
-    selectedObjectIsBoolean,
+    objectStates,
     readOnly = false,
     submitLabel = "Create Combo",
     sectionTitle = "Submit",
@@ -86,9 +79,40 @@ export function SubmitSection({
     onToggleAdvancedConditions,
     onResetDraft,
     onRequirementToggle,
-    onSpecificRequirementObjectChange,
-    onSpecificRequirementStatusChange,
+    onObjectStatesChange,
 }: SubmitSectionProps) {
+    const availableObjectOptions = requirementObjects.filter((option) => !objectStates.some((state) => state.object_key === option.object_key));
+
+    const updateObjectState = (index: number, update: Partial<ComboObjectStateDraft>) => {
+        onObjectStatesChange(objectStates.map((state, stateIndex) => stateIndex === index ? {...state, ...update} : state));
+    };
+
+    const addObjectState = (objectKey: string) => {
+        if (!objectKey) {
+            return;
+        }
+
+        const option = requirementObjects.find((candidate) => candidate.object_key === objectKey);
+        if (!option) {
+            return;
+        }
+
+        onObjectStatesChange([
+            ...objectStates,
+            {
+                object_key: option.object_key,
+                status_required: "",
+                consumed: false,
+                added_relative: "",
+                added_absolute: "",
+            },
+        ]);
+    };
+
+    const removeObjectState = (index: number) => {
+        onObjectStatesChange(objectStates.filter((_, stateIndex) => stateIndex !== index));
+    };
+
     return (
         <SectionCard
             title={sectionTitle}
@@ -206,34 +230,57 @@ export function SubmitSection({
                     <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
                         <AppChip size="small" variant="outlined" color="info" label={`${activeRequirementsCount} active conditions`} />
                     </AppBox>
-                    <WrappedAutocomplete<RequirementObjectOption>
-                        label="Specific Requirement Object"
-                        options={requirementObjects}
-                        value={selectedRequirementObject}
-                        onChange={onSpecificRequirementObjectChange}
-                        getOptionLabel={(option) => option?.name ?? ""}
-                        disableClearable={false}
-                        sx={{maxWidth: {md: 460}}}
-                        disabled={readOnly}
-                    />
+                    <AppBox sx={{display: "grid", gap: 0.75}}>
+                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "minmax(180px, 320px) auto"}, gap: 0.75, alignItems: "center"}}>
+                            <AppTextField
+                                select
+                                size="small"
+                                label="Add character object"
+                                value=""
+                                onChange={(event) => addObjectState(event.target.value)}
+                                disabled={readOnly || availableObjectOptions.length === 0}
+                            >
+                                <AppMenuItem value="">Select object</AppMenuItem>
+                                {availableObjectOptions.map((option) => (
+                                    <AppMenuItem key={option.object_key} value={option.object_key}>{option.name}</AppMenuItem>
+                                ))}
+                            </AppTextField>
+                            <AppTypography variant="caption" color="text.secondary">
+                                {requirementObjects.length === 0 ? "Select a character with object metadata." : `${objectStates.length} object states`}
+                            </AppTypography>
+                        </AppBox>
 
-                    {selectedObjectIsInteger ? (
-                        <AppTextField
-                            label="Specific Status Required"
-                            value={specificRequirementStatus}
-                            onChange={(event) => onSpecificRequirementStatusChange(event.target.value)}
-                            inputMode="numeric"
-                            helperText={`Value between 1 and ${selectedRequirementObject?.max_status}`}
-                            sx={{maxWidth: 220}}
-                            disabled={readOnly}
-                        />
-                    ) : null}
+                        {objectStates.map((state, index) => {
+                            const option = requirementObjects.find((candidate) => candidate.object_key === state.object_key) ?? null;
+                            if (!option) {
+                                return null;
+                            }
 
-                    {selectedObjectIsBoolean ? (
-                        <InlineNotice severity="info">
-                            This requirement is boolean and is saved as required active state.
-                        </InlineNotice>
-                    ) : null}
+                            const numericHelper = option.max_status !== null ? `1-${option.max_status}` : undefined;
+                            const requiredValue = option.status_type === "boolean" ? state.status_required === "true" : state.status_required;
+                            const relativeValue = option.status_type === "boolean" ? state.added_relative === "true" : state.added_relative;
+                            const absoluteValue = option.status_type === "boolean" ? state.added_absolute === "true" : state.added_absolute;
+
+                            return (
+                                <AppBox key={state.object_key} sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(120px, 0.8fr) repeat(4, minmax(120px, 1fr)) auto"}, gap: 0.75, alignItems: "center"}}>
+                                    <AppTypography variant="body2" color="text.primary">{option.name}</AppTypography>
+                                    {option.status_type === "boolean" ? (
+                                        <ToggleRow label="Required" checked={Boolean(requiredValue)} disabled={readOnly} onChange={(checked) => updateObjectState(index, {status_required: checked ? "true" : ""})} />
+                                    ) : (
+                                        <AppTextField size="small" label="Required" value={requiredValue} helperText={numericHelper} inputMode="numeric" disabled={readOnly} onChange={(event) => updateObjectState(index, {status_required: event.target.value})} />
+                                    )}
+                                    <ToggleRow label="Consumed" checked={state.consumed} disabled={readOnly || !option.can_be_consumed} onChange={(checked) => updateObjectState(index, {consumed: checked})} />
+                                    {option.status_type === "boolean" ? (
+                                        <ToggleRow label="Added" checked={Boolean(relativeValue)} disabled={readOnly || !option.can_be_added_relative} onChange={(checked) => updateObjectState(index, {added_relative: checked ? "true" : ""})} />
+                                    ) : (
+                                        <AppTextField size="small" label="Added relative" value={relativeValue} helperText={numericHelper} inputMode="numeric" disabled={readOnly || !option.can_be_added_relative} onChange={(event) => updateObjectState(index, {added_relative: event.target.value, added_absolute: ""})} />
+                                    )}
+                                    <AppTextField size="small" label="Added absolute" value={absoluteValue} helperText={numericHelper} inputMode={option.status_type === "integer" ? "numeric" : undefined} disabled={readOnly || !option.can_be_added_absolute} onChange={(event) => updateObjectState(index, {added_absolute: event.target.value, added_relative: ""})} />
+                                    {!readOnly ? <AppButton type="button" variant="text" color="secondary" onClick={() => removeObjectState(index)}>Remove</AppButton> : null}
+                                </AppBox>
+                            );
+                        })}
+                    </AppBox>
                 </AppBox>
             ) : null}
 

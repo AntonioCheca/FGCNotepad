@@ -5,7 +5,7 @@ namespace App\Service;
 use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
-use App\Entity\RequirementSpecificCharacter;
+use App\Entity\CharacterObjectState;
 use App\Entity\Step;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
@@ -124,7 +124,7 @@ final class ComboSequenceUpdateService
                 ->setAirborneRequired(false)
                 ->setMidScreenRequired(false)
                 ->setNotCrouchingRequired(false);
-            $existingRequirement->getRequirementSpecificCharacters()->clear();
+            $existingRequirement->getCharacterObjectStates()->clear();
 
             return;
         }
@@ -137,11 +137,12 @@ final class ComboSequenceUpdateService
             ->setMidScreenRequired((bool) $nextRequirement->isMidScreenRequired())
             ->setNotCrouchingRequired((bool) $nextRequirement->isNotCrouchingRequired());
 
-        $existingRequirement->getRequirementSpecificCharacters()->clear();
-        $nextSpecificRequirement = $nextRequirement->getRequirementSpecificCharacter();
-        if ($nextSpecificRequirement instanceof RequirementSpecificCharacter) {
-            $existingRequirement->setRequirementSpecificCharacter($nextSpecificRequirement);
-            $this->entityManager->persist($nextSpecificRequirement);
+        $existingRequirement->getCharacterObjectStates()->clear();
+        foreach ($nextRequirement->getCharacterObjectStates() as $objectState) {
+            if ($objectState instanceof CharacterObjectState) {
+                $existingRequirement->addCharacterObjectState($objectState);
+                $this->entityManager->persist($objectState);
+            }
         }
     }
 

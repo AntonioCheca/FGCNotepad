@@ -14,7 +14,18 @@ class ComboRequirementNormalizer implements NormalizerInterface
     public function normalize($object, $format = null, array $context = []): array
     {
         /** @var ComboRequirement $object */
-        $specificCharacter = $object->getRequirementSpecificCharacter();
+        $objectStates = $object->getCharacterObjectStates()->toArray();
+        $firstObjectState = $objectStates[0] ?? null;
+        $normalizedObjectStates = array_map(static fn ($objectState): array => [
+            'id' => $objectState->getId(),
+            'object_key' => $objectState->getObjectKey(),
+            'character_name' => $objectState->getCharacterName(),
+            'object_name' => $objectState->getObjectName(),
+            'status_required' => $objectState->getStatusRequired(),
+            'consumed' => $objectState->isConsumed(),
+            'added_relative' => $objectState->getAddedRelative(),
+            'added_absolute' => $objectState->getAddedAbsolute(),
+        ], $objectStates);
 
         return [
             'id' => $object->getId(),
@@ -24,10 +35,16 @@ class ComboRequirementNormalizer implements NormalizerInterface
             'airborne_required' => $object->isAirborneRequired(),
             'mid_screen_required' => $object->isMidScreenRequired(),
             'not_crouching_required' => $object->isNotCrouchingRequired(),
-            'requirement_specific_character' => null !== $specificCharacter ? [
-                'id' => $specificCharacter->getId(),
-                'object_name' => $specificCharacter->getObjectName(),
-                'status_required' => $specificCharacter->getStatusRequired(),
+            'combo_object_states' => $normalizedObjectStates,
+            'requirement_specific_character' => null !== $firstObjectState ? [
+                'id' => $firstObjectState->getId(),
+                'object_key' => $firstObjectState->getObjectKey(),
+                'character_name' => $firstObjectState->getCharacterName(),
+                'object_name' => $firstObjectState->getObjectName(),
+                'status_required' => $firstObjectState->getStatusRequired(),
+                'consumed' => $firstObjectState->isConsumed(),
+                'added_relative' => $firstObjectState->getAddedRelative(),
+                'added_absolute' => $firstObjectState->getAddedAbsolute(),
             ] : null,
         ];
     }
