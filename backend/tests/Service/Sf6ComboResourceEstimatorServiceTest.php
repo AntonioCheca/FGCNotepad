@@ -391,6 +391,153 @@ final class Sf6ComboResourceEstimatorServiceTest extends TestCase
         self::assertSame(2.9, $result['minimumDriveCostNoBurnout']);
     }
 
+    public function testEstimateRequiresFullCostPlusAccessFloorForNonFinalDriveSpend(): void
+    {
+        $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());
+
+        $result = $service->estimate([
+            [
+                'moveType' => 'normal',
+                'notation' => '5HP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 10,
+                'active' => 5,
+                'hitstop' => 10,
+                'recovery' => 25,
+                'connectionTypeName' => 'Initial Move',
+            ],
+            [
+                'moveType' => 'special',
+                'notation' => '214PP > 6P',
+                'driveGain' => -20000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Special',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '4HK',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'DR Cancel',
+            ],
+        ]);
+
+        self::assertSame(5.0, $result['driveUsed']);
+        self::assertSame(0.2, $result['driveGain']);
+        self::assertSame(1.9, $result['minimumDriveCost']);
+        self::assertSame(4.9, $result['minimumDriveCostNoBurnout']);
+    }
+
+    public function testEstimateAkumaOdRouteDoesNotUseFutureRegenBeforeEarlyDriveCosts(): void
+    {
+        $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());
+
+        $result = $service->estimate([
+            [
+                'moveType' => 'normal',
+                'notation' => '5HP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 10,
+                'active' => 5,
+                'hitstop' => 10,
+                'recovery' => 25,
+                'connectionTypeName' => 'Initial Move',
+            ],
+            [
+                'moveType' => 'special',
+                'notation' => '214PP > 6P',
+                'driveGain' => -20000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Special',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '4HK',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Link',
+            ],
+            [
+                'moveType' => 'special',
+                'notation' => '236PP (hold)',
+                'driveGain' => -20000,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Special',
+            ],
+            [
+                'moveType' => 'normal',
+                'notation' => '4HK',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'DR Cancel',
+            ],
+            [
+                'moveType' => 'special',
+                'notation' => '214MK',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Special',
+            ],
+            [
+                'moveType' => 'special',
+                'notation' => '623LP',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => 0,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Special',
+            ],
+            [
+                'moveType' => 'super',
+                'notation' => '236236K',
+                'driveGain' => 0,
+                'onHitSelfSuperMeterGain' => -30000,
+                'startup' => 0,
+                'active' => 0,
+                'hitstop' => 0,
+                'recovery' => 0,
+                'connectionTypeName' => 'Super',
+            ],
+        ]);
+
+        self::assertSame(7.0, $result['driveUsed']);
+        self::assertSame(0.2, $result['driveGain']);
+        self::assertSame(3.9, $result['minimumDriveCost']);
+        self::assertNull($result['minimumDriveCostNoBurnout']);
+    }
+
     public function testEstimateReturnsNullWhenNoBurnoutRouteRequiresMoreThanFullDrive(): void
     {
         $service = new Sf6ComboResourceEstimatorService(new Sf6ComboFrameLengthEstimatorService());

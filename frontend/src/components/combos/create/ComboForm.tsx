@@ -69,6 +69,8 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 damage={controller.damage}
                 driveCost={controller.driveCost}
                 driveGain={controller.driveGain}
+                minimumDriveCost={controller.minimumDriveCost}
+                minimumDriveCostNoBurnout={controller.minimumDriveCostNoBurnout}
                 superCost={controller.superCost}
                 superGain={controller.superGain}
                 description={controller.description}

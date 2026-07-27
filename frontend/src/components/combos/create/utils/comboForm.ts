@@ -371,13 +371,15 @@ export function buildCreateFullComboPayload(params: {
     damage: string;
     driveCost: string;
     driveGain: string;
+    minimumDriveCost?: string;
+    minimumDriveCostNoBurnout?: string;
     superCost: string;
     superGain: string;
     requirements?: ComboRequirementsPayload;
     steps: StepDraft[];
 }): CreateFullComboPayload {
-    const {title, description, damage, driveCost, driveGain, superCost, superGain, requirements, steps} = params;
-    const metrics = buildMetricsPayload({damage, driveCost, driveGain, superCost, superGain});
+    const {title, description, damage, driveCost, driveGain, minimumDriveCost = "", minimumDriveCostNoBurnout = "", superCost, superGain, requirements, steps} = params;
+    const metrics = buildMetricsPayload({damage, driveCost, driveGain, minimumDriveCost, minimumDriveCostNoBurnout, superCost, superGain});
 
     return {
         name: title,
@@ -430,6 +432,8 @@ function buildMetricsPayload(values: {
     damage: string;
     driveCost: string;
     driveGain: string;
+    minimumDriveCost: string;
+    minimumDriveCostNoBurnout: string;
     superCost: string;
     superGain: string;
 }): CreateFullComboPayload["metrics"] {
@@ -442,6 +446,8 @@ function buildMetricsPayload(values: {
         damage: Math.trunc(damage),
         driveCost: parseOptionalNumber(values.driveCost),
         driveGain: parseOptionalNumber(values.driveGain),
+        minimumDriveCost: parseOptionalNumber(values.minimumDriveCost),
+        minimumDriveCostNoBurnout: parseOptionalNumber(values.minimumDriveCostNoBurnout),
         superCost: parseOptionalNumber(values.superCost),
         superGain: parseOptionalNumber(values.superGain),
     };

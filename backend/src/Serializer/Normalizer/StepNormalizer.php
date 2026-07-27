@@ -22,6 +22,7 @@ class StepNormalizer implements NormalizerInterface
             'parent_sequence_id' => $object->getParentSequence()?->getId(),
             'child_sequence_id' => $childSequence?->getId(),
             'child_sequence_name' => $childSequence?->getName(),
+            'child_sequence_notation' => $childSequence?->getMove()?->getNumpadNotation(),
             'ordinal_in_combo' => $object->getOrdinalInCombo(),
             'connection_type_id' => $connectionType?->getId(),
             'connection_type_name' => $connectionType?->getName(),

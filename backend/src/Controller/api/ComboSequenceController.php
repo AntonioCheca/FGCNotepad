@@ -437,8 +437,6 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
         }
 
-        $starterExtraction = (new ComboStarterModifierExtractor())->extract($notation);
-        $canonicalization = $this->notationCanonicalizer->canonicalize($starterExtraction['notation']);
         $leafOptions = [];
         foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
             $move = $leafSequence->getMove();
@@ -462,6 +460,8 @@ class ComboSequenceController extends AbstractController
             $this->connectionTypeRepository->findAll()
         );
 
+        $starterExtraction = (new ComboStarterModifierExtractor())->extract($notation);
+        $canonicalization = $this->notationCanonicalizer->canonicalize($starterExtraction['notation']);
         $translated = $comboNotationTranslator->translateNotationToInternalSteps(
             $canonicalization['canonicalNotation'],
             $leafOptions,
@@ -557,8 +557,10 @@ class ComboSequenceController extends AbstractController
         }
 
         $notation = $data['notation'] ?? null;
-        if (!is_string($notation) || '' === trim($notation)) {
-            throw new BadRequestHttpException('notation must be a non-empty string.');
+        $notation = is_string($notation) ? trim($notation) : '';
+        $stepsPayload = $data['steps'] ?? null;
+        if ('' === $notation && !is_array($stepsPayload)) {
+            throw new BadRequestHttpException('notation must be a non-empty string or steps must be a non-empty array.');
         }
 
         $character = $characterRepository->find($characterId);
@@ -566,8 +568,6 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
         }
 
-        $starterExtraction = (new ComboStarterModifierExtractor())->extract($notation);
-        $canonicalization = $this->notationCanonicalizer->canonicalize($starterExtraction['notation']);
         $leafOptions = [];
         foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
             $move = $leafSequence->getMove();
@@ -591,11 +591,24 @@ class ComboSequenceController extends AbstractController
             $this->connectionTypeRepository->findAll()
         );
 
-        $translated = $comboNotationTranslator->translateNotationToInternalSteps(
-            $canonicalization['canonicalNotation'],
-            $leafOptions,
-            $connectionTypes
-        );
+        $starterExtraction = ['requirements' => []];
+        $canonicalization = ['canonicalNotation' => '', 'tokenMap' => []];
+        if ('' !== $notation) {
+            $starterExtraction = (new ComboStarterModifierExtractor())->extract($notation);
+            $canonicalization = $this->notationCanonicalizer->canonicalize($starterExtraction['notation']);
+            $translated = $comboNotationTranslator->translateNotationToInternalSteps(
+                $canonicalization['canonicalNotation'],
+                $leafOptions,
+                $connectionTypes
+            );
+        } else {
+            $translated = [
+                'steps' => $this->normalizeResourceEstimateSteps($stepsPayload, $connectionTypes),
+                'warnings' => [],
+                'errors' => [],
+                'parsedTokens' => [],
+            ];
+        }
 
         $moveByLeafId = [];
         foreach ($this->comboSequencesRepository->findBy(['id' => array_column($leafOptions, 'id')]) as $leafSequence) {
@@ -783,6 +796,48 @@ class ComboSequenceController extends AbstractController
         }
 
         return $value;
+    }
+
+    /**
+     * @param array<int, array{id:int, name:string}> $connectionTypes
+     * @return list<array{child_sequence_id:int, ordinal_in_combo:int, connection_type_id:int|null, connection_type_name:string|null}>
+     */
+    private function normalizeResourceEstimateSteps(mixed $stepsPayload, array $connectionTypes): array
+    {
+        if (!is_array($stepsPayload) || [] === $stepsPayload) {
+            throw new BadRequestHttpException('steps must be a non-empty array.');
+        }
+
+        $connectionNameById = [];
+        foreach ($connectionTypes as $connectionType) {
+            $connectionNameById[(int) $connectionType['id']] = (string) $connectionType['name'];
+        }
+
+        $steps = [];
+        foreach ($stepsPayload as $index => $stepPayload) {
+            if (!is_array($stepPayload)) {
+                throw new BadRequestHttpException(sprintf('steps[%d] must be an object.', $index));
+            }
+
+            $childSequenceId = $stepPayload['child_sequence_id'] ?? null;
+            if (!is_int($childSequenceId) || $childSequenceId <= 0) {
+                throw new BadRequestHttpException(sprintf('steps[%d].child_sequence_id must be a positive integer.', $index));
+            }
+
+            $connectionTypeId = $stepPayload['connection_type_id'] ?? null;
+            if (null !== $connectionTypeId && (!is_int($connectionTypeId) || $connectionTypeId <= 0)) {
+                throw new BadRequestHttpException(sprintf('steps[%d].connection_type_id must be a positive integer or null.', $index));
+            }
+
+            $steps[] = [
+                'child_sequence_id' => $childSequenceId,
+                'ordinal_in_combo' => $index + 1,
+                'connection_type_id' => $connectionTypeId,
+                'connection_type_name' => null !== $connectionTypeId ? ($connectionNameById[$connectionTypeId] ?? null) : null,
+            ];
+        }
+
+        return $steps;
     }
 
     /**

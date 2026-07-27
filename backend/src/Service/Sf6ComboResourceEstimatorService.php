@@ -182,11 +182,17 @@ final class Sf6ComboResourceEstimatorService
         $drive = min(self::MAX_DRIVE_BARS, $startingDrive);
         $burnedOut = false;
 
-        foreach ($timelineSteps as $step) {
+        foreach ($timelineSteps as $index => $step) {
             $driveCost = $step['driveCost'];
             if ($driveCost > 0.0) {
                 if ($burnedOut || $drive < self::DRIVE_ACCESS_FLOOR_BARS) {
                     return false;
+                }
+
+                if ($avoidBurnout || $this->hasLaterDriveCost($timelineSteps, $index)) {
+                    if ($drive - $driveCost < self::DRIVE_ACCESS_FLOOR_BARS) {
+                        return false;
+                    }
                 }
 
                 $drive -= $driveCost;
@@ -208,6 +214,20 @@ final class Sf6ComboResourceEstimatorService
         }
 
         return !$avoidBurnout || $drive >= self::DRIVE_ACCESS_FLOOR_BARS;
+    }
+
+    /**
+     * @param list<array{driveCost:float,driveGain:float}> $timelineSteps
+     */
+    private function hasLaterDriveCost(array $timelineSteps, int $currentIndex): bool
+    {
+        for ($index = $currentIndex + 1, $count = count($timelineSteps); $index < $count; ++$index) {
+            if ($timelineSteps[$index]['driveCost'] > 0.0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function inferSuperCostUnits(string $moveType, string $notation): int

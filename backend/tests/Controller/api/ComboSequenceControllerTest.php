@@ -719,6 +719,44 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertNotNull($payload['minimumDriveCostNoBurnout']);
     }
 
+    public function testEstimateResourcesAcceptsDraftStepsForCreatePreview(): void
+    {
+        $character = $this->seedAkumaResourceEstimateData();
+        $sequenceRepository = $this->entityManager->getRepository(ComboSequences::class);
+        $connectionRepository = $this->entityManager->getRepository(ConnectionType::class);
+        $lightPunch = $sequenceRepository->findOneBy(['name' => 'Cammy 2LP']);
+        $odFireball = $sequenceRepository->findOneBy(['name' => 'Cammy 236PP']);
+        $special = $connectionRepository->findOneBy(['name' => 'Special']);
+
+        self::assertInstanceOf(ComboSequences::class, $lightPunch);
+        self::assertInstanceOf(ComboSequences::class, $odFireball);
+        self::assertInstanceOf(ConnectionType::class, $special);
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-resources',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'steps' => [
+                    ['child_sequence_id' => $lightPunch->getId(), 'ordinal_in_combo' => 1, 'connection_type_id' => null],
+                    ['child_sequence_id' => $odFireball->getId(), 'ordinal_in_combo' => 2, 'connection_type_id' => $special->getId()],
+                    ['child_sequence_id' => $odFireball->getId(), 'ordinal_in_combo' => 3, 'connection_type_id' => $special->getId()],
+                ],
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertEquals(4.0, $payload['driveUsed']);
+        $this->assertEquals(1.989, $payload['minimumDriveCost']);
+        $this->assertSame([], $payload['errors']);
+    }
+
     public function testCreateFullComboPersistsRequirementsAndSpecificCharacter(): void
     {
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();

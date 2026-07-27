@@ -41,6 +41,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [damage, setDamage] = usePersistentState<string>("comboForm.damage", "");
     const [driveCost, setDriveCost] = usePersistentState<string>("comboForm.driveCost", "");
     const [driveGain, setDriveGain] = usePersistentState<string>("comboForm.driveGain", "");
+    const [minimumDriveCost, setMinimumDriveCost] = usePersistentState<string>("comboForm.minimumDriveCost", "");
+    const [minimumDriveCostNoBurnout, setMinimumDriveCostNoBurnout] = usePersistentState<string>("comboForm.minimumDriveCostNoBurnout", "");
     const [superCost, setSuperCost] = usePersistentState<string>("comboForm.superCost", "");
     const [superGain, setSuperGain] = usePersistentState<string>("comboForm.superGain", "");
     const [description, setDescription] = usePersistentState<string>("comboForm.description", "");
@@ -122,6 +124,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setDamage("");
         setDriveCost("");
         setDriveGain("");
+        setMinimumDriveCost("");
+        setMinimumDriveCostNoBurnout("");
         setSuperCost("");
         setSuperGain("");
         setNotes("");
@@ -298,7 +302,11 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             try {
                 const resources = (await estimateComboResources({
                     characterId,
-                    notation: notationInput,
+                    steps: translatedSteps.map((step, index) => ({
+                        child_sequence_id: step.move?.id ?? 0,
+                        ordinal_in_combo: index + 1,
+                        connection_type_id: step.connection?.id ?? null,
+                    })),
                 })) as EstimateComboResourcesResponse;
 
                 if (Number.isFinite(resources.driveUsed)) {
@@ -307,6 +315,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 if (Number.isFinite(resources.driveGain)) {
                     setDriveGain(String(resources.driveGain));
                 }
+                setMinimumDriveCost(Number.isFinite(resources.minimumDriveCost) ? String(resources.minimumDriveCost) : "");
+                setMinimumDriveCostNoBurnout(Number.isFinite(resources.minimumDriveCostNoBurnout) ? String(resources.minimumDriveCostNoBurnout) : "");
                 if (Number.isFinite(resources.superUsed)) {
                     setSuperCost(String(resources.superUsed));
                 }
@@ -368,6 +378,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             damage,
             driveCost,
             driveGain,
+            minimumDriveCost,
+            minimumDriveCostNoBurnout,
             superCost,
             superGain,
             requirements: requirementsResult.payload,
@@ -418,12 +430,63 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     }, [steps.length, verificationTokens]);
     const selectedStep = selectedStepIndex !== null ? steps[selectedStepIndex] ?? null : null;
 
+    useEffect(() => {
+        const characterId = String(character?.id ?? "").trim();
+        if (!characterId || validateSteps(steps) !== null) {
+            setMinimumDriveCost("");
+            setMinimumDriveCostNoBurnout("");
+            return;
+        }
+
+        let canceled = false;
+        estimateComboResources({
+            characterId,
+            steps: steps.map((step, index) => ({
+                child_sequence_id: step.move?.id ?? 0,
+                ordinal_in_combo: index + 1,
+                connection_type_id: step.connection?.id ?? null,
+            })),
+        })
+            .then((resources: EstimateComboResourcesResponse) => {
+                if (canceled) {
+                    return;
+                }
+
+                if (Number.isFinite(resources.driveUsed)) {
+                    setDriveCost(String(resources.driveUsed));
+                }
+                if (Number.isFinite(resources.driveGain)) {
+                    setDriveGain(String(resources.driveGain));
+                }
+                setMinimumDriveCost(Number.isFinite(resources.minimumDriveCost) ? String(resources.minimumDriveCost) : "");
+                setMinimumDriveCostNoBurnout(Number.isFinite(resources.minimumDriveCostNoBurnout) ? String(resources.minimumDriveCostNoBurnout) : "");
+                if (Number.isFinite(resources.superUsed)) {
+                    setSuperCost(String(resources.superUsed));
+                }
+                if (Number.isFinite(resources.superGain)) {
+                    setSuperGain(String(resources.superGain));
+                }
+            })
+            .catch(() => {
+                if (!canceled) {
+                    setMinimumDriveCost("");
+                    setMinimumDriveCostNoBurnout("");
+                }
+            });
+
+        return () => {
+            canceled = true;
+        };
+    }, [character?.id, estimateComboResources, setDriveCost, setDriveGain, setMinimumDriveCost, setMinimumDriveCostNoBurnout, setSuperCost, setSuperGain, steps]);
+
     return {
         title,
         character,
         damage,
         driveCost,
         driveGain,
+        minimumDriveCost,
+        minimumDriveCostNoBurnout,
         superCost,
         superGain,
         description,
@@ -463,6 +526,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setDamage,
         setDriveCost,
         setDriveGain,
+        setMinimumDriveCost,
+        setMinimumDriveCostNoBurnout,
         setSuperCost,
         setSuperGain,
         setDescription,

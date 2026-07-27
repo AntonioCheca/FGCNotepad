@@ -34,6 +34,8 @@ export interface CreateFullComboPayload {
         damage?: number;
         driveCost?: number;
         driveGain?: number;
+        minimumDriveCost?: number;
+        minimumDriveCostNoBurnout?: number;
         superCost?: number;
         superGain?: number;
     };
@@ -276,6 +278,7 @@ export interface ComboStep {
     id: number;
     child_sequence_id: number | null;
     child_sequence_name: string | null;
+    child_sequence_notation?: string | null;
     ordinal_in_combo: number;
     connection_type_id: number | null;
     connection_type_name: string | null;

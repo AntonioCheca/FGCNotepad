@@ -23,6 +23,8 @@ interface SubmitSectionProps {
     damage: string;
     driveCost: string;
     driveGain: string;
+    minimumDriveCost?: string;
+    minimumDriveCostNoBurnout?: string;
     superCost: string;
     superGain: string;
     description: string;
@@ -55,6 +57,8 @@ export function SubmitSection({
     damage,
     driveCost,
     driveGain,
+    minimumDriveCost = "",
+    minimumDriveCostNoBurnout = "",
     superCost,
     superGain,
     description,
@@ -164,6 +168,12 @@ export function SubmitSection({
                         Auto-filled from Fill Details and visible before creation.
                     </AppTypography> : null}
                 </AppBox>
+                {!readOnly ? (
+                    <AppBox sx={{display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center"}}>
+                        <AppTypography variant="body2" color="text.secondary">Min Drive: {minimumDriveCost || "-"} bars</AppTypography>
+                        <AppTypography variant="body2" color="text.secondary">Safe Drive: {minimumDriveCostNoBurnout || "-"} bars</AppTypography>
+                    </AppBox>
+                ) : null}
                 <AppTextField
                     label="Description"
                     value={description}
@@ -197,6 +207,8 @@ export function SubmitSection({
                             inputMode="decimal"
                             disabled={readOnly}
                         />
+                    </AppBox>
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr 1fr", md: "repeat(2, minmax(110px, 1fr))"}, gap: 1, maxWidth: {md: 560}}}>
                         <AppTextField
                             label="Super Cost"
                             value={superCost}

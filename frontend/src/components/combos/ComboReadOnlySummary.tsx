@@ -23,6 +23,18 @@ function formatResource(value: number | string, unit: "bars" | "meter"): string 
     return hasValue(value) ? `${value} ${unit}` : `0 ${unit}`;
 }
 
+function formatOptionalDrive(value: number | string): string {
+    return hasValue(value) ? `${value} bars` : "-";
+}
+
+function getComboNotation(combo: ComboDetailView): string {
+    return combo.steps
+        .map((step) => step.child_sequence_notation ?? step.child_sequence_name ?? "")
+        .map((notation) => notation.trim())
+        .filter((notation) => notation.length > 0)
+        .join(" > ");
+}
+
 function getConditionLines(requirements: ComboRequirement | null): string[] {
     if (!requirements) {
         return [];
@@ -60,6 +72,7 @@ function getConditionLines(requirements: ComboRequirement | null): string[] {
 
 export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
     const conditionLines = getConditionLines(combo.requirements);
+    const comboNotation = getComboNotation(combo);
 
     return (
         <AppBox
@@ -79,6 +92,11 @@ export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
                 <li>
                     <AppTypography variant="body2">Season: {combo.seasonLabels.length > 0 ? combo.seasonLabels.join(", ") : "-"}</AppTypography>
                 </li>
+                {comboNotation ? (
+                    <li>
+                        <AppTypography variant="body2">Notation: {comboNotation}</AppTypography>
+                    </li>
+                ) : null}
                 {conditionLines.map((line) => (
                     <li key={line}>
                         <AppTypography variant="body2">{line}</AppTypography>
@@ -90,6 +108,11 @@ export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
                 <li>
                     <AppTypography variant="body2">
                         Resources used: Drive: {formatResource(combo.driveCost, "bars")}, Super: {formatResource(combo.superCost, "meter")}
+                    </AppTypography>
+                </li>
+                <li>
+                    <AppTypography variant="body2">
+                        Drive requirements: Min: {formatOptionalDrive(combo.minimumDriveCost)}, Safe: {formatOptionalDrive(combo.minimumDriveCostNoBurnout)}
                     </AppTypography>
                 </li>
                 <li>
