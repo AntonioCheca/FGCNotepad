@@ -468,6 +468,61 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame([], $payload['errors']);
     }
 
+    public function testTranslateNotationStripsPunishCounterStarterMarkerAndReturnsRequirement(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/translate',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'cr. mp (pc), cr. hk',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(2, $payload['steps']);
+        $this->assertSame('2MP', $payload['steps'][0]['token']);
+        $this->assertSame('2HK', $payload['steps'][1]['token']);
+        $this->assertTrue($payload['requirements']['punish_counter_required']);
+        $this->assertFalse($payload['requirements']['counter_hit_required']);
+        $this->assertSame([], $payload['errors']);
+    }
+
+    public function testEstimateDamageAppliesLeadingPunishCounterStarterMarker(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-damage',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'PC cr. mp, cr. hk',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame([720, 900], $payload['stepDamages']);
+        $this->assertSame(1620, $payload['estimatedDamage']);
+        $this->assertTrue($payload['requirements']['punish_counter_required']);
+        $this->assertFalse($payload['requirements']['counter_hit_required']);
+        $this->assertSame([], $payload['errors']);
+    }
+
     public function testEstimateDamageUsesDirectionalTargetComboComposite(): void
     {
         $character = $this->seedTranslationData();
@@ -1421,6 +1476,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
         $this->persistLeafSequence($character, $leafType, $visibility, '2LP', 'normal', '["ch","sp","su"]', 300, null, null, null, null, null, null, 4, 2, 8, 10, 200, 100, 300);
         $this->persistLeafSequence($character, $leafType, $visibility, '2MP', 'normal', '["sp","su"]', 600, null, null, null, null, null, null, 6, 3, 10, 14, 200, 100, 300);
+        $this->persistLeafSequence($character, $leafType, $visibility, '2HK', 'normal', '[]', 900, null, null, null, null, null, null, 8, 3, 12, 18, 200, 100, 300);
         $this->persistLeafSequence($character, $leafType, $visibility, '5MP', 'normal', '["sp","su"]', 600, null, null, null, null, null, null, 5, 3, 9, 12, 200, 100, 300, 16);
         $this->persistLeafSequence($character, $leafType, $visibility, '5MP > MP', 'normal', '["sp","su"]', 1300, null, null, null, 2, null, null, 11, 5, 12, 20, 300, 200, 500, null, '[{"fatDamageParts":[600,700]}]');
         $this->persistLeafSequence($character, $leafType, $visibility, '6HP', 'normal', '["tc"]', 800, null, null, null, null, null, null, 12, 3, 12, 18, 300, 200, 500);

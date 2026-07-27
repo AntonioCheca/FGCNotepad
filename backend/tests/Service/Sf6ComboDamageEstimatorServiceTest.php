@@ -53,6 +53,19 @@ final class Sf6ComboDamageEstimatorServiceTest extends TestCase
         self::assertSame(2530, $result['estimatedDamage']);
     }
 
+    public function testEstimateAppliesCounterStarterDamageBonus(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 600, 'moveType' => 'normal', 'notation' => '2MP'],
+            ['damage' => 900, 'moveType' => 'normal', 'notation' => '2HK'],
+        ], [
+            'starterHitState' => 'punish_counter',
+        ]);
+
+        self::assertSame([720, 900], $result['stepDamages']);
+        self::assertSame(1620, $result['estimatedDamage']);
+    }
+
     public function testEstimateAppliesSuperMinimumFloorWhenLevelKnown(): void
     {
         $moves = [];

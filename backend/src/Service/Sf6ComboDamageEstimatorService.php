@@ -20,7 +20,7 @@ final class Sf6ComboDamageEstimatorService
      *   damageParts?:list<int>,
      *   connectionTypeName?:string|null
      * }> $moves
-     * @param array{perfectParry?:bool,driveRushMidCombo?:bool,driveImpactState?:string,specialCancelIntoSa3?:bool,superArtLevels?:array<int,int>} $options
+     * @param array{perfectParry?:bool,driveRushMidCombo?:bool,driveImpactState?:string,specialCancelIntoSa3?:bool,superArtLevels?:array<int,int>,starterHitState?:string|null} $options
      *
      * @return array{estimatedDamage:int,stepDamages:list<int>,warnings:list<string>}
      */
@@ -35,6 +35,7 @@ final class Sf6ComboDamageEstimatorService
         $specialCancelIntoSa3 = (bool) ($options['specialCancelIntoSa3'] ?? false);
         $driveImpactState = is_string($options['driveImpactState'] ?? null) ? mb_strtolower(trim((string) $options['driveImpactState'])) : 'none';
         $superArtLevels = is_array($options['superArtLevels'] ?? null) ? $options['superArtLevels'] : [];
+        $starterHitState = is_string($options['starterHitState'] ?? null) ? mb_strtolower(trim((string) $options['starterHitState'])) : null;
 
         $isLightStarter = $this->isLightOr2MkStarter($moves[0]['notation']);
         $baseScales = $this->buildBaseScales(count($moves) + 10, $isLightStarter, $this->readOptionalPercent($moves[0], 'scalingStartPercent'));
@@ -115,6 +116,10 @@ final class Sf6ComboDamageEstimatorService
 
                 if ($scale < 10.0 && !($perfectParry || $driveRushMidCombo || $driveRushCancelMultiplier < 1.0)) {
                     $scale = 10.0;
+                }
+
+                if (0 === $index && in_array($starterHitState, ['counter_hit', 'punish_counter'], true)) {
+                    $damageValue = (int) floor($damageValue * 1.2);
                 }
 
                 $scaledDamage += (int) floor($damageValue * ($scale / 100.0));

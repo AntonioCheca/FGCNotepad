@@ -140,6 +140,7 @@ export interface TranslateComboNotationResponse {
     parsedTokens: TranslateParsedToken[];
     warnings: string[];
     errors: TranslateErrorToken[];
+    requirements?: Pick<ComboRequirementsPayload, "counter_hit_required" | "punish_counter_required">;
 }
 
 export interface EstimateComboDamageResponse extends TranslateComboNotationResponse {

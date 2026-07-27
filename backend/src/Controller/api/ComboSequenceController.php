@@ -17,6 +17,7 @@ use App\Service\NotationCanonicalizer;
 use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ComboSequenceCreationService;
 use App\Service\ComboSequenceUpdateService;
+use App\Service\ComboStarterModifierExtractor;
 use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\EndpointAuthorizationService;
@@ -358,7 +359,8 @@ class ComboSequenceController extends AbstractController
             throw new BadRequestHttpException('notation must be a non-empty string.');
         }
 
-        $canonicalization = $this->notationCanonicalizer->canonicalize($notation);
+        $starterExtraction = (new ComboStarterModifierExtractor())->extract($notation);
+        $canonicalization = $this->notationCanonicalizer->canonicalize($starterExtraction['notation']);
 
         $character = $characterRepository->find($characterId);
         if (null === $character) {
@@ -399,6 +401,7 @@ class ComboSequenceController extends AbstractController
             'canonicalNotation' => $canonicalization['canonicalNotation'],
             'tokenMap' => $canonicalization['tokenMap'],
         ];
+        $translated['requirements'] = $starterExtraction['requirements'];
 
         return new JsonResponse($translated, JsonResponse::HTTP_OK);
     }
@@ -434,7 +437,8 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
         }
 
-        $canonicalization = $this->notationCanonicalizer->canonicalize($notation);
+        $starterExtraction = (new ComboStarterModifierExtractor())->extract($notation);
+        $canonicalization = $this->notationCanonicalizer->canonicalize($starterExtraction['notation']);
         $leafOptions = [];
         foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
             $move = $leafSequence->getMove();
@@ -510,10 +514,10 @@ class ComboSequenceController extends AbstractController
             $resolvedMoves[] = $move;
         }
 
-        $estimation = $this->sf6ComboDamageEstimatorService->estimate(
-            $resolvedMoves,
-            is_array($data['options'] ?? null) ? $data['options'] : []
-        );
+        $options = is_array($data['options'] ?? null) ? $data['options'] : [];
+        $options['starterHitState'] = $starterExtraction['starterHitState'];
+
+        $estimation = $this->sf6ComboDamageEstimatorService->estimate($resolvedMoves, $options);
 
         return new JsonResponse([
             'estimatedDamage' => $estimation['estimatedDamage'],
@@ -522,6 +526,7 @@ class ComboSequenceController extends AbstractController
             'errors' => $translated['errors'] ?? [],
             'parsedTokens' => $translated['parsedTokens'] ?? [],
             'steps' => $translated['steps'] ?? [],
+            'requirements' => $starterExtraction['requirements'],
             'input' => [
                 'rawNotation' => $notation,
                 'canonicalNotation' => $canonicalization['canonicalNotation'],
@@ -561,7 +566,8 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
         }
 
-        $canonicalization = $this->notationCanonicalizer->canonicalize($notation);
+        $starterExtraction = (new ComboStarterModifierExtractor())->extract($notation);
+        $canonicalization = $this->notationCanonicalizer->canonicalize($starterExtraction['notation']);
         $leafOptions = [];
         foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
             $move = $leafSequence->getMove();
@@ -648,6 +654,7 @@ class ComboSequenceController extends AbstractController
             'errors' => $translated['errors'] ?? [],
             'parsedTokens' => $translated['parsedTokens'] ?? [],
             'steps' => $translated['steps'] ?? [],
+            'requirements' => $starterExtraction['requirements'],
             'input' => [
                 'rawNotation' => $notation,
                 'canonicalNotation' => $canonicalization['canonicalNotation'],

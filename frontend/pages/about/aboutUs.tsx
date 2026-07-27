@@ -76,6 +76,14 @@ export default function AboutPage() {
                     </NormalParagraph>
 
                     <NormalParagraph>
+                        Thanks to
+                        <TextLink href="https://www.youtube.com/user/Shintroy">
+                            ThirtyFourEC
+                        </TextLink>, whose optimal videos on combos served as a baseline for drive bar value and super
+                        bar value for each character for resource-adjusted calculations.
+                    </NormalParagraph>
+
+                    <NormalParagraph>
                         Also special thanks to the people at
                         <TextLink href="https://discord.com/servers/new-challenger-195518118603390977">
                             New Challenger discord

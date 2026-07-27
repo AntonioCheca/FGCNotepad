@@ -261,6 +261,14 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             setParseTokens(parsedTokenList);
             setSelectedStepIndex(translatedSteps.length > 0 ? 0 : null);
 
+            if (translated.requirements?.punish_counter_required || translated.requirements?.counter_hit_required) {
+                setRequirements((previousRequirements) => ({
+                    ...previousRequirements,
+                    punish_counter_required: Boolean(translated.requirements?.punish_counter_required),
+                    counter_hit_required: Boolean(translated.requirements?.counter_hit_required),
+                }));
+            }
+
             if (!title.trim()) {
                 const defaultTitle = notationInput.trim().replace(/\s+/g, " ").slice(0, 70);
                 if (defaultTitle.length > 0) {
