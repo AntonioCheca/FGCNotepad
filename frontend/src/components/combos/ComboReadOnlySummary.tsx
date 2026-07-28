@@ -97,6 +97,16 @@ export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
                         <AppTypography variant="body2">Notation: {comboNotation}</AppTypography>
                     </li>
                 ) : null}
+                <li>
+                    <AppTypography variant="body2">Spacing: {combo.spacing?.name ?? "Unclassified"}</AppTypography>
+                </li>
+                {combo.spacing?.code === "punish_tip" ? (
+                    <li>
+                        <AppTypography variant="body2" color="text.secondary">
+                            The starter connects because the punished move has an extended hurtbox. This is farther than the starter&apos;s normal tip range.
+                        </AppTypography>
+                    </li>
+                ) : null}
                 {conditionLines.map((line) => (
                     <li key={line}>
                         <AppTypography variant="body2">{line}</AppTypography>

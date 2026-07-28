@@ -52,6 +52,10 @@ class ComboSequences
     #[ORM\JoinColumn(name: 'author_id', referencedColumnName: 'id', nullable: true)]
     private ?User $author = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'spacing_id', referencedColumnName: 'id', nullable: true)]
+    private ?ComboSpacing $spacing = null;
+
     /**
      * @var Collection<int, Season>
      */
@@ -203,6 +207,18 @@ class ComboSequences
     public function setAuthor(?User $author): static
     {
         $this->author = $author;
+
+        return $this;
+    }
+
+    public function getSpacing(): ?ComboSpacing
+    {
+        return $this->spacing;
+    }
+
+    public function setSpacing(?ComboSpacing $spacing): static
+    {
+        $this->spacing = $spacing;
 
         return $this;
     }

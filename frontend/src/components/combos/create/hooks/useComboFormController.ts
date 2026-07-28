@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from "react";
 import useCombos from "@/hooks/useCombos";
 import {useCharacters} from "@/hooks/useCharacters";
 import useConnections from "@/hooks/useConnections";
+import useComboSpacings from "@/hooks/useComboSpacings";
 import usePersistentState from "@/hooks/usePersistentState";
 import type {
     CharacterOption,
@@ -47,6 +48,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [superGain, setSuperGain] = usePersistentState<string>("comboForm.superGain", "");
     const [description, setDescription] = usePersistentState<string>("comboForm.description", "");
     const [notes, setNotes] = usePersistentState<string>("comboForm.notes", "");
+    const [spacingCode, setSpacingCode] = usePersistentState<string>("comboForm.spacingCode", "");
     const [notationInput, setNotationInput] = usePersistentState<string>("comboForm.notationInput", "");
     const [steps, setSteps] = usePersistentState<StepDraft[]>("comboForm.steps", [], true);
     const [requirements, setRequirements] = usePersistentState<ComboRequirementsPayload>("comboForm.requirements", emptyRequirements);
@@ -67,9 +69,11 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
 
     const {characters: characterOptions, loading: charactersLoading} = useCharacters();
     const {connections, loading: connectionsLoading, fetchConnections} = useConnections();
+    const {spacings: spacingOptions, loading: spacingLoading, fetchComboSpacings} = useComboSpacings();
 
     useEffect(() => {
         fetchConnections();
+        fetchComboSpacings();
 
         fetchRequirementObjects()
             .then((response) => setRequirementObjects(response ?? []))
@@ -77,7 +81,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 setRequirementObjects([]);
                 setNotice({severity: "warning", message: "Requirement metadata could not be loaded. You can still create a basic combo."});
             });
-    }, [fetchConnections, fetchRequirementObjects]);
+    }, [fetchComboSpacings, fetchConnections, fetchRequirementObjects]);
 
     const characterRequirementObjects = useMemo(() => {
         const characterName = character?.name ?? "";
@@ -129,6 +133,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setSuperCost("");
         setSuperGain("");
         setNotes("");
+        setSpacingCode("");
         setNotationInput("");
         setSteps([]);
         setRequirements(emptyRequirements);
@@ -383,6 +388,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             minimumDriveCostNoBurnout,
             superCost,
             superGain,
+            spacingCode,
             requirements: requirementsResult.payload,
             steps,
         });
@@ -492,6 +498,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         superGain,
         description,
         notes,
+        spacingCode,
         notationInput,
         steps,
         requirements,
@@ -511,6 +518,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         charactersLoading,
         connections,
         connectionsLoading,
+        spacingOptions,
+        spacingLoading,
         selectedRequirementObject,
         selectedObjectIsBoolean,
         selectedObjectIsInteger,
@@ -533,6 +542,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setSuperGain,
         setDescription,
         setNotes,
+        setSpacingCode,
         setNotationInput,
         setSpecificRequirementObject,
         setSpecificRequirementStatus,

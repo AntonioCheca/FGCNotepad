@@ -375,15 +375,17 @@ export function buildCreateFullComboPayload(params: {
     minimumDriveCostNoBurnout?: string;
     superCost: string;
     superGain: string;
+    spacingCode?: string;
     requirements?: ComboRequirementsPayload;
     steps: StepDraft[];
 }): CreateFullComboPayload {
-    const {title, description, damage, driveCost, driveGain, minimumDriveCost = "", minimumDriveCostNoBurnout = "", superCost, superGain, requirements, steps} = params;
+    const {title, description, damage, driveCost, driveGain, minimumDriveCost = "", minimumDriveCostNoBurnout = "", superCost, superGain, spacingCode = "", requirements, steps} = params;
     const metrics = buildMetricsPayload({damage, driveCost, driveGain, minimumDriveCost, minimumDriveCostNoBurnout, superCost, superGain});
 
     return {
         name: title,
         description: description || undefined,
+        spacingCode: spacingCode || null,
         metrics,
         requirements,
         steps: steps.map((step, index) => {

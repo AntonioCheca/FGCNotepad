@@ -74,6 +74,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     addedObjectName?: string|null,
      *     addedObjectStatus?: string|null,
      *     consumedObjectName?: string|null,
+     *     spacingCodes?: list<string>,
      *     sort?: string|null,
      *     sortDirection?: string|null
      * } $filters
@@ -88,7 +89,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->leftJoin('combo.type', 'comboType')
             ->leftJoin('combo.comboMetrics', 'metrics')
             ->leftJoin('combo.comboRequirement', 'requirement')
-            ->addSelect('comboType', 'metrics', 'requirement')
+            ->leftJoin('combo.spacing', 'spacing')
+            ->addSelect('comboType', 'metrics', 'requirement', 'spacing')
             ->andWhere('comboType.name != :leafType')
             ->setParameter('leafType', 'leaf')
             ->setMaxResults($safeLimit)
@@ -260,6 +262,12 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('moveTypes', $moveTypes);
         }
 
+        $spacingCodes = isset($filters['spacingCodes']) && is_array($filters['spacingCodes']) ? array_values($filters['spacingCodes']) : [];
+        if ([] !== $spacingCodes) {
+            $qb->andWhere('spacing.code IN (:spacingCodes)')
+                ->setParameter('spacingCodes', $spacingCodes);
+        }
+
         $this->applySort($qb, $filters);
 
         return $qb->getQuery()->getResult();
@@ -320,6 +328,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->addGroupBy('comboType.id')
                 ->addGroupBy('metrics.id')
                 ->addGroupBy('requirement.id')
+                ->addGroupBy('spacing.id')
                 ->orderBy('latestSeasonStartDateIsNull', 'ASC')
                 ->addOrderBy('latestSeasonStartDate', 'DESC')
                 ->addOrderBy('combo.id', 'ASC');

@@ -20,6 +20,7 @@ type ComboFilterAction =
     | {type: "setEnderMoveQuery"; value: string}
     | {type: "setDifficultyRange"; minDifficulty?: string; maxDifficulty?: string}
     | {type: "setDamageRange"; minDamage?: string; maxDamage?: string}
+    | {type: "toggleSpacingCode"; code: string}
     | {type: "addDriveWindow"; metric: ComboDriveWindowMetric}
     | {type: "removeDriveWindow"; metric: ComboDriveWindowMetric}
     | {type: "setDriveWindowRange"; metric: ComboDriveWindowMetric; min?: string; max?: string}
@@ -57,6 +58,15 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
                 minDamage: action.minDamage ?? state.minDamage,
                 maxDamage: action.maxDamage ?? state.maxDamage,
             };
+        case "toggleSpacingCode": {
+            const selected = state.spacingCodes.includes(action.code);
+            return {
+                ...state,
+                spacingCodes: selected
+                    ? state.spacingCodes.filter((code) => code !== action.code)
+                    : [...state.spacingCodes, action.code],
+            };
+        }
         case "addDriveWindow":
             return {
                 ...state,
@@ -118,6 +128,7 @@ export function useComboFilterState() {
         setMaxDifficulty: (value: string) => dispatch({type: "setDifficultyRange", maxDifficulty: value}),
         setMinDamage: (value: string) => dispatch({type: "setDamageRange", minDamage: value}),
         setMaxDamage: (value: string) => dispatch({type: "setDamageRange", maxDamage: value}),
+        toggleSpacingCode: (code: string) => dispatch({type: "toggleSpacingCode", code}),
         addDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "addDriveWindow", metric}),
         removeDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "removeDriveWindow", metric}),
         setDriveWindowRange: (metric: ComboDriveWindowMetric, min?: string, max?: string) => dispatch({type: "setDriveWindowRange", metric, min, max}),

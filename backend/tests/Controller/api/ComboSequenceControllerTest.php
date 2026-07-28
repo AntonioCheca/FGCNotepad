@@ -7,6 +7,7 @@ use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\CharacterObjectState;
 use App\Entity\ComboSequences;
+use App\Entity\ComboSpacing;
 use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\FrameData;
@@ -80,6 +81,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $connectionType->setName('Initial Move');
         $this->entityManager->persist($connectionType);
 
+        $punishTipSpacing = $this->persistComboSpacing('punish_tip', 'Punish tip', 'Extended hurtbox punish spacing.', 40);
+
         $character = new Character();
         $character->setName('Ryu');
         $this->entityManager->persist($character);
@@ -100,6 +103,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
             true
         );
         $matching->getComboRequirement()?->setSideSwitchesRequired(true);
+        $matching->setSpacing($punishTipSpacing);
 
         $notSideSwitching = $this->createComboForFilters(
             'Ryu Meterless',
@@ -119,7 +123,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->client->request(
             'GET',
             sprintf(
-                '/api/combo-sequences?q=punish&characterId=%s&firstMoveId=%s&minDamage=2000&maxDifficulty=7&counterHitRequired=true&sideSwitchesRequired=true&isEssential=true&moveTypes[]=drive',
+                '/api/combo-sequences?q=punish&characterId=%s&firstMoveId=%s&minDamage=2000&maxDifficulty=7&counterHitRequired=true&sideSwitchesRequired=true&isEssential=true&moveTypes[]=drive&spacingCodes[]=punish_tip',
                 urlencode((string) $character->getId()),
                 urlencode((string) $firstMove->getMove()?->getId())
             ),
@@ -135,6 +139,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertCount(1, $payload);
         $this->assertSame($matching->getName(), $payload[0]['name']);
         $this->assertSame(ModerationState::APPROVED->value, $payload[0]['moderationState']);
+        $this->assertSame('punish_tip', $payload[0]['spacing']['code']);
 
         $this->client->request(
             'GET',
@@ -857,6 +862,71 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('Drinks', $specificRequirement->getObjectName());
         $this->assertSame('2', $specificRequirement->getStatusRequired());
         $this->assertSame('1', $specificRequirement->getAddedRelative());
+    }
+
+    public function testComboSpacingCanBeListedCreatedUpdatedAndCleared(): void
+    {
+        [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
+        $close = $this->persistComboSpacing('close', 'Close', 'The combo requires close range.', 10);
+        $punishTip = $this->persistComboSpacing('punish_tip', 'Punish tip', 'Extended hurtbox punish spacing.', 40);
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/api/combo-spacings', [], [], $this->getHeaders());
+        $listResponse = $this->client->getResponse();
+        $listPayload = json_decode((string) $listResponse->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $listResponse->getStatusCode());
+        $this->assertContains('close', array_column($listPayload, 'code'));
+        $this->assertContains('punish_tip', array_column($listPayload, 'code'));
+
+        $createPayload = [
+            'name' => 'Punish Tip Combo',
+            'spacingCode' => 'punish_tip',
+            'steps' => [[
+                'child_sequence_id' => $leafSequence->getId(),
+                'ordinal_in_combo' => 1,
+                'connection_type_id' => $connectionType->getId(),
+            ]],
+        ];
+
+        $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode($createPayload));
+        $createResponse = $this->client->getResponse();
+        $createdPayload = json_decode((string) $createResponse->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $createResponse->getStatusCode(), (string) $createResponse->getContent());
+        $this->assertSame('punish_tip', $createdPayload['spacing']['code']);
+        $createdCombo = $this->entityManager->getRepository(ComboSequences::class)->find($createdPayload['id']);
+        $this->assertInstanceOf(ComboSequences::class, $createdCombo);
+        $this->assertSame($punishTip->getId(), $createdCombo->getSpacing()?->getId());
+
+        $this->client->request('PATCH', sprintf('/api/combo-sequences/%d', $createdPayload['id']), [], [], $this->getJsonHeaders(), json_encode(['spacingId' => $close->getId()]));
+        $updatePayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame('close', $updatePayload['spacing']['code']);
+
+        $this->client->request('PATCH', sprintf('/api/combo-sequences/%d', $createdPayload['id']), [], [], $this->getJsonHeaders(), json_encode(['spacing' => null]));
+        $clearPayload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertNull($clearPayload['spacing']);
+    }
+
+    public function testCreateFullComboRejectsUnknownSpacingCode(): void
+    {
+        [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
+
+        $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode([
+            'name' => 'Invalid Spacing',
+            'spacingCode' => 'full_screen',
+            'steps' => [[
+                'child_sequence_id' => $leafSequence->getId(),
+                'ordinal_in_combo' => 1,
+                'connection_type_id' => $connectionType->getId(),
+            ]],
+        ]));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
     public function testCreateFullComboRecalculatesResourceMetricsFromSteps(): void
@@ -1877,6 +1947,24 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->entityManager->persist($starterStep);
 
         return $combo;
+    }
+
+    private function persistComboSpacing(string $code, string $name, string $description, int $sortOrder): ComboSpacing
+    {
+        $existing = $this->entityManager->getRepository(ComboSpacing::class)->findOneBy(['code' => $code]);
+        if ($existing instanceof ComboSpacing) {
+            return $existing;
+        }
+
+        $spacing = (new ComboSpacing())
+            ->setCode($code)
+            ->setName($name)
+            ->setDescription($description)
+            ->setSortOrder($sortOrder);
+
+        $this->entityManager->persist($spacing);
+
+        return $spacing;
     }
 
     /**

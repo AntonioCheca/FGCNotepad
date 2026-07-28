@@ -149,6 +149,7 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         maxDifficulty: parseOptionalNumber(state.maxDifficulty),
         minDamage: parseOptionalNumber(state.minDamage),
         maxDamage: parseOptionalNumber(state.maxDamage),
+        spacingCodes: state.spacingCodes.length > 0 ? state.spacingCodes : undefined,
         minDriveCost: driveCostRange.min,
         maxDriveCost: driveCostRange.max,
         minMinimumDriveCost: minimumDriveCostRange.min,

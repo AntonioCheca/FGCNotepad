@@ -108,6 +108,7 @@ class ComboSequenceController extends AbstractController
             'addedObjectName' => $this->normalizeStringFilter($request->query->get('addedObjectName')),
             'addedObjectStatus' => $this->normalizeStringFilter($request->query->get('addedObjectStatus')),
             'consumedObjectName' => $this->normalizeStringFilter($request->query->get('consumedObjectName')),
+            'spacingCodes' => $this->normalizeStringListFilter($request->query->all()['spacingCodes'] ?? $request->query->all()['spacing'] ?? []),
             'sort' => $this->normalizeSortFilter($request->query->get('sort')),
             'sortDirection' => $this->normalizeSortDirectionFilter($request->query->get('sortDirection')),
         ];
@@ -166,6 +167,30 @@ class ComboSequenceController extends AbstractController
         $trimmed = trim($value);
 
         return '' === $trimmed ? null : $trimmed;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeStringListFilter(mixed $value): array
+    {
+        $rawValues = is_array($value) ? $value : [$value];
+        $normalized = [];
+
+        foreach ($rawValues as $rawValue) {
+            if (!is_string($rawValue)) {
+                continue;
+            }
+
+            foreach (explode(',', $rawValue) as $part) {
+                $trimmed = trim($part);
+                if ('' !== $trimmed) {
+                    $normalized[$trimmed] = $trimmed;
+                }
+            }
+        }
+
+        return array_values($normalized);
     }
 
     private function normalizeIntegerFilter(mixed $value): ?int

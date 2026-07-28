@@ -75,6 +75,9 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 superGain={controller.superGain}
                 description={controller.description}
                 notes={controller.notes}
+                spacingCode={controller.spacingCode}
+                spacingOptions={controller.spacingOptions}
+                spacingLoading={controller.spacingLoading}
                 canSubmit={controller.canSubmit}
                 showAdvancedConditions={controller.showAdvancedConditions}
                 requirements={controller.requirements}
@@ -89,6 +92,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 onSuperGainChange={controller.setSuperGain}
                 onDescriptionChange={controller.setDescription}
                 onNotesChange={controller.setNotes}
+                onSpacingChange={controller.setSpacingCode}
                 onToggleAdvancedConditions={() => controller.setShowAdvancedConditions((prev) => !prev)}
                 onResetDraft={controller.clearDraft}
                 onRequirementToggle={controller.handleRequirementToggle}

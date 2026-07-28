@@ -4,6 +4,7 @@ import {useRouter} from "next/router";
 
 import useCombos from "@/hooks/useCombos";
 import useConnections from "@/hooks/useConnections";
+import useComboSpacings from "@/hooks/useComboSpacings";
 import AuthContext from "@/services/AuthContext";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppBox} from "@/src/components/ui/AppBox";
@@ -145,6 +146,7 @@ export default function ComboDetailPage() {
 
     const {getCombo, updateCombo, deleteCombo, fetchLeafs, fetchRequirementObjects} = useCombos();
     const {connections, loading: connectionsLoading, fetchConnections} = useConnections();
+    const {spacings: spacingOptions, loading: spacingLoading, fetchComboSpacings} = useComboSpacings();
 
     const [combo, setCombo] = React.useState<ComboDetailView | null>(null);
     const [leafs, setLeafs] = React.useState<LeafSequenceOption[]>([]);
@@ -164,6 +166,7 @@ export default function ComboDetailPage() {
     const [superGain, setSuperGain] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [notes, setNotes] = React.useState("");
+    const [spacingCode, setSpacingCode] = React.useState("");
     const [showAdvancedConditions, setShowAdvancedConditions] = React.useState(true);
     const [requirements, setRequirements] = React.useState<ComboRequirementsPayload>(emptyRequirements);
     const [specificRequirementObject, setSpecificRequirementObject] = React.useState("");
@@ -181,6 +184,7 @@ export default function ComboDetailPage() {
         setSuperGain(formatField(nextCombo.superGain === "-" ? "" : nextCombo.superGain));
         setDescription(nextCombo.description);
         setNotes("");
+        setSpacingCode(nextCombo.spacing?.code ?? "");
         setRequirements(getInitialRequirements(nextCombo));
         setSpecificRequirementObject(getSpecificRequirementObjectName(nextCombo));
         setSpecificRequirementStatus(getSpecificRequirementStatus(nextCombo));
@@ -199,8 +203,8 @@ export default function ComboDetailPage() {
         setLoading(true);
         setError(null);
 
-        Promise.all([getCombo(comboId), fetchConnections(), fetchRequirementObjects()])
-            .then(async ([comboResponse, connectionResponse, requirementResponse]: [ComboDetailApi, ConnectionType[], RequirementObjectOption[]]) => {
+        Promise.all([getCombo(comboId), fetchConnections(), fetchRequirementObjects(), fetchComboSpacings()])
+            .then(async ([comboResponse, connectionResponse, requirementResponse]: [ComboDetailApi, ConnectionType[], RequirementObjectOption[], unknown]) => {
                 const nextCombo = mapComboToDetailView(comboResponse);
                 const nextLeafs = nextCombo.characterId ? await fetchLeafs(nextCombo.characterId) : [];
                 if (canceled) {
@@ -226,7 +230,7 @@ export default function ComboDetailPage() {
         return () => {
             canceled = true;
         };
-    }, [comboId, fetchConnections, fetchLeafs, fetchRequirementObjects, getCombo, resetDraftFromCombo]);
+    }, [comboId, fetchComboSpacings, fetchConnections, fetchLeafs, fetchRequirementObjects, getCombo, resetDraftFromCombo]);
 
     const selectedRequirementObject = requirementObjects.find((option) => option.name === specificRequirementObject) ?? null;
     const activeRequirementsCount = requirementToggles.filter(({key}) => Boolean(requirements[key])).length + objectStates.length;
@@ -291,6 +295,7 @@ export default function ComboDetailPage() {
                 driveGain,
                 superCost,
                 superGain,
+                spacingCode,
                 requirements: requirementsResult.payload ?? emptyRequirements,
                 steps,
             });
@@ -378,6 +383,9 @@ export default function ComboDetailPage() {
                         superGain={superGain}
                         description={description}
                         notes={notes}
+                        spacingCode={spacingCode}
+                        spacingOptions={spacingOptions}
+                        spacingLoading={spacingLoading}
                         canSubmit={canSubmit && !saving}
                         showAdvancedConditions={showAdvancedConditions}
                         requirements={requirements}
@@ -393,6 +401,7 @@ export default function ComboDetailPage() {
                         onSuperGainChange={setSuperGain}
                         onDescriptionChange={setDescription}
                         onNotesChange={setNotes}
+                        onSpacingChange={setSpacingCode}
                         onToggleAdvancedConditions={() => setShowAdvancedConditions((previous) => !previous)}
                         onResetDraft={() => resetDraftFromCombo(combo, leafs, connections)}
                         onRequirementToggle={handleRequirementToggle}

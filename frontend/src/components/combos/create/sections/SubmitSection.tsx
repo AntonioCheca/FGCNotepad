@@ -11,6 +11,7 @@ import {CheckCircleOutlineIcon} from "@/src/components/ui/AppIcons";
 import type {
     ComboRequirementsPayload,
     ComboObjectStateDraft,
+    ComboSpacingOption,
     RequirementObjectOption,
 } from "@/src/types/combo";
 import {
@@ -29,6 +30,9 @@ interface SubmitSectionProps {
     superGain: string;
     description: string;
     notes: string;
+    spacingCode: string;
+    spacingOptions: ComboSpacingOption[];
+    spacingLoading?: boolean;
     canSubmit: boolean;
     showAdvancedConditions: boolean;
     requirements: ComboRequirementsPayload;
@@ -46,6 +50,7 @@ interface SubmitSectionProps {
     onSuperGainChange: (value: string) => void;
     onDescriptionChange: (value: string) => void;
     onNotesChange: (value: string) => void;
+    onSpacingChange: (value: string) => void;
     onToggleAdvancedConditions: () => void;
     onResetDraft: () => void;
     onRequirementToggle: (key: RequirementToggleKey, checked: boolean) => void;
@@ -63,6 +68,9 @@ export function SubmitSection({
     superGain,
     description,
     notes,
+    spacingCode,
+    spacingOptions,
+    spacingLoading = false,
     canSubmit,
     showAdvancedConditions,
     requirements,
@@ -80,12 +88,14 @@ export function SubmitSection({
     onSuperGainChange,
     onDescriptionChange,
     onNotesChange,
+    onSpacingChange,
     onToggleAdvancedConditions,
     onResetDraft,
     onRequirementToggle,
     onObjectStatesChange,
 }: SubmitSectionProps) {
     const availableObjectOptions = requirementObjects.filter((option) => !objectStates.some((state) => state.object_key === option.object_key));
+    const selectedSpacing = spacingOptions.find((option) => option.code === spacingCode) ?? null;
 
     const updateObjectState = (index: number, update: Partial<ComboObjectStateDraft>) => {
         onObjectStatesChange(objectStates.map((state, stateIndex) => stateIndex === index ? {...state, ...update} : state));
@@ -180,6 +190,28 @@ export function SubmitSection({
                     onChange={(event) => onDescriptionChange(event.target.value)}
                     disabled={readOnly}
                 />
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(180px, 280px) minmax(0, 1fr)"}, gap: 1, alignItems: "start"}}>
+                    <AppTextField
+                        select
+                        label="Spacing"
+                        value={spacingCode}
+                        onChange={(event) => onSpacingChange(event.target.value)}
+                        disabled={readOnly || spacingLoading}
+                        helperText="Leave unclassified if spacing has not been reviewed."
+                    >
+                        <AppMenuItem value="">Unclassified</AppMenuItem>
+                        {spacingOptions.map((option) => (
+                            <AppMenuItem key={option.code} value={option.code}>{option.name}</AppMenuItem>
+                        ))}
+                    </AppTextField>
+                    {selectedSpacing?.code === "punish_tip" ? (
+                        <AppTypography variant="body2" color="text.secondary" sx={{pt: {md: 0.8}}}>
+                            The starter connects because the punished move has an extended hurtbox. This is farther than the starter&apos;s normal tip range.
+                        </AppTypography>
+                    ) : selectedSpacing ? (
+                        <AppTypography variant="body2" color="text.secondary" sx={{pt: {md: 0.8}}}>{selectedSpacing.description}</AppTypography>
+                    ) : null}
+                </AppBox>
                 {!readOnly ? (
                     <AppTextField
                         label="Notes"

@@ -49,6 +49,7 @@ export interface ComboFilterState {
     maxDifficulty: string;
     minDamage: string;
     maxDamage: string;
+    spacingCodes: string[];
     driveWindows: ComboDriveWindowFilters;
     requirements: ComboRequirementFilters;
     sort: ComboSortField;
@@ -65,6 +66,7 @@ export interface ComboSearchFilters {
     maxDifficulty?: number;
     minDamage?: number;
     maxDamage?: number;
+    spacingCodes?: string[];
     minDriveCost?: number;
     maxDriveCost?: number;
     minMinimumDriveCost?: number;

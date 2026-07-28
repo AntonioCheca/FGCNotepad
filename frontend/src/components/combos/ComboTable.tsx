@@ -95,6 +95,7 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Character</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Starter</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Ender</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Spacing</AppTableCell>
                             {sortableHeaders.map(renderSortableHeader)}
                         </AppTableRow>
                     </AppTableHead>
@@ -146,6 +147,7 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                     <AppTableCell>{combo.characterName ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.starter ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.ender ?? "-"}</AppTableCell>
+                                    <AppTableCell>{combo.spacing}</AppTableCell>
                                     <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.resourceAdjustedDamage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.driveCost ?? "-"}</AppTableCell>

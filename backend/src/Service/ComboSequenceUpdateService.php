@@ -19,6 +19,7 @@ final class ComboSequenceUpdateService
         private readonly ComboStepFactory $comboStepFactory,
         private readonly ComboValueEstimator $comboValueEstimator,
         private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
+        private readonly ComboSpacingResolver $comboSpacingResolver,
     ) {
     }
 
@@ -45,6 +46,10 @@ final class ComboSequenceUpdateService
             }
 
             $sequence->setDescription((string) ($payload['description'] ?? ''));
+        }
+
+        if (array_key_exists('spacingId', $payload) || array_key_exists('spacingCode', $payload) || array_key_exists('spacing', $payload)) {
+            $sequence->setSpacing($this->comboSpacingResolver->resolveFromPayload($payload));
         }
 
         if (array_key_exists('metrics', $payload)) {

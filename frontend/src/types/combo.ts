@@ -5,6 +5,14 @@ export interface ConnectionType {
     name: string;
 }
 
+export interface ComboSpacingOption {
+    id: ID;
+    code: string;
+    name: string;
+    description: string;
+    sortOrder: number;
+}
+
 export interface CharacterOption {
     id: string;
     name: string;
@@ -30,6 +38,7 @@ export interface StepDraft {
 export interface CreateFullComboPayload {
     name: string;
     description?: string;
+    spacingCode?: string | null;
     metrics?: {
         damage?: number;
         driveCost?: number;
@@ -187,6 +196,8 @@ export interface ComboRow {
     superCost: number | string;
     superGain: number | string;
     season: string;
+    spacing: string;
+    spacingCode: string | null;
     isUsable: boolean;
     isFullyAudited: boolean;
     needsTechnicalReview: boolean;
@@ -212,6 +223,7 @@ export interface ComboApiSummary {
     moves?: ComboMoveSummary[];
     steps?: ComboStepSummary[];
     comboMetrics?: ComboMetricsApi;
+    spacing?: ComboSpacingOption | null;
     season?: ComboSeasonSummary[];
     is_usable?: boolean;
     is_fully_audited?: boolean;
@@ -249,6 +261,8 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         season: Array.isArray(combo.season)
             ? combo.season.map((season) => season.name ?? "-").join(", ")
             : "-",
+        spacing: combo.spacing?.name ?? "Unclassified",
+        spacingCode: combo.spacing?.code ?? null,
         isUsable: combo.is_usable ?? true,
         isFullyAudited: combo.is_fully_audited ?? true,
         needsTechnicalReview: combo.needs_technical_review ?? false,
@@ -295,6 +309,7 @@ export interface ComboDetailApi {
     character?: { id?: string | number; name?: string } | null;
     comboMetrics?: ComboMetricsApi | null;
     comboRequirement?: ComboRequirement | null;
+    spacing?: ComboSpacingOption | null;
     season?: ComboSeasonSummary[];
     steps?: ComboStep[];
     needs_technical_review?: boolean;
@@ -315,6 +330,7 @@ export interface ComboDetailView {
     superCost: number | string;
     superGain: number | string;
     seasonLabels: string[];
+    spacing: ComboSpacingOption | null;
     needsTechnicalReview: boolean;
     requirements: ComboRequirement | null;
     steps: ComboStep[];
@@ -338,6 +354,7 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
         seasonLabels: Array.isArray(combo.season)
             ? combo.season.map((season) => season.name ?? "-")
             : [],
+        spacing: combo.spacing ?? null,
         needsTechnicalReview: combo.needs_technical_review ?? false,
         requirements: combo.comboRequirement ?? null,
         steps: Array.isArray(combo.steps)

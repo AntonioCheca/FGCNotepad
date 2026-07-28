@@ -6,6 +6,7 @@ use App\Entity\Character;
 use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
+use App\Entity\ComboSpacing;
 use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\FrameData;
@@ -45,6 +46,7 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         self::assertNotNull($sequence->getId());
         self::assertSame('sequence', $sequence->getType()?->getName());
         self::assertSame('public', $sequence->getVisibility()?->getName());
+        self::assertNull($sequence->getSpacing());
         self::assertCount(1, $sequence->getSeason());
         self::assertCount(0, $sequence->getSteps());
 
@@ -107,6 +109,42 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         self::assertInstanceOf(Step::class, $persistedStep);
         self::assertSame($leafSequence->getId(), $persistedStep->getChildSequence()?->getId());
         self::assertSame('Initial Move', $persistedStep->getConnectionType()?->getName());
+    }
+
+    public function testCreateFromPayloadPersistsSpacingByCode(): void
+    {
+        $this->persistCreationLookups();
+        $spacing = $this->entityManager->getRepository(ComboSpacing::class)->findOneBy(['code' => 'tip']);
+        if (!$spacing instanceof ComboSpacing) {
+            $spacing = (new ComboSpacing())
+                ->setCode('tip')
+                ->setName('Tip')
+                ->setDescription('Normal tip range.')
+                ->setSortOrder(30);
+            $this->entityManager->persist($spacing);
+        }
+        $this->entityManager->flush();
+
+        $sequence = $this->service->createFromPayload([
+            'name' => 'Tip Combo',
+            'spacingCode' => 'tip',
+        ], 'combo');
+
+        self::assertSame($spacing->getId(), $sequence->getSpacing()?->getId());
+        self::assertSame('tip', $sequence->getSpacing()?->getCode());
+    }
+
+    public function testCreateFromPayloadRejectsUnknownSpacingCode(): void
+    {
+        $this->persistCreationLookups();
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('spacingCode does not reference an existing spacing option.');
+
+        $this->service->createFromPayload([
+            'name' => 'Invalid Spacing Combo',
+            'spacingCode' => 'full_screen',
+        ], 'combo');
     }
 
     public function testCreateFromPayloadRecalculatesResourceMetricsFromSteps(): void

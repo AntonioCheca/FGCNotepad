@@ -26,6 +26,7 @@ final class ComboSequenceCreationService
         private readonly ComboStepFactory $comboStepFactory,
         private readonly ComboValueEstimator $comboValueEstimator,
         private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
+        private readonly ComboSpacingResolver $comboSpacingResolver,
     ) {
     }
 
@@ -41,6 +42,7 @@ final class ComboSequenceCreationService
             ->setName((string) ($payload['name'] ?? ''))
             ->setDescription((string) ($payload['description'] ?? ''))
             ->setType($type)
+            ->setSpacing($this->comboSpacingResolver->resolveFromPayload($payload))
             ->setAuthor($author);
 
         $visibility = $this->visibilityRepository->findOneBy(['name' => $payload['visibility'] ?? 'public']);

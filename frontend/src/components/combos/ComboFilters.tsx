@@ -2,6 +2,7 @@ import React from "react";
 
 import {useCharacters} from "@/hooks/useCharacters";
 import useCombos from "@/hooks/useCombos";
+import useComboSpacings from "@/hooks/useComboSpacings";
 import useMoves from "@/hooks/useMoves";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
@@ -12,6 +13,7 @@ import {ComboAdvancedFiltersSection} from "./filters/ComboAdvancedFiltersSection
 import {ComboDriveWindowsFiltersSection} from "./filters/ComboDriveWindowsFiltersSection";
 import {ComboFiltersHeader} from "./filters/ComboFiltersHeader";
 import {ComboPrimaryFiltersSection} from "./filters/ComboPrimaryFiltersSection";
+import {ComboSpacingFiltersSection} from "./filters/ComboSpacingFiltersSection";
 import {ComboRequirementsFiltersSection} from "./filters/ComboRequirementsFiltersSection";
 import {DEFAULT_COMBO_FILTER_SORT} from "./filters/comboFilterConstants";
 import type {ComboFiltersProps, ComboSearchFilters} from "./filters/comboFilterTypes";
@@ -26,6 +28,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
     const {characters} = useCharacters();
     const {searchMoves} = useMoves();
     const {fetchRequirementObjects} = useCombos();
+    const {spacings: spacingOptions, fetchComboSpacings} = useComboSpacings();
     const {
         state,
         setQuery,
@@ -38,6 +41,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         setMaxDifficulty,
         setMinDamage,
         setMaxDamage,
+        toggleSpacingCode,
         addDriveWindow,
         removeDriveWindow,
         setDriveWindowRange,
@@ -85,10 +89,12 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
     const normalizedFilters = React.useMemo(() => buildComboSearchFilters(state), [state]);
 
     React.useEffect(() => {
+        fetchComboSpacings().catch(() => undefined);
+
         fetchRequirementObjects()
             .then((result: unknown) => setRequirementObjectOptions(normalizeRequirementObjectOptions(result)))
             .catch(() => setRequirementObjectOptions([]));
-    }, [fetchRequirementObjects]);
+    }, [fetchComboSpacings, fetchRequirementObjects]);
 
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -154,6 +160,12 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                         onMaxDifficultyChange={setMaxDifficulty}
                         onMinDamageChange={setMinDamage}
                         onMaxDamageChange={setMaxDamage}
+                    />
+
+                    <ComboSpacingFiltersSection
+                        spacingOptions={spacingOptions}
+                        selectedCodes={state.spacingCodes}
+                        onToggleSpacingCode={toggleSpacingCode}
                     />
 
                     <ComboDriveWindowsFiltersSection
