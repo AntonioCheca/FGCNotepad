@@ -5,8 +5,7 @@ import {AppIconButton} from '@/src/components/ui/AppIconButton';
 import NavigationSection from '@/src/components/navigation/NavigationSection';
 import {navigationSections} from '@/src/data/navigationData';
 import Link from 'next/link';
-import {Brightness4Icon, Brightness7Icon, ChevronLeftIcon, ChevronRightIcon} from '@/src/components/ui/AppIcons';
-import {useMode} from "@/src/context/ThemeContext";
+import {ChevronLeftIcon, ChevronRightIcon} from '@/src/components/ui/AppIcons';
 import ThemeLogo from "@/src/components/ui/ThemeLogo";
 import React from "react";
 import AuthContext from "@/services/AuthContext";
@@ -18,7 +17,6 @@ type SidebarProps = {
 };
 
 export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
-    const {mode, toggleColorMode} = useMode();
     const authContext = React.useContext(AuthContext);
 
     if (!authContext) {
@@ -125,21 +123,6 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                         {collapsed ? <ChevronRightIcon/> : <ChevronLeftIcon/>}
                     </AppIconButton>
 
-                    <AppIconButton
-                        onClick={toggleColorMode}
-                        size="small"
-                        aria-label={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                        sx={{
-                            border: '1px solid',
-                            borderColor: 'fgc.border.subtle',
-                            backgroundColor: 'fgc.surface.interactive',
-                            '&:hover': {
-                                backgroundColor: 'fgc.surface.raised',
-                            },
-                        }}
-                    >
-                        {mode === 'light' ? <Brightness4Icon/> : <Brightness7Icon/>}
-                    </AppIconButton>
                 </AppBox>
             </AppBox>
 

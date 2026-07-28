@@ -7,11 +7,9 @@ import {AppCardContent} from "@/src/components/ui/AppCardContent";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {NormalParagraph} from "@/src/components/ui/NormalParagraph";
 import {TextLink} from "@/src/components/ui/TextLink";
-import {useMode} from "@/src/context/ThemeContext";
 
 export default function AboutPage() {
-    const {mode} = useMode();
-    const logoSrc = mode === "light" ? "/logos/fgt-completo-color-pos.svg" : "/logos/fgt-completo-color-neg.svg";
+    const logoSrc = "/logos/fgt-completo-color-neg.svg";
 
     return (
         <AppBox sx={{maxWidth: 760, mx: "auto", p: 3}}>

@@ -3,23 +3,6 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #04141f;
-    --foreground: #e4f2f8;
-  }
-}
-
-html[data-fgc-theme-mode="light"] {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
-html[data-fgc-theme-mode="dark"] {
   --background: #04141f;
   --foreground: #e4f2f8;
 }

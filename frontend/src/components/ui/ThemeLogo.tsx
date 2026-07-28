@@ -1,4 +1,3 @@
-import {useMode} from "@/src/context/ThemeContext";
 import Image from "next/image";
 
 type ThemeLogoProps = {
@@ -7,11 +6,7 @@ type ThemeLogoProps = {
 };
 
 export default function ThemeLogo({className, collapsed = false}: ThemeLogoProps) {
-    const {mode} = useMode();
-
-    const src = collapsed
-        ? (mode === "light" ? "/logos/favicon-color-pos.svg" : "/logos/favicon-color-neg.svg")
-        : (mode === "light" ? "/logos/fgt-simp-color-pos.svg" : "/logos/fgt-simp-color-neg.svg");
+    const src = collapsed ? "/logos/favicon-color-neg.svg" : "/logos/fgt-simp-color-neg.svg";
 
     const width = collapsed ? 40 : 172;
     const height = collapsed ? 40 : 51;

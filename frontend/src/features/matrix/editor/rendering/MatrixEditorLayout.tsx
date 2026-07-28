@@ -10,17 +10,14 @@ interface MatrixEditorLayoutProps {
 }
 
 export function MatrixEditorLayout({title, onDelete, warnings = [], children}: MatrixEditorLayoutProps) {
-    const {mode, theme} = useMode();
-    const isDark = mode === "dark";
+    const {theme} = useMode();
 
     return (
         <section
             className={styles.matrixEditorShell}
             style={{
                 "--matrix-border": theme.fgc.border.default,
-                "--matrix-shell-background": isDark
-                    ? `linear-gradient(180deg, ${theme.fgc.surface.base} 0%, ${theme.fgc.surface.sunken} 100%)`
-                    : `linear-gradient(180deg, ${theme.fgc.surface.base} 0%, ${theme.fgc.background.subtle} 100%)`,
+                "--matrix-shell-background": `linear-gradient(180deg, ${theme.fgc.surface.base} 0%, ${theme.fgc.surface.sunken} 100%)`,
             } as React.CSSProperties}
         >
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>

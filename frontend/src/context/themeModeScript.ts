@@ -1,17 +1,10 @@
-export const THEME_STORAGE_KEY = "fgc-theme-mode";
-
 export const THEME_MODE_PRELOAD_SCRIPT = `
 (function () {
   try {
-    var key = "${THEME_STORAGE_KEY}";
-    var storedMode = window.localStorage.getItem(key);
-    var mode = storedMode === "light" || storedMode === "dark"
-      ? storedMode
-      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    var background = mode === "dark" ? "#04141f" : "#f8fafc";
-    var foreground = mode === "dark" ? "#e4f2f8" : "#0f172a";
+    var background = "#04141f";
+    var foreground = "#e4f2f8";
 
-    document.documentElement.dataset.fgcThemeMode = mode;
+    document.documentElement.dataset.fgcThemeMode = "dark";
     document.documentElement.style.backgroundColor = background;
     document.documentElement.style.color = foreground;
 
