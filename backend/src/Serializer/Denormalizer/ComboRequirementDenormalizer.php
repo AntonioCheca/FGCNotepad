@@ -42,6 +42,15 @@ class ComboRequirementDenormalizer implements DenormalizerInterface
         $requirement->setAirborneRequired((bool) ($data['airborne_required'] ?? false));
         $requirement->setNotCrouchingRequired((bool) ($data['not_crouching_required'] ?? false));
         $requirement->setSideSwitchesRequired((bool) ($data['side_switches_required'] ?? false));
+        if (array_key_exists('initial_opponent_posture', $data)) {
+            $requirement->setInitialOpponentPosture(is_string($data['initial_opponent_posture']) ? $data['initial_opponent_posture'] : null);
+        }
+        if (array_key_exists('initial_opponent_ground_state', $data)) {
+            $requirement->setInitialOpponentGroundState(is_string($data['initial_opponent_ground_state']) ? $data['initial_opponent_ground_state'] : null);
+        }
+        if (array_key_exists('initial_juggle_altitude', $data)) {
+            $requirement->setInitialJuggleAltitude(is_string($data['initial_juggle_altitude']) ? $data['initial_juggle_altitude'] : null);
+        }
 
         $objectStatePayloads = [];
         if (isset($data['combo_object_states']) && is_array($data['combo_object_states'])) {

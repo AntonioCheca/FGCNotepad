@@ -1,3 +1,5 @@
+import type {CompatibilityResultPayload} from "@/src/types/situation";
+
 export type ID = number;
 
 export interface ConnectionType {
@@ -98,6 +100,9 @@ export interface ComboRequirementsPayload {
     airborne_required?: boolean;
     not_crouching_required?: boolean;
     side_switches_required?: boolean;
+    initial_opponent_posture?: string | null;
+    initial_opponent_ground_state?: string | null;
+    initial_juggle_altitude?: string | null;
     requirement_specific_character?: RequirementSpecificCharacterPayload;
     combo_object_states?: RequirementSpecificCharacterPayload[];
 }
@@ -201,6 +206,7 @@ export interface ComboRow {
     isUsable: boolean;
     isFullyAudited: boolean;
     needsTechnicalReview: boolean;
+    compatibility: CompatibilityResultPayload | null;
 }
 
 interface ComboMoveSummary {
@@ -228,6 +234,7 @@ export interface ComboApiSummary {
     is_usable?: boolean;
     is_fully_audited?: boolean;
     needs_technical_review?: boolean;
+    compatibility?: CompatibilityResultPayload | null;
 }
 
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
@@ -266,6 +273,7 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         isUsable: combo.is_usable ?? true,
         isFullyAudited: combo.is_fully_audited ?? true,
         needsTechnicalReview: combo.needs_technical_review ?? false,
+        compatibility: combo.compatibility ?? null,
     };
 }
 
@@ -276,6 +284,9 @@ export interface ComboRequirement {
     airborne_required?: boolean;
     not_crouching_required?: boolean;
     side_switches_required?: boolean;
+    initial_opponent_posture?: string | null;
+    initial_opponent_ground_state?: string | null;
+    initial_juggle_altitude?: string | null;
     requirement_specific_character?: {
         object_key?: string | null;
         character_name?: string | null;

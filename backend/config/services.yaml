@@ -30,6 +30,11 @@ services:
         tags: ['controller.service_arguments']
         autowire: true
         autoconfigure: true
+    App\Repository\:
+        resource: '../src/Repository'
+        tags: ['doctrine.repository_service']
+        autowire: true
+        autoconfigure: true
 
     App\Command\DownloadFrameDataFromFatJsonCommand:
         arguments:

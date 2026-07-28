@@ -11,6 +11,8 @@ use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
+use App\Repository\SituationRepository;
+use App\Service\CompatibilityResult;
 use App\Service\ComboNotationTranslator;
 use App\Service\ComboNotationDictionaryTranslator;
 use App\Service\NotationCanonicalizer;
@@ -19,6 +21,7 @@ use App\Service\ComboSequenceCreationService;
 use App\Service\ComboSequenceUpdateService;
 use App\Service\ComboStarterModifierExtractor;
 use App\Service\ComboCrouchRequirementInferenceService;
+use App\Service\SituationComboMatcher;
 use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\EndpointAuthorizationService;
@@ -56,6 +59,8 @@ class ComboSequenceController extends AbstractController
         private Sf6ComboDamageEstimatorService $sf6ComboDamageEstimatorService,
         private Sf6ComboResourceEstimatorService $sf6ComboResourceEstimatorService,
         private ComboCrouchRequirementInferenceService $comboCrouchRequirementInferenceService,
+        private SituationRepository $situationRepository,
+        private SituationComboMatcher $situationComboMatcher,
     )
     {
     }
@@ -114,6 +119,7 @@ class ComboSequenceController extends AbstractController
         ];
 
         $limit = $request->query->getInt('size', 100);
+        $situationId = $this->normalizeIntegerFilter($request->query->get('situationId'));
 
         $actor = $this->security->getUser();
         $sequences = $this->comboSequencesRepository->searchNonLeafsByFilters(
@@ -121,7 +127,45 @@ class ComboSequenceController extends AbstractController
             $limit,
             $actor instanceof User ? $actor : null,
         );
+
+        $compatibilityByComboId = [];
+        if (null !== $situationId) {
+            $situation = $this->situationRepository->find($situationId);
+            if (null === $situation) {
+                throw new NotFoundHttpException(sprintf('Situation ID %d not found.', $situationId));
+            }
+
+            $filteredSequences = [];
+            foreach ($sequences as $sequence) {
+                $result = $this->situationComboMatcher->evaluate($sequence, $situation);
+                if (CompatibilityResult::INCOMPATIBLE === $result->getStatus()) {
+                    continue;
+                }
+
+                $comboId = $sequence->getId();
+                if (null !== $comboId) {
+                    $compatibilityByComboId[$comboId] = $result->toArray();
+                }
+                $filteredSequences[] = $sequence;
+            }
+            $sequences = $filteredSequences;
+        }
         $json = $this->serializer->serialize($sequences, 'json');
+
+        if ([] !== $compatibilityByComboId) {
+            $payload = json_decode($json, true);
+            if (is_array($payload)) {
+                foreach ($payload as &$row) {
+                    if (!is_array($row) || !isset($row['id'])) {
+                        continue;
+                    }
+                    $row['compatibility'] = $compatibilityByComboId[(int) $row['id']] ?? null;
+                }
+                unset($row);
+
+                return new JsonResponse($payload, 200);
+            }
+        }
 
         return new JsonResponse($json, 200, [], true);
     }

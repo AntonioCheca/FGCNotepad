@@ -26,6 +26,7 @@ export const DEFAULT_COMBO_DRIVE_WINDOWS: ComboDriveWindowFilters = {
 export const DEFAULT_COMBO_FILTER_STATE: ComboFilterState = {
     query: "",
     characterId: "",
+    situation: null,
     firstMove: null,
     firstMoveQuery: "",
     enderMove: null,

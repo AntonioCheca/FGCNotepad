@@ -96,6 +96,7 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Starter</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Ender</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Spacing</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Situation</AppTableCell>
                             {sortableHeaders.map(renderSortableHeader)}
                         </AppTableRow>
                     </AppTableHead>
@@ -105,6 +106,8 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                 ? combo.season
                                 : "-";
                             const isPendingReview = combo.moderationState === "pending_review";
+                            const compatibility = combo.compatibility;
+                            const compatibilityColor = compatibility?.status === "compatible" ? "success" : compatibility?.status === "uncertain" ? "warning" : "default";
 
                             return (
                                 <AppTableRow
@@ -148,6 +151,16 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                     <AppTableCell>{combo.starter ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.ender ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.spacing}</AppTableCell>
+                                    <AppTableCell>
+                                        {compatibility ? (
+                                            <AppBox sx={{display: "grid", gap: 0.35, minWidth: 180}}>
+                                                <AppChip size="small" color={compatibilityColor} variant="outlined" label={compatibility.status} sx={{width: "fit-content", fontWeight: 700}} />
+                                                <AppTypography variant="caption" color="text.secondary">
+                                                    {[...(compatibility.reasons ?? []), ...(compatibility.warnings ?? [])][0] ?? "Evaluated for selected situation."}
+                                                </AppTypography>
+                                            </AppBox>
+                                        ) : "-"}
+                                    </AppTableCell>
                                     <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.resourceAdjustedDamage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.driveCost ?? "-"}</AppTableCell>

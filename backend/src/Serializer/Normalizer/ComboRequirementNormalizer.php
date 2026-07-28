@@ -35,6 +35,9 @@ class ComboRequirementNormalizer implements NormalizerInterface
             'airborne_required' => $object->isAirborneRequired(),
             'not_crouching_required' => $object->isNotCrouchingRequired(),
             'side_switches_required' => $object->isSideSwitchesRequired(),
+            'initial_opponent_posture' => $object->getInitialOpponentPosture(),
+            'initial_opponent_ground_state' => $object->getInitialOpponentGroundState(),
+            'initial_juggle_altitude' => $object->getInitialJuggleAltitude(),
             'combo_object_states' => $normalizedObjectStates,
             'requirement_specific_character' => null !== $firstObjectState ? [
                 'id' => $firstObjectState->getId(),

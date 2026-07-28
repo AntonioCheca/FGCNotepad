@@ -21,6 +21,13 @@ export interface ComboCharacterOption {
     name: string;
 }
 
+export interface ComboSituationOption {
+    id: number;
+    name: string;
+    typeName: string;
+    typeCode: string;
+}
+
 export interface ComboRequirementFilters {
     isEssential: ComboBooleanFilterValue;
     counterHitRequired: ComboBooleanFilterValue;
@@ -41,6 +48,7 @@ export type ComboRequirementFilterKey = Exclude<keyof ComboRequirementFilters, "
 export interface ComboFilterState {
     query: string;
     characterId: string;
+    situation: ComboSituationOption | null;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
     enderMove: ComboMoveSearchOption | null;
@@ -60,6 +68,7 @@ export interface ComboFilterState {
 export interface ComboSearchFilters {
     q?: string;
     characterId?: string;
+    situationId?: number;
     firstMoveId?: string;
     enderMoveId?: string;
     minDifficulty?: number;

@@ -4,6 +4,7 @@ import {useCharacters} from "@/hooks/useCharacters";
 import useCombos from "@/hooks/useCombos";
 import useComboSpacings from "@/hooks/useComboSpacings";
 import useMoves from "@/hooks/useMoves";
+import {useSituations} from "@/hooks/useSituations";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCollapse} from "@/src/components/ui/AppCollapse";
@@ -16,8 +17,8 @@ import {ComboPrimaryFiltersSection} from "./filters/ComboPrimaryFiltersSection";
 import {ComboSpacingFiltersSection} from "./filters/ComboSpacingFiltersSection";
 import {ComboRequirementsFiltersSection} from "./filters/ComboRequirementsFiltersSection";
 import {DEFAULT_COMBO_FILTER_SORT} from "./filters/comboFilterConstants";
-import type {ComboFiltersProps, ComboSearchFilters} from "./filters/comboFilterTypes";
-import {buildComboSearchFilters, normalizeCharacterOptions, normalizeRequirementObjectOptions} from "./filters/comboFilterUtils";
+import type {ComboFiltersProps, ComboSearchFilters, ComboSituationOption} from "./filters/comboFilterTypes";
+import {buildComboSearchFilters, normalizeCharacterOptions, normalizeRequirementObjectOptions, normalizeSituationOptions} from "./filters/comboFilterUtils";
 import {useComboFilterState} from "./filters/useComboFilterState";
 import {useComboMoveSearch} from "./filters/useComboMoveSearch";
 import type {RequirementObjectOption} from "@/src/types/combo";
@@ -27,12 +28,14 @@ export type {ComboSearchFilters};
 export default function ComboFilters({onChange}: ComboFiltersProps) {
     const {characters} = useCharacters();
     const {searchMoves} = useMoves();
+    const {fetchSituations} = useSituations();
     const {fetchRequirementObjects} = useCombos();
     const {spacings: spacingOptions, fetchComboSpacings} = useComboSpacings();
     const {
         state,
         setQuery,
         selectCharacter,
+        setSituation,
         setFirstMove,
         setFirstMoveQuery,
         setEnderMove,
@@ -53,6 +56,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         clearFilters,
     } = useComboFilterState();
     const [requirementObjectOptions, setRequirementObjectOptions] = React.useState<RequirementObjectOption[]>([]);
+    const [situationOptions, setSituationOptions] = React.useState<ComboSituationOption[]>([]);
 
     const compactFieldSx = React.useMemo(
         () => ({
@@ -94,7 +98,11 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
         fetchRequirementObjects()
             .then((result: unknown) => setRequirementObjectOptions(normalizeRequirementObjectOptions(result)))
             .catch(() => setRequirementObjectOptions([]));
-    }, [fetchComboSpacings, fetchRequirementObjects]);
+
+        fetchSituations()
+            .then((result) => setSituationOptions(normalizeSituationOptions(result)))
+            .catch(() => setSituationOptions([]));
+    }, [fetchComboSpacings, fetchRequirementObjects, fetchSituations]);
 
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -120,6 +128,8 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
             <ComboPrimaryFiltersSection
                 characterOptions={characterOptions}
                 selectedCharacter={selectedCharacter}
+                situationOptions={situationOptions}
+                selectedSituation={state.situation}
                 firstMove={state.firstMove}
                 firstMoveQuery={state.firstMoveQuery}
                 firstMoveOptions={firstMoveOptions}
@@ -135,6 +145,7 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
                     clearFirstMoveOptions();
                     clearEnderMoveOptions();
                 }}
+                onSituationChange={setSituation}
                 onFirstMoveChange={setFirstMove}
                 onFirstMoveQueryChange={setFirstMoveQuery}
                 onEnderMoveChange={setEnderMove}

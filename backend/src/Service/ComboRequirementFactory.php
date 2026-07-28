@@ -26,6 +26,9 @@ class ComboRequirementFactory
         $airborneRequired = (bool) ($requirements['airborne_required'] ?? false);
         $notCrouchingRequired = (bool) ($requirements['not_crouching_required'] ?? false);
         $sideSwitchesRequired = (bool) ($requirements['side_switches_required'] ?? false);
+        $initialOpponentPosture = $this->nullableString($requirements['initial_opponent_posture'] ?? null);
+        $initialOpponentGroundState = $this->nullableString($requirements['initial_opponent_ground_state'] ?? null);
+        $initialJuggleAltitude = $this->nullableString($requirements['initial_juggle_altitude'] ?? null);
 
         $objectStatePayloads = $this->objectStatePayloads($requirements);
 
@@ -44,7 +47,7 @@ class ComboRequirementFactory
             || $notCrouchingRequired
             || $sideSwitchesRequired;
 
-        if (!$hasBooleanRequirement && !$hasObjectStates) {
+        if (!$hasBooleanRequirement && !$hasObjectStates && null === $initialOpponentPosture && null === $initialOpponentGroundState && null === $initialJuggleAltitude) {
             return null;
         }
 
@@ -55,7 +58,10 @@ class ComboRequirementFactory
             ->setCornerRequired($cornerRequired)
             ->setAirborneRequired($airborneRequired)
             ->setNotCrouchingRequired($notCrouchingRequired)
-            ->setSideSwitchesRequired($sideSwitchesRequired);
+            ->setSideSwitchesRequired($sideSwitchesRequired)
+            ->setInitialOpponentPosture($initialOpponentPosture)
+            ->setInitialOpponentGroundState($initialOpponentGroundState)
+            ->setInitialJuggleAltitude($initialJuggleAltitude);
 
         foreach ($objectStates as $objectState) {
             $comboRequirement->addCharacterObjectState($objectState);
@@ -80,6 +86,17 @@ class ComboRequirementFactory
         }
 
         return [];
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return '' === $trimmed ? null : $trimmed;
     }
 
     /** @param array<string, mixed> $payload */

@@ -100,6 +100,13 @@ export const navigationSections: NavigationSection[] = [
                 icon: <ArticleOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
+            },
+            {
+                label: "Situations",
+                href: "/admin/situations",
+                icon: <SearchOutlinedIcon/>,
+                requiresAuth: true,
+                allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
             }
         ]
     },

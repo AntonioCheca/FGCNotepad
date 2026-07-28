@@ -5,6 +5,7 @@ import type {
     ComboFilterState,
     ComboDriveWindowMetric,
     ComboMoveSearchOption,
+    ComboSituationOption,
     ComboBooleanFilterValue,
     ComboRequirementFilterKey,
     ComboSortDirection,
@@ -14,6 +15,7 @@ import type {
 type ComboFilterAction =
     | {type: "setQuery"; value: string}
     | {type: "selectCharacter"; characterId: string}
+    | {type: "setSituation"; value: ComboSituationOption | null}
     | {type: "setFirstMove"; value: ComboMoveSearchOption | null}
     | {type: "setFirstMoveQuery"; value: string}
     | {type: "setEnderMove"; value: ComboMoveSearchOption | null}
@@ -38,6 +40,8 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
             return {...state, query: action.value};
         case "selectCharacter":
             return {...state, characterId: action.characterId, firstMove: null, firstMoveQuery: "", enderMove: null, enderMoveQuery: ""};
+        case "setSituation":
+            return {...state, situation: action.value};
         case "setFirstMove":
             return {...state, firstMove: action.value};
         case "setFirstMoveQuery":
@@ -120,6 +124,7 @@ export function useComboFilterState() {
     const actions = React.useMemo(() => ({
         setQuery: (value: string) => dispatch({type: "setQuery", value}),
         selectCharacter: (characterId: string) => dispatch({type: "selectCharacter", characterId}),
+        setSituation: (value: ComboSituationOption | null) => dispatch({type: "setSituation", value}),
         setFirstMove: (value: ComboMoveSearchOption | null) => dispatch({type: "setFirstMove", value}),
         setFirstMoveQuery: (value: string) => dispatch({type: "setFirstMoveQuery", value}),
         setEnderMove: (value: ComboMoveSearchOption | null) => dispatch({type: "setEnderMove", value}),

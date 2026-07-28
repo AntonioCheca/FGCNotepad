@@ -17,6 +17,14 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: "idx_combo_requirement_side_switches", columns: ["side_switches_required"])]
 class ComboRequirement
 {
+    public const POSTURE_STANDING = 'standing';
+    public const POSTURE_CROUCHING = 'crouching';
+    public const GROUND_STATE_GROUNDED = 'grounded';
+    public const GROUND_STATE_AIRBORNE = 'airborne';
+    public const JUGGLE_ALTITUDE_LOW = 'low';
+    public const JUGGLE_ALTITUDE_MEDIUM = 'medium';
+    public const JUGGLE_ALTITUDE_HIGH = 'high';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -43,6 +51,15 @@ class ComboRequirement
 
     #[ORM\Column(options: ['default' => false])]
     private bool $side_switches_required = false;
+
+    #[ORM\Column(name: 'initial_opponent_posture', length: 16, nullable: true)]
+    private ?string $initialOpponentPosture = null;
+
+    #[ORM\Column(name: 'initial_opponent_ground_state', length: 16, nullable: true)]
+    private ?string $initialOpponentGroundState = null;
+
+    #[ORM\Column(name: 'initial_juggle_altitude', length: 16, nullable: true)]
+    private ?string $initialJuggleAltitude = null;
 
     /**
      * @var Collection<int, CharacterObjectState>
@@ -147,6 +164,54 @@ class ComboRequirement
         $this->side_switches_required = $side_switches_required;
 
         return $this;
+    }
+
+    public function getInitialOpponentPosture(): ?string
+    {
+        return $this->initialOpponentPosture;
+    }
+
+    public function setInitialOpponentPosture(?string $initialOpponentPosture): static
+    {
+        $this->initialOpponentPosture = $this->normalizeEnum($initialOpponentPosture, [self::POSTURE_STANDING, self::POSTURE_CROUCHING]);
+
+        return $this;
+    }
+
+    public function getInitialOpponentGroundState(): ?string
+    {
+        return $this->initialOpponentGroundState;
+    }
+
+    public function setInitialOpponentGroundState(?string $initialOpponentGroundState): static
+    {
+        $this->initialOpponentGroundState = $this->normalizeEnum($initialOpponentGroundState, [self::GROUND_STATE_GROUNDED, self::GROUND_STATE_AIRBORNE]);
+
+        return $this;
+    }
+
+    public function getInitialJuggleAltitude(): ?string
+    {
+        return $this->initialJuggleAltitude;
+    }
+
+    public function setInitialJuggleAltitude(?string $initialJuggleAltitude): static
+    {
+        $this->initialJuggleAltitude = $this->normalizeEnum($initialJuggleAltitude, [self::JUGGLE_ALTITUDE_LOW, self::JUGGLE_ALTITUDE_MEDIUM, self::JUGGLE_ALTITUDE_HIGH]);
+
+        return $this;
+    }
+
+    /** @param list<string> $allowedValues */
+    private function normalizeEnum(?string $value, array $allowedValues): ?string
+    {
+        if (null === $value || '' === trim($value)) {
+            return null;
+        }
+
+        $normalized = mb_strtolower(trim($value));
+
+        return in_array($normalized, $allowedValues, true) ? $normalized : null;
     }
 
     public function getCharacterObjectState(): ?CharacterObjectState

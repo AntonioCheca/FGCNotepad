@@ -32,6 +32,7 @@ If any instruction conflicts, apply this order of precedence:
 - Avoid mocking by default, especially in backend domain/service tests.
 - Use strict typing whenever possible (backend mandatory, frontend target state).
 - Any Entity or Doctrine migration change requires explicit user confirmation before implementation.
+- Do not use JSON or JSONB columns in migrations; model data with normal typed columns or relational tables/foreign keys instead.
 
 ## Planning contract (required for every feature)
 

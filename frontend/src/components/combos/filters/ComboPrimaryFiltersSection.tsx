@@ -2,11 +2,13 @@ import {AppAutocomplete} from "@/src/components/ui/AppAutocomplete";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
-import type {ComboCharacterOption, ComboMoveSearchOption} from "./comboFilterTypes";
+import type {ComboCharacterOption, ComboMoveSearchOption, ComboSituationOption} from "./comboFilterTypes";
 
 interface ComboPrimaryFiltersSectionProps {
     characterOptions: ComboCharacterOption[];
     selectedCharacter: ComboCharacterOption | null;
+    situationOptions: ComboSituationOption[];
+    selectedSituation: ComboSituationOption | null;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
     firstMoveOptions: ComboMoveSearchOption[];
@@ -18,6 +20,7 @@ interface ComboPrimaryFiltersSectionProps {
     query: string;
     compactFieldSx: object;
     onCharacterChange: (value: ComboCharacterOption | null) => void;
+    onSituationChange: (value: ComboSituationOption | null) => void;
     onFirstMoveChange: (value: ComboMoveSearchOption | null) => void;
     onFirstMoveQueryChange: (value: string) => void;
     onEnderMoveChange: (value: ComboMoveSearchOption | null) => void;
@@ -28,6 +31,8 @@ interface ComboPrimaryFiltersSectionProps {
 export function ComboPrimaryFiltersSection({
     characterOptions,
     selectedCharacter,
+    situationOptions,
+    selectedSituation,
     firstMove,
     firstMoveQuery,
     firstMoveOptions,
@@ -39,6 +44,7 @@ export function ComboPrimaryFiltersSection({
     query,
     compactFieldSx,
     onCharacterChange,
+    onSituationChange,
     onFirstMoveChange,
     onFirstMoveQueryChange,
     onEnderMoveChange,
@@ -47,7 +53,7 @@ export function ComboPrimaryFiltersSection({
 }: ComboPrimaryFiltersSectionProps) {
     return (
         <SectionCard title="Primary Filters" tone="raised" variant="input">
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(180px, 0.85fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(180px, 0.8fr)"}, gap: 1}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(170px, 0.75fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(160px, 0.75fr)"}, gap: 1}}>
                 <AppAutocomplete<ComboCharacterOption, false, false, false>
                     options={characterOptions}
                     value={selectedCharacter}
@@ -55,6 +61,15 @@ export function ComboPrimaryFiltersSection({
                     getOptionLabel={(option) => option.name}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     renderInput={(params) => <AppTextField {...params} label="Character" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
+                />
+
+                <AppAutocomplete<ComboSituationOption, false, false, false>
+                    options={situationOptions}
+                    value={selectedSituation}
+                    onChange={(_, value) => onSituationChange(value)}
+                    getOptionLabel={(option) => `${option.typeName}: ${option.name}`}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    renderInput={(params) => <AppTextField {...params} label="Situation" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
                 />
 
                 <AppAutocomplete<ComboMoveSearchOption, false, false, false>
