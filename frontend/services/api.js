@@ -41,6 +41,65 @@ const api = axios.create({
 });
 
 let csrfToken = null;
+let sessionCheckPending = isClient;
+let resolveSessionCheck = null;
+let sessionCheckPromise = isClient
+    ? new Promise((resolve) => {
+        resolveSessionCheck = resolve;
+    })
+    : Promise.resolve();
+
+function isUnsafeMethod(method) {
+    return ["POST", "PUT", "PATCH", "DELETE"].includes(String(method || "get").toUpperCase());
+}
+
+function getConfigPathname(config) {
+    try {
+        return new URL(config.url || "", config.baseURL || API_BASE_URL).pathname;
+    } catch {
+        return String(config.url || "");
+    }
+}
+
+function skipsBrowserSessionCsrf(config) {
+    const pathname = getConfigPathname(config);
+
+    return pathname.endsWith("/login") || pathname.includes("/register") || pathname.includes("/shared-review/");
+}
+
+function isInvalidCsrfError(error) {
+    const status = error?.response?.status;
+    const message = error?.response?.data?.message;
+
+    return status === 403 && message === "Invalid CSRF token.";
+}
+
+async function refreshCsrfToken() {
+    const response = await api.get("/csrf-token");
+    setCsrfToken(response.data?.csrfToken ?? null);
+}
+
+export const beginAuthSessionCheck = () => {
+    if (!isClient || sessionCheckPending) {
+        return;
+    }
+
+    sessionCheckPending = true;
+    sessionCheckPromise = new Promise((resolve) => {
+        resolveSessionCheck = resolve;
+    });
+};
+
+export const completeAuthSessionCheck = () => {
+    if (!isClient || !sessionCheckPending) {
+        return;
+    }
+
+    sessionCheckPending = false;
+    resolveSessionCheck?.();
+    resolveSessionCheck = null;
+    sessionCheckPromise = Promise.resolve();
+};
 
 export const setCsrfToken = (token) => {
     csrfToken = typeof token === "string" && token.length > 0 ? token : null;
@@ -50,12 +109,35 @@ export const clearCsrfToken = () => {
     csrfToken = null;
 };
 
-api.interceptors.request.use((config) => {
-    const method = String(config.method || "get").toUpperCase();
-    if (csrfToken && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+api.interceptors.request.use(async (config) => {
+    if (isUnsafeMethod(config.method) && !csrfToken && sessionCheckPending && !skipsBrowserSessionCsrf(config)) {
+        await sessionCheckPromise;
+    }
+
+    if (csrfToken && isUnsafeMethod(config.method) && !skipsBrowserSessionCsrf(config)) {
         config.headers["X-CSRF-Token"] = csrfToken;
     }
     return config;
 });
+
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error?.config;
+        if (
+            originalRequest
+            && isUnsafeMethod(originalRequest.method)
+            && !originalRequest._csrfRetry
+            && isInvalidCsrfError(error)
+        ) {
+            originalRequest._csrfRetry = true;
+            await refreshCsrfToken();
+
+            return api(originalRequest);
+        }
+
+        return Promise.reject(error);
+    },
+);
 
 export default api;

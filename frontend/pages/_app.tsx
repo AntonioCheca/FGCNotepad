@@ -4,6 +4,7 @@ import {useRouter} from 'next/router';
 import {AuthProvider} from '@/services/AuthProvider';
 import SidebarLayout from '@/src/components/layouts/SidebarLayout';
 import {ThemeModeProvider} from "@/src/context/ThemeContext";
+import {THEME_MODE_PRELOAD_SCRIPT} from "@/src/context/themeModeScript";
 
 export default function App({Component, pageProps}: AppProps) {
     const router = useRouter();
@@ -19,6 +20,7 @@ export default function App({Component, pageProps}: AppProps) {
                 <title>FG Theory</title>
                 <link rel="icon" href="/logos/favicon-color-pos.svg"/>
                 <meta name="theme-color" content="#1e3c72"/>
+                <script dangerouslySetInnerHTML={{__html: THEME_MODE_PRELOAD_SCRIPT}} />
             </Head>
 
             <AuthProvider>

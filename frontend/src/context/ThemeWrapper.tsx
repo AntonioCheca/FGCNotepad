@@ -14,6 +14,7 @@ export default function ThemeWrapper({children}: { children: React.ReactNode }) 
             <div
                 style={{
                     display: "flex",
+                    minHeight: "100vh",
                     backgroundColor: theme.palette.background.default,
                     color: theme.palette.text.primary,
                 }}
@@ -24,7 +25,7 @@ export default function ThemeWrapper({children}: { children: React.ReactNode }) 
                         throw new Error("Function not implemented.");
                     }}
                 />
-                <main style={{marginLeft: 296, width: "100%"}}>
+                <main style={{marginLeft: 296, width: "100%", minHeight: "100vh"}}>
                     {children}
                 </main>
             </div>

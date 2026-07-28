@@ -13,14 +13,17 @@ import {
 } from "@/src/components/ui/AppTheme";
 import {createAppTheme, type PaletteMode, type Theme} from "@/src/components/ui/AppThemeUtils";
 import {getDesignTokens} from "@/styles/theme";
-
-const THEME_STORAGE_KEY = "fgc-theme-mode";
+import {THEME_STORAGE_KEY} from "@/src/context/themeModeScript";
 
 const isPaletteMode = (value: string | null): value is PaletteMode => {
     return value === "light" || value === "dark";
 };
 
 const resolveBrowserMode = (): PaletteMode => {
+    if (typeof window === "undefined") {
+        return "light";
+    }
+
     const storedMode = localStorage.getItem(THEME_STORAGE_KEY);
     if (isPaletteMode(storedMode)) {
         return storedMode;
@@ -38,8 +41,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => {
-    const [mode, setMode] = useState<PaletteMode>("light");
-    const [browserModeResolved, setBrowserModeResolved] = useState(false);
+    const [mode, setMode] = useState<PaletteMode>(() => resolveBrowserMode());
+    const [browserModeResolved, setBrowserModeResolved] = useState(() => typeof window !== "undefined");
 
     const toggleColorMode = useCallback(() => {
         setMode((prev) => (prev === "light" ? "dark" : "light"));
@@ -80,7 +83,10 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
     useEffect(() => {
         document.body.style.backgroundColor = theme.palette.background.default;
         document.body.style.color = theme.palette.text.primary;
-    }, [theme]);
+        document.documentElement.dataset.fgcThemeMode = mode;
+        document.documentElement.style.backgroundColor = theme.palette.background.default;
+        document.documentElement.style.color = theme.palette.text.primary;
+    }, [mode, theme]);
 
     return (
         <ThemeContext.Provider value={contextValue}>

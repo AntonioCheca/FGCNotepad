@@ -4,6 +4,7 @@ import {AuthProvider} from "@/services/AuthProvider";
 import {ThemeModeProvider} from "@/src/context/ThemeContext";
 import ThemeWrapper from "@/src/context/ThemeWrapper";
 import {AppRouterCacheProvider} from "@/src/components/ui/AppRouterCacheProvider";
+import {THEME_MODE_PRELOAD_SCRIPT} from "@/src/context/themeModeScript";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: { children: React.ReactNode }) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
+        <head>
+        <script dangerouslySetInnerHTML={{__html: THEME_MODE_PRELOAD_SCRIPT}} />
+        </head>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AppRouterCacheProvider>
             <AuthProvider>

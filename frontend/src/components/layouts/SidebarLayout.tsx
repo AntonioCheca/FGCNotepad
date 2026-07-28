@@ -25,6 +25,7 @@ export default function SidebarLayout({
                     width: `calc(100% - ${sidebarWidth}px)`,
                     maxWidth: `calc(100% - ${sidebarWidth}px)`,
                     minWidth: 0,
+                    minHeight: '100vh',
                     transition: 'margin-left 0.28s',
                     padding: {xs: 2, md: 3},
                     backgroundColor: (theme) => theme.fgc.background.workspace,

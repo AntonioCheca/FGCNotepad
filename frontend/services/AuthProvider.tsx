@@ -3,7 +3,7 @@
 import {useState, useEffect, ReactNode, useCallback, useMemo, useRef} from "react";
 import {useRouter} from "next/navigation";
 import AuthContext, {AuthContextType} from "@/services/AuthContext";
-import api, {clearCsrfToken, setCsrfToken} from "@/services/api";
+import api, {beginAuthSessionCheck, clearCsrfToken, completeAuthSessionCheck, setCsrfToken} from "@/services/api";
 import {AuthUser, UserRole} from "@/src/types/auth";
 
 function getHttpStatus(error: unknown): number | null {
@@ -27,20 +27,24 @@ export function AuthProvider({children}: { children: ReactNode }) {
     }, []);
 
     const refreshSession = useCallback(async () => {
+        beginAuthSessionCheck();
         setLoading(true);
         try {
             const response = await api.get("/me");
             const payload = response.data as {user?: AuthUser; csrfToken?: string};
             if (payload.user) {
                 setUser(payload.user);
+            } else {
+                setUser(null);
             }
             setCsrfToken(payload.csrfToken ?? null);
         } catch (error: unknown) {
             const status = getHttpStatus(error);
-            if (status === 401 || status === 403) {
+            if (status === 401) {
                 clearSession();
             }
         } finally {
+            completeAuthSessionCheck();
             setLoading(false);
         }
     }, [clearSession]);
