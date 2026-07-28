@@ -11,6 +11,7 @@ use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\FrameData;
 use App\Entity\Move;
+use App\Entity\MoveManualMetadata;
 use App\Entity\Season;
 use App\Entity\Step;
 use App\Entity\User;
@@ -512,6 +513,44 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertTrue($payload['requirements']['punish_counter_required']);
         $this->assertFalse($payload['requirements']['counter_hit_required']);
         $this->assertSame([], $payload['errors']);
+    }
+
+    public function testTranslateNotationRequiresNotCrouchingWhenWhiffingMoveAppearsBeforeForcesStanding(): void
+    {
+        $character = $this->seedTranslationData();
+        $this->setManualMetadataForLeaf('236MK', true, false);
+        $this->setManualMetadataForLeaf('5MP', false, true);
+        $this->entityManager->flush();
+
+        $payload = $this->translateNotationPayload($character, '2MP XX 236MK');
+
+        $this->assertTrue($payload['requirements']['not_crouching_required']);
+        $this->assertSame([], $payload['errors']);
+    }
+
+    public function testTranslateNotationDoesNotRequireNotCrouchingWhenForcesStandingComesFirst(): void
+    {
+        $character = $this->seedTranslationData();
+        $this->setManualMetadataForLeaf('236MK', true, false);
+        $this->setManualMetadataForLeaf('5MP', false, true);
+        $this->entityManager->flush();
+
+        $payload = $this->translateNotationPayload($character, '5MP XX 236MK');
+
+        $this->assertFalse($payload['requirements']['not_crouching_required']);
+        $this->assertSame([], $payload['errors']);
+    }
+
+    public function testTranslateNotationRequiresNotCrouchingWhenForcesStandingComesAfterWhiffingMove(): void
+    {
+        $character = $this->seedTranslationData();
+        $this->setManualMetadataForLeaf('236MK', true, false);
+        $this->setManualMetadataForLeaf('5MP', false, true);
+        $this->entityManager->flush();
+
+        $payload = $this->translateNotationPayload($character, '236MK XX 5MP');
+
+        $this->assertTrue($payload['requirements']['not_crouching_required']);
     }
 
     public function testEstimateDamageAppliesLeadingPunishCounterStarterMarker(): void
@@ -1505,6 +1544,45 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
     private function getJsonHeaders(): array
     {
         return array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function translateNotationPayload(Character $character, string $notation): array
+    {
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/translate',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => $notation,
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+
+        return json_decode((string) $response->getContent(), true);
+    }
+
+    private function setManualMetadataForLeaf(string $notation, bool $whiffOnCrouch, bool $forcesStanding): void
+    {
+        $leafSequence = $this->entityManager->getRepository(ComboSequences::class)->findOneBy(['name' => sprintf('Cammy %s', $notation)]);
+        $move = $leafSequence instanceof ComboSequences ? $leafSequence->getMove() : null;
+        if (!$move instanceof Move) {
+            throw new \RuntimeException(sprintf('Missing leaf move for notation %s.', $notation));
+        }
+
+        $metadata = (new MoveManualMetadata())
+            ->setMove($move)
+            ->setWhiffOnCrouch($whiffOnCrouch)
+            ->setForcesStanding($forcesStanding);
+
+        $this->entityManager->persist($metadata);
     }
 
     private function seedTranslationData(): Character

@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use App\Entity\FrameData;
+use App\Entity\FrameDataOverride;
 use App\Entity\Move;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -14,6 +16,46 @@ class MoveRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Move::class);
+    }
+
+    public function findWithEffectiveFrameData(mixed $id): ?Move
+    {
+        $move = $this->createQueryBuilder('move')
+            ->leftJoin('move.character', 'character')
+            ->addSelect('character')
+            ->leftJoin('move.frameData', 'frameData')
+            ->addSelect('frameData')
+            ->where('move.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($move instanceof Move) {
+            $this->applyOverridesToMoves([$move]);
+        }
+
+        return $move instanceof Move ? $move : null;
+    }
+
+    /**
+     * @return list<Move>
+     */
+    public function findByCharacterWithEffectiveFrameData(string $characterId): array
+    {
+        $moves = $this->createQueryBuilder('move')
+            ->innerJoin('move.character', 'character')
+            ->addSelect('character')
+            ->leftJoin('move.frameData', 'frameData')
+            ->addSelect('frameData')
+            ->where('character.id = :characterId')
+            ->setParameter('characterId', $characterId)
+            ->orderBy('move.numpadNotation', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $this->applyOverridesToMoves($moves);
+
+        return $moves;
     }
 
     /**
@@ -32,11 +74,15 @@ class MoveRepository extends ServiceEntityRepository
                 ->setParameter($parameterName, '%' . mb_strtolower($itemToQuery) . '%');
         }
 
-        return $queryDraft
+        $moves = $queryDraft
             ->orderBy('m.numpadNotation', 'ASC')
             ->setMaxResults(250)
             ->getQuery()
             ->getResult();
+
+        $this->applyOverridesToMoves($moves);
+
+        return $moves;
     }
 
     /**
@@ -50,8 +96,8 @@ class MoveRepository extends ServiceEntityRepository
             return [];
         }
 
-        $rows = $this->createQueryBuilder('move')
-            ->select('move.id AS move_id', 'frameData.damage AS damage')
+        $moves = $this->createQueryBuilder('move')
+            ->select('move', 'frameData')
             ->innerJoin('move.character', 'character')
             ->innerJoin('move.frameData', 'frameData')
             ->where('character.id = :characterId')
@@ -62,14 +108,52 @@ class MoveRepository extends ServiceEntityRepository
             ->orderBy('frameData.damage', 'DESC')
             ->addOrderBy('move.id', 'ASC')
             ->getQuery()
-            ->getArrayResult();
+            ->getResult();
+
+        $this->applyOverridesToMoves($moves);
+
+        usort($moves, static function (Move $first, Move $second): int {
+            $firstDamage = $first->getFrameData()?->getDamage() ?? PHP_INT_MIN;
+            $secondDamage = $second->getFrameData()?->getDamage() ?? PHP_INT_MIN;
+
+            return $secondDamage <=> $firstDamage ?: strcmp((string) $first->getId(), (string) $second->getId());
+        });
 
         return array_map(
-            static fn (array $row): array => [
-                'move_id' => (string) $row['move_id'],
-                'damage' => (int) $row['damage'],
+            static fn (Move $move): array => [
+                'move_id' => (string) $move->getId(),
+                'damage' => (int) $move->getFrameData()?->getDamage(),
             ],
-            $rows
+            $moves
         );
+    }
+
+    /**
+     * @param list<Move> $moves
+     */
+    private function applyOverridesToMoves(array $moves): void
+    {
+        $frameDataRows = [];
+        foreach ($moves as $move) {
+            $frameData = $move->getFrameData();
+            if ($frameData instanceof FrameData) {
+                $frameDataRows[] = $frameData;
+            }
+        }
+
+        if ([] === $frameDataRows) {
+            return;
+        }
+
+        $overrideMap = $this->getEntityManager()
+            ->getRepository(FrameDataOverride::class)
+            ->findOverrideMapForFrameDataRows($frameDataRows);
+
+        foreach ($frameDataRows as $frameData) {
+            $frameDataId = $frameData->getId()?->toRfc4122();
+            if (null !== $frameDataId) {
+                $frameData->applyEffectiveOverrides($overrideMap[$frameDataId] ?? []);
+            }
+        }
     }
 }

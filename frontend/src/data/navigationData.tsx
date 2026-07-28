@@ -1,6 +1,7 @@
 import {NavigationSection} from "@/src/types/navigation";
 import {
     AccountCircleOutlinedIcon,
+    ArticleOutlinedIcon,
     HelpOutlineOutlinedIcon,
     PendingActionsIcon,
     SearchOutlinedIcon,
@@ -90,6 +91,13 @@ export const navigationSections: NavigationSection[] = [
                 label: "Moderation Queue",
                 href: "/moderation/queue",
                 icon: <PendingActionsIcon/>,
+                requiresAuth: true,
+                allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
+            },
+            {
+                label: "Frame Data",
+                href: "/moderation/frame-data",
+                icon: <ArticleOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
             }

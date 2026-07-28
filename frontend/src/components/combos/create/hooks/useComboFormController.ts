@@ -265,11 +265,12 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             setParseTokens(parsedTokenList);
             setSelectedStepIndex(translatedSteps.length > 0 ? 0 : null);
 
-            if (translated.requirements?.punish_counter_required || translated.requirements?.counter_hit_required) {
+            if (translated.requirements) {
                 setRequirements((previousRequirements) => ({
                     ...previousRequirements,
                     punish_counter_required: Boolean(translated.requirements?.punish_counter_required),
                     counter_hit_required: Boolean(translated.requirements?.counter_hit_required),
+                    not_crouching_required: Boolean(translated.requirements?.not_crouching_required),
                 }));
             }
 

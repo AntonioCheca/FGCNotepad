@@ -18,6 +18,7 @@ use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ComboSequenceCreationService;
 use App\Service\ComboSequenceUpdateService;
 use App\Service\ComboStarterModifierExtractor;
+use App\Service\ComboCrouchRequirementInferenceService;
 use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\EndpointAuthorizationService;
@@ -54,6 +55,7 @@ class ComboSequenceController extends AbstractController
         private NotationCanonicalizer $notationCanonicalizer,
         private Sf6ComboDamageEstimatorService $sf6ComboDamageEstimatorService,
         private Sf6ComboResourceEstimatorService $sf6ComboResourceEstimatorService,
+        private ComboCrouchRequirementInferenceService $comboCrouchRequirementInferenceService,
     )
     {
     }
@@ -401,7 +403,10 @@ class ComboSequenceController extends AbstractController
             'canonicalNotation' => $canonicalization['canonicalNotation'],
             'tokenMap' => $canonicalization['tokenMap'],
         ];
-        $translated['requirements'] = $starterExtraction['requirements'];
+        $translated['requirements'] = array_merge(
+            $starterExtraction['requirements'],
+            ['not_crouching_required' => $this->comboCrouchRequirementInferenceService->requiresOpponentNotCrouching($translated['steps'] ?? [])]
+        );
 
         return new JsonResponse($translated, JsonResponse::HTTP_OK);
     }

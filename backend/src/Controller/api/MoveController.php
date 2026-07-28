@@ -89,7 +89,7 @@ class MoveController extends AbstractController
         /**
          * @var Move|null $move
          */
-        $move = $moveRepository->find($id);
+        $move = $moveRepository->findWithEffectiveFrameData($id);
 
         if (!$move) {
             throw new NotFoundHttpException(sprintf('Move not found with id %s', $id));

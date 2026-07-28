@@ -15,6 +15,11 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity(repositoryClass: FrameDataRepository::class)]
 class FrameData
 {
+    /**
+     * @var array<string, mixed>
+     */
+    private array $effectiveOverrides = [];
+
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -151,7 +156,7 @@ class FrameData
 
     public function getStartup(): ?int
     {
-        return $this->startup;
+        return $this->getEffectiveValue('startup', $this->startup);
     }
 
     public function setStartup(int $startup): static
@@ -163,7 +168,7 @@ class FrameData
 
     public function getActive(): ?int
     {
-        return $this->active;
+        return $this->getEffectiveValue('active', $this->active);
     }
 
     public function setActive(int $active): static
@@ -175,7 +180,7 @@ class FrameData
 
     public function getRecovery(): ?int
     {
-        return $this->recovery;
+        return $this->getEffectiveValue('recovery', $this->recovery);
     }
 
     public function setRecovery(int $recovery): static
@@ -199,7 +204,7 @@ class FrameData
 
     public function getOnHit(): ?int
     {
-        return $this->onHit;
+        return $this->getEffectiveValue('onHit', $this->onHit);
     }
 
     public function setOnHit(int $onHit): static
@@ -324,7 +329,7 @@ class FrameData
 
     public function getDamage(): ?int
     {
-        return $this->damage;
+        return $this->getEffectiveValue('damage', $this->damage);
     }
 
     public function setDamage(int $damage): static
@@ -336,7 +341,7 @@ class FrameData
 
     public function getScaling(): ?string
     {
-        return $this->scaling;
+        return $this->getEffectiveValue('scaling', $this->scaling);
     }
 
     public function setScaling(?string $scaling): static
@@ -348,7 +353,7 @@ class FrameData
 
     public function getScalingStartPercent(): ?int
     {
-        return $this->scalingStartPercent;
+        return $this->getEffectiveValue('scalingStartPercent', $this->scalingStartPercent);
     }
 
     public function setScalingStartPercent(?int $scalingStartPercent): static
@@ -360,7 +365,7 @@ class FrameData
 
     public function getScalingImmediatePercent(): ?int
     {
-        return $this->scalingImmediatePercent;
+        return $this->getEffectiveValue('scalingImmediatePercent', $this->scalingImmediatePercent);
     }
 
     public function setScalingImmediatePercent(?int $scalingImmediatePercent): static
@@ -372,7 +377,7 @@ class FrameData
 
     public function getScalingMinimumPercent(): ?int
     {
-        return $this->scalingMinimumPercent;
+        return $this->getEffectiveValue('scalingMinimumPercent', $this->scalingMinimumPercent);
     }
 
     public function setScalingMinimumPercent(?int $scalingMinimumPercent): static
@@ -384,7 +389,7 @@ class FrameData
 
     public function getScalingComboHits(): ?int
     {
-        return $this->scalingComboHits;
+        return $this->getEffectiveValue('scalingComboHits', $this->scalingComboHits);
     }
 
     public function setScalingComboHits(?int $scalingComboHits): static
@@ -396,7 +401,7 @@ class FrameData
 
     public function getScalingComboExtraPercent(): ?int
     {
-        return $this->scalingComboExtraPercent;
+        return $this->getEffectiveValue('scalingComboExtraPercent', $this->scalingComboExtraPercent);
     }
 
     public function setScalingComboExtraPercent(?int $scalingComboExtraPercent): static
@@ -408,7 +413,7 @@ class FrameData
 
     public function getScalingMultiplierPercent(): ?int
     {
-        return $this->scalingMultiplierPercent;
+        return $this->getEffectiveValue('scalingMultiplierPercent', $this->scalingMultiplierPercent);
     }
 
     public function setScalingMultiplierPercent(?int $scalingMultiplierPercent): static
@@ -528,7 +533,7 @@ class FrameData
 
     public function getDriveGain(): ?int
     {
-        return $this->driveGain;
+        return $this->getEffectiveValue('driveGain', $this->driveGain);
     }
 
     public function setDriveGain(int $driveGain): static
@@ -697,6 +702,30 @@ class FrameData
     public function getMove(): ?Move
     {
         return $this->move;
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    public function applyEffectiveOverrides(array $overrides): void
+    {
+        $this->effectiveOverrides = $overrides;
+    }
+
+    public function getRawValue(string $columnName): mixed
+    {
+        if (!property_exists($this, $columnName)) {
+            throw new \InvalidArgumentException(sprintf('Unsupported frame data column "%s".', $columnName));
+        }
+
+        return $this->{$columnName};
+    }
+
+    private function getEffectiveValue(string $columnName, mixed $baseValue): mixed
+    {
+        return array_key_exists($columnName, $this->effectiveOverrides)
+            ? $this->effectiveOverrides[$columnName]
+            : $baseValue;
     }
 
     public function setMove(?Move $move): static
