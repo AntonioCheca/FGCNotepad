@@ -44,12 +44,20 @@ class MoveController extends AbstractController
         if (!is_string($query) || empty($query)) {
             return $this->json([]);
         }
+        $characterId = $request->query->get('characterId', $request->query->get('character_id'));
 
-        $moves = $moveRepository->queryForSpecificNumpadOrCharactersFromString($query);
+        $moves = $moveRepository->queryForSpecificNumpadOrCharactersFromString(
+            $query,
+            is_string($characterId) ? $characterId : null,
+        );
 
         return $this->json(array_map(fn($move) => [
             'id' => $move->getId(),
-            'summary' => $move->getCharacter()->getName() . ' ' . $move->getNumpadNotation()
+            'summary' => $move->getCharacter()->getName() . ' ' . $move->getNumpadNotation(),
+            'character' => [
+                'id' => (string) $move->getCharacter()->getId(),
+                'name' => $move->getCharacter()->getName(),
+            ],
         ], $moves));
     }
 

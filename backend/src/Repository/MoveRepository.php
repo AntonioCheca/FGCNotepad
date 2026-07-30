@@ -61,10 +61,16 @@ class MoveRepository extends ServiceEntityRepository
     /**
      * @return Move[]
      */
-    public function queryForSpecificNumpadOrCharactersFromString(string $query): array
+    public function queryForSpecificNumpadOrCharactersFromString(string $query, ?string $characterId = null): array
     {
         $queryDraft = $this->createQueryBuilder('m')
             ->innerJoin('m.character', 'c');
+
+        if (null !== $characterId && '' !== trim($characterId)) {
+            $queryDraft
+                ->andWhere('c.id = :characterId')
+                ->setParameter('characterId', trim($characterId));
+        }
 
         $arrayOfItemsToQuery = array_values(array_filter(explode(' ', $query), static fn (string $item): bool => '' !== trim($item)));
         foreach ($arrayOfItemsToQuery as $index => $itemToQuery) {

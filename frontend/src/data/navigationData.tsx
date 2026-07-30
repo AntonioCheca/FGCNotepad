@@ -30,6 +30,26 @@ export const navigationSections: NavigationSection[] = [
         ]
     },
     {
+        title: "Okis",
+        items: [
+            {
+                label: "Search Okis",
+                href: "/okis",
+                icon: <SearchOutlinedIcon/>
+            },
+            {
+                label: "Create Oki",
+                href: "/okis/new",
+                icon: <SportsKabaddiOutlinedIcon/>
+            },
+            {
+                label: "Reversals",
+                href: "/okis/reversals",
+                icon: <PendingActionsIcon/>
+            }
+        ]
+    },
+    {
         title: "Scenarios",
         items: [
             {
