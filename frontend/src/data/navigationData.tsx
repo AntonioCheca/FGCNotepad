@@ -50,6 +50,27 @@ export const navigationSections: NavigationSection[] = [
         ]
     },
     {
+        title: "Blockstrings",
+        items: [
+            {
+                label: "Offense",
+                href: "/blockstrings/offense",
+                icon: <SportsMartialArtsOutlinedIcon/>
+            },
+            {
+                label: "Defense",
+                href: "/blockstrings/defense",
+                icon: <SportsKabaddiOutlinedIcon/>
+            },
+            {
+                label: "Create Blockstring",
+                href: "/blockstrings/new",
+                icon: <SportsMmaIcon/>,
+                requiresAuth: true,
+            }
+        ]
+    },
+    {
         title: "Scenarios",
         items: [
             {

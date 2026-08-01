@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\ComboSequences;
+use App\Entity\BlockstringSequence;
 use App\Entity\Scenario;
 use App\Entity\User;
 use App\Util\Enum\ModerationState;
@@ -38,6 +39,18 @@ class ModerationTransitionService
             static fn (?\DateTimeImmutable $decidedAt) => $scenario->setModerationDecidedAt($decidedAt),
             static fn (?User $decider) => $scenario->setModerationDecidedBy($decider),
             static fn (?string $reason) => $scenario->setModerationReason($reason),
+        );
+    }
+
+    public function submitBlockstringForReview(BlockstringSequence $blockstring): void
+    {
+        $this->submitForReview(
+            static fn (): string => $blockstring->getModerationState(),
+            static fn (string $state) => $blockstring->setModerationState($state),
+            static fn (?\DateTimeImmutable $submittedAt) => $blockstring->setSubmittedForReviewAt($submittedAt),
+            static fn (?\DateTimeImmutable $decidedAt) => $blockstring->setModerationDecidedAt($decidedAt),
+            static fn (?User $decider) => $blockstring->setModerationDecidedBy($decider),
+            static fn (?string $reason) => $blockstring->setModerationReason($reason),
         );
     }
 
