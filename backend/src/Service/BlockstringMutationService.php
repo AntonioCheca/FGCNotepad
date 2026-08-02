@@ -3,13 +3,17 @@
 namespace App\Service;
 
 use App\Entity\BlockstringCondition;
-use App\Entity\BlockstringDefenseAnswer;
+use App\Entity\BlockstringAdaptation;
+use App\Entity\BlockstringAdaptationComboSearch;
+use App\Entity\BlockstringAdaptationStep;
 use App\Entity\BlockstringDefenseEntry;
-use App\Entity\BlockstringOffensePlan;
+use App\Entity\BlockstringGap;
 use App\Entity\BlockstringSequence;
 use App\Entity\BlockstringSequenceStep;
 use App\Entity\Character;
+use App\Entity\ComboSpacing;
 use App\Entity\Move;
+use App\Entity\Situation;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -26,17 +30,44 @@ class BlockstringMutationService
             ->setTitle($this->requiredString($payload, 'title'))
             ->setSummary($this->nullableString($payload['summary'] ?? null))
             ->setClassification($this->allowedString($payload['classification'] ?? 'fake', 'classification', ['true', 'frametrap', 'reset', 'fake', 'knowledge_check']))
-            ->setGapAfterStep($this->nullableInt($payload['gapAfterStep'] ?? null))
-            ->setMaxInterruptStartup($this->nullableInt($payload['maxInterruptStartup'] ?? null))
             ->setAttackerCharacter($this->findCharacter($this->requiredString($payload, 'attackerCharacterId')));
 
-        $this->replaceSteps($sequence, $payload['steps'] ?? []);
+        $this->clearAdaptations($sequence);
+        $this->clearDefenseEntries($sequence);
+        $this->clearGaps($sequence);
+        $stepsByOrdinal = $this->replaceSteps($sequence, $payload['steps'] ?? []);
+        $gapsByClientId = $this->replaceGaps($sequence, $payload['gaps'] ?? [], $stepsByOrdinal);
         $this->replaceConditions($sequence, $payload['conditions'] ?? []);
-        $this->replaceOffensePlans($sequence, $payload['offensePlans'] ?? []);
-        $this->replaceDefenseEntries($sequence, $payload['defenseEntries'] ?? []);
+        $this->replaceDefenseEntries($sequence, $payload['defenseEntries'] ?? [], $gapsByClientId);
+        $this->replaceAdaptations($sequence, $payload['adaptations'] ?? [], $gapsByClientId);
     }
 
-    private function replaceSteps(BlockstringSequence $sequence, mixed $stepsPayload): void
+    private function clearAdaptations(BlockstringSequence $sequence): void
+    {
+        foreach ($sequence->getAdaptations()->toArray() as $adaptation) {
+            $sequence->getAdaptations()->removeElement($adaptation);
+            $this->entityManager->remove($adaptation);
+        }
+    }
+
+    private function clearDefenseEntries(BlockstringSequence $sequence): void
+    {
+        foreach ($sequence->getDefenseEntries()->toArray() as $entry) {
+            $sequence->getDefenseEntries()->removeElement($entry);
+            $this->entityManager->remove($entry);
+        }
+    }
+
+    private function clearGaps(BlockstringSequence $sequence): void
+    {
+        foreach ($sequence->getGaps()->toArray() as $gap) {
+            $sequence->getGaps()->removeElement($gap);
+            $this->entityManager->remove($gap);
+        }
+    }
+
+    /** @return array<int, BlockstringSequenceStep> */
+    private function replaceSteps(BlockstringSequence $sequence, mixed $stepsPayload): array
     {
         if (!is_array($stepsPayload) || [] === $stepsPayload) {
             throw new BadRequestHttpException('At least one sequence step is required.');
@@ -48,6 +79,7 @@ class BlockstringMutationService
         }
 
         $ordinal = 1;
+        $stepsByOrdinal = [];
         foreach ($stepsPayload as $stepPayload) {
             if (!is_array($stepPayload)) {
                 throw new BadRequestHttpException('Each step must be an object.');
@@ -56,15 +88,62 @@ class BlockstringMutationService
             $step = (new BlockstringSequenceStep())
                 ->setMove($this->findMove($this->requiredString($stepPayload, 'moveId')))
                 ->setOrdinal($this->nullableInt($stepPayload['ordinal'] ?? null) ?? $ordinal)
-                ->setGapBefore((bool) ($stepPayload['gapBefore'] ?? false))
-                ->setGapFrames($this->nullableInt($stepPayload['gapFrames'] ?? null))
                 ->setCanConfirmOnHit((bool) ($stepPayload['canConfirmOnHit'] ?? false))
                 ->setNote($this->nullableString($stepPayload['note'] ?? null));
 
             $sequence->addStep($step);
             $this->entityManager->persist($step);
+            $stepsByOrdinal[$step->getOrdinal()] = $step;
             ++$ordinal;
         }
+
+        return $stepsByOrdinal;
+    }
+
+    /**
+     * @param array<int, BlockstringSequenceStep> $stepsByOrdinal
+     * @return array<string, BlockstringGap>
+     */
+    private function replaceGaps(BlockstringSequence $sequence, mixed $gapsPayload, array $stepsByOrdinal): array
+    {
+        if (!is_array($gapsPayload)) {
+            return [];
+        }
+
+        $gapsByClientId = [];
+        $index = 1;
+        foreach ($gapsPayload as $gapPayload) {
+            if (!is_array($gapPayload)) {
+                continue;
+            }
+
+            $stepOrdinal = $this->nullableInt($gapPayload['stepOrdinal'] ?? null);
+            if (null === $stepOrdinal || !isset($stepsByOrdinal[$stepOrdinal])) {
+                throw new BadRequestHttpException('Gap must target a sequence step.');
+            }
+            $frames = $this->nullableInt($gapPayload['frames'] ?? null);
+            if (null === $frames) {
+                throw new BadRequestHttpException('Gap frames are required.');
+            }
+
+            $timing = $this->allowedString($gapPayload['timing'] ?? 'before_step', 'timing', ['before_step', 'during_step']);
+
+            $gap = (new BlockstringGap())
+                ->setStep($stepsByOrdinal[$stepOrdinal])
+                ->setTiming($timing)
+                ->setFrames($frames)
+                ->setAttackerFrameAdvantage('before_step' === $timing ? $this->nullableInt($gapPayload['frameAdvantage'] ?? null) ?? 0 : 0)
+                ->setClassification($this->allowedString($gapPayload['classification'] ?? $this->defaultGapClassification($frames), 'gap classification', ['safe', 'trades', 'fake']));
+
+            $sequence->addGap($gap);
+            $stepsByOrdinal[$stepOrdinal]->addGap($gap);
+            $this->entityManager->persist($gap);
+            $clientId = $this->nullableString($gapPayload['clientId'] ?? null) ?? sprintf('gap-%d', $index);
+            $gapsByClientId[$clientId] = $gap;
+            ++$index;
+        }
+
+        return $gapsByClientId;
     }
 
     private function replaceConditions(BlockstringSequence $sequence, mixed $conditionsPayload): void
@@ -92,46 +171,9 @@ class BlockstringMutationService
         }
     }
 
-    private function replaceOffensePlans(BlockstringSequence $sequence, mixed $plansPayload): void
+    /** @param array<string, BlockstringGap> $gapsByClientId */
+    private function replaceDefenseEntries(BlockstringSequence $sequence, mixed $entriesPayload, array $gapsByClientId): void
     {
-        foreach ($sequence->getOffensePlans()->toArray() as $plan) {
-            $sequence->getOffensePlans()->removeElement($plan);
-            $this->entityManager->remove($plan);
-        }
-
-        if (!is_array($plansPayload)) {
-            return;
-        }
-
-        $sortOrder = 0;
-        foreach ($plansPayload as $planPayload) {
-            if (!is_array($planPayload)) {
-                continue;
-            }
-
-            $plan = (new BlockstringOffensePlan())
-                ->setLabel($this->requiredString($planPayload, 'label'))
-                ->setPlanRole($this->allowedString($planPayload['planRole'] ?? 'situational', 'planRole', ['default', 'safe', 'risky', 'situational']))
-                ->setTargetBehavior($this->nullableString($planPayload['targetBehavior'] ?? null))
-                ->setPurpose($this->nullableString($planPayload['purpose'] ?? null))
-                ->setOnHit($this->nullableString($planPayload['onHit'] ?? null))
-                ->setOnBlock($this->nullableString($planPayload['onBlock'] ?? null))
-                ->setLosesTo($this->nullableString($planPayload['losesTo'] ?? null))
-                ->setAuthorExplanation($this->nullableString($planPayload['authorExplanation'] ?? null))
-                ->setSortOrder($this->nullableInt($planPayload['sortOrder'] ?? null) ?? $sortOrder);
-            $sequence->addOffensePlan($plan);
-            $this->entityManager->persist($plan);
-            ++$sortOrder;
-        }
-    }
-
-    private function replaceDefenseEntries(BlockstringSequence $sequence, mixed $entriesPayload): void
-    {
-        foreach ($sequence->getDefenseEntries()->toArray() as $entry) {
-            $sequence->getDefenseEntries()->removeElement($entry);
-            $this->entityManager->remove($entry);
-        }
-
         if (!is_array($entriesPayload)) {
             return;
         }
@@ -141,33 +183,108 @@ class BlockstringMutationService
                 continue;
             }
 
+            $gapClientId = $this->nullableString($entryPayload['gapClientId'] ?? null);
+            if (null === $gapClientId || !isset($gapsByClientId[$gapClientId])) {
+                throw new BadRequestHttpException('Defense entry must target a sequence gap.');
+            }
+
             $entry = (new BlockstringDefenseEntry())
-                ->setActAfterStep($this->nullableInt($entryPayload['actAfterStep'] ?? null))
+                ->setGap($gapsByClientId[$gapClientId])
                 ->setInstruction($this->nullableString($entryPayload['instruction'] ?? null))
-                ->setExceptionNotes($this->nullableString($entryPayload['exceptionNotes'] ?? null));
+                ->setExceptionNotes($this->nullableString($entryPayload['exceptionNotes'] ?? null))
+                ->setDefenderCharacter($this->findNullableCharacter($this->nullableString($entryPayload['defenderCharacterId'] ?? null)))
+                ->setMove($this->findNullableMove($this->nullableString($entryPayload['moveId'] ?? null)))
+                ->setResponseType($this->allowedString($entryPayload['responseType'] ?? 'button', 'responseType', ['button', 'reversal', 'jump', 'backdash', 'block', 'movement']))
+                ->setOutcome($this->allowedString($entryPayload['outcome'] ?? 'counter_hit', 'outcome', ['counter_hit', 'punish_counter', 'trade', 'escape', 'reset_to_neutral', 'block']))
+                ->setConversion($this->nullableString($entryPayload['conversion'] ?? null));
             $sequence->addDefenseEntry($entry);
             $this->entityManager->persist($entry);
+        }
+    }
 
-            $answers = $entryPayload['answers'] ?? [];
-            if (!is_array($answers)) {
+    /** @param array<string, BlockstringGap> $gapsByClientId */
+    private function replaceAdaptations(BlockstringSequence $sequence, mixed $adaptationsPayload, array $gapsByClientId): void
+    {
+        if (!is_array($adaptationsPayload)) {
+            return;
+        }
+
+        $sortOrder = 1;
+        foreach ($adaptationsPayload as $adaptationPayload) {
+            if (!is_array($adaptationPayload)) {
                 continue;
             }
-            foreach ($answers as $answerPayload) {
-                if (!is_array($answerPayload)) {
+
+            $gapClientId = $this->nullableString($adaptationPayload['gapClientId'] ?? null);
+            if (null === $gapClientId || !isset($gapsByClientId[$gapClientId])) {
+                throw new BadRequestHttpException('Adaptation must target a sequence gap.');
+            }
+
+            $stepsPayload = $adaptationPayload['steps'] ?? [];
+            if (!is_array($stepsPayload) || [] === $stepsPayload) {
+                throw new BadRequestHttpException('Adaptation route must include at least one move.');
+            }
+
+            $adaptation = (new BlockstringAdaptation())
+                ->setGap($gapsByClientId[$gapClientId])
+                ->setExplanation($this->nullableString($adaptationPayload['explanation'] ?? null))
+                ->setSortOrder($sortOrder);
+            $sequence->addAdaptation($adaptation);
+            $this->entityManager->persist($adaptation);
+
+            $ordinal = 1;
+            foreach ($stepsPayload as $stepPayload) {
+                if (!is_array($stepPayload)) {
                     continue;
                 }
-                $answer = (new BlockstringDefenseAnswer())
-                    ->setDefenderCharacter($this->findNullableCharacter($this->nullableString($answerPayload['defenderCharacterId'] ?? null)))
-                    ->setMove($this->findNullableMove($this->nullableString($answerPayload['moveId'] ?? null)))
-                    ->setResponseType($this->allowedString($answerPayload['responseType'] ?? 'button', 'responseType', ['button', 'reversal', 'jump', 'backdash', 'block', 'movement']))
-                    ->setStartupFrames($this->nullableInt($answerPayload['startupFrames'] ?? null))
-                    ->setOutcome($this->allowedString($answerPayload['outcome'] ?? 'counter_hit', 'outcome', ['counter_hit', 'punish_counter', 'trade', 'escape', 'reset_to_neutral', 'block']))
-                    ->setConversion($this->nullableString($answerPayload['conversion'] ?? null))
-                    ->setRecommended((bool) ($answerPayload['recommended'] ?? false));
-                $entry->addAnswer($answer);
-                $this->entityManager->persist($answer);
+                $step = (new BlockstringAdaptationStep())
+                    ->setMove($this->findMove($this->requiredString($stepPayload, 'moveId')))
+                    ->setOrdinal($ordinal);
+                $adaptation->addStep($step);
+                $this->entityManager->persist($step);
+                ++$ordinal;
             }
+
+            if (0 === $adaptation->getSteps()->count()) {
+                throw new BadRequestHttpException('Adaptation route must include at least one move.');
+            }
+
+            if (is_array($adaptationPayload['comboSearch'] ?? null)) {
+                $comboSearch = $this->buildComboSearch($sequence, $adaptationPayload['comboSearch']);
+                $adaptation->setComboSearch($comboSearch);
+                $this->entityManager->persist($comboSearch);
+            }
+
+            ++$sortOrder;
         }
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function buildComboSearch(BlockstringSequence $sequence, array $payload): BlockstringAdaptationComboSearch
+    {
+        $attacker = $sequence->getAttackerCharacter();
+        if (!$attacker instanceof Character) {
+            throw new BadRequestHttpException('Blockstring attacker is required for adaptation combo search.');
+        }
+
+        $firstMove = $this->findNullableMove($this->nullableString($payload['firstMoveId'] ?? null));
+        $enderMove = $this->findNullableMove($this->nullableString($payload['enderMoveId'] ?? null));
+        $this->assertMoveBelongsToCharacter($firstMove, $attacker, 'firstMoveId');
+        $this->assertMoveBelongsToCharacter($enderMove, $attacker, 'enderMoveId');
+
+        return (new BlockstringAdaptationComboSearch())
+            ->setCharacter($attacker)
+            ->setFirstMove($firstMove)
+            ->setEnderMove($enderMove)
+            ->setSituation($this->findNullableSituation($this->nullableInt($payload['situationId'] ?? null)))
+            ->setSpacing($this->findNullableSpacing($this->nullableString($payload['spacingCode'] ?? null)))
+            ->setMinDamage($this->nullableInt($payload['minDamage'] ?? null))
+            ->setMaxDamage($this->nullableInt($payload['maxDamage'] ?? null))
+            ->setMinDriveCost($this->nullableFloat($payload['minDriveCost'] ?? null))
+            ->setMaxDriveCost($this->nullableFloat($payload['maxDriveCost'] ?? null))
+            ->setCounterHitRequired($this->nullableBool($payload['counterHitRequired'] ?? null))
+            ->setPunishCounterRequired($this->nullableBool($payload['punishCounterRequired'] ?? null))
+            ->setCornerRequired($this->nullableBool($payload['cornerRequired'] ?? null));
     }
 
     /** @param array<string, mixed> $payload */
@@ -206,6 +323,39 @@ class BlockstringMutationService
         }
 
         return (int) trim($value);
+    }
+
+    private function nullableFloat(mixed $value): ?float
+    {
+        if (is_float($value) || is_int($value)) {
+            return (float) $value;
+        }
+        if (!is_string($value) || !is_numeric(trim($value))) {
+            return null;
+        }
+
+        return (float) trim($value);
+    }
+
+    private function nullableBool(mixed $value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_string($value) && in_array(mb_strtolower(trim($value)), ['true', '1', 'false', '0'], true)) {
+            return in_array(mb_strtolower(trim($value)), ['true', '1'], true);
+        }
+
+        return null;
+    }
+
+    private function defaultGapClassification(int $frames): string
+    {
+        if ($frames <= 2) {
+            return 'safe';
+        }
+
+        return 3 === $frames ? 'trades' : 'fake';
     }
 
     /** @param list<string> $allowed */
@@ -247,5 +397,40 @@ class BlockstringMutationService
     private function findNullableMove(?string $id): ?Move
     {
         return null === $id ? null : $this->findMove($id);
+    }
+
+    private function findNullableSituation(?int $id): ?Situation
+    {
+        if (null === $id) {
+            return null;
+        }
+        $situation = $this->entityManager->find(Situation::class, $id);
+        if (!$situation instanceof Situation) {
+            throw new BadRequestHttpException(sprintf('Situation %d not found.', $id));
+        }
+
+        return $situation;
+    }
+
+    private function findNullableSpacing(?string $code): ?ComboSpacing
+    {
+        if (null === $code) {
+            return null;
+        }
+        $spacing = $this->entityManager->getRepository(ComboSpacing::class)->findOneBy(['code' => $code]);
+        if (!$spacing instanceof ComboSpacing) {
+            throw new BadRequestHttpException(sprintf('Spacing %s not found.', $code));
+        }
+
+        return $spacing;
+    }
+
+    private function assertMoveBelongsToCharacter(?Move $move, Character $character, string $field): void
+    {
+        if (null === $move || (string) $move->getCharacter()->getId() === (string) $character->getId()) {
+            return;
+        }
+
+        throw new BadRequestHttpException(sprintf('%s must belong to the blockstring attacker.', $field));
     }
 }

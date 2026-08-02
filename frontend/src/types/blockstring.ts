@@ -13,42 +13,59 @@ export interface BlockstringStep {
     id?: number;
     ordinal: number;
     move: BlockstringMove | null;
-    gapBefore: boolean;
-    gapFrames: number | null;
     canConfirmOnHit: boolean;
     note: string | null;
 }
 
-export interface BlockstringOffensePlan {
+export type BlockstringGapTiming = "before_step" | "during_step";
+export type BlockstringGapClassification = "safe" | "trades" | "fake";
+
+export interface BlockstringGap {
     id?: number;
-    label: string;
-    planRole: "default" | "safe" | "risky" | "situational";
-    targetBehavior: string | null;
-    purpose: string | null;
-    onHit: string | null;
-    onBlock: string | null;
-    losesTo: string | null;
-    authorExplanation: string | null;
-    sortOrder: number;
+    stepOrdinal: number | null;
+    timing: BlockstringGapTiming;
+    frames: number;
+    frameAdvantage: number;
+    classification: BlockstringGapClassification;
+    adaptationCount?: number;
 }
 
-export interface BlockstringDefenseAnswer {
+export interface BlockstringAdaptationComboSearch {
+    character: BlockstringCharacter | null;
+    firstMove: BlockstringMove | null;
+    enderMove: BlockstringMove | null;
+    situation: {id: number; name: string; typeName: string; typeCode: string} | null;
+    spacing: {id: number; code: string; name: string} | null;
+    filters: Record<string, string | number | boolean | string[]>;
+    url: string;
+}
+
+export interface BlockstringAdaptationStep {
     id?: number;
-    defenderCharacter: BlockstringCharacter | null;
+    ordinal: number;
     move: BlockstringMove | null;
-    responseType: "button" | "reversal" | "jump" | "backdash" | "block" | "movement";
-    startupFrames: number | null;
-    outcome: "counter_hit" | "punish_counter" | "trade" | "escape" | "reset_to_neutral" | "block";
-    conversion: string | null;
-    recommended: boolean;
+}
+
+export interface BlockstringAdaptation {
+    id?: number;
+    gapId: number | null;
+    gapStepOrdinal: number | null;
+    explanation: string | null;
+    steps: BlockstringAdaptationStep[];
+    comboSearch: BlockstringAdaptationComboSearch | null;
 }
 
 export interface BlockstringDefenseEntry {
     id?: number;
-    actAfterStep: number | null;
+    gapId: number | null;
+    gapStepOrdinal: number | null;
     instruction: string | null;
     exceptionNotes: string | null;
-    answers: BlockstringDefenseAnswer[];
+    defenderCharacter: BlockstringCharacter | null;
+    move: BlockstringMove | null;
+    responseType: "button" | "reversal" | "jump" | "backdash" | "block" | "movement";
+    outcome: "counter_hit" | "punish_counter" | "trade" | "escape" | "reset_to_neutral" | "block";
+    conversion: string | null;
 }
 
 export interface BlockstringCondition {
@@ -63,20 +80,18 @@ export interface BlockstringSummary {
     title: string;
     summary: string | null;
     classification: "true" | "frametrap" | "reset" | "fake" | "knowledge_check";
-    gapAfterStep: number | null;
-    maxInterruptStartup: number | null;
     moderationState: string;
     attackerCharacter: BlockstringCharacter | null;
     notation: string;
     steps: BlockstringStep[];
-    offensePlanCount: number;
+    gaps: BlockstringGap[];
     defenseEntryCount: number;
 }
 
 export interface BlockstringDetail extends BlockstringSummary {
     conditions: BlockstringCondition[];
-    offensePlans: BlockstringOffensePlan[];
     defenseEntries: BlockstringDefenseEntry[];
+    adaptations: BlockstringAdaptation[];
 }
 
 export interface BlockstringSearchFilters {
@@ -93,31 +108,48 @@ export interface BlockstringPayload {
     summary?: string | null;
     attackerCharacterId: string;
     classification: string;
-    gapAfterStep?: number | null;
-    maxInterruptStartup?: number | null;
     steps: Array<{
         moveId: string;
         ordinal?: number;
-        gapBefore?: boolean;
-        gapFrames?: number | null;
         canConfirmOnHit?: boolean;
         note?: string | null;
     }>;
+    gaps?: Array<{
+        clientId: string;
+        stepOrdinal: number;
+        timing: BlockstringGapTiming;
+        frames: number | null;
+        frameAdvantage?: number | null;
+        classification?: BlockstringGapClassification;
+    }>;
     conditions?: Array<{kind: string; value: string; note?: string | null}>;
-    offensePlans?: Array<Partial<BlockstringOffensePlan>>;
     defenseEntries?: Array<{
-        actAfterStep?: number | null;
+        gapClientId?: string | null;
         instruction?: string | null;
         exceptionNotes?: string | null;
-        answers?: Array<{
-            defenderCharacterId?: string | null;
-            moveId?: string | null;
-            responseType?: string;
-            startupFrames?: number | null;
-            outcome?: string;
-            conversion?: string | null;
-            recommended?: boolean;
-        }>;
+        defenderCharacterId?: string | null;
+        moveId?: string | null;
+        responseType?: string;
+        outcome?: string;
+        conversion?: string | null;
+    }>;
+    adaptations?: Array<{
+        clientId: string;
+        gapClientId: string;
+        explanation?: string | null;
+        steps: Array<{moveId: string; ordinal?: number}>;
+        comboSearch?: {
+            firstMoveId?: string | null;
+            enderMoveId?: string | null;
+            spacingCode?: string | null;
+            minDamage?: number | null;
+            maxDamage?: number | null;
+            minDriveCost?: number | null;
+            maxDriveCost?: number | null;
+            counterHitRequired?: boolean | null;
+            punishCounterRequired?: boolean | null;
+            cornerRequired?: boolean | null;
+        };
     }>;
 }
 

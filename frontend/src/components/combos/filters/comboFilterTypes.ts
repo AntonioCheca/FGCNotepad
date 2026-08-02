@@ -100,4 +100,5 @@ export interface ComboSearchFilters {
 
 export interface ComboFiltersProps {
     onChange: (filters: ComboSearchFilters) => void;
+    initialFilters?: ComboSearchFilters;
 }

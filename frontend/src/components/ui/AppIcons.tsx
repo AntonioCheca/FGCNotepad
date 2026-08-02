@@ -21,3 +21,5 @@ export {default as TimelineIcon} from "@mui/icons-material/Timeline";
 export {default as WarningAmberIcon} from "@mui/icons-material/WarningAmber";
 export {default as ArrowUpwardIcon} from "@mui/icons-material/ArrowUpward";
 export {default as ArrowDownwardIcon} from "@mui/icons-material/ArrowDownward";
+export {default as ChatBubbleOutlineIcon} from "@mui/icons-material/ChatBubbleOutline";
+export {default as AltRouteIcon} from "@mui/icons-material/AltRoute";

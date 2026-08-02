@@ -27,10 +27,12 @@ class BlockstringSequenceRepository extends ServiceEntityRepository
             ->leftJoin('sequence.steps', 'step')
             ->leftJoin('step.move', 'move')
             ->leftJoin('move.character', 'moveCharacter')
+            ->leftJoin('sequence.gaps', 'gap')
             ->leftJoin('sequence.defenseEntries', 'defenseEntry')
-            ->leftJoin('defenseEntry.answers', 'answer')
-            ->leftJoin('answer.defenderCharacter', 'defender')
-            ->addSelect('attacker', 'step', 'move', 'moveCharacter', 'defenseEntry', 'answer', 'defender')
+            ->leftJoin('defenseEntry.gap', 'defenseGap')
+            ->leftJoin('defenseEntry.defenderCharacter', 'defender')
+            ->leftJoin('defenseEntry.move', 'defenseMove')
+            ->addSelect('attacker', 'step', 'move', 'moveCharacter', 'gap', 'defenseEntry', 'defenseGap', 'defender', 'defenseMove')
             ->distinct()
             ->setMaxResults(max(1, min($limit, 200)))
             ->orderBy('sequence.id', 'DESC');
@@ -57,7 +59,7 @@ class BlockstringSequenceRepository extends ServiceEntityRepository
 
         $defenderCharacterId = isset($filters['defenderCharacterId']) && is_string($filters['defenderCharacterId']) ? trim($filters['defenderCharacterId']) : '';
         if ('' !== $defenderCharacterId) {
-            $qb->andWhere('(defender.id = :defenderCharacterId OR answer.defenderCharacter IS NULL)')
+            $qb->andWhere('(defender.id = :defenderCharacterId OR defenseEntry.defenderCharacter IS NULL)')
                 ->setParameter('defenderCharacterId', $defenderCharacterId);
         }
 
@@ -84,14 +86,30 @@ class BlockstringSequenceRepository extends ServiceEntityRepository
             ->leftJoin('sequence.steps', 'step')
             ->leftJoin('step.move', 'move')
             ->leftJoin('move.character', 'moveCharacter')
-            ->leftJoin('sequence.offensePlans', 'offensePlan')
+            ->leftJoin('sequence.gaps', 'gap')
+            ->leftJoin('gap.step', 'gapStep')
             ->leftJoin('sequence.defenseEntries', 'defenseEntry')
-            ->leftJoin('defenseEntry.answers', 'answer')
-            ->leftJoin('answer.defenderCharacter', 'defender')
-            ->leftJoin('answer.move', 'answerMove')
+            ->leftJoin('defenseEntry.gap', 'defenseGap')
+            ->leftJoin('defenseGap.step', 'defenseGapStep')
+            ->leftJoin('defenseEntry.defenderCharacter', 'defender')
+            ->leftJoin('defenseEntry.move', 'answerMove')
             ->leftJoin('answerMove.character', 'answerMoveCharacter')
             ->leftJoin('sequence.conditions', 'condition')
-            ->addSelect('author', 'attacker', 'step', 'move', 'moveCharacter', 'offensePlan', 'defenseEntry', 'answer', 'defender', 'answerMove', 'answerMoveCharacter', 'condition')
+            ->leftJoin('sequence.adaptations', 'adaptation')
+            ->leftJoin('adaptation.gap', 'adaptationGap')
+            ->leftJoin('adaptation.steps', 'adaptationStep')
+            ->leftJoin('adaptationStep.move', 'adaptationMove')
+            ->leftJoin('adaptationMove.character', 'adaptationMoveCharacter')
+            ->leftJoin('adaptation.comboSearch', 'adaptationComboSearch')
+            ->leftJoin('adaptationComboSearch.character', 'adaptationComboSearchCharacter')
+            ->leftJoin('adaptationComboSearch.firstMove', 'adaptationComboSearchFirstMove')
+            ->leftJoin('adaptationComboSearchFirstMove.character', 'adaptationComboSearchFirstMoveCharacter')
+            ->leftJoin('adaptationComboSearch.enderMove', 'adaptationComboSearchEnderMove')
+            ->leftJoin('adaptationComboSearchEnderMove.character', 'adaptationComboSearchEnderMoveCharacter')
+            ->leftJoin('adaptationComboSearch.situation', 'adaptationComboSearchSituation')
+            ->leftJoin('adaptationComboSearchSituation.type', 'adaptationComboSearchSituationType')
+            ->leftJoin('adaptationComboSearch.spacing', 'adaptationComboSearchSpacing')
+            ->addSelect('author', 'attacker', 'step', 'move', 'moveCharacter', 'gap', 'gapStep', 'defenseEntry', 'defenseGap', 'defenseGapStep', 'defender', 'answerMove', 'answerMoveCharacter', 'condition', 'adaptation', 'adaptationGap', 'adaptationStep', 'adaptationMove', 'adaptationMoveCharacter', 'adaptationComboSearch', 'adaptationComboSearchCharacter', 'adaptationComboSearchFirstMove', 'adaptationComboSearchFirstMoveCharacter', 'adaptationComboSearchEnderMove', 'adaptationComboSearchEnderMoveCharacter', 'adaptationComboSearchSituation', 'adaptationComboSearchSituationType', 'adaptationComboSearchSpacing')
             ->andWhere('sequence.id = :id')
             ->setParameter('id', $id);
 

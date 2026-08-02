@@ -12,6 +12,10 @@ export interface Character {
 
 let cachedCharacters: Character[] | null = null;
 
+function sortCharacters(characters: Character[]): Character[] {
+    return [...characters].sort((first, second) => first.name.localeCompare(second.name));
+}
+
 export function useCharacters() {
     const {request} = useApi();
     const [characters, setCharacters] = useState<Character[]>(cachedCharacters ?? []);
@@ -29,8 +33,9 @@ export function useCharacters() {
         request(() => api.get<Character[]>("/characters"))
             .then((data) => {
                 if (!canceled) {
-                    cachedCharacters = data;
-                    setCharacters(data);
+                    const sortedCharacters = sortCharacters(data);
+                    cachedCharacters = sortedCharacters;
+                    setCharacters(sortedCharacters);
                     setError(null);
                 }
             })

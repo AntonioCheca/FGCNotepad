@@ -14,6 +14,7 @@ import {AppSelect} from "@/src/components/ui/AppSelect";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {OkiMovePicker, type OkiMoveOption} from "@/src/components/okis/OkiMovePicker";
+import {BlockstringGapAdvantageStrip} from "@/src/components/blockstrings/BlockstringGapAdvantageStrip";
 import {BlockstringStatusChip} from "@/src/components/blockstrings/BlockstringStatusChip";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
@@ -81,8 +82,9 @@ function OffenseResults({items}: {items: BlockstringSummary[]}) {
                         <BlockstringStatusChip classification={item.classification} />
                     </AppBox>
                     <AppTypography variant="body2" color="text.secondary">{item.attackerCharacter?.name ?? "Unknown"} · {item.notation}</AppTypography>
+                    <BlockstringGapAdvantageStrip gaps={item.gaps} />
                     {item.summary ? <AppTypography variant="body2">{item.summary}</AppTypography> : null}
-                    <AppTypography variant="caption" color="text.secondary">{item.offensePlanCount} offensive plan{item.offensePlanCount === 1 ? "" : "s"}</AppTypography>
+                    <AppTypography variant="caption" color="text.secondary">{item.defenseEntryCount} defense answer{item.defenseEntryCount === 1 ? "" : "s"}</AppTypography>
                 </AppPaper>
             ))}
         </AppBox>

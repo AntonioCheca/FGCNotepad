@@ -157,6 +157,7 @@ This project uses a tactical editorial visual system anchored to two separate ar
 - Keep explanatory copy only when it changes user behavior: warnings, privacy/security constraints, destructive actions, validation, permissions, loading/error/empty states, or non-obvious workflow requirements.
 - Avoid repeating the same entity name in page title, section title, card title, and row title; show it once in the highest-value location.
 - When copy is needed, make it short and specific rather than instructional marketing text.
+- Super important: remove redundant functionality and redundant text. Do not add a button/link that goes to the same destination as another visible page or sidebar action, and do not add text that says something trivial, implicitly assumed, or already stated elsewhere on the screen.
 
 ### Feedback, error, and success rules
 

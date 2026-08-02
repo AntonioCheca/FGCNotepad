@@ -92,6 +92,8 @@ type FgcTokenSet = {
         neutralText: string;
         warningBg: string;
         warningText: string;
+        errorBg: string;
+        errorText: string;
         successBg: string;
         successText: string;
         infoBg: string;
@@ -217,6 +219,8 @@ const lightTokens: FgcTokenSet = {
         neutralText: "#264157",
         warningBg: "#fff2d6",
         warningText: "#8c4f00",
+        errorBg: "#fde8e8",
+        errorText: "#9f1d1d",
         successBg: "#e6f7ee",
         successText: "#1e5b3d",
         infoBg: "#e8f6fb",
@@ -333,6 +337,8 @@ const darkTokens: FgcTokenSet = {
         neutralText: "#d4e8f1",
         warningBg: "#43351f",
         warningText: "#ffd27b",
+        errorBg: "#4d2024",
+        errorText: "#ffb4b4",
         successBg: "#1f3f46",
         successText: "#c5e0ea",
         infoBg: "#1a4558",
@@ -717,6 +723,11 @@ export const getDesignTokens = (mode: PaletteMode) => {
                         backgroundColor: theme.fgc.chip.warningBg,
                         color: theme.fgc.chip.warningText,
                         borderColor: theme.fgc.chip.warningText,
+                    }),
+                    colorError: ({theme}: {theme: Theme}) => ({
+                        backgroundColor: theme.fgc.chip.errorBg,
+                        color: theme.fgc.chip.errorText,
+                        borderColor: theme.fgc.chip.errorText,
                     }),
                     colorSuccess: ({theme}: {theme: Theme}) => ({
                         backgroundColor: theme.fgc.chip.successBg,

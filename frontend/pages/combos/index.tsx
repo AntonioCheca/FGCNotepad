@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useRouter} from "next/router";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
@@ -13,8 +14,10 @@ import {ComboRow, mapComboToRow} from "@/src/types/combo";
 import type {ComboSortDirection, ComboSortField} from "@/src/components/combos/filters/comboFilterTypes";
 
 export default function SearchCombosPage() {
+    const router = useRouter();
     const {fetchCombos} = useCombos();
-    const [filters, setFilters] = useState<ComboSearchFilters>({sort: "resourceAdjustedDamage"});
+    const initialFilters = useMemo(() => buildFiltersFromQuery(router.query), [router.query]);
+    const [filters, setFilters] = useState<ComboSearchFilters>({...initialFilters, sort: "resourceAdjustedDamage"});
     const [combos, setCombos] = useState<ComboRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasLoadedAtLeastOnce, setHasLoadedAtLeastOnce] = useState(false);
@@ -85,7 +88,7 @@ export default function SearchCombosPage() {
                 badgeLabel={`${combos.length} result${combos.length === 1 ? "" : "s"}`}
             >
                 {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}
-                <ComboFilters onChange={handleFiltersChange} />
+                <ComboFilters initialFilters={initialFilters} onChange={handleFiltersChange} />
 
                 {loading && hasLoadedAtLeastOnce ? (
                     <AppBox sx={{display: "flex", justifyContent: "flex-end", pb: 0.5}}>
@@ -109,4 +112,62 @@ export default function SearchCombosPage() {
             </PageShell>
         </AppContainer>
     );
+}
+
+function buildFiltersFromQuery(query: Record<string, string | string[] | undefined>): ComboSearchFilters {
+    const filters: ComboSearchFilters = {};
+    const stringValue = (key: string): string | undefined => {
+        const value = query[key];
+        return Array.isArray(value) ? value[0] : value;
+    };
+    const numberValue = (key: string): number | undefined => {
+        const value = stringValue(key);
+        if (value === undefined || value.trim() === "") {
+            return undefined;
+        }
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : undefined;
+    };
+    const boolValue = (key: string): boolean | undefined => {
+        const value = stringValue(key);
+        if (value === "true" || value === "1") {
+            return true;
+        }
+        if (value === "false" || value === "0") {
+            return false;
+        }
+        return undefined;
+    };
+    const stringListValue = (key: string): string[] | undefined => {
+        const value = query[key];
+        const values = Array.isArray(value) ? value : value ? [value] : [];
+        const normalized = values.flatMap((entry) => entry.split(",")).map((entry) => entry.trim()).filter(Boolean);
+
+        return normalized.length > 0 ? normalized : undefined;
+    };
+
+    for (const key of ["characterId", "firstMoveId", "enderMoveId"] as const) {
+        const value = stringValue(key);
+        if (value) {
+            filters[key] = value;
+        }
+    }
+    for (const key of ["situationId", "minDamage", "maxDamage", "minDriveCost", "maxDriveCost"] as const) {
+        const value = numberValue(key);
+        if (value !== undefined) {
+            filters[key] = value;
+        }
+    }
+    for (const key of ["counterHitRequired", "punishCounterRequired", "cornerRequired"] as const) {
+        const value = boolValue(key);
+        if (value !== undefined) {
+            filters[key] = value;
+        }
+    }
+    const spacingCodes = stringListValue("spacingCodes");
+    if (spacingCodes !== undefined) {
+        filters.spacingCodes = spacingCodes;
+    }
+
+    return filters;
 }

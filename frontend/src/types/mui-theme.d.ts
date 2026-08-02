@@ -92,6 +92,8 @@ type FgcTokenGroup = {
         neutralText: string;
         warningBg: string;
         warningText: string;
+        errorBg: string;
+        errorText: string;
         successBg: string;
         successText: string;
         infoBg: string;

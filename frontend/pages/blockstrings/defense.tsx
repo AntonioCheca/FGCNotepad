@@ -14,6 +14,7 @@ import {AppSelect} from "@/src/components/ui/AppSelect";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {OkiMovePicker, type OkiMoveOption} from "@/src/components/okis/OkiMovePicker";
+import {BlockstringGapAdvantageStrip} from "@/src/components/blockstrings/BlockstringGapAdvantageStrip";
 import {BlockstringStatusChip} from "@/src/components/blockstrings/BlockstringStatusChip";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
@@ -90,10 +91,19 @@ function DefenseResults({items}: {items: BlockstringSummary[]}) {
                         <BlockstringStatusChip classification={item.classification} />
                     </AppBox>
                     <AppTypography variant="body2" color="text.secondary">Attacker: {item.attackerCharacter?.name ?? "Unknown"}</AppTypography>
-                    <AppTypography variant="body2">{item.maxInterruptStartup === null ? "Open for details." : `Interrupt with ${item.maxInterruptStartup}f or faster after step ${item.gapAfterStep ?? "?"}.`}</AppTypography>
+                    <BlockstringGapAdvantageStrip gaps={item.gaps} />
+                    <AppTypography variant="body2">{formatGapSummary(item)}</AppTypography>
                     {item.summary ? <AppTypography variant="body2" color="text.secondary">{item.summary}</AppTypography> : null}
                 </AppPaper>
             ))}
         </AppBox>
     );
+}
+
+function formatGapSummary(item: BlockstringSummary): string {
+    if (item.gaps.length === 0) {
+        return "No gaps documented.";
+    }
+
+    return item.gaps.map((gap) => `${gap.frames}f ${gap.timing === "before_step" ? "before" : "during"} Move ${gap.stepOrdinal ?? "?"}`).join(" · ");
 }

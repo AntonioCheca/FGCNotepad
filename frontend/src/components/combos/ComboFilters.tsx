@@ -25,7 +25,9 @@ import type {RequirementObjectOption} from "@/src/types/combo";
 
 export type {ComboSearchFilters};
 
-export default function ComboFilters({onChange}: ComboFiltersProps) {
+const EMPTY_INITIAL_FILTERS: ComboSearchFilters = {};
+
+export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_FILTERS}: ComboFiltersProps) {
     const {characters} = useCharacters();
     const {searchMoves} = useMoves();
     const {fetchSituations} = useSituations();
@@ -106,13 +108,13 @@ export default function ComboFilters({onChange}: ComboFiltersProps) {
 
     React.useEffect(() => {
         const handle = window.setTimeout(() => {
-            onChange(normalizedFilters);
+            onChange({...initialFilters, ...normalizedFilters});
         }, 240);
 
         return () => {
             window.clearTimeout(handle);
         };
-    }, [normalizedFilters, onChange]);
+    }, [initialFilters, normalizedFilters, onChange]);
 
     const handleClearFilters = React.useCallback(() => {
         clearFilters();

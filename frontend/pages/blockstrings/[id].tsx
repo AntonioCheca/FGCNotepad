@@ -1,20 +1,17 @@
 import React from "react";
-import Link from "next/link";
 import {useRouter} from "next/router";
 import AuthContext from "@/services/AuthContext";
 import useBlockstrings from "@/hooks/useBlockstrings";
 import {BlockstringForm} from "@/src/components/blockstrings/BlockstringForm";
+import {BlockstringSequenceViewer} from "@/src/components/blockstrings/BlockstringSequenceViewer";
 import {BlockstringStatusChip} from "@/src/components/blockstrings/BlockstringStatusChip";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
-import {AppPaper} from "@/src/components/ui/AppPaper";
-import {AppTypography} from "@/src/components/ui/AppTypography";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import type {BlockstringDetail, BlockstringPayload} from "@/src/types/blockstring";
-import {formatBlockstringLabel} from "@/src/types/blockstring";
 
 export default function BlockstringDetailPage() {
     const router = useRouter();
@@ -37,8 +34,9 @@ export default function BlockstringDetailPage() {
         }
         let canceled = false;
         setLoading(true);
+        setError(null);
         getBlockstring(blockstringId)
-            .then((result: BlockstringDetail) => { if (!canceled) setItem(result); })
+            .then((result: BlockstringDetail) => { if (!canceled) { setItem(result); setError(null); } })
             .catch(() => { if (!canceled) setError("Blockstring not found."); })
             .finally(() => { if (!canceled) setLoading(false); });
         return () => { canceled = true; };
@@ -72,11 +70,10 @@ export default function BlockstringDetailPage() {
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title={item.title} badgeLabel={item.attackerCharacter?.name ?? undefined}>
-                {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
+                {error && editMode ? <InlineNotice severity="error">{error}</InlineNotice> : null}
                 <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap"}}>
                     <AppBox sx={{display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center"}}>
                         <BlockstringStatusChip classification={item.classification} />
-                        <AppTypography variant="body2" color="text.secondary">{item.notation}</AppTypography>
                     </AppBox>
                     {authContext.canModerate ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => setEditMode((current) => !current)}>{editMode ? "Cancel Edit" : "Edit"}</AppButton> : null}
                 </AppBox>
@@ -91,35 +88,7 @@ function BlockstringReadOnly({item}: {item: BlockstringDetail}) {
     return (
         <AppBox sx={{display: "grid", gap: 1.2}}>
             {item.summary ? <InlineNotice severity={item.classification === "fake" || item.classification === "knowledge_check" ? "warning" : "info"}>{item.summary}</InlineNotice> : null}
-            <AppPaper variant="outlined" sx={{p: 1.5, borderRadius: 2.5, backgroundColor: "fgc.surface.base", display: "grid", gap: 1}}>
-                <AppTypography variant="h6">Defensive Answer</AppTypography>
-                <AppTypography variant="body2">{item.maxInterruptStartup === null ? "Open the entries below for the specific answer." : `Use ${item.maxInterruptStartup}f or faster after step ${item.gapAfterStep ?? "?"}.`}</AppTypography>
-                {item.defenseEntries.map((entry) => (
-                    <AppBox key={entry.id ?? entry.instruction} sx={{display: "grid", gap: 0.5, borderTop: "1px solid", borderColor: "fgc.border.default", pt: 1}}>
-                        {entry.instruction ? <AppTypography variant="body2">{entry.instruction}</AppTypography> : null}
-                        {entry.answers.map((answer) => <AppTypography key={answer.id ?? answer.conversion} variant="body2" color="text.secondary">{formatBlockstringLabel(answer.responseType)} · {answer.move?.numpadNotation ?? `${answer.startupFrames ?? "?"}f`} · {formatBlockstringLabel(answer.outcome)}{answer.conversion ? ` · ${answer.conversion}` : ""}</AppTypography>)}
-                    </AppBox>
-                ))}
-            </AppPaper>
-            <AppPaper variant="outlined" sx={{p: 1.5, borderRadius: 2.5, backgroundColor: "fgc.surface.base", display: "grid", gap: 1}}>
-                <AppTypography variant="h6">Offensive Plans</AppTypography>
-                {item.offensePlans.length === 0 ? <AppTypography variant="body2" color="text.secondary">No offensive plans documented.</AppTypography> : item.offensePlans.map((plan) => (
-                    <AppBox key={plan.id ?? plan.label} sx={{display: "grid", gap: 0.4, borderTop: "1px solid", borderColor: "fgc.border.default", pt: 1}}>
-                        <AppTypography variant="subtitle1" sx={{fontWeight: 800}}>{plan.label}</AppTypography>
-                        {plan.targetBehavior ? <AppTypography variant="body2" color="text.secondary">Targets: {plan.targetBehavior}</AppTypography> : null}
-                        {plan.purpose ? <AppTypography variant="body2">{plan.purpose}</AppTypography> : null}
-                        <AppBox sx={{display: "flex", gap: 1, flexWrap: "wrap"}}>
-                            {plan.onHit ? <AppTypography variant="caption">Hit: {plan.onHit}</AppTypography> : null}
-                            {plan.onBlock ? <AppTypography variant="caption">Block: {plan.onBlock}</AppTypography> : null}
-                            {plan.losesTo ? <AppTypography variant="caption">Loses to: {plan.losesTo}</AppTypography> : null}
-                        </AppBox>
-                    </AppBox>
-                ))}
-            </AppPaper>
-            <AppBox sx={{display: "flex", gap: 1, flexWrap: "wrap"}}>
-                <Link href="/blockstrings/offense" style={{textDecoration: "none"}}><AppButton type="button" variant="outlined" color="secondary">Offense Search</AppButton></Link>
-                <Link href="/blockstrings/defense" style={{textDecoration: "none"}}><AppButton type="button" variant="outlined" color="secondary">Defense Search</AppButton></Link>
-            </AppBox>
+            <BlockstringSequenceViewer item={item} />
         </AppBox>
     );
 }

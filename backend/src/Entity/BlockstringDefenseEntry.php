@@ -2,8 +2,6 @@
 
 namespace App\Entity;
 
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -21,8 +19,9 @@ class BlockstringDefenseEntry
     #[ORM\JoinColumn(name: 'sequence_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?BlockstringSequence $sequence = null;
 
-    #[ORM\Column(name: 'act_after_step', nullable: true)]
-    private ?int $actAfterStep = null;
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'gap_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?BlockstringGap $gap = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $instruction = null;
@@ -30,21 +29,40 @@ class BlockstringDefenseEntry
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $exceptionNotes = null;
 
-    /** @var Collection<int, BlockstringDefenseAnswer> */
-    #[ORM\OneToMany(targetEntity: BlockstringDefenseAnswer::class, mappedBy: 'entry', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['recommended' => 'DESC', 'id' => 'ASC'])]
-    private Collection $answers;
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'defender_character_id', referencedColumnName: 'id', nullable: true)]
+    private ?Character $defenderCharacter = null;
 
-    public function __construct() { $this->answers = new ArrayCollection(); }
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'move_id', referencedColumnName: 'id', nullable: true)]
+    private ?Move $move = null;
+
+    #[ORM\Column(name: 'response_type', type: Types::STRING, length: 40)]
+    private string $responseType = 'button';
+
+    #[ORM\Column(type: Types::STRING, length: 40)]
+    private string $outcome = 'counter_hit';
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $conversion = null;
+
     public function getId(): ?int { return $this->id; }
     public function getSequence(): ?BlockstringSequence { return $this->sequence; }
     public function setSequence(?BlockstringSequence $sequence): self { $this->sequence = $sequence; return $this; }
-    public function getActAfterStep(): ?int { return $this->actAfterStep; }
-    public function setActAfterStep(?int $actAfterStep): self { $this->actAfterStep = $actAfterStep; return $this; }
+    public function getGap(): ?BlockstringGap { return $this->gap; }
+    public function setGap(?BlockstringGap $gap): self { $this->gap = $gap; return $this; }
     public function getInstruction(): ?string { return $this->instruction; }
     public function setInstruction(?string $instruction): self { $this->instruction = $instruction; return $this; }
     public function getExceptionNotes(): ?string { return $this->exceptionNotes; }
     public function setExceptionNotes(?string $exceptionNotes): self { $this->exceptionNotes = $exceptionNotes; return $this; }
-    /** @return Collection<int, BlockstringDefenseAnswer> */ public function getAnswers(): Collection { return $this->answers; }
-    public function addAnswer(BlockstringDefenseAnswer $answer): self { if (!$this->answers->contains($answer)) { $this->answers->add($answer); $answer->setEntry($this); } return $this; }
+    public function getDefenderCharacter(): ?Character { return $this->defenderCharacter; }
+    public function setDefenderCharacter(?Character $defenderCharacter): self { $this->defenderCharacter = $defenderCharacter; return $this; }
+    public function getMove(): ?Move { return $this->move; }
+    public function setMove(?Move $move): self { $this->move = $move; return $this; }
+    public function getResponseType(): string { return $this->responseType; }
+    public function setResponseType(string $responseType): self { $this->responseType = $responseType; return $this; }
+    public function getOutcome(): string { return $this->outcome; }
+    public function setOutcome(string $outcome): self { $this->outcome = $outcome; return $this; }
+    public function getConversion(): ?string { return $this->conversion; }
+    public function setConversion(?string $conversion): self { $this->conversion = $conversion; return $this; }
 }
