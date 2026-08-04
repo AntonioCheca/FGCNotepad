@@ -22,6 +22,10 @@ class BlockstringSequenceStep
     #[ORM\JoinColumn(name: 'sequence_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?BlockstringSequence $sequence = null;
 
+    #[ORM\ManyToOne(inversedBy: 'steps')]
+    #[ORM\JoinColumn(name: 'route_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
+    private ?BlockstringRoute $route = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'move_id', referencedColumnName: 'id', nullable: false)]
     private ?Move $move = null;
@@ -47,6 +51,8 @@ class BlockstringSequenceStep
     public function getId(): ?int { return $this->id; }
     public function getSequence(): ?BlockstringSequence { return $this->sequence; }
     public function setSequence(?BlockstringSequence $sequence): self { $this->sequence = $sequence; return $this; }
+    public function getRoute(): ?BlockstringRoute { return $this->route; }
+    public function setRoute(?BlockstringRoute $route): self { $this->route = $route; return $this; }
     public function getMove(): ?Move { return $this->move; }
     public function setMove(?Move $move): self { $this->move = $move; return $this; }
     public function getOrdinal(): int { return $this->ordinal; }

@@ -30,6 +30,34 @@ export interface BlockstringGap {
     adaptationCount?: number;
 }
 
+export type BlockstringConnectionType = "guaranteed" | "gap" | "manual_delay" | "hit_confirm" | "not_confirmable";
+
+export interface BlockstringRouteConnection {
+    id?: number;
+    ordinal: number;
+    type: BlockstringConnectionType;
+    sourceStepId: number | null;
+    sourceStepOrdinal: number | null;
+    destinationStepId: number | null;
+    destinationStepOrdinal: number | null;
+    gap: BlockstringGap | null;
+}
+
+export interface BlockstringRoute {
+    id?: number;
+    name: string;
+    displayOrder: number;
+    isMain: boolean;
+    tacticalReasonText: string | null;
+    branchAnchor: {
+        stepId: number | null;
+        stepOrdinal: number | null;
+        connectionId: number | null;
+    };
+    steps: BlockstringStep[];
+    connections: BlockstringRouteConnection[];
+}
+
 export interface BlockstringAdaptationComboSearch {
     character: BlockstringCharacter | null;
     firstMove: BlockstringMove | null;
@@ -86,6 +114,7 @@ export interface BlockstringSummary {
     steps: BlockstringStep[];
     gaps: BlockstringGap[];
     defenseEntryCount: number;
+    routes: BlockstringRoute[];
 }
 
 export interface BlockstringDetail extends BlockstringSummary {
@@ -151,9 +180,31 @@ export interface BlockstringPayload {
             cornerRequired?: boolean | null;
         };
     }>;
+    routes?: Array<{
+        clientId: string;
+        name: string;
+        displayOrder: number;
+        isMain: boolean;
+        tacticalReasonText?: string | null;
+        branchAnchor?: {stepClientId?: string | null; connectionClientId?: string | null} | null;
+        steps: Array<{clientId: string; moveId: string; ordinal?: number; note?: string | null}>;
+        connections: Array<{
+            clientId: string;
+            sourceStepClientId?: string | null;
+            destinationStepClientId: string;
+            ordinal?: number;
+            type: BlockstringConnectionType;
+            gapClientId?: string | null;
+            gapFrames?: number | null;
+            gapTiming?: BlockstringGapTiming;
+            frameAdvantage?: number | null;
+            classification?: BlockstringGapClassification;
+        }>;
+    }>;
 }
 
 export const BLOCKSTRING_CLASSIFICATIONS = ["true", "frametrap", "reset", "fake", "knowledge_check"] as const;
+export const BLOCKSTRING_CONNECTION_TYPES: BlockstringConnectionType[] = ["guaranteed", "gap", "manual_delay", "hit_confirm", "not_confirmable"];
 
 export function formatBlockstringLabel(value: string): string {
     return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());

@@ -145,4 +145,102 @@ class BlockstringControllerTest extends AuthenticatedWebTestCase
 
         $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
+
+    public function testCreateBlockstringWithLayeredRoutesAndHitConfirmConnection(): void
+    {
+        $this->addContentTypeJsonToHeaders();
+        $character = (new Character())->setName('Kimberly');
+        $fiveMk = (new Move())->setCharacter($character)->setNumpadNotation('5MK TC');
+        $twoLp = (new Move())->setCharacter($character)->setNumpadNotation('2LP');
+        $twoMk = (new Move())->setCharacter($character)->setNumpadNotation('2MK');
+        $run = (new Move())->setCharacter($character)->setNumpadNotation('214M');
+        $this->entityManager->persist($character);
+        $this->entityManager->persist($fiveMk);
+        $this->entityManager->persist($twoLp);
+        $this->entityManager->persist($twoMk);
+        $this->entityManager->persist($run);
+        $this->entityManager->flush();
+
+        $payload = [
+            'title' => 'Layered TC pressure',
+            'attackerCharacterId' => (string) $character->getId(),
+            'classification' => 'frametrap',
+            'routes' => [
+                [
+                    'clientId' => 'main',
+                    'name' => 'Main route',
+                    'isMain' => true,
+                    'displayOrder' => 1,
+                    'steps' => [
+                        ['clientId' => 'main-a', 'moveId' => (string) $fiveMk->getId()],
+                        ['clientId' => 'main-b', 'moveId' => (string) $twoLp->getId()],
+                    ],
+                    'connections' => [[
+                        'clientId' => 'main-link',
+                        'sourceStepClientId' => 'main-a',
+                        'destinationStepClientId' => 'main-b',
+                        'type' => 'guaranteed',
+                    ]],
+                ],
+                [
+                    'clientId' => 'mash-callout',
+                    'name' => 'Mash callout',
+                    'isMain' => false,
+                    'displayOrder' => 2,
+                    'tacticalReasonText' => 'Use this route when the opponent challenges after 2LP.',
+                    'branchAnchor' => ['connectionClientId' => 'main-link'],
+                    'steps' => [
+                        ['clientId' => 'mash-a', 'moveId' => (string) $fiveMk->getId()],
+                        ['clientId' => 'mash-b', 'moveId' => (string) $twoLp->getId()],
+                        ['clientId' => 'mash-c', 'moveId' => (string) $twoMk->getId()],
+                        ['clientId' => 'mash-d', 'moveId' => (string) $run->getId()],
+                    ],
+                    'connections' => [
+                        ['clientId' => 'mash-link-a', 'sourceStepClientId' => 'mash-a', 'destinationStepClientId' => 'mash-b', 'type' => 'guaranteed'],
+                        ['clientId' => 'mash-gap', 'sourceStepClientId' => 'mash-b', 'destinationStepClientId' => 'mash-c', 'type' => 'gap', 'gapFrames' => 3, 'frameAdvantage' => -1, 'classification' => 'trades'],
+                        ['clientId' => 'mash-confirm', 'sourceStepClientId' => 'mash-c', 'destinationStepClientId' => 'mash-d', 'type' => 'hit_confirm'],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
+        $response = $this->client->getResponse();
+        $created = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
+        $this->assertSame('5MK TC -> 2LP', $created['notation']);
+        $this->assertCount(2, $created['routes']);
+        $this->assertTrue($created['routes'][0]['isMain']);
+        $this->assertSame('Mash callout', $created['routes'][1]['name']);
+        $this->assertSame('Use this route when the opponent challenges after 2LP.', $created['routes'][1]['tacticalReasonText']);
+        $this->assertSame($created['routes'][0]['connections'][0]['id'], $created['routes'][1]['branchAnchor']['connectionId']);
+        $this->assertSame('gap', $created['routes'][1]['connections'][1]['type']);
+        $this->assertSame(3, $created['routes'][1]['connections'][1]['gap']['frames']);
+        $this->assertSame('hit_confirm', $created['routes'][1]['connections'][2]['type']);
+    }
+
+    public function testAlternativeRouteRequiresTacticalReason(): void
+    {
+        $this->addContentTypeJsonToHeaders();
+        $character = (new Character())->setName('Ryu');
+        $move = (new Move())->setCharacter($character)->setNumpadNotation('2LP');
+        $this->entityManager->persist($character);
+        $this->entityManager->persist($move);
+        $this->entityManager->flush();
+
+        $payload = [
+            'title' => 'Invalid route reason',
+            'attackerCharacterId' => (string) $character->getId(),
+            'classification' => 'fake',
+            'routes' => [
+                ['clientId' => 'main', 'isMain' => true, 'steps' => [['clientId' => 'main-a', 'moveId' => (string) $move->getId()]]],
+                ['clientId' => 'alt', 'isMain' => false, 'steps' => [['clientId' => 'alt-a', 'moveId' => (string) $move->getId()]]],
+            ],
+        ];
+
+        $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
 }

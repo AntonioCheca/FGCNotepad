@@ -8,6 +8,8 @@ use App\Entity\BlockstringAdaptationComboSearch;
 use App\Entity\BlockstringAdaptationStep;
 use App\Entity\BlockstringDefenseEntry;
 use App\Entity\BlockstringGap;
+use App\Entity\BlockstringRoute;
+use App\Entity\BlockstringRouteConnection;
 use App\Entity\BlockstringSequence;
 use App\Entity\BlockstringSequenceStep;
 use App\Entity\Character;
@@ -35,11 +37,33 @@ class BlockstringMutationService
         $this->clearAdaptations($sequence);
         $this->clearDefenseEntries($sequence);
         $this->clearGaps($sequence);
-        $stepsByOrdinal = $this->replaceSteps($sequence, $payload['steps'] ?? []);
-        $gapsByClientId = $this->replaceGaps($sequence, $payload['gaps'] ?? [], $stepsByOrdinal);
+        $this->clearRoutesAndSteps($sequence);
+
+        if (is_array($payload['routes'] ?? null) && [] !== $payload['routes']) {
+            $gapsByClientId = $this->replaceRoutes($sequence, $payload['routes']);
+        } else {
+            $mainRoute = $this->createRoute($sequence, ['name' => 'Main route', 'isMain' => true, 'displayOrder' => 1], 1);
+            $stepsByOrdinal = $this->replaceSteps($sequence, $payload['steps'] ?? [], $mainRoute);
+            $gapsByClientId = $this->replaceGaps($sequence, $payload['gaps'] ?? [], $stepsByOrdinal);
+            $this->createDefaultConnections($mainRoute, $stepsByOrdinal, $sequence->getGaps()->toArray());
+        }
+
         $this->replaceConditions($sequence, $payload['conditions'] ?? []);
         $this->replaceDefenseEntries($sequence, $payload['defenseEntries'] ?? [], $gapsByClientId);
         $this->replaceAdaptations($sequence, $payload['adaptations'] ?? [], $gapsByClientId);
+    }
+
+    private function clearRoutesAndSteps(BlockstringSequence $sequence): void
+    {
+        foreach ($sequence->getRoutes()->toArray() as $route) {
+            $sequence->getRoutes()->removeElement($route);
+            $this->entityManager->remove($route);
+        }
+
+        foreach ($sequence->getSteps()->toArray() as $step) {
+            $sequence->getSteps()->removeElement($step);
+            $this->entityManager->remove($step);
+        }
     }
 
     private function clearAdaptations(BlockstringSequence $sequence): void
@@ -67,15 +91,10 @@ class BlockstringMutationService
     }
 
     /** @return array<int, BlockstringSequenceStep> */
-    private function replaceSteps(BlockstringSequence $sequence, mixed $stepsPayload): array
+    private function replaceSteps(BlockstringSequence $sequence, mixed $stepsPayload, ?BlockstringRoute $route = null): array
     {
         if (!is_array($stepsPayload) || [] === $stepsPayload) {
             throw new BadRequestHttpException('At least one sequence step is required.');
-        }
-
-        foreach ($sequence->getSteps()->toArray() as $step) {
-            $sequence->getSteps()->removeElement($step);
-            $this->entityManager->remove($step);
         }
 
         $ordinal = 1;
@@ -92,12 +111,171 @@ class BlockstringMutationService
                 ->setNote($this->nullableString($stepPayload['note'] ?? null));
 
             $sequence->addStep($step);
+            if ($route instanceof BlockstringRoute) {
+                $route->addStep($step);
+            }
             $this->entityManager->persist($step);
             $stepsByOrdinal[$step->getOrdinal()] = $step;
             ++$ordinal;
         }
 
         return $stepsByOrdinal;
+    }
+
+    /** @return array<string, BlockstringGap> */
+    private function replaceRoutes(BlockstringSequence $sequence, mixed $routesPayload): array
+    {
+        if (!is_array($routesPayload)) {
+            throw new BadRequestHttpException('Routes must be an array.');
+        }
+
+        $mainCount = 0;
+        $gapsByClientId = [];
+        $stepsByClientId = [];
+        $connectionsByClientId = [];
+        $branchPayloads = [];
+
+        foreach (array_values($routesPayload) as $routeIndex => $routePayload) {
+            if (!is_array($routePayload)) {
+                throw new BadRequestHttpException('Each route must be an object.');
+            }
+
+            $isMain = (bool) ($routePayload['isMain'] ?? 0 === $routeIndex);
+            $mainCount += $isMain ? 1 : 0;
+            $route = $this->createRoute($sequence, $routePayload, $routeIndex + 1, $isMain);
+            $routeClientId = $this->nullableString($routePayload['clientId'] ?? null) ?? sprintf('route-%d', $routeIndex + 1);
+            $branchPayloads[] = [$route, $routePayload['branchAnchor'] ?? null];
+
+            $stepsPayload = $routePayload['steps'] ?? [];
+            if (!is_array($stepsPayload) || [] === $stepsPayload) {
+                throw new BadRequestHttpException('Each route must include at least one move.');
+            }
+
+            $routeStepsByClientId = [];
+            $stepsByOrdinal = [];
+            foreach (array_values($stepsPayload) as $stepIndex => $stepPayload) {
+                if (!is_array($stepPayload)) {
+                    throw new BadRequestHttpException('Each route step must be an object.');
+                }
+                $step = (new BlockstringSequenceStep())
+                    ->setMove($this->findMove($this->requiredString($stepPayload, 'moveId')))
+                    ->setOrdinal($this->nullableInt($stepPayload['ordinal'] ?? null) ?? $stepIndex + 1)
+                    ->setCanConfirmOnHit(false)
+                    ->setNote($this->nullableString($stepPayload['note'] ?? null));
+                $sequence->addStep($step);
+                $route->addStep($step);
+                $this->entityManager->persist($step);
+                $stepClientId = $this->nullableString($stepPayload['clientId'] ?? null) ?? sprintf('%s-step-%d', $routeClientId, $stepIndex + 1);
+                $routeStepsByClientId[$stepClientId] = $step;
+                $stepsByClientId[$stepClientId] = $step;
+                $stepsByOrdinal[$step->getOrdinal()] = $step;
+            }
+
+            $connectionsPayload = $routePayload['connections'] ?? [];
+            if (is_array($connectionsPayload) && [] !== $connectionsPayload) {
+                foreach (array_values($connectionsPayload) as $connectionIndex => $connectionPayload) {
+                    if (!is_array($connectionPayload)) {
+                        throw new BadRequestHttpException('Each route connection must be an object.');
+                    }
+                    $connection = $this->createRouteConnection($sequence, $route, $connectionPayload, $connectionIndex + 1, $routeStepsByClientId, $stepsByOrdinal, $gapsByClientId);
+                    $connectionClientId = $this->nullableString($connectionPayload['clientId'] ?? null) ?? sprintf('%s-connection-%d', $routeClientId, $connectionIndex + 1);
+                    $connectionsByClientId[$connectionClientId] = $connection;
+                }
+            } else {
+                $this->createDefaultConnections($route, $stepsByOrdinal, []);
+            }
+        }
+
+        if (1 !== $mainCount) {
+            throw new BadRequestHttpException('Exactly one main route is required.');
+        }
+
+        foreach ($branchPayloads as [$route, $branchPayload]) {
+            $this->applyBranchAnchor($route, $branchPayload, $stepsByClientId, $connectionsByClientId);
+        }
+
+        return $gapsByClientId;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function createRoute(BlockstringSequence $sequence, array $payload, int $defaultOrder, ?bool $forceMain = null): BlockstringRoute
+    {
+        $isMain = $forceMain ?? (bool) ($payload['isMain'] ?? false);
+        $reasonText = $this->nullableString($payload['tacticalReasonText'] ?? $payload['reason'] ?? null);
+        if (!$isMain && null === $reasonText) {
+            throw new BadRequestHttpException('Alternative routes require a tactical reason.');
+        }
+
+        $route = (new BlockstringRoute())
+            ->setName($this->nullableString($payload['name'] ?? null) ?? ($isMain ? 'Main route' : 'Alternative route'))
+            ->setDisplayOrder($this->nullableInt($payload['displayOrder'] ?? null) ?? $defaultOrder)
+            ->setMain($isMain)
+            ->setTacticalReasonText($reasonText);
+        $sequence->addRoute($route);
+        $this->entityManager->persist($route);
+
+        return $route;
+    }
+
+    /**
+     * @param array<string, BlockstringSequenceStep> $stepsByClientId
+     * @param array<int, BlockstringSequenceStep> $stepsByOrdinal
+     * @param array<string, BlockstringGap> $gapsByClientId
+     */
+    private function createRouteConnection(BlockstringSequence $sequence, BlockstringRoute $route, array $payload, int $ordinal, array $stepsByClientId, array $stepsByOrdinal, array &$gapsByClientId): BlockstringRouteConnection
+    {
+        $type = $this->allowedString($payload['type'] ?? 'guaranteed', 'connection type', ['guaranteed', 'gap', 'manual_delay', 'hit_confirm', 'not_confirmable']);
+        $sourceStep = $this->stepFromPayload($payload['sourceStepClientId'] ?? null, $payload['sourceStepOrdinal'] ?? null, $stepsByClientId, $stepsByOrdinal, false);
+        $destinationStep = $this->stepFromPayload($payload['destinationStepClientId'] ?? null, $payload['destinationStepOrdinal'] ?? null, $stepsByClientId, $stepsByOrdinal, true);
+
+        $gap = null;
+        if (in_array($type, ['gap', 'manual_delay'], true) || isset($payload['gapFrames'])) {
+            $frames = $this->nullableInt($payload['gapFrames'] ?? $payload['frames'] ?? null);
+            if (null === $frames) {
+                throw new BadRequestHttpException('Gap connection frames are required.');
+            }
+            $gap = (new BlockstringGap())
+                ->setStep($destinationStep)
+                ->setTiming($this->allowedString($payload['gapTiming'] ?? 'before_step', 'gap timing', ['before_step', 'during_step']))
+                ->setFrames($frames)
+                ->setAttackerFrameAdvantage($this->nullableInt($payload['frameAdvantage'] ?? null) ?? 0)
+                ->setClassification($this->allowedString($payload['classification'] ?? $this->defaultGapClassification($frames), 'gap classification', ['safe', 'trades', 'fake']));
+            $sequence->addGap($gap);
+            $destinationStep->addGap($gap);
+            $this->entityManager->persist($gap);
+            $gapClientId = $this->nullableString($payload['gapClientId'] ?? null) ?? $this->nullableString($payload['clientId'] ?? null) ?? sprintf('connection-gap-%d', $ordinal);
+            $gapsByClientId[$gapClientId] = $gap;
+        }
+
+        $connection = (new BlockstringRouteConnection())
+            ->setSourceStep($sourceStep)
+            ->setDestinationStep($destinationStep)
+            ->setGap($gap)
+            ->setOrdinal($this->nullableInt($payload['ordinal'] ?? null) ?? $ordinal)
+            ->setType($type);
+        $route->addConnection($connection);
+        $this->entityManager->persist($connection);
+
+        return $connection;
+    }
+
+    /** @param array<int, BlockstringSequenceStep> $stepsByOrdinal @param list<BlockstringGap> $gaps */
+    private function createDefaultConnections(BlockstringRoute $route, array $stepsByOrdinal, array $gaps): void
+    {
+        ksort($stepsByOrdinal);
+        $steps = array_values($stepsByOrdinal);
+        for ($index = 1; $index < count($steps); ++$index) {
+            $destination = $steps[$index];
+            $gap = $this->firstGapForStep($gaps, $destination);
+            $connection = (new BlockstringRouteConnection())
+                ->setSourceStep($steps[$index - 1])
+                ->setDestinationStep($destination)
+                ->setGap($gap)
+                ->setOrdinal($index)
+                ->setType($gap instanceof BlockstringGap ? 'gap' : ($destination->canConfirmOnHit() ? 'hit_confirm' : 'guaranteed'));
+            $route->addConnection($connection);
+            $this->entityManager->persist($connection);
+        }
     }
 
     /**
@@ -285,6 +463,56 @@ class BlockstringMutationService
             ->setCounterHitRequired($this->nullableBool($payload['counterHitRequired'] ?? null))
             ->setPunishCounterRequired($this->nullableBool($payload['punishCounterRequired'] ?? null))
             ->setCornerRequired($this->nullableBool($payload['cornerRequired'] ?? null));
+    }
+
+    /** @param array<string, BlockstringSequenceStep> $stepsByClientId @param array<int, BlockstringSequenceStep> $stepsByOrdinal */
+    private function stepFromPayload(mixed $clientIdValue, mixed $ordinalValue, array $stepsByClientId, array $stepsByOrdinal, bool $required): ?BlockstringSequenceStep
+    {
+        $clientId = $this->nullableString($clientIdValue);
+        if (null !== $clientId && isset($stepsByClientId[$clientId])) {
+            return $stepsByClientId[$clientId];
+        }
+
+        $ordinal = $this->nullableInt($ordinalValue);
+        if (null !== $ordinal && isset($stepsByOrdinal[$ordinal])) {
+            return $stepsByOrdinal[$ordinal];
+        }
+
+        if ($required) {
+            throw new BadRequestHttpException('Connection destination step is required.');
+        }
+
+        return null;
+    }
+
+    /** @param list<BlockstringGap> $gaps */
+    private function firstGapForStep(array $gaps, BlockstringSequenceStep $step): ?BlockstringGap
+    {
+        foreach ($gaps as $gap) {
+            if ($gap instanceof BlockstringGap && $gap->getStep() === $step && 'before_step' === $gap->getTiming()) {
+                return $gap;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string, BlockstringSequenceStep> $stepsByClientId @param array<string, BlockstringRouteConnection> $connectionsByClientId */
+    private function applyBranchAnchor(BlockstringRoute $route, mixed $branchPayload, array $stepsByClientId, array $connectionsByClientId): void
+    {
+        if (!is_array($branchPayload)) {
+            return;
+        }
+
+        $stepClientId = $this->nullableString($branchPayload['stepClientId'] ?? null);
+        if (null !== $stepClientId && isset($stepsByClientId[$stepClientId])) {
+            $route->setBranchAnchorStep($stepsByClientId[$stepClientId]);
+        }
+
+        $connectionClientId = $this->nullableString($branchPayload['connectionClientId'] ?? null);
+        if (null !== $connectionClientId && isset($connectionsByClientId[$connectionClientId])) {
+            $route->setBranchAnchorConnection($connectionsByClientId[$connectionClientId]);
+        }
     }
 
     /** @param array<string, mixed> $payload */

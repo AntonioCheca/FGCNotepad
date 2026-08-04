@@ -7,6 +7,8 @@ use App\Entity\BlockstringAdaptation;
 use App\Entity\BlockstringAdaptationComboSearch;
 use App\Entity\BlockstringAdaptationStep;
 use App\Entity\BlockstringGap;
+use App\Entity\BlockstringRoute;
+use App\Entity\BlockstringRouteConnection;
 use App\Entity\BlockstringSequence;
 use App\Entity\BlockstringSequenceStep;
 use App\Entity\ComboSpacing;
@@ -32,9 +34,10 @@ class BlockstringResponseBuilder
             'moderationState' => $sequence->getModerationState(),
             'attackerCharacter' => $this->buildCharacter($sequence->getAttackerCharacter()),
             'notation' => $this->buildNotation($sequence),
-            'steps' => array_values(array_map(fn (BlockstringSequenceStep $step): array => $this->buildStep($step), $sequence->getSteps()->toArray())),
+            'steps' => array_values(array_map(fn (BlockstringSequenceStep $step): array => $this->buildStep($step), $this->mainSteps($sequence))),
             'gaps' => array_values(array_map(fn (BlockstringGap $gap): array => $this->buildGap($gap), $this->sortGaps($sequence->getGaps()->toArray()))),
             'defenseEntryCount' => $sequence->getDefenseEntries()->count(),
+            'routes' => array_values(array_map(fn (BlockstringRoute $route): array => $this->buildRoute($route), $this->sortRoutes($sequence->getRoutes()->toArray()))),
         ];
     }
 
@@ -56,7 +59,7 @@ class BlockstringResponseBuilder
     private function buildNotation(BlockstringSequence $sequence): string
     {
         $tokens = [];
-        foreach ($sequence->getSteps() as $step) {
+        foreach ($this->mainSteps($sequence) as $step) {
             $move = $step->getMove();
             if ($move instanceof Move) {
                 $tokens[] = $move->getNumpadNotation();
@@ -134,6 +137,40 @@ class BlockstringResponseBuilder
                 'numpadNotation' => $move->getNumpadNotation(),
                 'character' => $this->buildCharacter($move->getCharacter()),
             ] : null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function buildRoute(BlockstringRoute $route): array
+    {
+        return [
+            'id' => $route->getId(),
+            'name' => $route->getName(),
+            'displayOrder' => $route->getDisplayOrder(),
+            'isMain' => $route->isMain(),
+            'tacticalReasonText' => $route->getTacticalReasonText(),
+            'branchAnchor' => [
+                'stepId' => $route->getBranchAnchorStep()?->getId(),
+                'stepOrdinal' => $route->getBranchAnchorStep()?->getOrdinal(),
+                'connectionId' => $route->getBranchAnchorConnection()?->getId(),
+            ],
+            'steps' => array_values(array_map(fn (BlockstringSequenceStep $step): array => $this->buildStep($step), $route->getSteps()->toArray())),
+            'connections' => array_values(array_map(fn (BlockstringRouteConnection $connection): array => $this->buildConnection($connection), $route->getConnections()->toArray())),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function buildConnection(BlockstringRouteConnection $connection): array
+    {
+        return [
+            'id' => $connection->getId(),
+            'ordinal' => $connection->getOrdinal(),
+            'type' => $connection->getType(),
+            'sourceStepId' => $connection->getSourceStep()?->getId(),
+            'sourceStepOrdinal' => $connection->getSourceStep()?->getOrdinal(),
+            'destinationStepId' => $connection->getDestinationStep()?->getId(),
+            'destinationStepOrdinal' => $connection->getDestinationStep()?->getOrdinal(),
+            'gap' => $connection->getGap() instanceof BlockstringGap ? $this->buildGap($connection->getGap()) : null,
         ];
     }
 
@@ -233,6 +270,26 @@ class BlockstringResponseBuilder
         });
 
         return $adaptations;
+    }
+
+    /** @param list<BlockstringRoute> $routes @return list<BlockstringRoute> */
+    private function sortRoutes(array $routes): array
+    {
+        usort($routes, static fn (BlockstringRoute $first, BlockstringRoute $second): int => [$first->isMain() ? 0 : 1, $first->getDisplayOrder(), $first->getId() ?? PHP_INT_MAX] <=> [$second->isMain() ? 0 : 1, $second->getDisplayOrder(), $second->getId() ?? PHP_INT_MAX]);
+
+        return $routes;
+    }
+
+    /** @return list<BlockstringSequenceStep> */
+    private function mainSteps(BlockstringSequence $sequence): array
+    {
+        foreach ($this->sortRoutes($sequence->getRoutes()->toArray()) as $route) {
+            if ($route->isMain()) {
+                return $route->getSteps()->toArray();
+            }
+        }
+
+        return $sequence->getSteps()->toArray();
     }
 
     private function countAdaptationsForGap(BlockstringGap $gap): int
