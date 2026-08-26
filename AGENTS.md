@@ -80,6 +80,23 @@ Use `CI=1` to force non-interactive behavior, `--no-telemetry` to avoid the tele
 $env:CI = "1"; npx react-doctor@0.8.1 --no-telemetry --verbose
 ```
 
+## Mobile and responsive UI requirements
+
+- New or updated frontend screens must be mobile-first unless explicitly scoped to desktop-only tooling.
+- App-level navigation must not permanently consume mobile viewport width. Use persistent/sidebar chrome on desktop and closed/off-canvas or equivalent mobile navigation on small screens.
+- Do not solve responsive issues by patching isolated fixed widths when a shared wrapper/layout primitive can solve the pattern.
+- Classify fixed widths before changing them:
+  - layout widths must be responsive and centralized
+  - content max widths are allowed for readability
+  - control widths may be desktop-specific but should become full-width or wrap on mobile
+  - dense data grids may use intrinsic widths only inside explicit scroll containers
+- Standard responsive pattern for data-heavy views: desktop table, mobile card/list, internal scroll only for true matrix/grid editors.
+- Page body must not horizontally overflow at common mobile widths.
+- Prefer `100dvh`/`100svh` over plain `100vh` where mobile browser chrome affects layout.
+- Preserve touch usability: important interactive controls should remain comfortably tappable on mobile.
+- Mobile QA for frontend changes should include 320px, 360px, 390px, 430px, 768px, 1024px, and desktop widths.
+- React Doctor does not validate responsive layout. Use browser/manual QA or Playwright viewport checks for mobile overflow and navigation behavior.
+
 ## FGC Tactical Editorial UI System
 
 This project uses a tactical editorial visual system anchored to two separate artist palettes. Do not merge them into a single 8-color set.

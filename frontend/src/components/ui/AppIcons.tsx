@@ -8,6 +8,8 @@ export {default as SettingsOutlinedIcon} from "@mui/icons-material/SettingsOutli
 export {default as SportsMmaIcon} from "@mui/icons-material/SportsMma";
 export {default as ChevronLeftIcon} from "@mui/icons-material/ChevronLeft";
 export {default as ChevronRightIcon} from "@mui/icons-material/ChevronRight";
+export {default as CloseIcon} from "@mui/icons-material/Close";
+export {default as MenuIcon} from "@mui/icons-material/Menu";
 export {default as Brightness4Icon} from "@mui/icons-material/Brightness4";
 export {default as Brightness7Icon} from "@mui/icons-material/Brightness7";
 export {default as DeleteIcon} from "@mui/icons-material/Delete";

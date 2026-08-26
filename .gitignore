@@ -16,5 +16,11 @@ frontend/.env.*.local
 backups/
 docker/certs/
 
+# Real frame-data imports are local/production artifacts, not public source.
+backend/data/*.json
+backend/data/*.csv
+frame-data-imports/
+*.fgtheory-frame-data.csv
+
 # Generated frontend vendor assets
 frontend/public/ffmpeg-core/

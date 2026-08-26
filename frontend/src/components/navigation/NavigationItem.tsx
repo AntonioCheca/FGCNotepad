@@ -10,9 +10,10 @@ interface NavigationItemProps {
     item: NavigationItemType;
     isActive?: boolean;
     collapsed?: boolean;
+    onNavigate?: () => void;
 }
 
-export default function NavigationItem({item, isActive = false, collapsed = false}: NavigationItemProps) {
+export default function NavigationItem({item, isActive = false, collapsed = false, onNavigate}: NavigationItemProps) {
     const navButton = (
         <AppListItemButton
             sx={{
@@ -65,6 +66,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
             <Link
                 href={item.href}
                 passHref
+                onClick={onNavigate}
                 style={{width: '100%', textDecoration: 'none', color: 'inherit'}}
             >
                 {collapsed ? <AppTooltip title={item.label} placement="right">{navButton}</AppTooltip> : navButton}

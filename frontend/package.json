@@ -19,6 +19,7 @@
     "lint": "eslint \"app/**/*.{js,jsx,ts,tsx}\" \"pages/**/*.{js,jsx,ts,tsx}\" \"src/**/*.{js,jsx,ts,tsx}\" \"hooks/**/*.{js,jsx,ts,tsx}\" \"services/**/*.{js,jsx,ts,tsx}\" \"styles/**/*.{js,jsx,ts,tsx}\" \"*.config.{js,mjs,ts}\" --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-node-tests.mjs",
+    "test:mobile": "playwright test -c playwright.mobile.config.ts",
     "doctor": "react-doctor --no-telemetry",
     "check": "npm run typecheck && npm run test && npm run lint && npm run doctor"
   },
@@ -41,7 +42,9 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -143,7 +143,7 @@ export function SubmitSection({
                     disabled={readOnly}
                 />
                 {!readOnly ? (
-                    <AppButton type="submit" variant="contained" color="primary" disabled={!canSubmit} sx={{minWidth: 180, minHeight: 40, alignSelf: {md: "center"}}}>
+                    <AppButton type="submit" variant="contained" color="primary" disabled={!canSubmit} sx={{minWidth: {xs: 0, md: 180}, minHeight: 40, alignSelf: {md: "center"}, width: {xs: "100%", md: "auto"}}}>
                         {submitLabel}
                     </AppButton>
                 ) : null}
@@ -224,7 +224,7 @@ export function SubmitSection({
 
             {showAdvancedConditions ? (
                 <AppBox sx={{display: "grid", gap: 1, pt: 0.5}}>
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr 1fr", md: "repeat(4, minmax(110px, 1fr))"}, gap: 1}}>
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr", md: "repeat(4, minmax(110px, 1fr))"}, gap: 1}}>
                         <AppTextField
                             label="Drive Cost"
                             value={driveCost}
@@ -240,7 +240,7 @@ export function SubmitSection({
                             disabled={readOnly}
                         />
                     </AppBox>
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr 1fr", md: "repeat(2, minmax(110px, 1fr))"}, gap: 1, maxWidth: {md: 560}}}>
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr", md: "repeat(2, minmax(110px, 1fr))"}, gap: 1, maxWidth: {md: 560}}}>
                         <AppTextField
                             label="Super Cost"
                             value={superCost}

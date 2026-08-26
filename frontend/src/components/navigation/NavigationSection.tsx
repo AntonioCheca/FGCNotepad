@@ -12,9 +12,10 @@ interface NavigationSectionProps {
     section: NavigationSectionType;
     showDivider?: boolean;
     collapsed: boolean;
+    onNavigate?: () => void;
 }
 
-export default function NavigationSection({section, showDivider = false, collapsed = false}: NavigationSectionProps) {
+export default function NavigationSection({section, showDivider = false, collapsed = false, onNavigate}: NavigationSectionProps) {
     const pathname = usePathname();
 
     return (
@@ -42,6 +43,7 @@ export default function NavigationSection({section, showDivider = false, collaps
                         item={item}
                         isActive={pathname === item.href}
                         collapsed={collapsed}
+                        onNavigate={onNavigate}
                     />
                 ))}
             </AppList>

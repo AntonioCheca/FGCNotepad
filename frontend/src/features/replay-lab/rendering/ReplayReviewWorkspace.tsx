@@ -125,7 +125,7 @@ export function ReplayReviewWorkspace({
 
     return (
         <AppBox sx={{display: "grid", gap: 1.5}}>
-            <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
+            <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent={{xs: "stretch", sm: "flex-end"}} sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
                 <AppButton type="button" variant="outlined" onClick={onResetEditor}>Change Workflow</AppButton>
                 <AppButton type="button" disabled={!canExport || loading || exporting} onClick={onSaveAndExport}>{exporting ? exportStatusLabel ?? "Preparing..." : "Generate Clips"}</AppButton>
             </AppStack>

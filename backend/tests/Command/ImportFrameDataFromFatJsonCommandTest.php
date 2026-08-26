@@ -8,7 +8,9 @@ use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
+use App\Service\FrameDataRecordApplier;
 use App\Service\FrameDataScalingNormalizerService;
+use App\Service\FrameDataUpsertService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -60,11 +62,8 @@ final class ImportFrameDataFromFatJsonCommandTest extends TestCase
         $moveRepository->method('findOneBy')->willReturn(null);
 
         $command = new ImportFrameDataFromFatJsonCommand(
-            entityManager: $entityManager,
             projectDir: $tempDir,
-            moveRepository: $moveRepository,
-            characterRepository: $characterRepository,
-            scalingNormalizer: new FrameDataScalingNormalizerService(),
+            frameDataUpsertService: $this->createUpsertService($entityManager, $moveRepository, $characterRepository),
         );
 
         $tester = new CommandTester($command);
@@ -130,11 +129,8 @@ final class ImportFrameDataFromFatJsonCommandTest extends TestCase
         $moveRepository->method('findOneBy')->willReturn(null);
 
         $command = new ImportFrameDataFromFatJsonCommand(
-            entityManager: $entityManager,
             projectDir: $tempDir,
-            moveRepository: $moveRepository,
-            characterRepository: $characterRepository,
-            scalingNormalizer: new FrameDataScalingNormalizerService(),
+            frameDataUpsertService: $this->createUpsertService($entityManager, $moveRepository, $characterRepository),
         );
 
         $tester = new CommandTester($command);
@@ -202,11 +198,8 @@ final class ImportFrameDataFromFatJsonCommandTest extends TestCase
         $moveRepository->method('findOneBy')->willReturn($move);
 
         $command = new ImportFrameDataFromFatJsonCommand(
-            entityManager: $entityManager,
             projectDir: $tempDir,
-            moveRepository: $moveRepository,
-            characterRepository: $characterRepository,
-            scalingNormalizer: new FrameDataScalingNormalizerService(),
+            frameDataUpsertService: $this->createUpsertService($entityManager, $moveRepository, $characterRepository),
         );
 
         $tester = new CommandTester($command);
@@ -220,5 +213,15 @@ final class ImportFrameDataFromFatJsonCommandTest extends TestCase
         unlink($tempDir . '/data/fat_data.json');
         rmdir($tempDir . '/data');
         rmdir($tempDir);
+    }
+
+    private function createUpsertService(EntityManagerInterface $entityManager, MoveRepository $moveRepository, CharacterRepository $characterRepository): FrameDataUpsertService
+    {
+        return new FrameDataUpsertService(
+            entityManager: $entityManager,
+            moveRepository: $moveRepository,
+            characterRepository: $characterRepository,
+            recordApplier: new FrameDataRecordApplier(new FrameDataScalingNormalizerService()),
+        );
     }
 }

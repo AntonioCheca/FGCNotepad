@@ -83,9 +83,9 @@ export function ReplayReviewLauncher({
                         <AppBox component="form" onSubmit={onStartYouTubeReview} sx={{display: "grid", gap: 1}}>
                             <AppTextField label="YouTube URL or video ID" value={youtubeUrl} onChange={(event) => onYoutubeUrlChange(event.target.value)} />
                             <AppTextField label="Review title" value={youtubeTitle} onChange={(event) => onYoutubeTitleChange(event.target.value)} placeholder="Optional" />
-                            <AppButton type="submit" disabled={loading || !localSourceFile || !youtubeUrl.trim() || startingWorkflow !== null}>
-                                {startingWorkflow === "coaching" ? "Opening..." : "Start Online Review"}
-                            </AppButton>
+                        <AppButton type="submit" disabled={loading || !youtubeUrl.trim() || startingWorkflow !== null}>
+                            {startingWorkflow === "coaching" ? "Opening..." : "Start Online Review"}
+                        </AppButton>
                         </AppBox>
                     </SectionCard>
                 ) : null}
@@ -104,7 +104,7 @@ export function ReplayReviewLauncher({
                                     <AppTypography variant="subtitle2">{session.title}</AppTypography>
                                     <AppTypography variant="body2" color="text.secondary">{label}{video ? ` - ${video.originalFilename}` : ""} - Updated {formatUtcDateTime(session.updatedAt, "No expiry")}</AppTypography>
                                 </AppBox>
-                                <AppStack direction="row" spacing={0.75} justifyContent={{xs: "flex-start", md: "flex-end"}} flexWrap="wrap" useFlexGap>
+                                <AppStack direction="row" spacing={0.75} justifyContent={{xs: "stretch", md: "flex-end"}} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
                                     <AppButton type="button" variant="outlined" onClick={() => onOpenReviewSession(session)} disabled={loading || !video || session.status === "archived"}>Open</AppButton>
                                     <AppButton type="button" variant="outlined" color="error" onClick={() => onRemoveSession(session.id)} disabled={loading || session.status === "saved"}>Delete Draft</AppButton>
                                 </AppStack>

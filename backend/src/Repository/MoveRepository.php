@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\FrameData;
 use App\Entity\FrameDataOverride;
+use App\Entity\FrameDataSupplementalValue;
 use App\Entity\Move;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -154,11 +155,14 @@ class MoveRepository extends ServiceEntityRepository
         $overrideMap = $this->getEntityManager()
             ->getRepository(FrameDataOverride::class)
             ->findOverrideMapForFrameDataRows($frameDataRows);
+        $supplementalMap = $this->getEntityManager()
+            ->getRepository(FrameDataSupplementalValue::class)
+            ->findActiveOverlayMapForFrameDataRows($frameDataRows);
 
         foreach ($frameDataRows as $frameData) {
             $frameDataId = $frameData->getId()?->toRfc4122();
             if (null !== $frameDataId) {
-                $frameData->applyEffectiveOverrides($overrideMap[$frameDataId] ?? []);
+                $frameData->applyEffectiveOverrides(array_replace($supplementalMap[$frameDataId] ?? [], $overrideMap[$frameDataId] ?? []));
             }
         }
     }

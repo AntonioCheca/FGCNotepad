@@ -1,3 +1,8 @@
+BACKUP ?=
+BACKUP_DIR ?= /opt/fightinggametheory/backups/postgres
+BACKUP_RETENTION ?= 14
+COMPOSE ?= docker compose
+
 build:
 	docker compose build --no-cache
 
@@ -54,6 +59,15 @@ frontend-bash:
 
 psql:
 	docker exec -it fgc_postgres psql -U fgc_user -d fgc_db
+
+prod-db-backup:
+	BACKUP_DIR="$(BACKUP_DIR)" BACKUP_RETENTION="$(BACKUP_RETENTION)" COMPOSE="$(COMPOSE)" bash scripts/backup-prod-db.sh
+
+prod-db-backup-list:
+	BACKUP_DIR="$(BACKUP_DIR)" bash scripts/list-prod-db-backups.sh
+
+prod-db-restore:
+	BACKUP="$(BACKUP)" CONFIRM_PROD_DB_RESTORE="$(CONFIRM_PROD_DB_RESTORE)" COMPOSE="$(COMPOSE)" bash scripts/restore-prod-db.sh
 
 # Local development commands
 local-setup:
@@ -145,6 +159,9 @@ help:
 	@echo "  migrate              - Run migrations in Docker"
 	@echo "  migrate-test         - Run test migrations in Docker"
 	@echo "  create-test-database - Create test database in Docker"
+	@echo "  prod-db-backup       - Back up production Postgres from docker-compose.prod.yml"
+	@echo "  prod-db-backup-list  - List production Postgres backups"
+	@echo "  prod-db-restore      - Restore production Postgres backup with explicit confirmation"
 	@echo ""
 	@echo "Local development commands:"
 	@echo "  local-setup          - Complete local environment setup"
@@ -170,4 +187,4 @@ help:
 	@echo ""
 	@echo "Run 'make help' to see this message"
 
-.PHONY: build up stop logs migrate migrate-test create-test-database composer-install bash frontend-bash psql local-setup local-composer-install local-npm-install local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit verify-frontend-upgrade help
+.PHONY: build up stop logs migrate migrate-test create-test-database composer-install bash frontend-bash psql prod-db-backup prod-db-backup-list prod-db-restore local-setup local-composer-install local-npm-install local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit verify-frontend-upgrade help

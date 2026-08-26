@@ -135,7 +135,7 @@ export function ReplayLabStudyDeckPage() {
                                         You chose {selectedAnswer ? humanizeCategory(selectedAnswer) : "nothing"}. Correct answer: {humanizeCategory(reviewResult.card.category)}. Next due: {formatUtcDateTime(reviewResult.review.nextDueAt)}.
                                     </AppAlert>
                                 ) : null}
-                                <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                                <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 calc(50% - 6px)", sm: "0 0 auto"}}}}>
                                     <AppButton type="button" variant="outlined" color="secondary" disabled={!selectedAnswer || Boolean(reviewResult) || loading} onClick={() => void submitReview("again")}>
                                         Again
                                     </AppButton>

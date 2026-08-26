@@ -72,6 +72,7 @@ export function RapidIngestionSection({
                     sx={{
                         minWidth: 160,
                         minHeight: 40,
+                        justifySelf: {xs: "stretch", md: "auto"},
                         borderColor: "fgc.accent.parser",
                         color: "fgc.accent.parser",
                         ":hover": {

@@ -7,6 +7,7 @@ use App\Entity\FrameDataOverride;
 use App\Entity\Move;
 use App\Entity\User;
 use App\Repository\FrameDataOverrideRepository;
+use App\Repository\FrameDataSupplementalValueRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -33,6 +34,7 @@ class FrameDataOverrideService
 
     public function __construct(
         private readonly FrameDataOverrideRepository $frameDataOverrideRepository,
+        private readonly FrameDataSupplementalValueRepository $frameDataSupplementalValueRepository,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -112,6 +114,7 @@ class FrameDataOverrideService
      */
     public function applyOverridesToFrameDataRows(array $frameDataRows): void
     {
+        $supplementalMap = $this->frameDataSupplementalValueRepository->findActiveOverlayMapForFrameDataRows($frameDataRows);
         $overrideMap = $this->frameDataOverrideRepository->findOverrideMapForFrameDataRows($frameDataRows);
         foreach ($frameDataRows as $frameData) {
             $frameDataId = $frameData->getId()?->toRfc4122();
@@ -119,7 +122,7 @@ class FrameDataOverrideService
                 continue;
             }
 
-            $frameData->applyEffectiveOverrides($overrideMap[$frameDataId] ?? []);
+            $frameData->applyEffectiveOverrides(array_replace($supplementalMap[$frameDataId] ?? [], $overrideMap[$frameDataId] ?? []));
         }
     }
 

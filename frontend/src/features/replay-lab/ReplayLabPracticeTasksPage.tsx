@@ -86,7 +86,7 @@ export function ReplayLabPracticeTasksPage() {
                     <AppStack spacing={1}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
                         {notice ? <AppAlert severity="success" onClose={() => setNotice(null)}>{notice}</AppAlert> : null}
-                        <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                        <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 calc(50% - 6px)", sm: "0 0 auto"}}}}>
                             {(["pending", "done", "dismissed"] as const).map((status) => (
                                 <AppButton
                                     key={status}
@@ -117,7 +117,7 @@ export function ReplayLabPracticeTasksPage() {
                                         backgroundColor: isSelected ? theme.fgc.surface.raised : theme.fgc.surface.base,
                                     })}
                                 >
-                                    <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                                    <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
                                         <AppChip size="small" label={humanizeCategory(task.category)} />
                                         <AppChip size="small" variant="outlined" label={task.status} />
                                         <AppChip size="small" variant="outlined" label={formatUtcDateTime(task.dueDate, "No due date")} />
@@ -152,7 +152,7 @@ export function ReplayLabPracticeTasksPage() {
                                         <AppChip size="small" variant="outlined" label={`${selectedTask.remainingOccurrences} remaining`} />
                                     </AppStack>
                                 </AppBox>
-                                <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                                <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
                                     <AppButton type="button" onClick={() => void completeTask(selectedTask)} disabled={loading || selectedTask.status !== "pending"}>Complete Task</AppButton>
                                     <AppButton type="button" variant="outlined" color="secondary" onClick={() => void dismissTask(selectedTask)} disabled={loading || selectedTask.status !== "pending"}>Dismiss Task</AppButton>
                                 </AppStack>

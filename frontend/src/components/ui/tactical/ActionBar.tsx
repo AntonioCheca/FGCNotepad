@@ -10,7 +10,7 @@ export function ActionBar({children}: ActionBarProps) {
         <AppBox
             sx={{
                 display: "flex",
-                justifyContent: "flex-end",
+                justifyContent: {xs: "stretch", sm: "flex-end"},
                 gap: 0.75,
                 flexWrap: "wrap",
                 pt: 1.1,
@@ -18,6 +18,10 @@ export function ActionBar({children}: ActionBarProps) {
                 borderTop: "1px solid",
                 borderColor: "divider",
                 alignItems: "center",
+                minWidth: 0,
+                "& .MuiButton-root": {
+                    flex: {xs: "1 1 100%", sm: "0 0 auto"},
+                },
             }}
         >
             {children}

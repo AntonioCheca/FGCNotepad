@@ -4,7 +4,9 @@ import * as yup from 'yup';
 import useAuth from '@/hooks/useAuth';
 import {useContext, useState} from 'react';
 import InputField from './InputField';
+import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppButton} from "@/src/components/ui/AppButton";
+import {AppBox} from "@/src/components/ui/AppBox";
 import AuthContext from "@/services/AuthContext";
 import {AuthUser} from "@/src/types/auth";
 
@@ -62,15 +64,15 @@ const RegisterForm = () => {
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <AppBox component="form" onSubmit={handleSubmit(onSubmit)} sx={{display: "grid", gap: 1}}>
             <InputField label="Username" type="username" name="username" register={register} errors={errors}/>
             <InputField label="Password" type="password" name="password" register={register} errors={errors}/>
             <InputField label="Invite code" type="text" name="inviteCode" register={register} errors={errors}/>
-            {message && <p>{message}</p>}
-            <AppButton disabled={loading}>
+            {message ? <AppAlert severity="error">{message}</AppAlert> : null}
+            <AppButton disabled={loading} fullWidth sx={{minHeight: 44}}>
                 {loading ? 'Registering...' : 'Register'}
             </AppButton>
-        </form>
+        </AppBox>
     );
 };
 

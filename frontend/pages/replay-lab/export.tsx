@@ -241,12 +241,12 @@ export default function ReplayLabExportRoute() {
                             <AppAlert severity="info">Expected source: {expectedFile.filename} ({formatBytes(expectedFile.sizeBytes)}). Re-select that same local file below.</AppAlert>
                         ) : null}
                         {selectedFileMismatch ? <AppAlert severity="warning">Selected file name does not match the source used to create this review.</AppAlert> : null}
-                        <AppButton type="button" component="label" variant="outlined">
+                        <AppButton type="button" component="label" variant="outlined" sx={{width: {xs: "100%", sm: "fit-content"}}}>
                             Select Local Source File
                             <input hidden type="file" accept="video/mp4,.mp4" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
                         </AppButton>
                         <AppTypography color="text.secondary">{file ? `${file.name} (${formatBytes(file.size)})` : "No file selected"}</AppTypography>
-                        <AppButton type="button" disabled={!session || !file || selectedFileMismatch || ["loading", "exporting", "uploading", "finalizing"].includes(status)} onClick={() => void runExport()}>
+                        <AppButton type="button" disabled={!session || !file || selectedFileMismatch || ["loading", "exporting", "uploading", "finalizing"].includes(status)} onClick={() => void runExport()} sx={{width: {xs: "100%", sm: "fit-content"}}}>
                             Generate Exact Clips and Finalize
                         </AppButton>
                         <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type React from "react";
 import type {ComboSortDirection, ComboSortField} from "./filters/comboFilterTypes";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
@@ -86,8 +87,10 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
     };
 
     return (
-        <AppPaper variant="outlined" sx={{borderRadius: 2.5, overflow: "hidden", borderColor: "fgc.border.default"}}>
-            <AppTableContainer sx={{maxHeight: "calc(100vh - 275px)", backgroundColor: "fgc.surface.base"}}>
+        <>
+            <ComboMobileCards combos={combos} />
+            <AppPaper variant="outlined" sx={{display: {xs: "none", md: "block"}, borderRadius: 2.5, overflow: "hidden", borderColor: "fgc.border.default"}}>
+            <AppTableContainer sx={{maxHeight: "calc(100dvh - 275px)", overflowX: "auto", backgroundColor: "fgc.surface.base"}}>
                 <AppTable stickyHeader>
                     <AppTableHead>
                         <AppTableRow>
@@ -177,5 +180,63 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                 </AppTable>
             </AppTableContainer>
         </AppPaper>
+        </>
+    );
+}
+
+function ComboMobileCards({combos}: {combos: ComboRow[]}) {
+    return (
+        <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 1}}>
+            {combos.map((combo) => {
+                const isPendingReview = combo.moderationState === "pending_review";
+                const compatibility = combo.compatibility;
+                const compatibilityColor = compatibility?.status === "compatible" ? "success" : compatibility?.status === "uncertain" ? "warning" : "default";
+
+                return (
+                    <AppPaper key={combo.id} variant="outlined" sx={{p: 1.15, borderRadius: 2, display: "grid", gap: 0.85, backgroundColor: "fgc.surface.base", borderColor: "fgc.border.default", minWidth: 0}}>
+                        <AppBox sx={{display: "grid", gap: 0.35, minWidth: 0}}>
+                            <AppBox sx={{display: "flex", gap: 0.65, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", minWidth: 0}}>
+                                <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
+                                    <AppTypography variant="subtitle1" sx={{fontWeight: 750, textDecoration: "underline", textUnderlineOffset: "2px"}}>{combo.title}</AppTypography>
+                                </Link>
+                                {isPendingReview ? <AppChip icon={<PendingActionsIcon fontSize="small" />} size="small" label="Pending" color="warning" variant="outlined" /> : null}
+                            </AppBox>
+                            <AppTypography variant="body2" color="text.secondary">{combo.characterName ?? "-"}</AppTypography>
+                        </AppBox>
+
+                        <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75}}>
+                            <ComboMobileFact label="Starter" value={combo.starter ?? "-"} />
+                            <ComboMobileFact label="Ender" value={combo.ender ?? "-"} />
+                            <ComboMobileFact label="Spacing" value={combo.spacing ?? "-"} />
+                            <ComboMobileFact label="Damage" value={combo.damage ?? "-"} />
+                        </AppBox>
+
+                        <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
+                            <AppChip size="small" variant="outlined" label={`Drive ${combo.driveCost ?? "-"}`} />
+                            <AppChip size="small" variant="outlined" label={`Super ${combo.superCost ?? "-"}`} />
+                            <AppChip size="small" variant="outlined" label={`Season ${combo.season ?? "-"}`} />
+                        </AppBox>
+
+                        {compatibility ? (
+                            <AppBox sx={{display: "grid", gap: 0.35, p: 0.8, borderRadius: 1.25, backgroundColor: "fgc.surface.sunken"}}>
+                                <AppChip size="small" color={compatibilityColor} variant="outlined" label={compatibility.status} sx={{width: "fit-content", fontWeight: 700}} />
+                                <AppTypography variant="caption" color="text.secondary">
+                                    {[...(compatibility.reasons ?? []), ...(compatibility.warnings ?? [])][0] ?? "Evaluated for selected situation."}
+                                </AppTypography>
+                            </AppBox>
+                        ) : null}
+                    </AppPaper>
+                );
+            })}
+        </AppBox>
+    );
+}
+
+function ComboMobileFact({label, value}: {label: string; value: React.ReactNode}) {
+    return (
+        <AppBox sx={{display: "grid", gap: 0.1, minWidth: 0}}>
+            <AppTypography variant="caption" color="text.secondary" sx={{fontWeight: 700}}>{label}</AppTypography>
+            <AppTypography variant="body2" sx={{fontWeight: 650, overflowWrap: "anywhere"}}>{value}</AppTypography>
+        </AppBox>
     );
 }

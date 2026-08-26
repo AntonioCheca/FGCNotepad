@@ -42,18 +42,21 @@ export function SectionCard({title, description, tone = "default", variant = "de
             sx={{
                 display: "grid",
                 gap: variant === "finalize" ? 1.2 : 1.1,
-                px: {xs: 1.2, md: 1.55},
-                py: {xs: 1.15, md: 1.35},
+                px: {xs: 1, sm: 1.2, md: 1.55},
+                py: {xs: 1, sm: 1.15, md: 1.35},
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: 1.5,
                 backgroundColor: cardBackground,
                 borderTopWidth: 2,
                 borderTopColor: accentColor,
+                minWidth: 0,
+                maxWidth: "100%",
+                boxSizing: "border-box",
             }}
         >
-            <AppBox sx={{display: "grid", gap: 0.2, pb: 0.15}}>
-                <AppBox sx={{display: "flex", alignItems: "center", gap: 0.65, minHeight: 26}}>
+            <AppBox sx={{display: "grid", gap: 0.2, pb: 0.15, minWidth: 0}}>
+                <AppBox sx={{display: "flex", alignItems: "center", gap: 0.65, minHeight: 26, minWidth: 0}}>
                     {headerIcon ? <AppBox sx={{display: "inline-flex", color: accentColor}}>{headerIcon}</AppBox> : null}
                     <AppTypography variant="subtitle1" sx={{fontWeight: 650}}>{title}</AppTypography>
                 </AppBox>

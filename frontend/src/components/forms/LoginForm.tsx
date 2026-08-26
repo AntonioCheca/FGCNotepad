@@ -33,7 +33,7 @@ const LoginForm = ({onSubmit, error}: LoginFormProps) => {
                 required
             />
             {error && <AppTypography color="error">{error}</AppTypography>}
-            <AppButton fullWidth sx={{mt: 2}}>
+            <AppButton fullWidth sx={{mt: 2, minHeight: 44}}>
                 Login
             </AppButton>
         </form>

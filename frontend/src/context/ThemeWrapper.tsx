@@ -1,9 +1,9 @@
 "use client";
 
-import {useMode} from "@/src/context/ThemeContext";
 import {AppCssBaseline} from "@/src/components/ui/AppCssBaseline";
 import {AppThemeProvider} from "@/src/components/ui/AppTheme";
-import Sidebar from "@/src/components/layouts/Sidebar";
+import SidebarLayout from "@/src/components/layouts/SidebarLayout";
+import {useMode} from "@/src/context/ThemeContext";
 
 export default function ThemeWrapper({children}: { children: React.ReactNode }) {
     const {theme} = useMode();
@@ -11,24 +11,7 @@ export default function ThemeWrapper({children}: { children: React.ReactNode }) 
     return (
         <AppThemeProvider theme={theme}>
             <AppCssBaseline/>
-            <div
-                style={{
-                    display: "flex",
-                    minHeight: "100vh",
-                    backgroundColor: theme.palette.background.default,
-                    color: theme.palette.text.primary,
-                }}
-            >
-                <Sidebar
-                    collapsed={false}
-                    toggleCollapse={function (): void {
-                        throw new Error("Function not implemented.");
-                    }}
-                />
-                <main style={{marginLeft: 296, width: "100%", minHeight: "100vh"}}>
-                    {children}
-                </main>
-            </div>
+            <SidebarLayout>{children}</SidebarLayout>
         </AppThemeProvider>
     );
 }

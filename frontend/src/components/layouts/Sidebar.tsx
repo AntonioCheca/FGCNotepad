@@ -5,7 +5,7 @@ import {AppIconButton} from '@/src/components/ui/AppIconButton';
 import NavigationSection from '@/src/components/navigation/NavigationSection';
 import {navigationSections} from '@/src/data/navigationData';
 import Link from 'next/link';
-import {ChevronLeftIcon, ChevronRightIcon} from '@/src/components/ui/AppIcons';
+import {ChevronLeftIcon, ChevronRightIcon, CloseIcon} from '@/src/components/ui/AppIcons';
 import ThemeLogo from "@/src/components/ui/ThemeLogo";
 import React from "react";
 import AuthContext from "@/services/AuthContext";
@@ -13,10 +13,12 @@ import AuthContext from "@/services/AuthContext";
 
 type SidebarProps = {
     collapsed: boolean;
+    mobileOpen: boolean;
     toggleCollapse: () => void;
+    closeMobile: () => void;
 };
 
-export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
+export default function Sidebar({collapsed, mobileOpen, toggleCollapse, closeMobile}: SidebarProps) {
     const authContext = React.useContext(AuthContext);
 
     if (!authContext) {
@@ -49,35 +51,52 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
     }, [hasRole, isAuthenticated]);
 
     return (
-        <AppBox
-            sx={{
-                width: collapsed ? 84 : 296,
-                height: '100vh',
-                backgroundColor: (theme) => theme.fgc.app.sidebar,
-                borderRight: '1px solid',
-                borderColor: 'fgc.border.default',
-                position: 'fixed',
-                left: 0,
-                top: 0,
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                zIndex: 1000,
-                transition: 'width 0.28s ease',
-            }}
-        >
+        <>
+            <AppBox
+                onClick={closeMobile}
+                aria-hidden="true"
+                sx={{
+                    display: {xs: mobileOpen ? 'block' : 'none', md: 'none'},
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 1199,
+                    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+                }}
+            />
+            <AppBox
+                component="nav"
+                aria-label="Primary navigation"
+                sx={{
+                    width: {xs: 296, md: collapsed ? 84 : 296},
+                    maxWidth: {xs: '82vw', md: 'none'},
+                    height: '100dvh',
+                    backgroundColor: (theme) => theme.fgc.app.sidebar,
+                    borderRight: '1px solid',
+                    borderColor: 'fgc.border.default',
+                    position: 'fixed',
+                    left: 0,
+                    top: 0,
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    zIndex: 1200,
+                    transition: 'width 0.28s ease, transform 0.28s ease',
+                    transform: {xs: mobileOpen ? 'translateX(0)' : 'translateX(-105%)', md: 'translateX(0)'},
+                    boxShadow: {xs: mobileOpen ? 8 : 'none', md: 'none'},
+                }}
+            >
             <AppBox
                 sx={{
                     display: 'flex',
-                    flexDirection: collapsed ? 'column' : 'row',
+                    flexDirection: {xs: 'row', md: collapsed ? 'column' : 'row'},
                     alignItems: 'center',
-                    justifyContent: collapsed ? 'center' : 'space-between',
+                    justifyContent: {xs: 'space-between', md: collapsed ? 'center' : 'space-between'},
                     borderBottom: '1px solid',
                     borderColor: 'fgc.border.default',
                     backgroundColor: (theme) => theme.fgc.surface.sunken,
                     px: 2,
                     py: 1,
-                    minHeight: collapsed ? 100 : 60,
+                    minHeight: {xs: 60, md: collapsed ? 100 : 60},
                     transition: 'min-height 0.3s ease, flex-direction 0.3s ease',
                     gap: 1,
                     position: 'sticky',
@@ -87,21 +106,26 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
             >
                 <AppBox
                     sx={{
-                        width: collapsed ? '100%' : 'auto',
+                        width: {xs: 'auto', md: collapsed ? '100%' : 'auto'},
                         display: 'flex',
                         justifyContent: 'center',
                         transition: 'width 0.3s ease',
-                        mb: collapsed ? 1 : 0,
+                        mb: {xs: 0, md: collapsed ? 1 : 0},
                     }}
                 >
-                    <Link href="/" style={{textDecoration: 'none'}}>
-                        <ThemeLogo collapsed={collapsed}/>
+                    <Link href="/" style={{textDecoration: 'none'}} onClick={closeMobile}>
+                        <AppBox sx={{display: {xs: 'block', md: 'none'}}}>
+                            <ThemeLogo collapsed={false}/>
+                        </AppBox>
+                        <AppBox sx={{display: {xs: 'none', md: 'block'}}}>
+                            <ThemeLogo collapsed={collapsed}/>
+                        </AppBox>
                     </Link>
                 </AppBox>
 
                 <AppBox
                     sx={{
-                        width: collapsed ? '100%' : 'auto',
+                        width: {xs: 'auto', md: collapsed ? '100%' : 'auto'},
                         display: 'flex',
                         justifyContent: 'center',
                         gap: 1,
@@ -111,7 +135,9 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                         onClick={toggleCollapse}
                         size="small"
                         aria-label="Toggle sidebar"
+                        aria-expanded={!collapsed}
                         sx={{
+                            display: {xs: 'none', md: 'inline-flex'},
                             border: '1px solid',
                             borderColor: 'fgc.border.subtle',
                             backgroundColor: 'fgc.surface.interactive',
@@ -122,6 +148,24 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                     >
                         {collapsed ? <ChevronRightIcon/> : <ChevronLeftIcon/>}
                     </AppIconButton>
+                    <AppIconButton
+                        onClick={closeMobile}
+                        size="small"
+                        aria-label="Close navigation"
+                        sx={{
+                            display: {xs: 'inline-flex', md: 'none'},
+                            width: 44,
+                            height: 44,
+                            border: '1px solid',
+                            borderColor: 'fgc.border.subtle',
+                            backgroundColor: 'fgc.surface.interactive',
+                            '&:hover': {
+                                backgroundColor: 'fgc.surface.raised',
+                            },
+                        }}
+                    >
+                        <CloseIcon />
+                    </AppIconButton>
 
                 </AppBox>
             </AppBox>
@@ -131,11 +175,13 @@ export default function Sidebar({collapsed, toggleCollapse}: SidebarProps) {
                     <NavigationSection
                         key={section.title}
                         section={section}
-                        showDivider={!collapsed && index < visibleSections.length - 1}
+                        showDivider={index < visibleSections.length - 1}
                         collapsed={collapsed}
+                        onNavigate={closeMobile}
                     />
                 ))}
             </AppBox>
-        </AppBox>
+            </AppBox>
+        </>
     );
 }

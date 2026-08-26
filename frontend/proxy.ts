@@ -22,8 +22,12 @@ function loginRedirect(request: NextRequest): NextResponse {
     return NextResponse.redirect(loginUrl);
 }
 
+function allowsPlaywrightAuthBypass(request: NextRequest): boolean {
+    return process.env.PLAYWRIGHT_AUTH_BYPASS === "1" && request.headers.get("x-playwright-auth-bypass") === "1";
+}
+
 export async function proxy(request: NextRequest) {
-    if (isPublicRoute(request.nextUrl.pathname)) {
+    if (isPublicRoute(request.nextUrl.pathname) || allowsPlaywrightAuthBypass(request)) {
         return NextResponse.next();
     }
 

@@ -42,7 +42,6 @@ services:
     App\Command\ImportFrameDataFromFatJsonCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
-            $scalingNormalizer: '@App\Service\FrameDataScalingNormalizerService'
     App\Service\ScenarioLayerSolveService:
         arguments:
             $cachePool: '@cache.app'

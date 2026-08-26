@@ -113,11 +113,12 @@ make check
 - Run production migrations explicitly with `docker compose -f docker-compose.prod.yml exec backend php bin/console doctrine:migrations:migrate --no-interaction`.
 - PostgreSQL is bound to `127.0.0.1:5432` in production for SSH tunnel access only. Do not open PostgreSQL to the public internet.
 - `NEXT_PUBLIC_API_URL=/api` is the production frontend API setting.
-- `scripts/deploy-prod.sh` and `scripts/backup-prod-db.sh` provide deploy and backup helpers.
+- `scripts/deploy-prod.sh` and the `prod-db-*` Make targets provide deploy and backup helpers. See `docs/production-postgres-backups.md` for the Lightsail backup and restore runbook.
 
 ## More Documentation
 
 - Contribution workflow: `CONTRIBUTING.md`.
+- Production Postgres backups: `docs/production-postgres-backups.md`.
 - AI agent rules: `AGENTS.md`.
 - Backend architecture and rules: `docs/ai/BACKEND_FEATURE_MASTER.md`.
 - Frontend architecture and UI rules: `docs/ai/FRONTEND_FEATURE_MASTER.md`.

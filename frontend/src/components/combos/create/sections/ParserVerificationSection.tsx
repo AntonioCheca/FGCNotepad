@@ -74,8 +74,8 @@ export function ParserVerificationSection({
             tone="raised"
             variant="review"
         >
-            <AppBox sx={{display: "grid", gap: 1, gridTemplateColumns: {xs: "1fr", lg: "minmax(0, 1fr) 320px"}, alignItems: {xs: "start", lg: "stretch"}}}>
-                <AppBox sx={{display: "flex", gap: 0.35, flexWrap: "wrap", alignItems: "center"}}>
+            <AppBox sx={{display: "grid", gap: 1, gridTemplateColumns: {xs: "1fr", lg: "minmax(0, 1fr) 320px"}, alignItems: {xs: "start", lg: "stretch"}, minWidth: 0}}>
+                <AppBox sx={{display: "flex", gap: 0.35, flexWrap: "wrap", alignItems: "center", minWidth: 0, overflowX: "hidden"}}>
                     {verificationTokens.map((token, index) => {
                         const tokenError = errorByIndex.get(token.index);
                         const recognized = token.child_sequence_id !== null;
@@ -117,8 +117,8 @@ export function ParserVerificationSection({
 
                                             return recognized ? theme.fgc.parser.nodeBg : theme.fgc.parser.nodeWarningBg;
                                         },
-                                        minWidth: 118,
-                                        maxWidth: 170,
+                                        minWidth: {xs: "min(118px, 100%)", sm: 118},
+                                        maxWidth: {xs: "100%", sm: 170},
                                         cursor: mappedStepIndex !== undefined ? "pointer" : "default",
                                         position: "relative",
                                     }}
@@ -266,7 +266,7 @@ export function ParserVerificationSection({
                                             disabled={readOnly}
                                         />
                                     ) : (
-                                        <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75}}>
+                                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr"}, gap: 0.75}}>
                                             <AppTextField
                                                 label="Delay Min"
                                                 value={selectedStep.delay_min_frames ?? ""}
