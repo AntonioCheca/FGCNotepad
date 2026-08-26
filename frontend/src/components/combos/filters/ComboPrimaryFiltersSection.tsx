@@ -53,7 +53,7 @@ export function ComboPrimaryFiltersSection({
 }: ComboPrimaryFiltersSectionProps) {
     return (
         <SectionCard title="Primary Filters" tone="raised" variant="input">
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(170px, 0.75fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(160px, 0.75fr)"}, gap: 1}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(170px, 0.75fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(160px, 0.75fr)"}, gap: 1}}>
                 <AppAutocomplete<ComboCharacterOption, false, false, false>
                     options={characterOptions}
                     value={selectedCharacter}

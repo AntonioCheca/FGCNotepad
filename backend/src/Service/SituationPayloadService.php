@@ -115,7 +115,13 @@ class SituationPayloadService
         return $type;
     }
 
-    /** @template T of object @param class-string<T> $class @return T|null */
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $class
+     *
+     * @return T|null
+     */
     private function findNullableEntity(string $class, mixed $id): ?object
     {
         if (null === $id || '' === trim((string) $id)) {

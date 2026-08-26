@@ -26,12 +26,13 @@ export default function SidebarLayout({
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open navigation"
                 aria-expanded={mobileOpen}
+                aria-controls="primary-navigation"
                 sx={{
-                    display: {xs: 'inline-flex', md: 'none'},
+                    display: {xs: mobileOpen ? 'none' : 'inline-flex', md: 'none'},
                     position: 'fixed',
                     top: 12,
                     left: 12,
-                    zIndex: 1201,
+                    zIndex: 1198,
                     width: 44,
                     height: 44,
                     border: '1px solid',

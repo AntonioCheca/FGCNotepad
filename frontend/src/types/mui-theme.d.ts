@@ -66,6 +66,9 @@ type FgcTokenGroup = {
         ring: string;
         outline: string;
     };
+    overlay: {
+        backdrop: string;
+    };
     icon: {
         primary: string;
         muted: string;

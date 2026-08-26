@@ -66,6 +66,9 @@ type FgcTokenSet = {
         ring: string;
         outline: string;
     };
+    overlay: {
+        backdrop: string;
+    };
     icon: {
         primary: string;
         muted: string;
@@ -193,6 +196,9 @@ const lightTokens: FgcTokenSet = {
         ring: "#003049",
         outline: "#003049",
     },
+    overlay: {
+        backdrop: "rgba(0, 48, 73, 0.42)",
+    },
     icon: {
         primary: "#003049",
         muted: "#64748b",
@@ -310,6 +316,9 @@ const darkTokens: FgcTokenSet = {
     focus: {
         ring: "#a2ccdb",
         outline: "#a2ccdb",
+    },
+    overlay: {
+        backdrop: "rgba(4, 20, 31, 0.68)",
     },
     icon: {
         primary: "#dff1f7",

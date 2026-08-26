@@ -14,10 +14,26 @@ const routes = [
 ];
 
 test.describe("responsive smoke", () => {
+    test.beforeEach(async ({page}) => {
+        await page.setExtraHTTPHeaders({"x-playwright-auth-bypass": "1"});
+        await page.route("**/me", async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify({
+                    user: {id: 1, username: "mobile-smoke", roles: ["ROLE_USER"]},
+                    csrfToken: "mobile-smoke-csrf",
+                }),
+            });
+        });
+    });
+
     for (const route of routes) {
         test(`${route} does not overflow horizontally`, async ({page}) => {
-            await page.goto(route);
+            await page.goto(route, {waitUntil: "domcontentloaded"});
             await page.waitForLoadState("networkidle").catch(() => undefined);
+
+            expect(new URL(page.url()).pathname, `${route} should render directly`).toBe(route);
 
             const overflow = await page.evaluate(() => ({
                 scrollWidth: document.documentElement.scrollWidth,
@@ -30,18 +46,6 @@ test.describe("responsive smoke", () => {
 
     test("mobile navigation starts closed and can be opened", async ({page}, testInfo) => {
         test.skip(Number(testInfo.project.name) >= 768, "Persistent navigation is expected at tablet and desktop widths.");
-
-        await page.setExtraHTTPHeaders({"x-playwright-auth-bypass": "1"});
-        await page.route("**/me", async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: "application/json",
-                body: JSON.stringify({
-                    user: {id: 1, username: "mobile-smoke", roles: ["ROLE_USER"]},
-                    csrfToken: "mobile-smoke-csrf",
-                }),
-            });
-        });
 
         await page.goto("/about/aboutUs");
 

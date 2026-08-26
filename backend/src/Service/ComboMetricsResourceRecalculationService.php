@@ -35,10 +35,7 @@ final class ComboMetricsResourceRecalculationService
      */
     private function resolveMoves(ComboSequences $sequence): array
     {
-        $steps = array_values(array_filter(
-            $sequence->getSteps()->toArray(),
-            static fn (mixed $step): bool => $step instanceof Step
-        ));
+        $steps = $sequence->getSteps()->toArray();
         usort(
             $steps,
             static fn (Step $left, Step $right): int => ($left->getOrdinalInCombo() ?? 0) <=> ($right->getOrdinalInCombo() ?? 0)

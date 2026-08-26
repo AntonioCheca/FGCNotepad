@@ -80,7 +80,7 @@ class SituationComboMatcher
         }
 
         [$counterIncompatible, $counterReasons] = $this->evaluateCounterState($requirement, $situation);
-        $incompatible = $incompatible || $counterIncompatible;
+        $incompatible = $counterIncompatible;
         $reasons = array_merge($reasons, $counterReasons);
 
         if ($requirement->isCornerRequired()) {

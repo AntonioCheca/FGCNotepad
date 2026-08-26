@@ -60,10 +60,11 @@ export default function Sidebar({collapsed, mobileOpen, toggleCollapse, closeMob
                     position: 'fixed',
                     inset: 0,
                     zIndex: 1199,
-                    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+                    backgroundColor: 'fgc.overlay.backdrop',
                 }}
             />
             <AppBox
+                id="primary-navigation"
                 component="nav"
                 aria-label="Primary navigation"
                 sx={{
@@ -80,8 +81,9 @@ export default function Sidebar({collapsed, mobileOpen, toggleCollapse, closeMob
                     display: 'flex',
                     flexDirection: 'column',
                     zIndex: 1200,
-                    transition: 'width 0.28s ease, transform 0.28s ease',
+                    transition: 'width 0.28s ease, transform 0.28s ease, visibility 0.28s ease',
                     transform: {xs: mobileOpen ? 'translateX(0)' : 'translateX(-105%)', md: 'translateX(0)'},
+                    visibility: {xs: mobileOpen ? 'visible' : 'hidden', md: 'visible'},
                     boxShadow: {xs: mobileOpen ? 8 : 'none', md: 'none'},
                 }}
             >

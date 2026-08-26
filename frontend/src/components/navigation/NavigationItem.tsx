@@ -17,7 +17,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
     const navButton = (
         <AppListItemButton
             sx={{
-                px: collapsed ? 1.25 : 1.6,
+                px: {xs: 1.6, md: collapsed ? 1.25 : 1.6},
                 py: 1,
                 borderRadius: 2,
                 mx: 1,
@@ -32,14 +32,14 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                     backgroundColor: 'fgc.surface.subtle',
                     borderColor: isActive ? 'fgc.accent.selected' : 'fgc.border.subtle',
                 },
-                justifyContent: collapsed ? 'center' : 'flex-start',
+                justifyContent: {xs: 'flex-start', md: collapsed ? 'center' : 'flex-start'},
             }}
             selected={isActive}
         >
             <AppListItemIcon
                 sx={{
                     minWidth: 0,
-                    mr: collapsed ? 0 : 1.5,
+                    mr: {xs: 1.5, md: collapsed ? 0 : 1.5},
                     color: isActive ? 'fgc.accent.selected' : 'fgc.icon.muted',
                     display: 'flex',
                     justifyContent: 'center',
@@ -48,16 +48,15 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                 {item.icon}
             </AppListItemIcon>
 
-            {!collapsed ? (
-                <AppListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                        variant: 'body2',
-                        fontWeight: isActive ? 650 : 520,
-                        lineHeight: 1.35,
-                    }}
-                />
-            ) : null}
+            <AppListItemText
+                primary={item.label}
+                sx={{display: {xs: 'block', md: collapsed ? 'none' : 'block'}}}
+                primaryTypographyProps={{
+                    variant: 'body2',
+                    fontWeight: isActive ? 650 : 520,
+                    lineHeight: 1.35,
+                }}
+            />
         </AppListItemButton>
     );
 

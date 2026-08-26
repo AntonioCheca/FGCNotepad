@@ -4,6 +4,7 @@ import type {ComboSortDirection, ComboSortField} from "./filters/comboFilterType
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
+import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
 import {AppPaper} from "@/src/components/ui/AppPaper";
 import {AppTable} from "@/src/components/ui/AppTable";
 import {AppTableBody} from "@/src/components/ui/AppTableBody";
@@ -11,6 +12,7 @@ import {AppTableCell} from "@/src/components/ui/AppTableCell";
 import {AppTableContainer} from "@/src/components/ui/AppTableContainer";
 import {AppTableHead} from "@/src/components/ui/AppTableHead";
 import {AppTableRow} from "@/src/components/ui/AppTableRow";
+import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {ArrowDownwardIcon, ArrowUpwardIcon, PendingActionsIcon} from "@/src/components/ui/AppIcons";
 import {ComboRow} from "@/src/types/combo";
@@ -88,8 +90,9 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
 
     return (
         <>
+            <ComboMobileSortControls sort={sort} sortDirection={sortDirection} onSortChange={onSortChange} />
             <ComboMobileCards combos={combos} />
-            <AppPaper variant="outlined" sx={{display: {xs: "none", md: "block"}, borderRadius: 2.5, overflow: "hidden", borderColor: "fgc.border.default"}}>
+            <AppPaper variant="outlined" sx={{display: {xs: "none", lg: "block"}, borderRadius: 2.5, overflow: "hidden", borderColor: "fgc.border.default", minWidth: 0, maxWidth: "100%"}}>
             <AppTableContainer sx={{maxHeight: "calc(100dvh - 275px)", overflowX: "auto", backgroundColor: "fgc.surface.base"}}>
                 <AppTable stickyHeader>
                     <AppTableHead>
@@ -184,9 +187,61 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
     );
 }
 
+function ComboMobileSortControls({sort, sortDirection, onSortChange}: Pick<ComboTableProps, "sort" | "sortDirection" | "onSortChange">) {
+    const selectedHeader = sortableHeaders.find((header) => header.field === sort);
+    const directionLocked = selectedHeader?.seasonOnlyDesc === true;
+    const nextDirection: ComboSortDirection = sortDirection === "desc" ? "asc" : "desc";
+
+    return (
+        <AppPaper
+            variant="outlined"
+            sx={{
+                display: {xs: "grid", lg: "none"},
+                gridTemplateColumns: "1fr",
+                gap: 0.75,
+                p: 1,
+                mb: 1,
+                borderRadius: 2,
+                backgroundColor: "fgc.surface.base",
+                borderColor: "fgc.border.default",
+            }}
+        >
+            <AppTextField
+                select
+                label="Sort by"
+                size="small"
+                value={sort}
+                onChange={(event) => {
+                    const field = event.target.value as ComboSortField;
+                    const header = sortableHeaders.find((candidate) => candidate.field === field);
+                    onSortChange(field, header?.seasonOnlyDesc ? "desc" : sortDirection);
+                }}
+            >
+                {sortableHeaders.map((header) => (
+                    <AppMenuItem key={header.field} value={header.field}>{formatSortLabel(header.label)}</AppMenuItem>
+                ))}
+            </AppTextField>
+            <AppButton
+                type="button"
+                variant="outlined"
+                color="secondary"
+                disabled={directionLocked}
+                onClick={() => onSortChange(sort, nextDirection)}
+                sx={{minHeight: 44}}
+            >
+                {sortDirection === "desc" || directionLocked ? "Descending" : "Ascending"}
+            </AppButton>
+        </AppPaper>
+    );
+}
+
+function formatSortLabel(label: string | string[]): string {
+    return Array.isArray(label) ? label.join(" ") : label;
+}
+
 function ComboMobileCards({combos}: {combos: ComboRow[]}) {
     return (
-        <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 1}}>
+        <AppBox sx={{display: {xs: "grid", lg: "none"}, gap: 1}}>
             {combos.map((combo) => {
                 const isPendingReview = combo.moderationState === "pending_review";
                 const compatibility = combo.compatibility;
