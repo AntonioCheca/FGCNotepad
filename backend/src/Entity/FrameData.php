@@ -714,7 +714,7 @@ class FrameData
 
     public function getRawValue(string $columnName): mixed
     {
-        if (!property_exists($this, $columnName)) {
+        if (!property_exists(self::class, $columnName)) {
             throw new \InvalidArgumentException(sprintf('Unsupported frame data column "%s".', $columnName));
         }
 

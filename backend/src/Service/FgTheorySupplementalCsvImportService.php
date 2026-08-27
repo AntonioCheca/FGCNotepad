@@ -67,6 +67,7 @@ final class FgTheorySupplementalCsvImportService
         $this->assertRequiredHeaders($headers);
 
         $result = new FrameDataImportResult();
+        $this->upsertService->resetImportCache();
         $batch = (new FrameDataImportBatch())
             ->setSourceType(FrameDataImportBatch::SOURCE_SUPPLEMENTAL)
             ->setLabel($label)
@@ -170,11 +171,12 @@ final class FgTheorySupplementalCsvImportService
 
     private function parseRequiredInt(string $value, string $header): int
     {
-        if (preg_match('/^-?\d+$/', $value) !== 1) {
-            throw new \InvalidArgumentException(sprintf('%s must be an integer.', $header));
+        $normalized = str_replace(',', '', trim($value));
+        if (preg_match('/-?\d+/', $normalized, $matches) !== 1) {
+            return 0;
         }
 
-        return (int) $value;
+        return (int) $matches[0];
     }
 
     private function parseOptionalInt(string $value): ?int

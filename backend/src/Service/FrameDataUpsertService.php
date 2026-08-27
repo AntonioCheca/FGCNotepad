@@ -19,6 +19,12 @@ final class FrameDataUpsertService
         'Zangief' => 11000,
     ];
 
+    /** @var array<string, Character> */
+    private array $characterCache = [];
+
+    /** @var array<string, Move> */
+    private array $moveCache = [];
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly MoveRepository $moveRepository,
@@ -29,6 +35,7 @@ final class FrameDataUpsertService
 
     public function upsertFatData(array $data, bool $dryRun = false): FrameDataImportResult
     {
+        $this->resetImportCache();
         $result = new FrameDataImportResult();
 
         foreach ($data as $characterName => $charData) {
@@ -81,12 +88,24 @@ final class FrameDataUpsertService
         return $result;
     }
 
+    public function resetImportCache(): void
+    {
+        $this->characterCache = [];
+        $this->moveCache = [];
+    }
+
     /**
      * @return array{0:Move,1:FrameData,2:bool}
      */
     public function getOrCreateMoveFrameData(Character $character, string $numpadNotation, FrameDataImportResult $result, bool $dryRun): array
     {
-        $move = $dryRun && null === $character->getId() ? null : $this->moveRepository->findOneBy(['numpadNotation' => $numpadNotation, 'character' => $character]);
+        $cacheKey = sprintf('%s:%s', $character->getId()?->toRfc4122() ?? spl_object_id($character), $numpadNotation);
+        if (isset($this->moveCache[$cacheKey])) {
+            $move = $this->moveCache[$cacheKey];
+        } else {
+            $move = $dryRun && null === $character->getId() ? null : $this->moveRepository->findOneBy(['numpadNotation' => $numpadNotation, 'character' => $character]);
+        }
+
         if (!$move instanceof Move) {
             $move = (new Move())->setNumpadNotation($numpadNotation)->setCharacter($character);
             if (!$dryRun) {
@@ -94,6 +113,7 @@ final class FrameDataUpsertService
             }
             ++$result->movesCreated;
         }
+        $this->moveCache[$cacheKey] = $move;
 
         $frameData = $move->getFrameData();
         $createdFrameData = false;
@@ -114,6 +134,10 @@ final class FrameDataUpsertService
 
     public function getOrCreateCharacter(string $name, int $life, FrameDataImportResult $result, bool $dryRun): Character
     {
+        if (isset($this->characterCache[$name])) {
+            return $this->characterCache[$name];
+        }
+
         $character = $this->characterRepository->findOneBy(['name' => $name]);
         if (!$character instanceof Character) {
             $character = (new Character())->setName($name)->setLife($life);
@@ -124,6 +148,8 @@ final class FrameDataUpsertService
         } elseif ($character->getLife() !== $life && !$dryRun) {
             $character->setLife($life);
         }
+
+        $this->characterCache[$name] = $character;
 
         return $character;
     }
