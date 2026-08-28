@@ -15,7 +15,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
     const controller = useComboFormController({onSuccess});
 
     return (
-        <AppBox component="form" onSubmit={controller.handleSubmit} sx={{display: "grid", gap: {xs: 1.5, md: 1.75}, width: "100%", maxWidth: 1160, mx: "auto"}}>
+        <AppBox component="form" onSubmit={controller.handleSubmit} sx={{display: "grid", gap: {xs: 1, md: 1.75}, width: "100%", maxWidth: 1160, mx: "auto"}}>
             <AppSnackbar
                 open={controller.parseSuccessToastOpen}
                 autoHideDuration={3200}

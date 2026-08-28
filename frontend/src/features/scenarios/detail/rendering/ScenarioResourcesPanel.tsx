@@ -1,5 +1,6 @@
 import React from "react";
 
+import {AppBox} from "@/src/components/ui/AppBox";
 import {AppSlider} from "@/src/components/ui/AppSlider";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import type {Theme} from "@/src/components/ui/AppThemeUtils";
@@ -24,41 +25,25 @@ export function ScenarioResourcesPanel({
     theme,
     onScenarioResourcesChange,
 }: ScenarioResourcesPanelProps) {
+    const refreshStatus = dynamicRefreshQueued ? "Refresh queued..." : refreshingDynamicCombos ? "Refreshing dynamic combos..." : null;
+
     return (
-        <div
-            style={{
-                display: "grid",
-                gap: 12,
-                marginBottom: 16,
-                border: `1px solid ${theme.fgc.border.default}`,
-                borderRadius: 8,
-                padding: 12,
-                background: theme.fgc.surface.base,
-            }}
-        >
+        <AppBox sx={{display: "grid", gap: {xs: 0.9, md: 1.2}, p: {xs: 1, md: 1.2}, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.5, backgroundColor: theme.fgc.surface.base, minWidth: 0}}>
             <AppTypography variant="h6">Resources</AppTypography>
-            <AppTypography variant="body2" color="text.secondary">
-                Resource changes update option availability immediately. Dynamic combos refresh automatically after 1 second of no slider input.
-                {dynamicRefreshQueued ? " Refresh queued..." : refreshingDynamicCombos ? " Refreshing dynamic combos..." : ""}
+            <AppTypography variant="body2" color="text.secondary" sx={{display: {xs: refreshStatus ? "block" : "none", md: "block"}}}>
+                <AppBox component="span" sx={{display: {xs: "none", md: "inline"}}}>Resource changes update option availability immediately. Dynamic combos refresh automatically after 1 second of no slider input.</AppBox>
+                {refreshStatus ? ` ${refreshStatus}` : ""}
             </AppTypography>
-            <div style={{display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))"}}>
+            <AppBox sx={{display: "grid", gap: {xs: 0.8, md: 1.2}, gridTemplateColumns: {xs: "1fr", md: "repeat(auto-fit, minmax(280px, 1fr))"}}}>
                 {([
                     {key: "attacker", label: "Attacker Resources", lifeMax: attackerLifeMax},
                     {key: "defender", label: "Defender Resources", lifeMax: defenderLifeMax},
                 ] as const).map((player) => {
                     const values = scenarioResources[player.key];
                     return (
-                        <div
+                        <AppBox
                             key={player.key}
-                            style={{
-                                border: `1px solid ${theme.fgc.border.default}`,
-                                borderRadius: 8,
-                                padding: 12,
-                                display: "grid",
-                                gap: 10,
-                                background: theme.fgc.surface.subtle,
-                                minWidth: 0,
-                            }}
+                            sx={{border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.5, p: {xs: 0.9, md: 1.2}, display: "grid", gap: {xs: 0.75, md: 1}, backgroundColor: theme.fgc.surface.subtle, minWidth: 0}}
                         >
                             <AppTypography variant="body1" sx={{fontWeight: 700}}>{player.label}</AppTypography>
                             <ScenarioResourceSlider
@@ -116,11 +101,11 @@ export function ScenarioResourcesPanel({
                                     },
                                 }))}
                             />
-                        </div>
+                        </AppBox>
                     );
                 })}
-            </div>
-        </div>
+            </AppBox>
+        </AppBox>
     );
 }
 
@@ -140,11 +125,11 @@ interface ScenarioResourceSliderProps {
 
 function ScenarioResourceSlider({label, value, displayValue, min, max, step, marks, color, railColor, ariaLabel, onChange}: ScenarioResourceSliderProps) {
     return (
-        <div style={{display: "grid", gap: 4}}>
-            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8}}>
+        <AppBox sx={{display: "grid", gap: 0.4}}>
+            <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1}}>
                 <AppTypography variant="body2">{label}</AppTypography>
                 <AppTypography variant="body2">{displayValue}</AppTypography>
-            </div>
+            </AppBox>
             <AppSlider
                 value={value}
                 min={min}
@@ -159,6 +144,6 @@ function ScenarioResourceSlider({label, value, displayValue, min, max, step, mar
                 }}
                 aria-label={ariaLabel}
             />
-        </div>
+        </AppBox>
     );
 }

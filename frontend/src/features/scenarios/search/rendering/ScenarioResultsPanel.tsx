@@ -27,9 +27,9 @@ export function ScenarioResultsPanel({items, loading, hasLoadedAtLeastOnce}: Sce
                     <AppTypography variant="body2" color="text.secondary">Loading scenarios...</AppTypography>
                 </AppBox>
             ) : (
-                <AppBox sx={{display: "grid", gap: 1}}>
+                <AppBox sx={{display: "grid", gap: {xs: 0.85, md: 1}}}>
                     {items.length === 0 ? (
-                        <AppPaper variant="outlined" sx={{p: {xs: 2, md: 2.25}, borderRadius: 2.5, display: "grid", gap: 0.45, backgroundColor: "fgc.surface.sunken"}}>
+                        <AppPaper variant="outlined" sx={{p: {xs: 1.5, md: 2.25}, borderRadius: {xs: 2, md: 2.5}, display: "grid", gap: 0.45, backgroundColor: "fgc.surface.sunken"}}>
                             <AppTypography variant="h6">No scenarios found</AppTypography>
                             <AppTypography variant="body2" color="text.secondary">Try broadening the matchup scope or clearing one advanced filter.</AppTypography>
                         </AppPaper>

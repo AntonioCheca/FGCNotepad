@@ -17,7 +17,7 @@ interface ScenarioContextFiltersSectionProps {
 export function ScenarioContextFiltersSection({scenarioType, query, compactFieldSx, onScenarioTypeChange, onQueryChange}: ScenarioContextFiltersSectionProps) {
     return (
         <SectionCard title="Scenario Context" tone="sunken" variant="review">
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 320px) minmax(280px, 1fr)"}, gap: 1}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 320px) minmax(280px, 1fr)"}, gap: {xs: 0.75, md: 1}}}>
                 <AppAutocomplete<ScenarioTypeOption, false, false, false>
                     options={SCENARIO_TYPE_OPTIONS}
                     value={SCENARIO_TYPE_OPTIONS.find((option) => option.value === scenarioType) ?? null}

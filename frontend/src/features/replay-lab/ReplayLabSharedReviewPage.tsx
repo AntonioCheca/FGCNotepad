@@ -192,17 +192,17 @@ export function ReplayLabSharedReviewPage() {
             subtitle="Review the owner’s replay and propose clip tags. Only the owner can export tasks or study cards."
             badgeLabel="Coach Link"
         >
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "1.1fr 0.9fr"}, gap: 1.5}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "1.1fr 0.9fr"}, gap: {xs: 1, md: 1.5}, minWidth: 0}}>
                 <SectionCard
                     title={review?.session.title ?? "Loading shared review"}
                     tone="raised"
                     variant="review"
                 >
-                    <AppStack spacing={1.1}>
+                    <AppStack spacing={{xs: 0.85, md: 1.1}}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
                         {notice ? <AppAlert severity="success" onClose={() => setNotice(null)}>{notice}</AppAlert> : null}
                         {error || review?.access.requiresPassword ? (
-                            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "minmax(220px, 320px) auto"}, gap: 1, alignItems: "center"}}>
+                            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "minmax(220px, 320px) auto"}, gap: {xs: 0.75, md: 1}, alignItems: "center"}}>
                                 <AppTextField
                                     label="Shared review password"
                                     type="password"
@@ -238,7 +238,7 @@ export function ReplayLabSharedReviewPage() {
                             />
                         )}
                         <AppDivider />
-                        <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                        <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 calc(50% - 6px)", sm: "0 0 auto"}}}}>
                             <AppChip label={`Cursor ${formatTimestamp(playbackPosition.timeMs)}`} size="small" />
                             <AppChip label={`Frame ~${playbackPosition.frame}`} size="small" variant="outlined" />
                             <AppButton type="button" variant="outlined" disabled={!review} onClick={() => dispatchAnnotationDraft({type: "setClipStart", timeMs: playbackPosition.timeMs})}>Mark Start</AppButton>
@@ -250,8 +250,8 @@ export function ReplayLabSharedReviewPage() {
                             Start {clipStartMs === null ? "unset" : formatTimestamp(clipStartMs)} · End {clipEndMs === null ? "unset" : formatTimestamp(clipEndMs)} · Max 10.000s
                         </AppAlert>
                         {review?.access.canAnnotate ? (
-                            <AppBox sx={{display: "grid", gap: 1}}>
-                                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "160px 1fr"}, gap: 1}}>
+                            <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}}}>
+                                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "160px 1fr"}, gap: {xs: 0.75, md: 1}}}>
                                     <AppTextField select label="Clip kind" value={eventKind} onChange={(event) => handleEventKindChange(event.target.value as ReplayAnnotationEventKind)}>
                                         <AppMenuItem value="memory">Memory Flashcard</AppMenuItem>
                                         <AppMenuItem value="task">Task</AppMenuItem>
@@ -274,7 +274,7 @@ export function ReplayLabSharedReviewPage() {
                     tone="sunken"
                     variant="finalize"
                 >
-                    <AppStack spacing={1}>
+                    <AppStack spacing={{xs: 0.75, md: 1}}>
                         {annotations.length === 0 ? <AppTypography color="text.secondary">No annotations yet.</AppTypography> : null}
                         {annotations.map((annotation) => (
                             <AppBox
@@ -282,11 +282,12 @@ export function ReplayLabSharedReviewPage() {
                                 sx={(theme) => ({
                                     display: "grid",
                                     gap: 0.5,
-                                    p: 1,
+                                    p: {xs: 0.85, md: 1},
                                     border: "1px solid",
                                     borderColor: theme.fgc.border.default,
                                     borderRadius: 1.25,
                                     backgroundColor: theme.fgc.surface.base,
+                                    minWidth: 0,
                                 })}
                             >
                                 <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -294,8 +295,8 @@ export function ReplayLabSharedReviewPage() {
                                     <AppChip size="small" variant="outlined" label={annotation.eventKind === "memory" ? "Memory" : "Task"} />
                                     <AppChip size="small" variant="outlined" label={humanizeCategory(annotation.category)} />
                                 </AppStack>
-                                <AppTypography variant="subtitle2">{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
-                                <AppButton type="button" variant="outlined" size="small" onClick={() => setSeekCommand({id: Date.now(), timeMs: annotation.startTimeMs})}>Go To Clip</AppButton>
+                                <AppTypography variant="subtitle2" sx={{overflowWrap: "anywhere"}}>{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
+                                <AppButton type="button" variant="outlined" size="small" onClick={() => setSeekCommand({id: Date.now(), timeMs: annotation.startTimeMs})} sx={{justifySelf: {xs: "stretch", sm: "start"}}}>Go To Clip</AppButton>
                             </AppBox>
                         ))}
                     </AppStack>

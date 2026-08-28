@@ -206,7 +206,7 @@ export function ScenarioEditorForm({
     }, [draftStorageKey, onSubmit, state]);
 
     return (
-        <AppBox sx={{display: "grid", gap: {xs: 1.25, md: 1.5}, width: "100%"}}>
+        <AppBox sx={{display: "grid", gap: {xs: 1, md: 1.5}, width: "100%", minWidth: 0}}>
             <ScenarioSetupSection
                 name={state.name}
                 scenarioType={state.scenarioType}

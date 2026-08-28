@@ -124,7 +124,7 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
     }, [clearEnderMoveOptions, clearFilters, clearFirstMoveOptions, onChange]);
 
     return (
-        <AppPaper variant="outlined" sx={{p: {xs: 1.25, md: 1.5}, mb: 2, borderRadius: 2.5, display: "grid", gap: 1}}>
+        <AppPaper variant="outlined" sx={{p: {xs: 1, md: 1.5}, mb: {xs: 1, md: 2}, borderRadius: {xs: 2, md: 2.5}, display: "grid", gap: {xs: 0.75, md: 1}}}>
             <ComboFiltersHeader />
 
             <ComboPrimaryFiltersSection

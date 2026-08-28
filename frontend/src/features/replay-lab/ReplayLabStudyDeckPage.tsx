@@ -94,13 +94,13 @@ export function ReplayLabStudyDeckPage() {
             title="Study Deck"
             badgeLabel="Replay Lab"
         >
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "1.08fr 0.92fr"}, gap: 1.5}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "1.08fr 0.92fr"}, gap: {xs: 1, md: 1.5}, minWidth: 0}}>
                 <SectionCard
                     title="Due card"
                     tone="raised"
                     variant="review"
                 >
-                    <AppStack spacing={1.1}>
+                    <AppStack spacing={{xs: 0.85, md: 1.1}}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
                         {notice ? <AppAlert severity="success" onClose={() => setNotice(null)}>{notice}</AppAlert> : null}
                         {loading && cards.length === 0 ? <AppCircularProgress size={24} /> : null}
@@ -114,7 +114,7 @@ export function ReplayLabStudyDeckPage() {
                             <>
                                 <ReplayClipPlayer clip={activeCard.clip} title={STUDY_CARD_PROMPT} />
                                 <AppTypography variant="h6">{STUDY_CARD_PROMPT}</AppTypography>
-                                <AppTypography variant="body2" color="text.secondary">
+                                <AppTypography variant="body2" color="text.secondary" sx={{display: {xs: "none", sm: "block"}}}>
                                     Due {formatUtcDateTime(activeCard.dueAt)} · interval {activeCard.intervalDays}d · reps {activeCard.repetitionCount} · lapses {activeCard.lapseCount}
                                 </AppTypography>
                                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 0.75}}>
@@ -162,7 +162,7 @@ export function ReplayLabStudyDeckPage() {
                     tone="sunken"
                     variant="finalize"
                 >
-                    <AppStack spacing={1}>
+                    <AppStack spacing={{xs: 0.75, md: 1}}>
                         <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                             <AppChip label={`${cards.length} due loaded`} />
                             <AppChip label={`${remainingCards} remaining`} variant="outlined" />
@@ -173,15 +173,16 @@ export function ReplayLabStudyDeckPage() {
                                 sx={(theme) => ({
                                     display: "grid",
                                     gap: 0.35,
-                                    p: 1,
+                                    p: {xs: 0.85, md: 1},
                                     border: "1px solid",
                                     borderColor: theme.fgc.border.default,
                                     borderRadius: 1.25,
                                     backgroundColor: theme.fgc.surface.base,
+                                    minWidth: 0,
                                 })}
                             >
                                 <AppTypography variant="subtitle2">{STUDY_CARD_PROMPT}</AppTypography>
-                                <AppTypography variant="caption" color="text.secondary">{humanizeCategory(card.category)} · due {formatUtcDateTime(card.dueAt)}</AppTypography>
+                                <AppTypography variant="caption" color="text.secondary" sx={{overflowWrap: "anywhere"}}>{humanizeCategory(card.category)} · due {formatUtcDateTime(card.dueAt)}</AppTypography>
                             </AppBox>
                         ))}
                         {cards.length === 0 ? <AppTypography color="text.secondary">Export memory annotations from a review session to create study cards.</AppTypography> : null}

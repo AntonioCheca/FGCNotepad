@@ -272,7 +272,7 @@ function ReplayVideoPlayerContent({src, fps, title, seekCommand, onPlaybackPosit
     }, []);
 
     return (
-        <AppBox sx={{display: "grid", gap: 1.15}}>
+        <AppBox sx={{display: "grid", gap: {xs: 0.85, md: 1.15}, minWidth: 0}}>
             <AppBox
                 sx={(theme) => ({
                     position: "relative",
@@ -325,18 +325,18 @@ function ReplayVideoPlayerContent({src, fps, title, seekCommand, onPlaybackPosit
                         }}
                         onStalled={() => captureMediaState("stalled", "stalled")}
                         onError={() => captureMediaState("error", "error")}
-                        style={{width: "100%", maxHeight: "min(58vh, 620px)", display: "block"}}
+                        style={{width: "100%", maxHeight: "min(58dvh, 620px)", display: "block"}}
                     />
                 ) : (
                     <AppTypography color="text.secondary">Select a replay to load private playback.</AppTypography>
                 )}
             </AppBox>
 
-            <AppBox sx={{display: "grid", gap: 0.85, width: {xs: "100%", md: "82%"}, mx: "auto"}}>
+            <AppBox sx={{display: "grid", gap: {xs: 0.65, md: 0.85}, width: {xs: "100%", md: "82%"}, mx: "auto", minWidth: 0}}>
                 {timelineAddon}
 
                 <AppStack direction={{xs: "column", md: "row"}} spacing={0.75} alignItems={{xs: "stretch", md: "center"}} justifyContent="space-between">
-                    <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                    <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 calc(33.333% - 6px)", sm: "0 0 auto"}}}}>
                         <AppButton type="button" variant="contained" onClick={togglePlayback} disabled={!canUseControls}>
                             {isPlaying ? "Pause" : "Play"}
                         </AppButton>
@@ -351,7 +351,7 @@ function ReplayVideoPlayerContent({src, fps, title, seekCommand, onPlaybackPosit
                 </AppStack>
             </AppBox>
             {media.errorMessage ? <AppTypography variant="body2" color="error">{media.errorMessage}</AppTypography> : null}
-            <AppTypography variant="body2" color="text.secondary" sx={{width: {xs: "100%", md: "82%"}, mx: "auto"}}>Playback: Space, Left/Right 1s, [ ] or , . frame step.</AppTypography>
+            <AppTypography variant="body2" color="text.secondary" sx={{width: {xs: "100%", md: "82%"}, mx: "auto", display: {xs: "none", sm: "block"}}}>Playback: Space, Left/Right 1s, [ ] or , . frame step.</AppTypography>
         </AppBox>
     );
 }

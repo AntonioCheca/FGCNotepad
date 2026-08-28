@@ -241,32 +241,32 @@ function formatSortLabel(label: string | string[]): string {
 
 function ComboMobileCards({combos}: {combos: ComboRow[]}) {
     return (
-        <AppBox sx={{display: {xs: "grid", lg: "none"}, gap: 1}}>
+            <AppBox sx={{display: {xs: "grid", lg: "none"}, gap: 0.85}}>
             {combos.map((combo) => {
                 const isPendingReview = combo.moderationState === "pending_review";
                 const compatibility = combo.compatibility;
                 const compatibilityColor = compatibility?.status === "compatible" ? "success" : compatibility?.status === "uncertain" ? "warning" : "default";
 
                 return (
-                    <AppPaper key={combo.id} variant="outlined" sx={{p: 1.15, borderRadius: 2, display: "grid", gap: 0.85, backgroundColor: "fgc.surface.base", borderColor: "fgc.border.default", minWidth: 0}}>
+                    <AppPaper key={combo.id} variant="outlined" sx={{p: 1, borderRadius: 2, display: "grid", gap: 0.75, backgroundColor: "fgc.surface.base", borderColor: "fgc.border.default", minWidth: 0}}>
                         <AppBox sx={{display: "grid", gap: 0.35, minWidth: 0}}>
                             <AppBox sx={{display: "flex", gap: 0.65, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", minWidth: 0}}>
                                 <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
-                                    <AppTypography variant="subtitle1" sx={{fontWeight: 750, textDecoration: "underline", textUnderlineOffset: "2px"}}>{combo.title}</AppTypography>
+                                    <AppTypography variant="subtitle1" sx={{fontWeight: 750, textDecoration: "underline", textUnderlineOffset: "2px", overflowWrap: "anywhere"}}>{combo.title}</AppTypography>
                                 </Link>
                                 {isPendingReview ? <AppChip icon={<PendingActionsIcon fontSize="small" />} size="small" label="Pending" color="warning" variant="outlined" /> : null}
                             </AppBox>
                             <AppTypography variant="body2" color="text.secondary">{combo.characterName ?? "-"}</AppTypography>
                         </AppBox>
 
-                        <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75}}>
+                        <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.65}}>
                             <ComboMobileFact label="Starter" value={combo.starter ?? "-"} />
                             <ComboMobileFact label="Ender" value={combo.ender ?? "-"} />
                             <ComboMobileFact label="Spacing" value={combo.spacing ?? "-"} />
                             <ComboMobileFact label="Damage" value={combo.damage ?? "-"} />
                         </AppBox>
 
-                        <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
+                        <AppBox sx={{display: "flex", gap: 0.45, flexWrap: "wrap"}}>
                             <AppChip size="small" variant="outlined" label={`Drive ${combo.driveCost ?? "-"}`} />
                             <AppChip size="small" variant="outlined" label={`Super ${combo.superCost ?? "-"}`} />
                             <AppChip size="small" variant="outlined" label={`Season ${combo.season ?? "-"}`} />

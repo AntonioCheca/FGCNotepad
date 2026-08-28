@@ -1,6 +1,7 @@
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
+import {AppTypography} from "@/src/components/ui/AppTypography";
 import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
@@ -52,7 +53,11 @@ export function ScenarioMatrixWorkspaceSection({
                 </AppButton>
             </ActionBar>
 
-            <AppBox sx={{p: {xs: 0.75, md: 0.9}, borderRadius: 1.5, border: "1px solid", borderColor: "fgc.border.default", backgroundColor: "fgc.surface.sunken"}}>
+            <AppBox sx={{display: {xs: "block", md: "none"}, mb: 0.75}}>
+                <AppTypography variant="caption" color="text.secondary">Scroll the matrix sideways to edit every option.</AppTypography>
+            </AppBox>
+
+            <AppBox sx={{p: {xs: 0.5, md: 0.9}, borderRadius: 1.5, border: "1px solid", borderColor: "fgc.border.default", backgroundColor: "fgc.surface.sunken", overflowX: "auto", maxWidth: "100%", minWidth: 0}}>
                 <MatrixEditorShell
                     matrix={matrix}
                     attackerCharacterName={selectedAttackerName}

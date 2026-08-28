@@ -38,6 +38,7 @@ export function ReplayClipPlayer({clip, title}: ReplayClipPlayerProps) {
                 display: "grid",
                 placeItems: "center",
                 minHeight: 220,
+                maxWidth: "100%",
                 border: "1px solid",
                 borderColor: theme.fgc.border.default,
                 borderRadius: 1.25,
@@ -61,7 +62,7 @@ export function ReplayClipPlayer({clip, title}: ReplayClipPlayerProps) {
                         setLoading(false);
                         setError(getErrorMessage(new Error("Clip playback failed.")));
                     }}
-                    style={{width: "100%", maxHeight: 360, display: "block", backgroundColor: "black"}}
+                    style={{width: "100%", maxHeight: "min(44dvh, 360px)", display: "block", backgroundColor: "black"}}
                 />
             ) : null}
         </AppBox>

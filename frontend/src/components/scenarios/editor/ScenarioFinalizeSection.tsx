@@ -20,8 +20,8 @@ export function ScenarioFinalizeSection({canSubmit, submitting, submitLabel, onS
                     Ready: {canSubmit ? "yes" : "missing scenario name, attacker, defender, or trigger move"}
                 </AppTypography>
             </AppBox>
-            <AppBox sx={{display: "flex", justifyContent: "flex-end"}}>
-                <AppButton type="button" disabled={submitting} onClick={() => void onSubmit()}>
+            <AppBox sx={{display: "flex", justifyContent: {xs: "stretch", sm: "flex-end"}}}>
+                <AppButton type="button" disabled={submitting} onClick={() => void onSubmit()} sx={{width: {xs: "100%", sm: "auto"}}}>
                     {submitting ? "Saving..." : submitLabel}
                 </AppButton>
             </AppBox>

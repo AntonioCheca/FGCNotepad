@@ -47,7 +47,7 @@ export function ScenarioSearchFiltersPanel({
     onResetFilters,
 }: ScenarioSearchFiltersPanelProps) {
     return (
-        <AppPaper variant="outlined" sx={{p: {xs: 1.25, md: 1.5}, borderRadius: 2.5, display: "grid", gap: 1}}>
+        <AppPaper variant="outlined" sx={{p: {xs: 1, md: 1.5}, borderRadius: {xs: 2, md: 2.5}, display: "grid", gap: {xs: 0.75, md: 1}}}>
             <ScenarioSearchFiltersHeader activeFilterCount={activeFilterCount} />
 
             <ScenarioPrimaryFiltersSection
@@ -73,7 +73,7 @@ export function ScenarioSearchFiltersPanel({
             </ActionBar>
 
             <AppCollapse in={filterState.showAdvancedFilters} timeout={200} unmountOnExit>
-                <AppBox sx={{display: "grid", gap: 1, pt: 0.75}}>
+                <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}, pt: {xs: 0.5, md: 0.75}}}>
                     <ScenarioContextFiltersSection
                         scenarioType={filterState.scenarioType}
                         query={filterState.query}

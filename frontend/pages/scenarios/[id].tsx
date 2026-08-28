@@ -4,6 +4,7 @@ import {useRouter} from "next/router";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
+import {AppBox} from "@/src/components/ui/AppBox";
 import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {useCharacters} from "@/hooks/useCharacters";
 import {useScenarios} from "@/hooks/useScenarios";
@@ -117,51 +118,53 @@ export default function ScenarioDetailPage() {
     }
 
     return (
-        <AppContainer maxWidth={false}>
-            <ScenarioDetailHeader
-                scenarioId={scenarioId}
-                refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
-                onRefreshDynamicCombos={() => void dynamicResolution.refreshDynamicCombosWithLoading()}
-            />
-            <ScenarioComboEnvironmentCard
-                scenario={scenario}
-                includeCornerSpecific={includeCornerSpecific}
-                onIncludeCornerSpecificChange={setIncludeCornerSpecific}
-                theme={theme}
-            />
-            <ScenarioExecutionControls
-                executionSelection={executionSelection}
-                isAuthenticated={isAuthenticated}
-                onExecutionSelectionChange={setExecutionSelection}
-                theme={theme}
-            />
-            <ScenarioSummaryCard scenario={scenario} />
-            <ScenarioResourcesPanel
-                scenarioResources={scenarioResources}
-                attackerLifeMax={attackerLifeMax}
-                defenderLifeMax={defenderLifeMax}
-                dynamicRefreshQueued={dynamicResolution.dynamicRefreshQueued}
-                refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
-                theme={theme}
-                onScenarioResourcesChange={setScenarioResources}
-            />
-            {scenario.scenarioType === "aggregated_oki" ? (
-                <ScenarioPersonalizedDefenderControl
-                    personalizedDefenderId={personalizedDefenderId}
-                    characters={characters}
-                    theme={theme}
-                    onPersonalizedDefenderIdChange={setPersonalizedDefenderId}
+        <AppContainer maxWidth={false} sx={{py: {xs: 2, md: 3.25}, px: {xs: 1.25, sm: 1.75, md: 3, xl: 4}}}>
+            <AppBox sx={{display: "grid", gap: {xs: 1, md: 1.5}, minWidth: 0}}>
+                <ScenarioDetailHeader
+                    scenarioId={scenarioId}
+                    refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
+                    onRefreshDynamicCombos={() => void dynamicResolution.refreshDynamicCombosWithLoading()}
                 />
-            ) : null}
-            <ScenarioMatrixViewer
-                scenario={scenario}
-                scenarioId={scenarioId}
-                columnVisibilityByLabel={columnVisibilityByLabel}
-                layerSolveSnapshots={dynamicResolution.layerSolveSnapshots}
-                linkedCellResolutions={dynamicResolution.linkedCellResolutions}
-                scenarioResources={scenarioResources}
-                onRefreshDynamicCells={dynamicResolution.refreshDynamicCombos}
-            />
+                <ScenarioComboEnvironmentCard
+                    scenario={scenario}
+                    includeCornerSpecific={includeCornerSpecific}
+                    onIncludeCornerSpecificChange={setIncludeCornerSpecific}
+                    theme={theme}
+                />
+                <ScenarioExecutionControls
+                    executionSelection={executionSelection}
+                    isAuthenticated={isAuthenticated}
+                    onExecutionSelectionChange={setExecutionSelection}
+                    theme={theme}
+                />
+                <ScenarioSummaryCard scenario={scenario} />
+                <ScenarioResourcesPanel
+                    scenarioResources={scenarioResources}
+                    attackerLifeMax={attackerLifeMax}
+                    defenderLifeMax={defenderLifeMax}
+                    dynamicRefreshQueued={dynamicResolution.dynamicRefreshQueued}
+                    refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
+                    theme={theme}
+                    onScenarioResourcesChange={setScenarioResources}
+                />
+                {scenario.scenarioType === "aggregated_oki" ? (
+                    <ScenarioPersonalizedDefenderControl
+                        personalizedDefenderId={personalizedDefenderId}
+                        characters={characters}
+                        theme={theme}
+                        onPersonalizedDefenderIdChange={setPersonalizedDefenderId}
+                    />
+                ) : null}
+                <ScenarioMatrixViewer
+                    scenario={scenario}
+                    scenarioId={scenarioId}
+                    columnVisibilityByLabel={columnVisibilityByLabel}
+                    layerSolveSnapshots={dynamicResolution.layerSolveSnapshots}
+                    linkedCellResolutions={dynamicResolution.linkedCellResolutions}
+                    scenarioResources={scenarioResources}
+                    onRefreshDynamicCells={dynamicResolution.refreshDynamicCombos}
+                />
+            </AppBox>
         </AppContainer>
     );
 }

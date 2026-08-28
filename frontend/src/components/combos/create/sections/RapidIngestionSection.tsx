@@ -32,7 +32,7 @@ export function RapidIngestionSection({
             tone="default"
             variant="input"
         >
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "260px minmax(0, 1fr) auto"}, gap: 1, alignItems: "stretch"}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "260px minmax(0, 1fr) auto"}, gap: {xs: 0.75, md: 1}, alignItems: "stretch"}}>
                 <WrappedAutocomplete<CharacterOption>
                     label="Character"
                     options={characterOptions ?? []}
@@ -46,7 +46,7 @@ export function RapidIngestionSection({
                             margin: 0,
                         },
                         "& .MuiInputBase-root": {
-                            minHeight: 40,
+                            minHeight: {xs: 38, md: 40},
                         },
                     }}
                 />
@@ -59,7 +59,7 @@ export function RapidIngestionSection({
                     placeholder="2LK 2LK 2LP 236HP"
                     sx={{
                         "& .MuiInputBase-root": {
-                            minHeight: 40,
+                            minHeight: {xs: 38, md: 40},
                         },
                     }}
                 />
@@ -71,7 +71,7 @@ export function RapidIngestionSection({
                     disabled={!canFillDetails}
                     sx={{
                         minWidth: 160,
-                        minHeight: 40,
+                        minHeight: {xs: 38, md: 40},
                         justifySelf: {xs: "stretch", md: "auto"},
                         borderColor: "fgc.accent.parser",
                         color: "fgc.accent.parser",

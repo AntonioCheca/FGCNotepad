@@ -97,6 +97,17 @@ $env:CI = "1"; npx react-doctor@0.8.1 --no-telemetry --verbose
 - Mobile QA for frontend changes should include 320px, 360px, 390px, 430px, 768px, 1024px, and desktop widths.
 - React Doctor does not validate responsive layout. Use browser/manual QA or Playwright viewport checks for mobile overflow and navigation behavior.
 
+### Hybrid responsive page architecture
+
+- Frontend pages must be designed for mobile as first-class screens, not compressed desktop layouts.
+- Preserve desktop composition and behavior unless the task explicitly asks for desktop changes.
+- Keep business logic shared across viewport variants, including API calls, form state, validation, parsing, submit behavior, filters, calculations, and event handlers.
+- Do not create separate desktop/mobile page implementations when they duplicate feature logic.
+- Use responsive CSS or container queries for visual-only changes such as width, spacing, typography, columns, wrapping, information density, and secondary information visibility.
+- Use explicit mobile-specific composition only when mobile interaction or hierarchy genuinely changes, such as drawer/sheet inspectors, master/detail flows, progressive disclosure, persistent controls, or table-to-list presentation.
+- Mobile-specific components should control presentation and composition only; changes to shared feature components, hooks, and handlers must automatically apply to all viewport variants.
+- Prefer small reusable responsive primitives when a pattern clearly repeats, but do not extract abstractions prematurely.
+
 ## FGC Tactical Editorial UI System
 
 This project uses a tactical editorial visual system anchored to two separate artist palettes. Do not merge them into a single 8-color set.

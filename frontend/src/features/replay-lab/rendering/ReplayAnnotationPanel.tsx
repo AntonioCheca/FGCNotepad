@@ -47,7 +47,7 @@ export function ReplayAnnotationPanel({
 }: ReplayAnnotationPanelProps) {
     return (
         <SectionCard title="Annotation" tone="raised" variant="input">
-            <AppStack spacing={0.75}>
+            <AppStack spacing={{xs: 0.65, md: 0.75}}>
                 <AppTypography variant="body2" color={clipDurationMs !== null && clipDurationMs > 10000 ? "error" : "text.secondary"}>
                     {clipStartMs === null ? "Start unset" : `Start ${formatTimestamp(clipStartMs)}`} - {clipEndMs === null ? "End unset" : `End ${formatTimestamp(clipEndMs)}`} - {clipDurationMs === null ? "No duration" : formatTimestamp(Math.max(0, clipDurationMs))}
                 </AppTypography>
@@ -63,7 +63,7 @@ export function ReplayAnnotationPanel({
                 {eventKind === "task" ? (
                     <AppTextField label="Task title" value={annotationTitle} onChange={(event) => onAnnotationTitleChange(event.target.value)} />
                 ) : null}
-                <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
                     <AppButton type="button" disabled={!canSaveAnnotation || loading} onClick={onSubmitAnnotation}>{editingAnnotationId ? "Update" : "Save"}</AppButton>
                     <AppButton type="button" variant="outlined" color="secondary" onClick={onClearSelection}>Clear</AppButton>
                     {editingAnnotationId ? <AppButton type="button" variant="outlined" color="secondary" onClick={onResetAnnotationForm}>Cancel</AppButton> : null}

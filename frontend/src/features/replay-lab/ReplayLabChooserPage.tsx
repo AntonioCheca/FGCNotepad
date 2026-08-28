@@ -11,12 +11,12 @@ export function ReplayLabChooserPage() {
     return (
         <PageShell title="Replay Lab" badgeLabel="Choose Flow">
             <SectionCard title="Mode" tone="raised" variant="review">
-                <AppStack spacing={1.25} sx={{maxWidth: 720}}>
-                    <AppTypography component="ul" sx={{m: 0, pl: 2.25}}>
+                <AppStack spacing={{xs: 1, md: 1.25}} sx={{maxWidth: 720}}>
+                    <AppTypography component="ul" sx={{m: 0, pl: 2.1, display: {xs: "none", sm: "block"}}}>
                         <li>Local: MP4 on your machine, generate clips here.</li>
                         <li>Online: YouTube/coaching review and sharing.</li>
                     </AppTypography>
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr"}, gap: 1}}>
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr"}, gap: {xs: 0.75, md: 1}}}>
                         <AppButton href="/replay-lab/local">Start Local</AppButton>
                         <AppButton href="/replay-lab/upload" variant="outlined">Start Online</AppButton>
                     </AppBox>

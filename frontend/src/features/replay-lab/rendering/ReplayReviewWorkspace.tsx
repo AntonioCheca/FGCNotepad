@@ -124,13 +124,13 @@ export function ReplayReviewWorkspace({
     const showExportProgress = exportStatusLabel !== null || exportLogs.length > 0;
 
     return (
-        <AppBox sx={{display: "grid", gap: 1.5}}>
+        <AppBox sx={{display: "grid", gap: {xs: 1, md: 1.5}, minWidth: 0}}>
             <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent={{xs: "stretch", sm: "flex-end"}} sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
                 <AppButton type="button" variant="outlined" onClick={onResetEditor}>Change Workflow</AppButton>
                 <AppButton type="button" disabled={!canExport || loading || exporting} onClick={onSaveAndExport}>{exporting ? exportStatusLabel ?? "Preparing..." : "Generate Clips"}</AppButton>
             </AppStack>
 
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(0, 0.9fr) minmax(340px, 420px)", xl: "minmax(0, 0.86fr) 440px"}, gap: 1, alignItems: "start"}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(0, 0.9fr) minmax(340px, 420px)", xl: "minmax(0, 0.86fr) 440px"}, gap: {xs: 1, md: 1}, alignItems: "start", minWidth: 0}}>
                 <ReplayPlaybackPanel
                     playerLoading={playerLoading}
                     selectedVideo={selectedVideo}
@@ -147,7 +147,7 @@ export function ReplayReviewWorkspace({
                     onMarkClipEnd={onMarkClipEnd}
                 />
 
-                <AppStack spacing={1} sx={{maxHeight: {lg: "calc(100vh - 190px)"}, overflow: {lg: "auto"}, pr: {lg: 0.25}}}>
+                <AppStack spacing={{xs: 0.85, md: 1}} sx={{maxHeight: {lg: "calc(100vh - 190px)"}, overflow: {lg: "auto"}, pr: {lg: 0.25}, minWidth: 0}}>
                     <ReplayAnnotationPanel
                         clipStartMs={clipStartMs}
                         clipEndMs={clipEndMs}
@@ -175,9 +175,9 @@ export function ReplayReviewWorkspace({
                                     <AppChip size="small" label={exportStatusLabel === "idle" ? "Ready" : exportStatusLabel ?? "Preparing"} />
                                     {exportStatusLabel && !["idle", "done", "failed"].includes(exportStatusLabel) ? <AppChip size="small" variant="outlined" label={`${Math.round(exportProgress * 100)}%`} /> : null}
                                 </AppStack>
-                                <AppBox sx={(theme) => ({maxHeight: 220, overflow: "auto", p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.sunken})}>
+                                <AppBox sx={(theme) => ({maxHeight: {xs: 160, md: 220}, overflow: "auto", p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.sunken, minWidth: 0})}>
                                     {exportLogs.length === 0 ? <AppTypography variant="body2" color="text.secondary">Export progress will appear here.</AppTypography> : null}
-                                    {exportLogs.map((log, index) => <AppTypography key={`${index}-${log}`} variant="caption" component="pre" sx={{whiteSpace: "pre-wrap", m: 0}}>{log}</AppTypography>)}
+                                    {exportLogs.map((log, index) => <AppTypography key={`${index}-${log}`} variant="caption" component="pre" sx={{whiteSpace: "pre-wrap", overflowWrap: "anywhere", m: 0}}>{log}</AppTypography>)}
                                 </AppBox>
                             </AppStack>
                         </SectionCard>

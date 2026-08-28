@@ -52,14 +52,14 @@ export function ReplayPlaybackPanel({
     );
 
     return (
-        <AppBox sx={(theme) => ({display: "grid", gap: 0.7, px: {xs: 0, md: 0.5}, py: {xs: 0, md: 0.25}, borderRadius: 1.5, backgroundColor: theme.fgc.surface.base})}>
+        <AppBox sx={(theme) => ({display: "grid", gap: {xs: 0.55, md: 0.7}, px: {xs: 0, md: 0.5}, py: {xs: 0, md: 0.25}, borderRadius: 1.5, backgroundColor: theme.fgc.surface.base, minWidth: 0})}>
             {playerLoading ? <AppAlert severity="info">Loading player...</AppAlert> : null}
             {selectedVideo?.sourceType === "youtube" ? (
                 <ReplayYouTubePlayer videoId={selectedVideo.youtubeVideoId} fps={60} title={selectedVideo.originalFilename} seekCommand={seekCommand} onPlaybackPositionChange={onPlaybackPositionChange} timelineAddon={timeline} controlsAddon={markerControls} />
             ) : (
                 <ReplayVideoPlayer src={playbackUrl} title={selectedVideo?.originalFilename ?? "Replay playback"} seekCommand={seekCommand} onPlaybackPositionChange={onPlaybackPositionChange} timelineAddon={timeline} controlsAddon={markerControls} />
             )}
-            <AppTypography variant="body2" color="text.secondary" sx={{width: {xs: "100%", md: "82%"}, mx: "auto"}}>Mark: I start, O end, G go start, S save.</AppTypography>
+            <AppTypography variant="body2" color="text.secondary" sx={{width: {xs: "100%", md: "82%"}, mx: "auto", display: {xs: "none", sm: "block"}}}>Mark: I start, O end, G go start, S save.</AppTypography>
         </AppBox>
     );
 }

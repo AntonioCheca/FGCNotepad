@@ -140,6 +140,7 @@ export function SubmitSection({
                     onChange={(event) => onTitleChange(event.target.value)}
                     required
                     helperText={readOnly ? undefined : "Auto-filled from notation when possible."}
+                    FormHelperTextProps={{sx: {display: {xs: "none", md: "block"}}}}
                     disabled={readOnly}
                 />
                 {!readOnly ? (
@@ -179,7 +180,7 @@ export function SubmitSection({
                     </AppTypography> : null}
                 </AppBox>
                 {!readOnly ? (
-                    <AppBox sx={{display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center"}}>
+                    <AppBox sx={{display: "flex", gap: {xs: 0.6, md: 1}, flexWrap: "wrap", alignItems: "center"}}>
                         <AppTypography variant="body2" color="text.secondary">Min Drive: {minimumDriveCost || "-"} bars</AppTypography>
                         <AppTypography variant="body2" color="text.secondary">Safe Drive: {minimumDriveCostNoBurnout || "-"} bars</AppTypography>
                     </AppBox>
@@ -198,6 +199,7 @@ export function SubmitSection({
                         onChange={(event) => onSpacingChange(event.target.value)}
                         disabled={readOnly || spacingLoading}
                         helperText="Leave unclassified if spacing has not been reviewed."
+                        FormHelperTextProps={{sx: {display: {xs: "none", md: "block"}}}}
                     >
                         <AppMenuItem value="">Unclassified</AppMenuItem>
                         {spacingOptions.map((option) => (
@@ -218,6 +220,7 @@ export function SubmitSection({
                         value={notes}
                         onChange={(event) => onNotesChange(event.target.value)}
                         helperText="Local notes only."
+                        FormHelperTextProps={{sx: {display: {xs: "none", md: "block"}}}}
                     />
                 ) : null}
             </AppBox>

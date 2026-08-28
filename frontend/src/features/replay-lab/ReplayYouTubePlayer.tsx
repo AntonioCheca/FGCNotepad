@@ -219,15 +219,15 @@ export function ReplayYouTubePlayer({videoId, fps, title, seekCommand, onPlaybac
     }, []);
 
     return (
-        <AppBox sx={{display: "grid", gap: 1}}>
-            <AppTypography variant="subtitle2" sx={{fontWeight: 650}}>{title}</AppTypography>
-            <AppBox sx={(theme) => ({position: "relative", width: {xs: "100%", md: "82%"}, mx: "auto", aspectRatio: "16 / 9", backgroundColor: theme.fgc.surface.sunken})}>
+        <AppBox sx={{display: "grid", gap: {xs: 0.85, md: 1}, minWidth: 0}}>
+            <AppTypography variant="subtitle2" sx={{fontWeight: 650, overflowWrap: "anywhere"}}>{title}</AppTypography>
+            <AppBox sx={(theme) => ({position: "relative", width: {xs: "100%", md: "82%"}, mx: "auto", aspectRatio: "16 / 9", backgroundColor: theme.fgc.surface.sunken, overflow: "hidden", borderRadius: 1.5})}>
                 {videoId ? <div id={playerElementId} style={{width: "100%", height: "100%"}} /> : null}
             </AppBox>
-            <AppBox sx={{display: "grid", gap: 0.85, width: {xs: "100%", md: "82%"}, mx: "auto"}}>
+            <AppBox sx={{display: "grid", gap: {xs: 0.65, md: 0.85}, width: {xs: "100%", md: "82%"}, mx: "auto", minWidth: 0}}>
                 {timelineAddon}
                 <AppStack direction={{xs: "column", md: "row"}} spacing={0.75} alignItems={{xs: "stretch", md: "center"}} justifyContent="space-between">
-                    <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                    <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 calc(33.333% - 6px)", sm: "0 0 auto"}}}}>
                         <AppButton type="button" variant="contained" disabled={!isReady} onClick={togglePlayback}>{isPlaying ? "Pause" : "Play"}</AppButton>
                         <AppButton type="button" variant="outlined" disabled={!isReady} onClick={() => seekBy(-1)}>-1s</AppButton>
                         <AppButton type="button" variant="outlined" disabled={!isReady} onClick={() => seekBy(-1 / fps)}>-1f</AppButton>
@@ -238,7 +238,7 @@ export function ReplayYouTubePlayer({videoId, fps, title, seekCommand, onPlaybac
                     <AppTypography variant="body2" color="text.secondary">{formatSeconds(position.timeMs)} / {formatSeconds(durationMs)}</AppTypography>
                 </AppStack>
             </AppBox>
-            <AppTypography variant="body2" color="text.secondary" sx={{width: {xs: "100%", md: "82%"}, mx: "auto"}}>Playback: Space, Left/Right 1s, [ ] or , . frame step.</AppTypography>
+            <AppTypography variant="body2" color="text.secondary" sx={{width: {xs: "100%", md: "82%"}, mx: "auto", display: {xs: "none", sm: "block"}}}>Playback: Space, Left/Right 1s, [ ] or , . frame step.</AppTypography>
         </AppBox>
     );
 }

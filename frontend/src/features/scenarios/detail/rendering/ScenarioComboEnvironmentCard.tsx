@@ -1,6 +1,9 @@
 import React from "react";
 
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppCheckbox} from "@/src/components/ui/AppCheckbox";
 import {AppChip} from "@/src/components/ui/AppChip";
+import {AppFormControlLabel} from "@/src/components/ui/AppFormControlLabel";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import type {ScenarioDetail} from "@/hooks/useScenarios";
 import type {Theme} from "@/src/components/ui/AppThemeUtils";
@@ -14,37 +17,28 @@ interface ScenarioComboEnvironmentCardProps {
 
 export function ScenarioComboEnvironmentCard({scenario, includeCornerSpecific, onIncludeCornerSpecificChange, theme}: ScenarioComboEnvironmentCardProps) {
     return (
-        <div
-            style={{
-                display: "grid",
-                gap: 8,
-                marginBottom: 16,
-                border: `1px solid ${theme.fgc.border.default}`,
-                borderRadius: 8,
-                padding: 12,
-                background: theme.fgc.surface.base,
-            }}
-        >
+        <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}, p: {xs: 1, md: 1.2}, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.5, backgroundColor: theme.fgc.surface.base, minWidth: 0}}>
             <AppTypography variant="h6">Combo Environment</AppTypography>
             {scenario.comboContext.positionLock === "corner" ? (
                 <AppChip size="small" label="Position locked: Corner" />
             ) : scenario.comboContext.positionLock === "midscreen" ? (
                 <AppChip size="small" label="Position locked: Midscreen" />
             ) : (
-                <label style={{display: "flex", alignItems: "center", gap: 8, color: theme.fgc.text.primary}}>
-                    <input type="checkbox" checked={includeCornerSpecific} onChange={(event) => onIncludeCornerSpecificChange(event.target.checked)} />
-                    <span>Include corner-specific combos</span>
-                </label>
+                <AppFormControlLabel
+                    control={<AppCheckbox checked={includeCornerSpecific} onChange={(event) => onIncludeCornerSpecificChange(event.target.checked)} />}
+                    label="Include corner-specific combos"
+                    sx={{m: 0, color: theme.fgc.text.primary}}
+                />
             )}
             {scenario.comboContext.characterStatuses.length > 0 ? (
-                <div style={{display: "flex", gap: 6, flexWrap: "wrap"}}>
+                <AppBox sx={{display: "flex", gap: 0.6, flexWrap: "wrap", minWidth: 0}}>
                     {scenario.comboContext.characterStatuses.map((status) => (
                         <AppChip key={status.object_name} size="small" variant="outlined" label={`${status.object_name}: ${String(status.status_required)}`} />
                     ))}
-                </div>
+                </AppBox>
             ) : (
                 <AppTypography variant="body2" color="text.secondary">No character status locks.</AppTypography>
             )}
-        </div>
+        </AppBox>
     );
 }

@@ -27,18 +27,18 @@ interface ReplayCoachLinkPanelProps {
 export function ReplayCoachLinkPanel({shareLabel, shareExpiresAt, sharePassword, sharedReviewUrl, createdShareLink, shareLinks, loading, onShareLabelChange, onShareExpiresAtChange, onSharePasswordChange, onGenerateShareLink, onRevokeCoachLink}: ReplayCoachLinkPanelProps) {
     return (
         <SectionCard title="Coach Link" tone="sunken" variant="finalize">
-            <AppStack spacing={1}>
-                <AppStack direction={{xs: "column", md: "row"}} spacing={1} alignItems={{xs: "stretch", md: "center"}}>
+            <AppStack spacing={{xs: 0.85, md: 1}}>
+                <AppStack direction={{xs: "column", md: "row"}} spacing={{xs: 0.75, md: 1}} alignItems={{xs: "stretch", md: "center"}}>
                     <AppTextField label="Label" value={shareLabel} onChange={(event) => onShareLabelChange(event.target.value)} sx={{maxWidth: {md: 240}}} />
                     <AppTextField label="Expires at" type="datetime-local" value={shareExpiresAt} onChange={(event) => onShareExpiresAtChange(event.target.value)} InputLabelProps={{shrink: true}} sx={{maxWidth: {md: 240}}} />
                     <AppTextField label="Optional password" type="password" value={sharePassword} onChange={(event) => onSharePasswordChange(event.target.value)} sx={{maxWidth: {md: 220}}} />
                     <AppButton type="button" variant="outlined" onClick={onGenerateShareLink} disabled={loading}>Create Link</AppButton>
                 </AppStack>
-                {sharedReviewUrl ? <AppAlert severity="info">Coach link: {sharedReviewUrl}{createdShareLink?.requiresPassword ? " - password required" : ""}</AppAlert> : null}
+                {sharedReviewUrl ? <AppAlert severity="info" sx={{overflowWrap: "anywhere"}}>Coach link: {sharedReviewUrl}{createdShareLink?.requiresPassword ? " - password required" : ""}</AppAlert> : null}
                 {shareLinks.map((link) => (
-                    <AppBox key={link.id} sx={(theme) => ({display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr auto"}, gap: 1, alignItems: "center", p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base})}>
-                        <AppTypography variant="body2">{link.label || "Coach link"} - {link.revokedAt ? "Revoked" : "Active"}</AppTypography>
-                        <AppButton type="button" variant="outlined" color="error" size="small" disabled={Boolean(link.revokedAt) || loading} onClick={() => onRevokeCoachLink(link.id)}>Revoke</AppButton>
+                    <AppBox key={link.id} sx={(theme) => ({display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr auto"}, gap: 1, alignItems: "center", p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base, minWidth: 0})}>
+                        <AppTypography variant="body2" sx={{overflowWrap: "anywhere"}}>{link.label || "Coach link"} - {link.revokedAt ? "Revoked" : "Active"}</AppTypography>
+                        <AppButton type="button" variant="outlined" color="error" size="small" disabled={Boolean(link.revokedAt) || loading} onClick={() => onRevokeCoachLink(link.id)} sx={{justifySelf: {xs: "stretch", md: "end"}}}>Revoke</AppButton>
                     </AppBox>
                 ))}
             </AppStack>

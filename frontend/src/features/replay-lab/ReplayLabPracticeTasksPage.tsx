@@ -77,13 +77,13 @@ export function ReplayLabPracticeTasksPage() {
             title="Practice Tasks"
             badgeLabel="Replay Lab"
         >
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "0.92fr 1.08fr"}, gap: 1.5}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "0.92fr 1.08fr"}, gap: {xs: 1, md: 1.5}, minWidth: 0}}>
                 <SectionCard
                     title="Pending drills"
                     tone="raised"
                     variant="review"
                 >
-                    <AppStack spacing={1}>
+                    <AppStack spacing={{xs: 0.8, md: 1}}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
                         {notice ? <AppAlert severity="success" onClose={() => setNotice(null)}>{notice}</AppAlert> : null}
                         <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 calc(50% - 6px)", sm: "0 0 auto"}}}}>
@@ -109,12 +109,13 @@ export function ReplayLabPracticeTasksPage() {
                                     key={task.id}
                                     sx={(theme) => ({
                                         display: "grid",
-                                        gap: 0.75,
-                                        p: 1.1,
+                                        gap: {xs: 0.6, md: 0.75},
+                                        p: {xs: 0.9, md: 1.1},
                                         border: "1px solid",
                                         borderColor: isSelected ? theme.fgc.border.strong : theme.fgc.border.default,
                                         borderRadius: 1.25,
                                         backgroundColor: isSelected ? theme.fgc.surface.raised : theme.fgc.surface.base,
+                                        minWidth: 0,
                                     })}
                                 >
                                     <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
@@ -123,8 +124,8 @@ export function ReplayLabPracticeTasksPage() {
                                         <AppChip size="small" variant="outlined" label={formatUtcDateTime(task.dueDate, "No due date")} />
                                         <AppChip size="small" variant="outlined" label={`${task.completedOccurrences}/${task.completedOccurrences + task.remainingOccurrences} done`} />
                                     </AppStack>
-                                    <AppTypography variant="subtitle1" sx={{fontWeight: 650}}>{task.title}</AppTypography>
-                                    <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                                    <AppTypography variant="subtitle1" sx={{fontWeight: 650, overflowWrap: "anywhere"}}>{task.title}</AppTypography>
+                                    <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "0 0 auto"}}}}>
                                         <AppButton type="button" variant={isSelected ? "contained" : "outlined"} onClick={() => setSelectedTaskId(task.id)}>Open</AppButton>
                                         <AppButton type="button" variant="outlined" onClick={() => void completeTask(task)} disabled={loading || task.status !== "pending"}>Complete</AppButton>
                                         <AppButton type="button" variant="outlined" color="secondary" onClick={() => void dismissTask(task)} disabled={loading || task.status !== "pending"}>Dismiss</AppButton>
@@ -140,12 +141,12 @@ export function ReplayLabPracticeTasksPage() {
                     tone="sunken"
                     variant="finalize"
                 >
-                    <AppStack spacing={1.1}>
+                    <AppStack spacing={{xs: 0.85, md: 1.1}}>
                         {selectedTask ? (
                             <>
                                 <ReplayClipPlayer clip={selectedTask.clip} title={selectedTask.title} />
-                                <AppBox sx={{display: "grid", gap: 0.45}}>
-                                    <AppTypography variant="h6">{selectedTask.title}</AppTypography>
+                                <AppBox sx={{display: "grid", gap: 0.45, minWidth: 0}}>
+                                    <AppTypography variant="h6" sx={{overflowWrap: "anywhere"}}>{selectedTask.title}</AppTypography>
                                     <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                                         <AppChip size="small" label={humanizeCategory(selectedTask.category)} />
                                         <AppChip size="small" variant="outlined" label={`Schedule: ${selectedTask.scheduleType.replace(/_/g, " ")}`} />

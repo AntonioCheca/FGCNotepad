@@ -11,7 +11,7 @@ export default function CreateScenarioPage() {
     const {createScenario, resolveDynamicCellPreview} = useScenarios();
 
     return (
-        <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
+        <AppContainer maxWidth={false} sx={{py: {xs: 2, md: 3.25}, px: {xs: 1.25, sm: 1.75, md: 3, xl: 4}}}>
             <PageShell title="Create Scenario">
                 <ScenarioEditorForm
                     submitLabel="Create Scenario"

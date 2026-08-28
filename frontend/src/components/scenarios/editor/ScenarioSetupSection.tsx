@@ -54,8 +54,8 @@ export function ScenarioSetupSection({
             tone="default"
             variant="input"
         >
-            <AppBox sx={{display: "grid", gap: 1}}>
-                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) 220px"}, gap: 1, alignItems: "stretch"}}>
+            <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}}}>
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) 220px"}, gap: {xs: 0.75, md: 1}, alignItems: "stretch"}}>
                     <AppTextField label="Scenario Name" value={name} onChange={(event) => onNameChange(event.target.value)} required size="small" />
 
                     <AppFormControl size="small">
@@ -68,7 +68,7 @@ export function ScenarioSetupSection({
                     </AppFormControl>
                 </AppBox>
 
-                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(240px, 1fr) minmax(300px, 1.3fr) minmax(240px, 1fr)"}, gap: 1}}>
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(240px, 1fr) minmax(300px, 1.3fr) minmax(240px, 1fr)"}, gap: {xs: 0.75, md: 1}}}>
                     <WrappedAutocomplete<CharacterOption>
                         label="Attacker Character"
                         options={characterOptions}

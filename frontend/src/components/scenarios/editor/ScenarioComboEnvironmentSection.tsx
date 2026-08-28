@@ -47,7 +47,7 @@ export function ScenarioComboEnvironmentSection({
             tone="default"
             variant="input"
         >
-            <AppBox sx={{display: "grid", gap: 1}}>
+            <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}}}>
                 <AppFormControl size="small">
                     <AppInputLabel id="combo-position-lock-label">Position Lock</AppInputLabel>
                     <AppSelect labelId="combo-position-lock-label" label="Position Lock" value={comboContext.positionLock} onChange={(event) => onPositionLockChange(event.target.value as ScenarioPositionLock)}>
@@ -57,7 +57,7 @@ export function ScenarioComboEnvironmentSection({
                     </AppSelect>
                 </AppFormControl>
 
-                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 1fr) minmax(160px, 0.6fr) auto"}, gap: 1, alignItems: "center"}}>
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 1fr) minmax(160px, 0.6fr) auto"}, gap: {xs: 0.75, md: 1}, alignItems: "center"}}>
                     <AppFormControl size="small">
                         <AppInputLabel id="combo-status-object-label">Character Status Lock</AppInputLabel>
                         <AppSelect
@@ -103,6 +103,7 @@ export function ScenarioComboEnvironmentSection({
                             onStatusRequiredChange("");
                             onClearError();
                         }}
+                        sx={{justifySelf: {xs: "stretch", md: "start"}}}
                     >
                         Add Lock
                     </AppButton>

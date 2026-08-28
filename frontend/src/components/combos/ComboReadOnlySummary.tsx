@@ -1,4 +1,5 @@
 import {AppBox} from "@/src/components/ui/AppBox";
+import {AppChip} from "@/src/components/ui/AppChip";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import type {ComboDetailView, ComboRequirement} from "@/src/types/combo";
 
@@ -78,17 +79,52 @@ export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
         <AppBox
             sx={{
                 display: "grid",
-                gap: 0.75,
+                gap: {xs: 0.85, md: 0.75},
                 px: {xs: 1.1, md: 1.35},
                 py: {xs: 1, md: 1.2},
                 border: "1px solid",
                 borderColor: "fgc.border.default",
                 borderRadius: 1.5,
                 backgroundColor: "fgc.surface.base",
+                minWidth: 0,
             }}
         >
-            <AppTypography variant="h5" sx={{fontWeight: 700}}>{combo.title}</AppTypography>
-            <AppBox component="ul" sx={{m: 0, pl: 2.4, display: "grid", gap: 0.45}}>
+            <AppTypography variant="h5" sx={{fontWeight: 700, overflowWrap: "anywhere"}}>{combo.title}</AppTypography>
+            <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 0.75, minWidth: 0}}>
+                {comboNotation ? (
+                    <AppTypography variant="body2" sx={{fontFamily: "'IBM Plex Mono', 'Consolas', monospace", fontWeight: 700, overflowWrap: "anywhere"}}>
+                        {comboNotation}
+                    </AppTypography>
+                ) : null}
+                <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.65}}>
+                    <MobileFact label="Damage" value={combo.damage} />
+                    <MobileFact label="Spacing" value={combo.spacing?.name ?? "Unclassified"} />
+                    <MobileFact label="Drive Used" value={formatResource(combo.driveCost, "bars")} />
+                    <MobileFact label="Super Used" value={formatResource(combo.superCost, "meter")} />
+                    <MobileFact label="Min Drive" value={formatOptionalDrive(combo.minimumDriveCost)} />
+                    <MobileFact label="Safe Drive" value={formatOptionalDrive(combo.minimumDriveCostNoBurnout)} />
+                </AppBox>
+                <AppBox sx={{display: "flex", gap: 0.45, flexWrap: "wrap"}}>
+                    <AppChip size="small" variant="outlined" label={`Season ${combo.seasonLabels.length > 0 ? combo.seasonLabels.join(", ") : "-"}`} />
+                    <AppChip size="small" variant="outlined" label={`Gain D ${formatResource(combo.driveGain, "bars")}`} />
+                    <AppChip size="small" variant="outlined" label={`Gain S ${formatResource(combo.superGain, "meter")}`} />
+                    {conditionLines.length > 0 ? <AppChip size="small" color="info" variant="outlined" label={`${conditionLines.length} condition${conditionLines.length === 1 ? "" : "s"}`} /> : null}
+                </AppBox>
+                {combo.spacing?.code === "punish_tip" ? (
+                    <AppTypography variant="caption" color="text.secondary">
+                        Punish tip: extended hurtbox punishment, farther than normal tip range.
+                    </AppTypography>
+                ) : null}
+                {conditionLines.length > 0 ? (
+                    <AppBox sx={{display: "grid", gap: 0.35, p: 0.8, borderRadius: 1.25, backgroundColor: "fgc.surface.sunken"}}>
+                        {conditionLines.map((line) => (
+                            <AppTypography key={line} variant="caption" sx={{overflowWrap: "anywhere"}}>{line}</AppTypography>
+                        ))}
+                    </AppBox>
+                ) : null}
+                {combo.description.trim() ? <AppTypography variant="body2" color="text.secondary" sx={{overflowWrap: "anywhere"}}>{combo.description}</AppTypography> : null}
+            </AppBox>
+            <AppBox component="ul" sx={{m: 0, pl: 2.4, display: {xs: "none", md: "grid"}, gap: 0.45}}>
                 <li>
                     <AppTypography variant="body2">Season: {combo.seasonLabels.length > 0 ? combo.seasonLabels.join(", ") : "-"}</AppTypography>
                 </li>
@@ -136,6 +172,15 @@ export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
                     </li>
                 ) : null}
             </AppBox>
+        </AppBox>
+    );
+}
+
+function MobileFact({label, value}: {label: string; value: string | number}) {
+    return (
+        <AppBox sx={{display: "grid", gap: 0.1, minWidth: 0}}>
+            <AppTypography variant="caption" color="text.secondary" sx={{fontWeight: 700}}>{label}</AppTypography>
+            <AppTypography variant="body2" sx={{fontWeight: 750, overflowWrap: "anywhere"}}>{value}</AppTypography>
         </AppBox>
     );
 }

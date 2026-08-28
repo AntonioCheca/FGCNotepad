@@ -68,7 +68,7 @@ export function ReplayTimeline({annotations, clipStartMs, clipEndMs, cursorMs, d
                 }}
                 sx={(theme) => ({
                     position: "relative",
-                    height: 18,
+                    height: {xs: 28, sm: 22, md: 18},
                     overflow: "hidden",
                     cursor: durationMs > 0 ? "pointer" : "default",
                     borderRadius: 999,

@@ -4,6 +4,7 @@ import {useRouter} from "next/router";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
+import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {ScenarioEditorForm} from "@/src/components/scenarios/ScenarioEditorForm";
 import {MatrixLinkedCellResolution} from "@/src/features/matrix/model";
 import {useScenarios, ScenarioDetail, ScenarioResolvedLinkedCell} from "@/hooks/useScenarios";
@@ -109,36 +110,37 @@ export default function EditScenarioPage() {
     }
 
     return (
-        <AppContainer maxWidth={false}>
-            <AppTypography variant="h4" sx={{mb: 2}}>Edit Scenario</AppTypography>
-            <ScenarioEditorForm
-                initialValue={{
-                    name: scenario.name,
-                    scenarioType: scenario.scenarioType,
-                    defenderCharacterId: scenario.defenderCharacterId ?? "",
-                    attackerCharacterId: scenario.attackerCharacterId ?? "",
-                    triggerMoveId: scenario.triggerMoveId ?? "",
-                    triggerMoveLabel: scenario.triggerMoveLabel,
-                    matrix: scenario.matrix,
-                    comboContext: scenario.comboContext,
-                }}
-                submitLabel="Save Scenario"
-                onSubmit={async (payload) => {
-                    const updated = await updateScenario(scenarioId, payload);
-                    setScenario(updated);
-                }}
-                onResolveDynamicCells={async () => {
-                    const response = await resolveDynamicCells(scenarioId);
-                    setScenario(response.scenario);
-                    return response.scenario.matrix;
-                }}
-                onResolveDynamicComboCell={async (dynamicCombo) => {
-                    const resolved = await resolveDynamicCellPreview(dynamicCombo);
-                    return resolved.resolvedDamage;
-                }}
-                currentScenarioId={scenarioId}
-                linkedCellResolutions={linkedCellResolutions}
-            />
+        <AppContainer maxWidth={false} sx={{py: {xs: 2, md: 3.25}, px: {xs: 1.25, sm: 1.75, md: 3, xl: 4}}}>
+            <PageShell title="Edit Scenario">
+                <ScenarioEditorForm
+                    initialValue={{
+                        name: scenario.name,
+                        scenarioType: scenario.scenarioType,
+                        defenderCharacterId: scenario.defenderCharacterId ?? "",
+                        attackerCharacterId: scenario.attackerCharacterId ?? "",
+                        triggerMoveId: scenario.triggerMoveId ?? "",
+                        triggerMoveLabel: scenario.triggerMoveLabel,
+                        matrix: scenario.matrix,
+                        comboContext: scenario.comboContext,
+                    }}
+                    submitLabel="Save Scenario"
+                    onSubmit={async (payload) => {
+                        const updated = await updateScenario(scenarioId, payload);
+                        setScenario(updated);
+                    }}
+                    onResolveDynamicCells={async () => {
+                        const response = await resolveDynamicCells(scenarioId);
+                        setScenario(response.scenario);
+                        return response.scenario.matrix;
+                    }}
+                    onResolveDynamicComboCell={async (dynamicCombo) => {
+                        const resolved = await resolveDynamicCellPreview(dynamicCombo);
+                        return resolved.resolvedDamage;
+                    }}
+                    currentScenarioId={scenarioId}
+                    linkedCellResolutions={linkedCellResolutions}
+                />
+            </PageShell>
         </AppContainer>
     );
 }

@@ -21,18 +21,18 @@ interface ReplaySavedAnnotationsProps {
 export function ReplaySavedAnnotations({annotations, exportResult, onSeek, onEditAnnotation, onRemoveAnnotation}: ReplaySavedAnnotationsProps) {
     return (
         <SectionCard title="Saved" tone="sunken" variant="finalize">
-            <AppStack spacing={0.75}>
+            <AppStack spacing={{xs: 0.65, md: 0.75}}>
                 {exportResult ? <AppAlert severity={exportResult.failed > 0 ? "warning" : "success"}>Export summary: {exportResult.clipsCreated} clips, {exportResult.tasksCreated} tasks, {exportResult.studyCardsCreated} cards, {exportResult.failed} failed.</AppAlert> : null}
                 {annotations.length === 0 ? <AppTypography color="text.secondary">No annotations yet.</AppTypography> : null}
                 {annotations.map((annotation) => (
-                    <AppBox key={annotation.id} sx={(theme) => ({display: "grid", gap: 0.5, p: 0.75, border: "1px solid", borderColor: annotation.exportedClip ? theme.fgc.border.strong : theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base})}>
+                    <AppBox key={annotation.id} sx={(theme) => ({display: "grid", gap: 0.5, p: {xs: 0.85, md: 0.75}, border: "1px solid", borderColor: annotation.exportedClip ? theme.fgc.border.strong : theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base, minWidth: 0})}>
                         <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                             {annotation.exportedClip ? <AppChip size="small" color="success" label="Exported" /> : null}
                             <AppChip size="small" variant="outlined" label={`${formatTimestamp(annotation.startTimeMs)} - ${formatTimestamp(annotation.endTimeMs)}`} />
                         </AppStack>
-                        <AppTypography variant="subtitle2">{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
-                        {annotation.exportError ? <AppTypography variant="caption" color="error">{annotation.exportError}</AppTypography> : null}
-                        <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                        <AppTypography variant="subtitle2" sx={{overflowWrap: "anywhere"}}>{annotation.title || humanizeCategory(annotation.category)}</AppTypography>
+                        {annotation.exportError ? <AppTypography variant="caption" color="error" sx={{overflowWrap: "anywhere"}}>{annotation.exportError}</AppTypography> : null}
+                        <AppStack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{"& .MuiButton-root": {flex: {xs: "1 1 calc(33.333% - 6px)", sm: "0 0 auto"}}}}>
                             <AppButton type="button" variant="outlined" size="small" onClick={() => onSeek(annotation.startTimeMs)}>Go</AppButton>
                             <AppButton type="button" variant="outlined" size="small" disabled={Boolean(annotation.exportedClip)} onClick={() => onEditAnnotation(annotation)}>Edit</AppButton>
                             <AppButton type="button" variant="outlined" color="error" size="small" disabled={Boolean(annotation.exportedClip)} onClick={() => onRemoveAnnotation(annotation.id)}>Delete</AppButton>

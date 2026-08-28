@@ -1,5 +1,7 @@
 import React from "react";
 
+import {AppBox} from "@/src/components/ui/AppBox";
+import {AppTypography} from "@/src/components/ui/AppTypography";
 import {MatrixEditorShell} from "@/src/features/matrix/editor";
 import type {MatrixLinkedCellResolution} from "@/src/features/matrix/model";
 import type {MatrixPayload} from "@/src/types/matrixPayload";
@@ -25,20 +27,27 @@ export function ScenarioMatrixViewer({
     onRefreshDynamicCells,
 }: ScenarioMatrixViewerProps) {
     return (
-        <MatrixEditorShell
-            matrix={scenario.matrix}
-            attackerCharacterName={scenario.attackerCharacterName}
-            defenderCharacterName={scenario.defenderCharacterName}
-            editable={false}
-            displayFrequenciesAsPercent
-            columnVisibilityByLabel={columnVisibilityByLabel}
-            onMatrixChange={() => {
-            }}
-            onRefreshDynamicCells={onRefreshDynamicCells}
-            layerSolveSnapshots={layerSolveSnapshots}
-            currentScenarioId={scenarioId}
-            linkedCellResolutions={linkedCellResolutions}
-            resourceContext={scenarioResources}
-        />
+        <AppBox sx={{display: "grid", gap: 0.75, minWidth: 0}}>
+            <AppBox sx={{display: {xs: "block", md: "none"}}}>
+                <AppTypography variant="caption" color="text.secondary">Scroll the matrix sideways to review every option.</AppTypography>
+            </AppBox>
+            <AppBox sx={{overflowX: "auto", maxWidth: "100%", minWidth: 0}}>
+                <MatrixEditorShell
+                    matrix={scenario.matrix}
+                    attackerCharacterName={scenario.attackerCharacterName}
+                    defenderCharacterName={scenario.defenderCharacterName}
+                    editable={false}
+                    displayFrequenciesAsPercent
+                    columnVisibilityByLabel={columnVisibilityByLabel}
+                    onMatrixChange={() => {
+                    }}
+                    onRefreshDynamicCells={onRefreshDynamicCells}
+                    layerSolveSnapshots={layerSolveSnapshots}
+                    currentScenarioId={scenarioId}
+                    linkedCellResolutions={linkedCellResolutions}
+                    resourceContext={scenarioResources}
+                />
+            </AppBox>
+        </AppBox>
     );
 }

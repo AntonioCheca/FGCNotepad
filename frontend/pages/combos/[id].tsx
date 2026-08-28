@@ -356,14 +356,14 @@ export default function ComboDetailPage() {
                 <AppAlert severity={toast?.severity ?? "success"} variant="filled" onClose={() => setToast(null)}>{toast?.message}</AppAlert>
             </AppSnackbar>
 
-            <AppBox component="form" onSubmit={handleSave} sx={{display: "grid", gap: {xs: 1.5, md: 1.75}, width: "100%", maxWidth: 1160, mx: "auto"}}>
-                <AppBox sx={{display: "grid", gap: 1.2, gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) auto"}, alignItems: "start"}}>
+            <AppBox component="form" onSubmit={handleSave} sx={{display: "grid", gap: {xs: 1, md: 1.75}, width: "100%", maxWidth: 1160, mx: "auto"}}>
+                <AppBox sx={{display: "grid", gap: {xs: 0.8, md: 1.2}, gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) auto"}, alignItems: "start", minWidth: 0}}>
                     <AppBox sx={{display: "grid", gap: 0.25}}>
-                        <AppTypography variant="h2" sx={{fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 0.95}}>
+                        <AppTypography variant="h2" sx={{fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 0.95, fontSize: {xs: "clamp(2rem, 12vw, 3.2rem)", md: undefined}, overflowWrap: "anywhere"}}>
                             {combo.characterName}
                         </AppTypography>
                     </AppBox>
-                    <AppBox sx={{display: "flex", gap: 1, justifyContent: {xs: "flex-start", md: "flex-end"}, flexWrap: "wrap"}}>
+                    <AppBox sx={{display: "flex", gap: {xs: 0.65, md: 1}, justifyContent: {xs: "stretch", md: "flex-end"}, flexWrap: "wrap", "& .MuiButton-root": {flex: {xs: "1 1 calc(50% - 6px)", md: "0 0 auto"}}}}>
                         {numericComboId !== null && Number.isFinite(numericComboId) ? <ContentFlagButton targetType="combo" targetId={numericComboId}/> : null}
                         {canModerate && !editMode ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => setEditMode(true)}>Edit</AppButton> : null}
                         {canModerate && editMode ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => { resetDraftFromCombo(combo, leafs, connections); setEditMode(false); }}>Cancel</AppButton> : null}
@@ -439,6 +439,7 @@ export default function ComboDetailPage() {
                         color="secondary"
                         sx={{
                             justifySelf: "start",
+                            width: {xs: "100%", sm: "auto"},
                             px: 1.8,
                             py: 0.8,
                             borderColor: "fgc.border.strong",

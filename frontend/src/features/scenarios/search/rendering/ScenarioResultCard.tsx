@@ -16,12 +16,13 @@ export function ScenarioResultCard({item}: ScenarioResultCardProps) {
             <AppPaper
                 variant="outlined"
                 sx={{
-                    p: {xs: 1.25, md: 1.5},
-                    borderRadius: 2.5,
+                    p: {xs: 1, md: 1.5},
+                    borderRadius: {xs: 2, md: 2.5},
                     display: "grid",
-                    gap: 0.35,
+                    gap: {xs: 0.45, md: 0.35},
                     borderColor: "fgc.border.default",
                     backgroundColor: "fgc.surface.base",
+                    minWidth: 0,
                     transition: "border-color 0.2s ease, background-color 0.2s ease",
                     "&:hover": {
                         borderColor: "fgc.border.strong",
@@ -29,14 +30,14 @@ export function ScenarioResultCard({item}: ScenarioResultCardProps) {
                     },
                 }}
             >
-                <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, flexWrap: "wrap"}}>
-                    <AppTypography variant="subtitle1" sx={{fontWeight: 650}}>{item.name}</AppTypography>
+                <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, flexWrap: "wrap", minWidth: 0}}>
+                    <AppTypography variant="subtitle1" sx={{fontWeight: 650, overflowWrap: "anywhere"}}>{item.name}</AppTypography>
                     <AppChip size="small" variant="outlined" label={item.typeLabel} />
                 </AppBox>
                 <AppTypography variant="body2" color="text.secondary">
                     {item.defenderCharacterName ?? "?"} defends vs {item.attackerCharacterName ?? "?"}
                 </AppTypography>
-                <AppTypography variant="body2">Trigger: {item.triggerMoveLabel ?? item.triggerMoveId ?? "Unknown"}</AppTypography>
+                <AppTypography variant="body2" sx={{overflowWrap: "anywhere"}}>Trigger: {item.triggerMoveLabel ?? item.triggerMoveId ?? "Unknown"}</AppTypography>
             </AppPaper>
         </Link>
     );
