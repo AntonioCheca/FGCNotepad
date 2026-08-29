@@ -19,6 +19,7 @@ const InputField = <T extends FieldValues>({label, type, name, register, errors}
             {...register(name)}
             error={!!error}
             helperText={typeof error?.message === "string" ? error.message : undefined}
+            fullWidth
         />
     );
 };

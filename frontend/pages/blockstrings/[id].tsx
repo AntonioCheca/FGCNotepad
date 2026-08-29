@@ -71,11 +71,11 @@ export default function BlockstringDetailPage() {
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title={item.title} badgeLabel={item.attackerCharacter?.name ?? undefined}>
                 {error && editMode ? <InlineNotice severity="error">{error}</InlineNotice> : null}
-                <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap"}}>
+                <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: "space-between", gap: 1}}>
                     <AppBox sx={{display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center"}}>
                         <BlockstringStatusChip classification={item.classification} />
                     </AppBox>
-                    {authContext.canModerate ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => setEditMode((current) => !current)}>{editMode ? "Cancel Edit" : "Edit"}</AppButton> : null}
+                    {authContext.canModerate ? <AppButton type="button" variant="outlined" color="secondary" sx={{width: {xs: "100%", sm: "auto"}}} onClick={() => setEditMode((current) => !current)}>{editMode ? "Cancel Edit" : "Edit"}</AppButton> : null}
                 </AppBox>
 
                 {editMode ? <BlockstringForm initialValue={item} submitLabel="Save Blockstring" saving={saving} onSubmit={handleSubmit} /> : <BlockstringReadOnly item={item} />}

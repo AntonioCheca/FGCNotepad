@@ -1,4 +1,5 @@
 import {useState} from "react";
+import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -18,12 +19,13 @@ const LoginForm = ({onSubmit, error}: LoginFormProps) => {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <AppBox component="form" onSubmit={handleSubmit} sx={{display: "grid", gap: 1}}>
             <AppTextField
                 label="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                fullWidth
             />
             <AppTextField
                 label="Password"
@@ -31,12 +33,13 @@ const LoginForm = ({onSubmit, error}: LoginFormProps) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                fullWidth
             />
             {error && <AppTypography color="error">{error}</AppTypography>}
             <AppButton fullWidth sx={{mt: 2, minHeight: 44}}>
                 Login
             </AppButton>
-        </form>
+        </AppBox>
     );
 };
 

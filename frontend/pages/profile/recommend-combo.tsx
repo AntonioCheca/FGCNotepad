@@ -2,12 +2,16 @@ import React from "react";
 import Link from "next/link";
 
 import {AppButton} from "@/src/components/ui/AppButton";
+import {AppBox} from "@/src/components/ui/AppBox";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ComboKnowledgeItem, ComboRecommendationItem} from "@/src/types/scenarioExecution";
 import AuthContext from "@/services/AuthContext";
+import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
+import {PageShell} from "@/src/components/ui/tactical/PageShell";
+import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 
 function buildDifficultyOptions(combos: ComboKnowledgeItem[]): number[] {
     const values = new Set<number>();
@@ -110,9 +114,10 @@ export default function RecommendComboPage() {
 
     if (!isAuthenticated) {
         return (
-            <AppContainer maxWidth={false}>
-                <AppTypography variant="h4" gutterBottom>Recommend me a new combo</AppTypography>
-                <AppTypography>Please sign in to access personalized combo recommendations.</AppTypography>
+            <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
+                <PageShell title="Recommend Combo">
+                    <InlineNotice severity="info">Please sign in to access personalized combo recommendations.</InlineNotice>
+                </PageShell>
             </AppContainer>
         );
     }
@@ -126,120 +131,122 @@ export default function RecommendComboPage() {
     }
 
     return (
-        <AppContainer maxWidth={false}>
-            <AppTypography variant="h4" gutterBottom>Recommend me a new combo</AppTypography>
-            <AppTypography variant="body2" sx={{mb: 2}}>
-                Pick a character and difficulty cap to find the highest-impact essential combo you have not learned yet.
-            </AppTypography>
+        <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
+            <PageShell title="Recommend Combo" badgeLabel={didSearch ? `${recommendations.length} matches` : "Ready"}>
+                {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
 
-            {error ? <AppTypography color="error" sx={{mb: 2}}>{error}</AppTypography> : null}
-
-            <div style={{display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 16}}>
-                <select
-                    aria-label="Recommendation character"
-                    value={selectedCharacterId}
-                    onChange={async (event) => {
-                        const characterId = event.target.value;
-                        setDidSearch(false);
-                        setRecommendations([]);
-                        setEssentialScenarioCount(0);
-                        setSelectedCharacterId(characterId);
-                        await loadForCharacter(characterId);
-                    }}
-                    style={{height: 38, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
-                >
-                    {characters.map((character) => (
-                        <option key={character.id} value={character.id}>{character.name}</option>
-                    ))}
-                </select>
-
-                <select
-                    aria-label="Recommendation difficulty cap"
-                    value={selectedDifficultyCap ?? ""}
-                    onChange={(event) => {
-                        const parsed = Number.parseInt(event.target.value, 10);
-                        setSelectedDifficultyCap(Number.isFinite(parsed) ? parsed : null);
-                    }}
-                    style={{height: 38, borderRadius: 6, border: "1px solid #d9d9d9", padding: "0 10px"}}
-                    disabled={difficultyOptions.length === 0}
-                >
-                    {difficultyOptions.length === 0 ? <option value="">No difficulty data</option> : null}
-                    {difficultyOptions.map((difficulty) => (
-                        <option key={difficulty} value={difficulty}>Difficulty {difficulty}</option>
-                    ))}
-                </select>
-
-                <AppButton
-                    type="button"
-                    disabled={
-                        isSubmitting
-                        || !selectedCharacterId
-                        || selectedDifficultyCap === null
-                    }
-                    onClick={async () => {
-                        if (!selectedCharacterId || selectedDifficultyCap === null) {
-                            return;
-                        }
-
-                        setIsSubmitting(true);
-                        setError(null);
-
-                        try {
-                            const response = await getComboRecommendations(selectedCharacterId, selectedDifficultyCap);
-                            setEssentialScenarioCount(response.essentialScenarioCount);
-                            setRecommendations(response.recommendations);
-                            setDidSearch(true);
-                        } catch {
-                            setError("Unable to calculate recommendations for the selected filters.");
-                            setRecommendations([]);
-                            setEssentialScenarioCount(0);
-                            setDidSearch(true);
-                        } finally {
-                            setIsSubmitting(false);
-                        }
-                    }}
-                >
-                    {isSubmitting ? "Calculating..." : "Recommend Combo"}
-                </AppButton>
-            </div>
-
-            {didSearch ? (
-                <div style={{display: "grid", gap: 10}}>
-                    <AppTypography variant="body2">
-                        Essential scenarios analyzed: {essentialScenarioCount}
-                    </AppTypography>
-
-                    {recommendations.length === 0 ? (
-                        <AppTypography>
-                            No remaining essential combos match your selected character and difficulty cap.
-                        </AppTypography>
-                    ) : null}
-
-                    {recommendations.map((recommendation, index) => (
-                        <div
-                            key={recommendation.comboId}
-                            style={{
-                                border: "1px solid #ececec",
-                                borderRadius: 8,
-                                padding: "10px 12px",
-                                display: "grid",
-                                gap: 6,
+                <SectionCard title="Recommendation Filters" variant="input" tone="raised">
+                    <AppBox sx={(theme) => ({
+                        display: "grid",
+                        gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, 220px))", md: "repeat(3, minmax(0, 220px))"},
+                        gap: 1.5,
+                        alignItems: "center",
+                        "& .recommend-control": {
+                            height: 38,
+                            width: "100%",
+                            borderRadius: 1,
+                            border: `1px solid ${theme.fgc.border.default}`,
+                            padding: "0 10px",
+                            backgroundColor: theme.fgc.control.default,
+                            color: theme.fgc.text.primary,
+                        },
+                    })}>
+                        <select
+                            className="recommend-control"
+                            aria-label="Recommendation character"
+                            value={selectedCharacterId}
+                            onChange={async (event) => {
+                                const characterId = event.target.value;
+                                setDidSearch(false);
+                                setRecommendations([]);
+                                setEssentialScenarioCount(0);
+                                setSelectedCharacterId(characterId);
+                                await loadForCharacter(characterId);
                             }}
                         >
-                            <AppTypography variant="h6">
-                                #{index + 1} {recommendation.comboName}
-                            </AppTypography>
-                            <AppTypography variant="body2">Combo ID: {recommendation.comboId}</AppTypography>
-                            <AppTypography variant="body2">
-                                Average EV gain per essential scenario: {recommendation.averageEvGainPerScenario.toFixed(2)}
-                            </AppTypography>
-                            <Link href={recommendation.comboLink} style={{textDecoration: "none", width: "fit-content"}}>
-                                <AppButton type="button" variant="outlined">Open combo list</AppButton>
-                            </Link>
-                        </div>
-                    ))}
-                </div>
+                            {characters.map((character) => (
+                                <option key={character.id} value={character.id}>{character.name}</option>
+                            ))}
+                        </select>
+
+                        <select
+                            className="recommend-control"
+                            aria-label="Recommendation difficulty cap"
+                            value={selectedDifficultyCap ?? ""}
+                            onChange={(event) => {
+                                const parsed = Number.parseInt(event.target.value, 10);
+                                setSelectedDifficultyCap(Number.isFinite(parsed) ? parsed : null);
+                            }}
+                            disabled={difficultyOptions.length === 0}
+                        >
+                            {difficultyOptions.length === 0 ? <option value="">No difficulty data</option> : null}
+                            {difficultyOptions.map((difficulty) => (
+                                <option key={difficulty} value={difficulty}>Difficulty {difficulty}</option>
+                            ))}
+                        </select>
+
+                        <AppButton
+                            type="button"
+                            sx={{width: {xs: "100%", sm: "auto"}}}
+                            disabled={
+                                isSubmitting
+                                || !selectedCharacterId
+                                || selectedDifficultyCap === null
+                            }
+                            onClick={async () => {
+                                if (!selectedCharacterId || selectedDifficultyCap === null) {
+                                    return;
+                                }
+
+                                setIsSubmitting(true);
+                                setError(null);
+
+                                try {
+                                    const response = await getComboRecommendations(selectedCharacterId, selectedDifficultyCap);
+                                    setEssentialScenarioCount(response.essentialScenarioCount);
+                                    setRecommendations(response.recommendations);
+                                    setDidSearch(true);
+                                } catch {
+                                    setError("Unable to calculate recommendations for the selected filters.");
+                                    setRecommendations([]);
+                                    setEssentialScenarioCount(0);
+                                    setDidSearch(true);
+                                } finally {
+                                    setIsSubmitting(false);
+                                }
+                            }}
+                        >
+                            {isSubmitting ? "Calculating..." : "Recommend Combo"}
+                        </AppButton>
+                    </AppBox>
+                </SectionCard>
+
+            {didSearch ? (
+                <SectionCard title="Recommendations" variant="review">
+                    <AppTypography variant="body2" color="text.secondary">Essential scenarios analyzed: {essentialScenarioCount}</AppTypography>
+                    {recommendations.length === 0 ? (
+                        <InlineNotice severity="info">No remaining essential combos match your selected character and difficulty cap.</InlineNotice>
+                    ) : null}
+
+                    <AppBox sx={{display: "grid", gap: 1}}>
+                        {recommendations.map((recommendation, index) => (
+                            <AppBox key={recommendation.comboId} sx={{border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.25, p: {xs: 1.25, md: 1.5}, display: "grid", gap: 0.75, backgroundColor: "fgc.surface.subtle"}}>
+                                <AppTypography variant="h6">
+                                    #{index + 1} {recommendation.comboName}
+                                </AppTypography>
+                                <AppTypography variant="body2">Combo ID: {recommendation.comboId}</AppTypography>
+                                <AppTypography variant="body2">
+                                    Average EV gain per essential scenario: {recommendation.averageEvGainPerScenario.toFixed(2)}
+                                </AppTypography>
+                                <Link href={recommendation.comboLink} style={{textDecoration: "none", width: "fit-content"}}>
+                                    <AppButton type="button" variant="outlined">Open combo list</AppButton>
+                                </Link>
+                            </AppBox>
+                        ))}
+                    </AppBox>
+                </SectionCard>
             ) : null}
+            </PageShell>
         </AppContainer>
     );
 }

@@ -222,15 +222,15 @@ export function BlockstringForm({initialValue = null, submitLabel, saving = fals
                 <AppTextField size="small" label="Explanation" value={summary} onChange={(event) => setSummary(event.target.value)} multiline minRows={2} />
             </AppPaper>
 
-            <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap", alignItems: "center"}}>
+            <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: "space-between", gap: 1, alignItems: {xs: "stretch", sm: "center"}}}>
                 <AppTypography variant="h6">Routes</AppTypography>
-                <AppButton type="button" variant="outlined" color="secondary" onClick={addRoute}>Add Route</AppButton>
+                <AppButton type="button" variant="outlined" color="secondary" sx={{width: {xs: "100%", sm: "auto"}}} onClick={addRoute}>Add Route</AppButton>
             </AppBox>
 
             {orderedRoutes.map((route, routeIndex) => <RouteEditor key={route.clientId} route={route} routeIndex={routeIndex} branchOptions={branchOptions.filter((option) => option.routeClientId !== route.clientId)} attackerCharacterId={attackerCharacterId} onUpdateRoute={updateRoute} onUpdateStep={updateRouteStep} onUpdateConnection={updateConnection} onAddStep={addStep} onRemoveStep={removeStep} onDuplicate={() => duplicateRoute(route)} onRemove={() => setRoutes((current) => current.filter((item) => item.clientId !== route.clientId))} onMoveUp={() => moveRoute(route.clientId, -1)} onMoveDown={() => moveRoute(route.clientId, 1)} />)}
 
             <AppBox sx={{display: "flex", justifyContent: "flex-end"}}>
-                <AppButton type="submit" variant="contained" color="primary" disabled={saving || orderedRoutes[0]?.steps.every((step) => !step.move)}>{saving ? "Saving..." : submitLabel}</AppButton>
+                <AppButton type="submit" variant="contained" color="primary" disabled={saving || orderedRoutes[0]?.steps.every((step) => !step.move)} sx={{width: {xs: "100%", sm: "auto"}}}>{saving ? "Saving..." : submitLabel}</AppButton>
             </AppBox>
         </AppBox>
     );
@@ -240,7 +240,7 @@ function RouteEditor({route, routeIndex, branchOptions, attackerCharacterId, onU
     return <AppPaper variant="outlined" sx={{p: 1.5, borderRadius: 2.5, display: "grid", gap: 1, backgroundColor: route.isMain ? "fgc.surface.raised" : "fgc.surface.base", borderColor: route.isMain ? "fgc.border.strong" : "fgc.border.default"}}>
         <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap", alignItems: "center"}}>
             <AppTypography variant="subtitle1" sx={{fontWeight: 900}}>{route.isMain ? "Main Route" : `Route ${routeIndex + 1}`}</AppTypography>
-            <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, auto))", md: "repeat(4, auto)"}, gap: 0.5}}>
                 {!route.isMain ? <AppButton type="button" size="small" variant="outlined" color="secondary" onClick={onMoveUp}>Move Up</AppButton> : null}
                 {!route.isMain ? <AppButton type="button" size="small" variant="outlined" color="secondary" onClick={onMoveDown}>Move Down</AppButton> : null}
                 <AppButton type="button" size="small" variant="outlined" color="secondary" onClick={onDuplicate}>Duplicate</AppButton>
@@ -257,10 +257,10 @@ function RouteEditor({route, routeIndex, branchOptions, attackerCharacterId, onU
                 {index > 0 ? <ConnectionEditor route={route} connection={route.connections.find((item) => item.destinationStepClientId === step.clientId)} onUpdateConnection={onUpdateConnection} /> : null}
                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr auto"}, gap: 1, alignItems: "center"}}>
                     <OkiMovePicker label={`Move ${index + 1}`} value={step.move} characterId={attackerCharacterId || undefined} onChange={(move) => onUpdateStep(route.clientId, step.clientId, {move})} />
-                    {route.steps.length > 1 ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => onRemoveStep(route.clientId, step.clientId)}>Remove Move</AppButton> : null}
+                    {route.steps.length > 1 ? <AppButton type="button" variant="outlined" color="secondary" sx={{width: {xs: "100%", md: "auto"}}} onClick={() => onRemoveStep(route.clientId, step.clientId)}>Remove Move</AppButton> : null}
                 </AppBox>
             </AppBox>)}
-            <AppButton type="button" variant="outlined" color="secondary" onClick={() => onAddStep(route.clientId)}>Add Move</AppButton>
+            <AppButton type="button" variant="outlined" color="secondary" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={() => onAddStep(route.clientId)}>Add Move</AppButton>
         </AppBox>
     </AppPaper>;
 }

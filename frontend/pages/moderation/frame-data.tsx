@@ -163,11 +163,11 @@ export default function FrameDataModerationPage() {
     }
 
     return (
-        <AppContainer maxWidth={false}>
+        <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title="Frame Data Moderation" badgeLabel={selectedCharacterId ? `${moves.length} moves` : "Select character"}>
                 <SectionCard title="Character" variant="review" tone="raised">
-                    <AppBox sx={{display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap"}}>
-                        <AppFormControl size="small" sx={{minWidth: 260}}>
+                    <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, gap: 1, alignItems: {xs: "stretch", sm: "center"}}}>
+                        <AppFormControl size="small" sx={{minWidth: {xs: 0, sm: 260}, width: {xs: "100%", sm: "auto"}}}>
                             <AppInputLabel id="frame-data-character-label">Character</AppInputLabel>
                             <AppSelect
                                 labelId="frame-data-character-label"
@@ -179,7 +179,7 @@ export default function FrameDataModerationPage() {
                                 {characters.map((character) => <AppMenuItem key={character.id} value={character.id}>{character.name}</AppMenuItem>)}
                             </AppSelect>
                         </AppFormControl>
-                        <AppButton type="button" variant="outlined" disabled={!selectedCharacterId || loadingMoves} onClick={() => void loadMoves(selectedCharacterId)}>
+                        <AppButton type="button" variant="outlined" disabled={!selectedCharacterId || loadingMoves} onClick={() => void loadMoves(selectedCharacterId)} sx={{width: {xs: "100%", sm: "auto"}}}>
                             {loadingMoves ? "Refreshing..." : "Refresh"}
                         </AppButton>
                     </AppBox>
@@ -193,8 +193,8 @@ export default function FrameDataModerationPage() {
                     ) : moves.length === 0 ? (
                         <InlineNotice severity="info">Select a character to edit FAT overrides.</InlineNotice>
                     ) : (
-                        <AppTableContainer sx={{maxHeight: "calc(100vh - 330px)", backgroundColor: "fgc.surface.base"}}>
-                            <AppTable stickyHeader size="small">
+                        <AppTableContainer sx={{maxHeight: "calc(100dvh - 330px)", overflowX: "auto", backgroundColor: "fgc.surface.base"}}>
+                            <AppTable stickyHeader size="small" sx={{minWidth: Math.max(520, 290 + columns.length * 150)}}>
                                 <AppTableHead>
                                     <AppTableRow>
                                         <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken", minWidth: 180}}>Move</AppTableCell>
@@ -236,7 +236,8 @@ export default function FrameDataModerationPage() {
                     {moves.length === 0 ? (
                         <InlineNotice severity="info">Select a character to edit project-specific metadata.</InlineNotice>
                     ) : (
-                        <AppTableContainer sx={{backgroundColor: "fgc.surface.base"}}>
+                        <>
+                        <AppTableContainer sx={{display: {xs: "none", md: "block"}, backgroundColor: "fgc.surface.base"}}>
                             <AppTable size="small">
                                 <AppTableHead>
                                     <AppTableRow>
@@ -276,6 +277,41 @@ export default function FrameDataModerationPage() {
                                 </AppTableBody>
                             </AppTable>
                         </AppTableContainer>
+                        <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 1}}>
+                            {moves.map((move) => {
+                                const key = `metadata:${move.moveId}`;
+                                const metadata = manualMetadataFor(move);
+                                return (
+                                    <AppBox key={move.moveId} sx={{display: "grid", gap: 1, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.25, p: 1.25, backgroundColor: "fgc.surface.subtle"}}>
+                                        <AppBox sx={{display: "grid", gap: 0.25}}>
+                                            <AppTypography variant="body2" sx={{fontWeight: 650}}>{move.name}</AppTypography>
+                                            <AppTypography variant="caption" color="text.secondary">Numpad: {move.numpadNotation}</AppTypography>
+                                        </AppBox>
+                                        <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 0.75}}>
+                                            <AppBox component="label" sx={{display: "flex", alignItems: "center", gap: 0.75, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1, p: 0.75, backgroundColor: "fgc.surface.sunken"}}>
+                                                <AppCheckbox
+                                                    checked={metadata.whiffOnCrouch}
+                                                    disabled={pendingCell === key}
+                                                    onChange={(event) => void handleSaveMetadata(move, {...metadata, whiffOnCrouch: event.target.checked})}
+                                                    inputProps={{"aria-label": `${move.name} whiffs on crouch`}}
+                                                />
+                                                <AppTypography variant="body2">Whiff crouch</AppTypography>
+                                            </AppBox>
+                                            <AppBox component="label" sx={{display: "flex", alignItems: "center", gap: 0.75, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1, p: 0.75, backgroundColor: "fgc.surface.sunken"}}>
+                                                <AppCheckbox
+                                                    checked={metadata.forcesStanding}
+                                                    disabled={pendingCell === key}
+                                                    onChange={(event) => void handleSaveMetadata(move, {...metadata, forcesStanding: event.target.checked})}
+                                                    inputProps={{"aria-label": `${move.name} forces standing`}}
+                                                />
+                                                <AppTypography variant="body2">Forces stand</AppTypography>
+                                            </AppBox>
+                                        </AppBox>
+                                    </AppBox>
+                                );
+                            })}
+                        </AppBox>
+                        </>
                     )}
                 </SectionCard>
             </PageShell>

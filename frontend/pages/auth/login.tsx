@@ -4,11 +4,9 @@ import {useRouter} from "next/router";
 import LoginForm from "@/src/components/forms/LoginForm";
 import useAuth from "@/hooks/useAuth";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import {AppContainer} from "@/src/components/ui/AppContainer";
-import {AppCard} from "@/src/components/ui/AppCard";
-import {AppCardContent} from "@/src/components/ui/AppCardContent";
 import AuthContext from "@/services/AuthContext";
 import {AuthUser} from "@/src/types/auth";
+import AuthLayout from "@/src/components/layouts/AuthLayout";
 
 const LoginPage = () => {
     const {loginUser} = useAuth();
@@ -52,20 +50,13 @@ const LoginPage = () => {
     };
 
     return (
-        <AppContainer maxWidth="sm" sx={{px: {xs: 1.5, sm: 3}, py: {xs: 2.5, sm: 5}}}>
-            <AppCard variant="outlined" sx={{mt: {xs: 1, sm: 2}, p: {xs: 1.25, sm: 2.5}}}>
-                <AppCardContent>
-                    <AppTypography variant="h4" align="center" gutterBottom>
-                        Login
-                    </AppTypography>
-                    <LoginForm onSubmit={handleLogin} error={error}/>
-                    <AppTypography variant="body2" align="center" sx={{mt: 2}}>
-                        You don&apos;t have an account?{' '}
-                        <Link href="/auth/register" style={{color: "inherit", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: "2px"}}>Register here</Link>
-                    </AppTypography>
-                </AppCardContent>
-            </AppCard>
-        </AppContainer>
+        <AuthLayout title="Login">
+            <LoginForm onSubmit={handleLogin} error={error}/>
+            <AppTypography variant="body2" align="center" sx={{mt: 2}}>
+                You don&apos;t have an account?{' '}
+                <Link href="/auth/register" style={{color: "inherit", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: "2px"}}>Register here</Link>
+            </AppTypography>
+        </AuthLayout>
     );
 };
 

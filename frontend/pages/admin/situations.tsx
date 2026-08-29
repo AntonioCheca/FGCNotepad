@@ -128,6 +128,10 @@ function errorMessage(error: unknown): string {
     return "Unable to save situation.";
 }
 
+function situationStateLabel(situation: SituationSummary): string {
+    return `${situation.opponentState}${situation.initialJuggleAltitude ? ` ${situation.initialJuggleAltitude}` : ""}, ${situation.cornerState}, ${situation.counterHitState}`;
+}
+
 export default function AdminSituationsPage() {
     const authContext = React.useContext(AuthContext);
     const {characters} = useCharacters();
@@ -260,22 +264,41 @@ export default function AdminSituationsPage() {
                         <AppBox sx={{display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap"}}>
                             <AppFormControlLabel control={<AppCheckbox checked={draft.isVerified} onChange={(event) => setDraft((current) => ({...current, isVerified: event.target.checked}))} />} label="Verified" />
                             <AppFormControlLabel control={<AppCheckbox checked={draft.isArchived} onChange={(event) => setDraft((current) => ({...current, isArchived: event.target.checked}))} />} label="Archived" />
-                            <AppButton type="button" disabled={saving || draft.name.trim() === "" || draft.typeId === ""} onClick={() => void handleSubmit()}>{saving ? "Saving..." : editingId === null ? "Create" : "Save"}</AppButton>
-                            <AppButton type="button" variant="outlined" color="secondary" onClick={resetDraft}>Reset</AppButton>
+                            <AppButton type="button" disabled={saving || draft.name.trim() === "" || draft.typeId === ""} onClick={() => void handleSubmit()} sx={{width: {xs: "100%", sm: "auto"}}}>{saving ? "Saving..." : editingId === null ? "Create" : "Save"}</AppButton>
+                            <AppButton type="button" variant="outlined" color="secondary" onClick={resetDraft} sx={{width: {xs: "100%", sm: "auto"}}}>Reset</AppButton>
                         </AppBox>
                     </AppBox>
                 </SectionCard>
 
                 <SectionCard title="Saved Situations" variant="review">
                     {situations.length === 0 ? <InlineNotice severity="info">No situations have been saved.</InlineNotice> : (
-                        <AppTableContainer sx={{maxHeight: "calc(100vh - 420px)", backgroundColor: "fgc.surface.base"}}>
+                        <>
+                        <AppTableContainer sx={{display: {xs: "none", md: "block"}, maxHeight: "calc(100dvh - 420px)", backgroundColor: "fgc.surface.base"}}>
                             <AppTable stickyHeader size="small">
                                 <AppTableHead><AppTableRow><AppTableCell>Name</AppTableCell><AppTableCell>Type</AppTableCell><AppTableCell>State</AppTableCell><AppTableCell>Move</AppTableCell><AppTableCell>Actions</AppTableCell></AppTableRow></AppTableHead>
                                 <AppTableBody>
-                                    {situations.map((situation) => <AppTableRow key={situation.id} hover><AppTableCell>{situation.name}{situation.isArchived ? " (archived)" : ""}</AppTableCell><AppTableCell>{situation.type.name}</AppTableCell><AppTableCell>{situation.opponentState}{situation.initialJuggleAltitude ? ` ${situation.initialJuggleAltitude}` : ""}, {situation.cornerState}, {situation.counterHitState}</AppTableCell><AppTableCell>{situation.move?.name ?? "-"}</AppTableCell><AppTableCell><AppBox sx={{display: "flex", gap: 0.75}}><AppButton type="button" size="small" variant="outlined" onClick={() => { setEditingId(situation.id); setDraft(draftFromSituation(situation)); }}>Edit</AppButton><AppButton type="button" size="small" color="error" variant="outlined" disabled={situation.isArchived} onClick={() => archiveSituation(situation.id).then(loadData).catch((error) => setToast({severity: "error", message: errorMessage(error)}))}>Archive</AppButton></AppBox></AppTableCell></AppTableRow>)}
+                                    {situations.map((situation) => <AppTableRow key={situation.id} hover><AppTableCell>{situation.name}{situation.isArchived ? " (archived)" : ""}</AppTableCell><AppTableCell>{situation.type.name}</AppTableCell><AppTableCell>{situationStateLabel(situation)}</AppTableCell><AppTableCell>{situation.move?.name ?? "-"}</AppTableCell><AppTableCell><AppBox sx={{display: "flex", gap: 0.75}}><AppButton type="button" size="small" variant="outlined" onClick={() => { setEditingId(situation.id); setDraft(draftFromSituation(situation)); }}>Edit</AppButton><AppButton type="button" size="small" color="error" variant="outlined" disabled={situation.isArchived} onClick={() => archiveSituation(situation.id).then(loadData).catch((error) => setToast({severity: "error", message: errorMessage(error)}))}>Archive</AppButton></AppBox></AppTableCell></AppTableRow>)}
                                 </AppTableBody>
                             </AppTable>
                         </AppTableContainer>
+                        <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 1}}>
+                            {situations.map((situation) => (
+                                <AppBox key={situation.id} sx={{display: "grid", gap: 0.75, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.25, p: 1.25, backgroundColor: "fgc.surface.subtle"}}>
+                                    <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "flex-start"}}>
+                                        <AppTypography variant="body2" sx={{fontWeight: 650, overflowWrap: "anywhere"}}>{situation.name}</AppTypography>
+                                        {situation.isArchived ? <AppTypography variant="caption" color="text.secondary">Archived</AppTypography> : null}
+                                    </AppBox>
+                                    <AppTypography variant="body2" color="text.secondary">{situation.type.name}</AppTypography>
+                                    <AppTypography variant="body2">{situationStateLabel(situation)}</AppTypography>
+                                    <AppTypography variant="body2">Move: {situation.move?.name ?? "-"}</AppTypography>
+                                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, 1fr))"}, gap: 0.75}}>
+                                        <AppButton type="button" size="small" variant="outlined" onClick={() => { setEditingId(situation.id); setDraft(draftFromSituation(situation)); }}>Edit</AppButton>
+                                        <AppButton type="button" size="small" color="error" variant="outlined" disabled={situation.isArchived} onClick={() => archiveSituation(situation.id).then(loadData).catch((error) => setToast({severity: "error", message: errorMessage(error)}))}>Archive</AppButton>
+                                    </AppBox>
+                                </AppBox>
+                            ))}
+                        </AppBox>
+                        </>
                     )}
                 </SectionCard>
             </PageShell>

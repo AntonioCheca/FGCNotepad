@@ -121,7 +121,7 @@ export function OkiEditorForm({mode, initialProfile}: OkiEditorFormProps) {
             ))}
 
             <AppStack direction={{xs: "column", sm: "row"}} spacing={1} justifyContent="space-between">
-                <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{width: "fit-content"}} onClick={() => setDraft((current) => ({...current, setups: [...current.setups, createEmptySetup(current.setups.length + 1)]}))}>Add setup</AppButton>
+                <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={() => setDraft((current) => ({...current, setups: [...current.setups, createEmptySetup(current.setups.length + 1)]}))}>Add setup</AppButton>
                 <AppButton type="button" variant="contained" color="primary" disabled={saving} onClick={save}>{saving ? "Saving..." : mode === "edit" ? "Save oki" : "Create oki"}</AppButton>
             </AppStack>
         </AppBox>
@@ -188,7 +188,7 @@ function SetupEditor({setup, setupIndex, characterId, characters, onChange, onRe
                 ))}
             </AppBox>
 
-            <AppButton type="button" variant="text" color="secondary" size="small" sx={{width: "fit-content"}} onClick={onRemove}>Remove setup</AppButton>
+            <AppButton type="button" variant="text" color="secondary" size="small" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={onRemove}>Remove setup</AppButton>
         </SectionCard>
     );
 }
@@ -198,7 +198,7 @@ function TreeNodeEditor({node, link, depth, rootIndex, characterId, characters, 
     const updateInteraction = (interactionIndex: number, updater: (interaction: OkiInteractionDraft) => OkiInteractionDraft) => patchNode({interactions: node.interactions.map((interaction, index) => index === interactionIndex ? updater(interaction) : interaction)});
 
     return (
-        <AppBox sx={{display: "grid", gridTemplateColumns: "22px minmax(0, 760px)", columnGap: 0.75, ml: {xs: Math.min(depth, 3) * 1.1, md: Math.min(depth, 4) * 2.2}}}>
+        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "22px minmax(0, 760px)"}, columnGap: 0.75, ml: {xs: Math.min(depth, 2) * 0.65, md: Math.min(depth, 4) * 2.2}}}>
             <AppBox sx={{position: "relative", display: {xs: depth === 0 ? "none" : "block", md: "block"}}}>
                 <AppBox sx={{position: "absolute", top: 0, bottom: node.children.length > 0 ? -12 : "50%", left: 10, borderLeft: depth === 0 ? 0 : "1px solid", borderColor: "fgc.border.strong"}} />
                 {depth > 0 ? <AppBox sx={{position: "absolute", top: 24, left: 10, width: 18, borderTop: "1px solid", borderColor: "fgc.border.strong"}} /> : null}
@@ -208,7 +208,7 @@ function TreeNodeEditor({node, link, depth, rootIndex, characterId, characters, 
                 <AppPaper variant="outlined" sx={{p: {xs: 1, md: 1.15}, borderRadius: 2, display: "grid", gap: 1, backgroundColor: depth === 0 ? "fgc.surface.base" : "fgc.surface.sunken", borderColor: node.optionType ? "fgc.accent.selected" : "fgc.border.default"}}>
                     <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center", flexWrap: "wrap"}}>
                         <AppTypography variant="subtitle2" sx={{fontWeight: 850}}>{depth === 0 ? `Root ${rootIndex + 1}` : `Child depth ${depth}`}</AppTypography>
-                        <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
+                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, auto))", md: "repeat(4, auto)"}, gap: 0.5}}>
                             <AppButton type="button" variant="outlined" color="secondary" size="small" onClick={() => onAddChild(node.clientId)}>Add child</AppButton>
                             {canRemove ? <AppButton type="button" variant="text" color="secondary" size="small" onClick={() => onRemoveNode(node.clientId)}>Remove</AppButton> : null}
                         </AppBox>
@@ -232,7 +232,7 @@ function TreeNodeEditor({node, link, depth, rootIndex, characterId, characters, 
 
 function LinkTimingEditor({link, onChange}: {link: OkiLinkDraft; onChange: (updater: (link: OkiLinkDraft) => OkiLinkDraft) => void}) {
     return (
-        <AppPaper variant="outlined" sx={{px: 0.85, py: 0.65, borderRadius: 1.5, backgroundColor: "fgc.surface.base", display: "grid", gridTemplateColumns: {xs: "1fr", sm: "170px 90px 90px"}, gap: 0.75, width: "fit-content", maxWidth: "100%"}}>
+        <AppPaper variant="outlined" sx={{px: 0.85, py: 0.65, borderRadius: 1.5, backgroundColor: "fgc.surface.base", display: "grid", gridTemplateColumns: {xs: "1fr", sm: "170px 90px 90px"}, gap: 0.75, width: {xs: "100%", sm: "fit-content"}, maxWidth: "100%"}}>
             <SimpleSelect label="Step" value={link.stepType} options={OKI_STEP_TYPES} onChange={(value) => onChange((current) => ({...current, stepType: value as OkiStepType}))} />
             <AppTextField size="small" label="Min" value={link.minFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange((current) => ({...current, minFrames: event.target.value}))} />
             <AppTextField size="small" label="Max" value={link.maxFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange((current) => ({...current, maxFrames: event.target.value}))} />
@@ -252,7 +252,7 @@ function InteractionsEditor({node, characters, characterId, onUpdateInteraction,
                     <AppButton type="button" variant="text" color="secondary" size="small" onClick={() => onPatchNode({interactions: node.interactions.filter((_, index) => index !== interactionIndex)})}>Remove</AppButton>
                 </AppPaper>
             ))}
-            <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{width: "fit-content"}} onClick={() => onPatchNode({interactions: [...node.interactions, {defensiveMove: null, result: "WINS", characterId: ""}]})}>Add interaction</AppButton>
+            <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={() => onPatchNode({interactions: [...node.interactions, {defensiveMove: null, result: "WINS", characterId: ""}]})}>Add interaction</AppButton>
         </AppBox>
     );
 }

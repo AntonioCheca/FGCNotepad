@@ -54,7 +54,7 @@ export default function BlockstringDefensePage() {
                         <CharacterSelect label="Attacker" value={attackerCharacterId} characters={characters as Array<{id: string; name: string}>} onChange={setAttackerCharacterId} />
                         <CharacterSelect label="Defender" value={defenderCharacterId} characters={characters as Array<{id: string; name: string}>} onChange={setDefenderCharacterId} />
                         <OkiMovePicker label="Move in sequence" value={move} characterId={attackerCharacterId || undefined} onChange={setMove} />
-                        <Link href="/blockstrings/new" style={{textDecoration: "none"}}><AppButton type="button" variant="contained" color="primary">Create</AppButton></Link>
+                        <Link href="/blockstrings/new" style={{textDecoration: "none"}}><AppButton type="button" variant="contained" color="primary" sx={{width: {xs: "100%", lg: "auto"}}}>Create</AppButton></Link>
                     </AppBox>
                 </AppPaper>
 
@@ -86,7 +86,7 @@ function DefenseResults({items}: {items: BlockstringSummary[]}) {
         <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "1fr 1fr"}, gap: 1}}>
             {items.map((item) => (
                 <AppPaper key={item.id} variant="outlined" sx={{p: 1.4, borderRadius: 2.5, backgroundColor: "fgc.surface.base", display: "grid", gap: 0.75}}>
-                    <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "start"}}>
+                    <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "start", minWidth: 0}}>
                         <Link href={`/blockstrings/${item.id}`} style={{color: "inherit", textDecoration: "none"}}><AppTypography variant="h6" sx={{fontWeight: 800}}>{item.notation || item.title}</AppTypography></Link>
                         <BlockstringStatusChip classification={item.classification} />
                     </AppBox>

@@ -39,7 +39,7 @@ export function BlockstringSequenceViewer({item}: BlockstringSequenceViewerProps
     return (
         <AppBox sx={{display: "grid", gap: 1.15}}>
             <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap", alignItems: "center"}}>
-                <AppBox sx={{display: "inline-flex", p: 0.45, gap: 0.4, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 2.5, backgroundColor: "fgc.surface.sunken", boxSizing: "border-box"}}>
+                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", width: {xs: "100%", sm: "fit-content"}, p: 0.45, gap: 0.4, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 2.5, backgroundColor: "fgc.surface.sunken", boxSizing: "border-box"}}>
                     <ModeButton active={mode === "offense"} onClick={() => setMode("offense")}>Offense</ModeButton>
                     <ModeButton active={mode === "defense"} onClick={() => setMode("defense")}>Defense</ModeButton>
                 </AppBox>
@@ -70,7 +70,7 @@ function Swimlane({route, mode, selectedElement, defenseByGapKey, adaptationsByG
                     {!route.isMain && (route.branchAnchor.stepOrdinal || route.branchAnchor.connectionId) ? <AppTypography variant="caption" color="text.secondary">Branches at {route.branchAnchor.stepOrdinal ? `move ${route.branchAnchor.stepOrdinal}` : "documented link"}</AppTypography> : null}
                 </AppBox>
 
-                <AppBox sx={{display: "flex", alignItems: "stretch", gap: 0.65, overflowX: "auto", pb: 0.4, scrollSnapType: "x proximity"}}>
+                <AppBox sx={{display: "flex", alignItems: "stretch", gap: 0.65, overflowX: "auto", pb: 0.4, scrollSnapType: "x proximity", mx: {xs: -0.25, md: 0}, px: {xs: 0.25, md: 0}}}>
                     {route.steps.map((step, index) => {
                         const connection = connectionsByDestination.get(step.ordinal) ?? null;
                         return (
@@ -96,7 +96,7 @@ function ReasonText({route}: {route: BlockstringRoute}) {
 }
 
 function ModeButton({active, onClick, children}: {active: boolean; onClick: () => void; children: React.ReactNode}) {
-    return <AppButton type="button" size="small" variant="text" color="secondary" onClick={onClick} sx={{minWidth: 96, fontWeight: 800, border: "1px solid", borderColor: active ? "fgc.accent.selected" : "transparent", borderRadius: 2, backgroundColor: active ? "fgc.surface.raised" : "transparent", color: active ? "fgc.accent.selected" : "text.secondary", boxShadow: active ? 1 : 0, '&:hover': {backgroundColor: active ? "fgc.surface.raised" : "fgc.selection.hover"}}}>{children}</AppButton>;
+    return <AppButton type="button" size="small" variant="text" color="secondary" onClick={onClick} sx={{minWidth: {xs: 0, sm: 96}, fontWeight: 800, border: "1px solid", borderColor: active ? "fgc.accent.selected" : "transparent", borderRadius: 2, backgroundColor: active ? "fgc.surface.raised" : "transparent", color: active ? "fgc.accent.selected" : "text.secondary", boxShadow: active ? 1 : 0, '&:hover': {backgroundColor: active ? "fgc.surface.raised" : "fgc.selection.hover"}}}>{children}</AppButton>;
 }
 
 function MoveCard({step}: {step: BlockstringStep}) {

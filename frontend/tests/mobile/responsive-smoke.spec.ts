@@ -11,6 +11,19 @@ const routes = [
     "/replay-lab/practice-tasks",
     "/replay-lab/study-deck",
     "/scenarios",
+    "/profile",
+    "/profile/recommend-combo",
+    "/admin/users",
+    "/admin/situations",
+    "/moderation/queue",
+    "/moderation/frame-data",
+    "/blockstrings/offense",
+    "/blockstrings/defense",
+    "/blockstrings/new",
+    "/okis",
+    "/okis/new",
+    "/okis/reversals",
+    "/about/aboutUs",
 ];
 
 test.describe("responsive smoke", () => {
@@ -21,7 +34,7 @@ test.describe("responsive smoke", () => {
                 status: 200,
                 contentType: "application/json",
                 body: JSON.stringify({
-                    user: {id: 1, username: "mobile-smoke", roles: ["ROLE_USER"]},
+                    user: {id: 1, username: "mobile-smoke", roles: ["ROLE_ADMIN", "ROLE_MODERATOR", "ROLE_USER"]},
                     csrfToken: "mobile-smoke-csrf",
                 }),
             });

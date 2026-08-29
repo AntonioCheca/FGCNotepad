@@ -100,9 +100,9 @@ export default function OkiSearchPage() {
                             ["hasFakeSetups", "Has fake"],
                         ].map(([key, label]) => <AppChip key={key} label={label} size="small" variant={flags[key] ? "filled" : "outlined"} color={flags[key] ? "info" : "default"} onClick={() => toggleFlag(key)} />)}
                     </AppBox>
-                    <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap"}}>
-                        <AppButton type="button" variant="outlined" color="secondary" onClick={() => { setQuery(""); setCharacterId(""); setMove(null); setOptionType(""); setProperty(""); setFlags({}); }}>Clear filters</AppButton>
-                        <Link href="/okis/new" style={{textDecoration: "none"}}><AppButton type="button" variant="contained" color="primary">Create oki</AppButton></Link>
+                    <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: "space-between", gap: 1}}>
+                        <AppButton type="button" variant="outlined" color="secondary" sx={{width: {xs: "100%", sm: "auto"}}} onClick={() => { setQuery(""); setCharacterId(""); setMove(null); setOptionType(""); setProperty(""); setFlags({}); }}>Clear filters</AppButton>
+                        <Link href="/okis/new" style={{textDecoration: "none"}}><AppButton type="button" variant="contained" color="primary" sx={{width: {xs: "100%", sm: "auto"}}}>Create oki</AppButton></Link>
                     </AppBox>
                 </AppPaper>
 
@@ -122,7 +122,7 @@ function OkiResults({items}: {items: OkiProfileSummary[]}) {
             {items.map((item) => (
                 <AppPaper key={item.id} variant="outlined" sx={{p: 1.4, borderRadius: 2.5, display: "grid", gap: 0.8, backgroundColor: "fgc.surface.base"}}>
                     <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "start"}}>
-                        <AppBox>
+                        <AppBox sx={{minWidth: 0}}>
                             <Link href={`/okis/${item.id}`} style={{color: "inherit", textDecoration: "none"}}><AppTypography variant="h6" sx={{fontWeight: 800}}>{item.move.numpadNotation}</AppTypography></Link>
                             <AppTypography variant="body2" color="text.secondary">{item.move.character.name} · Frame advantage {formatFrameAdvantage(item.frameAdvantage)}</AppTypography>
                         </AppBox>

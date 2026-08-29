@@ -1,5 +1,6 @@
 import React from "react";
 
+import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -53,11 +54,12 @@ export function ContentFlagButton({targetType, targetId}: ContentFlagButtonProps
     };
 
     return (
-        <div style={{display: "grid", gap: 8, minWidth: 220}}>
+        <AppBox sx={{display: "grid", gap: 1, minWidth: {xs: 0, sm: 220}, width: "100%"}}>
             <AppButton
                 type="button"
                 size="small"
                 variant="outlined"
+                sx={{width: {xs: "100%", sm: "auto"}}}
                 onClick={() => {
                     setIsOpen((previous) => !previous);
                     setError(null);
@@ -68,7 +70,7 @@ export function ContentFlagButton({targetType, targetId}: ContentFlagButtonProps
             </AppButton>
 
             {isOpen ? (
-                <div style={{display: "grid", gap: 8, padding: 8, border: "1px solid #e0e0e0", borderRadius: 8}}>
+                <AppBox sx={{display: "grid", gap: 1, p: 1, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.25, backgroundColor: "fgc.surface.sunken"}}>
                     <AppTextField
                         label="Optional comment"
                         value={comment}
@@ -79,7 +81,7 @@ export function ContentFlagButton({targetType, targetId}: ContentFlagButtonProps
                         placeholder="What seems incorrect?"
                     />
 
-                    <div style={{display: "flex", gap: 8, justifyContent: "flex-end"}}>
+                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, auto))"}, gap: 1, justifyContent: "flex-end"}}>
                         <AppButton
                             type="button"
                             size="small"
@@ -97,12 +99,12 @@ export function ContentFlagButton({targetType, targetId}: ContentFlagButtonProps
                         >
                             {submitting ? "Submitting..." : "Submit"}
                         </AppButton>
-                    </div>
-                </div>
+                    </AppBox>
+                </AppBox>
             ) : null}
 
             {feedback ? <AppTypography variant="body2">{feedback}</AppTypography> : null}
             {error ? <AppTypography variant="body2" color="error">{error}</AppTypography> : null}
-        </div>
+        </AppBox>
     );
 }

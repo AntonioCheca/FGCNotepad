@@ -59,9 +59,9 @@ export default function OkiDetailPage() {
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title={`Ender: ${profile.move.numpadNotation}`} badgeLabel={`Frame advantage ${formatFrameAdvantage(profile.frameAdvantage)}`}>
-                <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap"}}>
+                <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: "space-between", gap: 1}}>
                     <AppTypography variant="body2" color="text.secondary">{profile.move.character.name}</AppTypography>
-                    <Link href={`/okis/${profile.id}/edit`} style={{textDecoration: "none"}}><AppButton type="button" variant="outlined" color="secondary">Edit oki</AppButton></Link>
+                    <Link href={`/okis/${profile.id}/edit`} style={{textDecoration: "none"}}><AppButton type="button" variant="outlined" color="secondary" sx={{width: {xs: "100%", sm: "auto"}}}>Edit oki</AppButton></Link>
                 </AppBox>
 
                 <SummaryStrip profile={profile} />

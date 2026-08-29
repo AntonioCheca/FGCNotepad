@@ -11,6 +11,9 @@ import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
 import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ComboKnowledgeItem, ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 import AuthContext from "@/services/AuthContext";
+import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
+import {PageShell} from "@/src/components/ui/tactical/PageShell";
+import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 
 function knownComboIds(combos: ComboKnowledgeItem[]): number[] {
     const ids: number[] = [];
@@ -47,11 +50,8 @@ interface DefaultScenarioModeSectionProps {
 
 function DefaultScenarioModeSection({executionSelection, savingPreference, onSelectionChange, onSave}: DefaultScenarioModeSectionProps) {
     return (
-        <AppBox sx={(theme) => ({display: "grid", gap: 1.5, mb: 3, border: `1px solid ${theme.fgc.border.default}`, borderRadius: 2, p: 1.5, backgroundColor: theme.fgc.surface.base})}>
-            <AppTypography variant="h6">Default Scenario Mode</AppTypography>
-            <AppTypography variant="body2">Set how scenario values are calculated when you open a scenario page.</AppTypography>
-
-            <AppBox sx={{display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap"}}>
+        <SectionCard title="Default Scenario Mode" variant="input" tone="raised">
+            <AppBox sx={{display: "flex", gap: {xs: 1, md: 2}, alignItems: {xs: "flex-start", md: "center"}, flexDirection: {xs: "column", sm: "row"}, flexWrap: "wrap"}}>
                 <span style={{display: "inline-flex", alignItems: "center", gap: 6}}>
                     <AppTypography variant="body2">My Current Knowledge</AppTypography>
                     <AppTooltip title="Use only combos you marked as known in Combo Knowledge."><span style={{display: "inline-flex", cursor: "help"}}><HelpOutlineOutlinedIcon fontSize="small"/></span></AppTooltip>
@@ -67,12 +67,13 @@ function DefaultScenarioModeSection({executionSelection, savingPreference, onSel
             </AppBox>
 
             <AppBox sx={(theme) => ({
-                display: "flex",
+                display: "grid",
+                gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, 220px))", md: "repeat(3, minmax(0, 220px))"},
                 gap: 1.5,
                 alignItems: "center",
-                flexWrap: "wrap",
                 "& .profile-control": {
                     height: 38,
+                    width: "100%",
                     borderRadius: 1,
                     border: `1px solid ${theme.fgc.border.default}`,
                     padding: "0 10px",
@@ -111,9 +112,9 @@ function DefaultScenarioModeSection({executionSelection, savingPreference, onSel
                     </select>
                 ) : null}
 
-                <AppButton type="button" disabled={savingPreference} onClick={() => void onSave()}>{savingPreference ? "Saving..." : "Save Mode"}</AppButton>
+                <AppButton type="button" disabled={savingPreference} onClick={() => void onSave()} sx={{width: {xs: "100%", sm: "auto"}}}>{savingPreference ? "Saving..." : "Save Mode"}</AppButton>
             </AppBox>
-        </AppBox>
+        </SectionCard>
     );
 }
 
@@ -131,17 +132,15 @@ interface ComboKnowledgeSectionProps {
 
 function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficultyFilter, savingKnowledge, onCharacterChange, onCombosChange, onDifficultyFilterChange, onSave}: ComboKnowledgeSectionProps) {
     return (
-        <AppBox sx={(theme) => ({display: "grid", gap: 1.5, border: `1px solid ${theme.fgc.border.default}`, borderRadius: 2, p: 1.5, backgroundColor: theme.fgc.surface.base})}>
-            <AppTypography variant="h6">Combo Knowledge</AppTypography>
-            <AppTypography variant="body2">Mark combos you can execute today. This powers &quot;My Current Knowledge&quot; mode.</AppTypography>
-
+        <SectionCard title="Combo Knowledge" variant="review">
             <AppBox sx={(theme) => ({
-                display: "flex",
+                display: "grid",
+                gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "minmax(180px, 240px) auto auto minmax(190px, 240px) minmax(150px, 200px) auto"},
                 gap: 1.5,
                 alignItems: "center",
-                flexWrap: "wrap",
                 "& .profile-control": {
                     height: 38,
+                    width: "100%",
                     borderRadius: 1,
                     border: `1px solid ${theme.fgc.border.default}`,
                     padding: "0 10px",
@@ -153,8 +152,8 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                     {characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
                 </select>
 
-                <AppButton type="button" variant="outlined" onClick={() => onCombosChange((current) => current.map((combo) => ({...combo, known: true})))}>Mark All Known</AppButton>
-                <AppButton type="button" variant="outlined" onClick={() => onCombosChange((current) => current.map((combo) => ({...combo, known: false})))}>Clear All</AppButton>
+                <AppButton type="button" variant="outlined" onClick={() => onCombosChange((current) => current.map((combo) => ({...combo, known: true})))} sx={{width: {xs: "100%", lg: "auto"}}}>Mark All Known</AppButton>
+                <AppButton type="button" variant="outlined" onClick={() => onCombosChange((current) => current.map((combo) => ({...combo, known: false})))} sx={{width: {xs: "100%", lg: "auto"}}}>Clear All</AppButton>
 
                 <select
                     className="profile-control"
@@ -196,13 +195,13 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                     })}
                 </select>
 
-                <AppButton type="button" disabled={savingKnowledge || !selectedCharacterId} onClick={() => void onSave()}>{savingKnowledge ? "Saving..." : "Save Knowledge"}</AppButton>
+                <AppButton type="button" disabled={savingKnowledge || !selectedCharacterId} onClick={() => void onSave()} sx={{width: {xs: "100%", lg: "auto"}}}>{savingKnowledge ? "Saving..." : "Save Knowledge"}</AppButton>
             </AppBox>
 
             <AppBox sx={{display: "grid", gap: 0.75}}>
                 {combos.length === 0 ? <AppTypography>No combos found for this character.</AppTypography> : null}
                 {visibleCombos(combos, difficultyFilter).map((combo) => (
-                    <AppBox component="label" key={combo.id} sx={(theme) => ({display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 1fr) 110px 120px"}, alignItems: "center", gap: 1.5, border: `1px solid ${theme.fgc.border.subtle}`, borderRadius: 1, px: 1.25, py: 1, backgroundColor: theme.fgc.surface.subtle})}>
+                    <AppBox component="label" key={combo.id} sx={(theme) => ({display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(220px, 1fr) 110px 120px"}, alignItems: {xs: "flex-start", md: "center"}, gap: {xs: 0.75, md: 1.5}, border: `1px solid ${theme.fgc.border.subtle}`, borderRadius: 1, px: {xs: 1, md: 1.25}, py: 1, backgroundColor: theme.fgc.surface.subtle})}>
                         <AppTypography variant="body2">{combo.name}</AppTypography>
                         <AppTypography variant="body2">Difficulty: {combo.difficultyLevel ?? "-"}</AppTypography>
                         <span style={{display: "flex", alignItems: "center", gap: 8}}>
@@ -215,7 +214,7 @@ function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficu
                     </AppBox>
                 ))}
             </AppBox>
-        </AppBox>
+        </SectionCard>
     );
 }
 
@@ -305,9 +304,10 @@ export default function ProfilePage() {
 
     if (!isAuthenticated) {
         return (
-            <AppContainer maxWidth={false}>
-                <AppTypography variant="h4" gutterBottom>Profile</AppTypography>
-                <AppTypography>Please sign in to manage your execution profile.</AppTypography>
+            <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
+                <PageShell title="Profile">
+                    <InlineNotice severity="info">Please sign in to manage your execution profile.</InlineNotice>
+                </PageShell>
             </AppContainer>
         );
     }
@@ -321,59 +321,60 @@ export default function ProfilePage() {
     }
 
     return (
-        <AppContainer maxWidth={false}>
-            <AppTypography variant="h4" gutterBottom>Execution Profile</AppTypography>
-            {error ? <AppTypography color="error">{error}</AppTypography> : null}
-            {saveMessage ? <AppTypography color="success.main">{saveMessage}</AppTypography> : null}
+        <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
+            <PageShell title="Execution Profile" badgeLabel={selectedCharacterId ? `${combos.length} combos` : "No character"}>
+                {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
+                {saveMessage ? <InlineNotice severity="success">{saveMessage}</InlineNotice> : null}
 
-            <DefaultScenarioModeSection
-                executionSelection={executionSelection}
-                savingPreference={savingPreference}
-                onSelectionChange={setExecutionSelection}
-                onSave={async () => {
-                    setSavingPreference(true);
-                    setSaveMessage(null);
-                    try {
-                        const updated = await updateExecutionPreference(executionSelection);
-                        setExecutionSelection({mode: updated.defaultMode, difficultyCap: updated.difficultyCap});
-                        setSaveMessage("Scenario mode preference saved.");
-                    } catch {
-                        setError("Unable to save scenario preference.");
-                    } finally {
-                        setSavingPreference(false);
-                    }
-                }}
-            />
+                <DefaultScenarioModeSection
+                    executionSelection={executionSelection}
+                    savingPreference={savingPreference}
+                    onSelectionChange={setExecutionSelection}
+                    onSave={async () => {
+                        setSavingPreference(true);
+                        setSaveMessage(null);
+                        try {
+                            const updated = await updateExecutionPreference(executionSelection);
+                            setExecutionSelection({mode: updated.defaultMode, difficultyCap: updated.difficultyCap});
+                            setSaveMessage("Scenario mode preference saved.");
+                        } catch {
+                            setError("Unable to save scenario preference.");
+                        } finally {
+                            setSavingPreference(false);
+                        }
+                    }}
+                />
 
-            <ComboKnowledgeSection
-                characters={characters}
-                selectedCharacterId={selectedCharacterId}
-                combos={combos}
-                difficultyFilter={difficultyFilter}
-                savingKnowledge={savingKnowledge}
-                onCharacterChange={async (characterId) => {
-                    setSelectedCharacterId(characterId);
-                    await loadForCharacter(characterId);
-                }}
-                onCombosChange={setCombos}
-                onDifficultyFilterChange={setDifficultyFilter}
-                onSave={async () => {
-                    if (!selectedCharacterId) {
-                        return;
-                    }
+                <ComboKnowledgeSection
+                    characters={characters}
+                    selectedCharacterId={selectedCharacterId}
+                    combos={combos}
+                    difficultyFilter={difficultyFilter}
+                    savingKnowledge={savingKnowledge}
+                    onCharacterChange={async (characterId) => {
+                        setSelectedCharacterId(characterId);
+                        await loadForCharacter(characterId);
+                    }}
+                    onCombosChange={setCombos}
+                    onDifficultyFilterChange={setDifficultyFilter}
+                    onSave={async () => {
+                        if (!selectedCharacterId) {
+                            return;
+                        }
 
-                    setSavingKnowledge(true);
-                    setSaveMessage(null);
-                    try {
-                        await updateComboKnowledge(selectedCharacterId, knownComboIds(combos));
-                        setSaveMessage("Combo knowledge saved.");
-                    } catch {
-                        setError("Unable to save combo knowledge.");
-                    } finally {
-                        setSavingKnowledge(false);
-                    }
-                }}
-            />
+                        setSavingKnowledge(true);
+                        setSaveMessage(null);
+                        try {
+                            await updateComboKnowledge(selectedCharacterId, knownComboIds(combos));
+                            setSaveMessage("Combo knowledge saved.");
+                        } catch {
+                            setError("Unable to save combo knowledge.");
+                        } finally {
+                            setSavingKnowledge(false);
+                        }
+                    }}
+                />
+            </PageShell>
         </AppContainer>
     );
 }
