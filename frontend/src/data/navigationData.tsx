@@ -86,6 +86,16 @@ export const navigationSections: NavigationSection[] = [
         ]
     },
     {
+        title: "Guides",
+        items: [
+            {
+                label: "Turns Guide",
+                href: "/guides/turns",
+                icon: <ArticleOutlinedIcon/>
+            }
+        ]
+    },
+    {
         title: "Replay Lab",
         items: [
             {

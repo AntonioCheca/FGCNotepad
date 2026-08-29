@@ -136,6 +136,29 @@ class MoveRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return list<Move>
+     */
+    public function findPlusOnBlockMovesByType(string $moveType): array
+    {
+        $moves = $this->createQueryBuilder('move')
+            ->innerJoin('move.character', 'character')
+            ->addSelect('character')
+            ->innerJoin('move.frameData', 'frameData')
+            ->addSelect('frameData')
+            ->where('frameData.moveType = :moveType')
+            ->andWhere('frameData.onBlock > 0')
+            ->setParameter('moveType', $moveType)
+            ->orderBy('character.name', 'ASC')
+            ->addOrderBy('move.numpadNotation', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $this->applyOverridesToMoves($moves);
+
+        return $moves;
+    }
+
+    /**
      * @param list<Move> $moves
      */
     private function applyOverridesToMoves(array $moves): void

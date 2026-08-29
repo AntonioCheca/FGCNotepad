@@ -182,6 +182,7 @@ This project uses a tactical editorial visual system anchored to two separate ar
 
 - Prefer one clear title per screen or section; do not add subtitles by default.
 - Remove helper text that restates visible controls, counts, filenames, selected values, button labels, or obvious page purpose.
+- Avoid decorative chips, subtitles, and detailed explanatory text by default; this frontend should stay minimalist unless the extra UI element directly changes user behavior or comprehension.
 - Keep explanatory copy only when it changes user behavior: warnings, privacy/security constraints, destructive actions, validation, permissions, loading/error/empty states, or non-obvious workflow requirements.
 - Avoid repeating the same entity name in page title, section title, card title, and row title; show it once in the highest-value location.
 - When copy is needed, make it short and specific rather than instructional marketing text.
