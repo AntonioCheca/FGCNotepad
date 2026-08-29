@@ -46,7 +46,7 @@ final class FgTheorySupplementalCsvImportService
     ) {
     }
 
-    public function import(string $path, string $label, bool $dryRun = false): FrameDataImportResult
+    public function import(string $path, string $label, bool $dryRun = false, ?string $sourceVersion = null): FrameDataImportResult
     {
         if (!is_file($path)) {
             throw new \InvalidArgumentException(sprintf('CSV file not found at "%s".', $path));
@@ -70,11 +70,14 @@ final class FgTheorySupplementalCsvImportService
         $this->upsertService->resetImportCache();
         $batch = (new FrameDataImportBatch())
             ->setSourceType(FrameDataImportBatch::SOURCE_SUPPLEMENTAL)
+            ->setSourceVersion($this->resolveSourceVersion($sourceVersion))
             ->setLabel($label)
-            ->setSourceReference(basename($path));
+            ->setSourceReference(basename($path))
+            ->setSourceChecksum(hash_file('sha256', $path) ?: null);
 
         if (!$dryRun) {
             $this->entityManager->persist($batch);
+            $result->importBatch = $batch;
         }
 
         $lineNumber = 1;
@@ -96,10 +99,18 @@ final class FgTheorySupplementalCsvImportService
         fclose($handle);
 
         if (!$dryRun) {
+            $batch->markCompleted();
             $this->entityManager->flush();
         }
 
         return $result;
+    }
+
+    private function resolveSourceVersion(?string $sourceVersion): string
+    {
+        $trimmed = null === $sourceVersion ? '' : trim($sourceVersion);
+
+        return '' === $trimmed ? (new \DateTimeImmutable())->format('Y-m-d') : $trimmed;
     }
 
     /** @param array<string, string> $data */

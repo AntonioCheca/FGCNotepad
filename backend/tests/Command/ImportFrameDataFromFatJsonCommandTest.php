@@ -5,6 +5,7 @@ namespace App\Tests\Command;
 use App\Command\ImportFrameDataFromFatJsonCommand;
 use App\Entity\Character;
 use App\Entity\FrameData;
+use App\Entity\FrameDataImportBatch;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
@@ -188,7 +189,7 @@ final class ImportFrameDataFromFatJsonCommandTest extends TestCase
             ->setFrameData($frameData);
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects(self::once())->method('persist')->with($frameData);
+        $entityManager->expects(self::atLeastOnce())->method('persist');
         $entityManager->expects(self::once())->method('flush');
 
         $characterRepository = $this->createMock(CharacterRepository::class);
@@ -211,6 +212,83 @@ final class ImportFrameDataFromFatJsonCommandTest extends TestCase
         self::assertStringContainsString('Existing moves updated due to differences: 1.', $tester->getDisplay());
 
         unlink($tempDir . '/data/fat_data.json');
+        rmdir($tempDir . '/data');
+        rmdir($tempDir);
+    }
+
+    public function testItPersistsImportBatchMetadata(): void
+    {
+        $tempDir = sys_get_temp_dir() . '/fat_import_' . uniqid();
+        mkdir($tempDir);
+        mkdir($tempDir . '/data');
+
+        $payload = [
+            'Ryu' => [
+                'moves' => [
+                    'normal' => [
+                        'Standing Medium Punch' => [
+                            'numCmd' => '5MP',
+                            'startup' => 6,
+                            'active' => 3,
+                            'recovery' => 16,
+                            'total' => 24,
+                            'onHit' => 2,
+                            'onBlock' => -1,
+                            'onPC' => 4,
+                            'moveType' => 'normal',
+                            'xx' => [],
+                            'dmg' => 600,
+                            'dmgScaling' => null,
+                            'chp' => 0,
+                            'atkLvl' => '2',
+                            'extraInfo' => [],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        $path = $tempDir . '/data/fat_data.json';
+        file_put_contents($path, (string) json_encode($payload));
+
+        $persistedBatch = null;
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('persist')->willReturnCallback(static function (object $entity) use (&$persistedBatch): void {
+            if ($entity instanceof FrameDataImportBatch) {
+                $persistedBatch = $entity;
+            }
+        });
+        $entityManager->expects(self::once())->method('flush');
+
+        $characterRepository = $this->createMock(CharacterRepository::class);
+        $characterRepository->method('findOneBy')->willReturn(null);
+
+        $moveRepository = $this->createMock(MoveRepository::class);
+        $moveRepository->method('findOneBy')->willReturn(null);
+
+        $command = new ImportFrameDataFromFatJsonCommand(
+            projectDir: $tempDir,
+            frameDataUpsertService: $this->createUpsertService($entityManager, $moveRepository, $characterRepository),
+        );
+
+        $tester = new CommandTester($command);
+        $status = $tester->execute([
+            '--source-version' => '2026-08-29',
+            '--source-reference' => 'fat-json-test',
+            '--label' => 'August 29 FAT patch',
+        ]);
+
+        self::assertSame(0, $status);
+        self::assertInstanceOf(FrameDataImportBatch::class, $persistedBatch);
+        self::assertSame(FrameDataImportBatch::SOURCE_UPSTREAM, $persistedBatch->getSourceType());
+        self::assertSame('2026-08-29', $persistedBatch->getSourceVersion());
+        self::assertSame('fat-json-test', $persistedBatch->getSourceReference());
+        self::assertSame(hash_file('sha256', $path), $persistedBatch->getSourceChecksum());
+        self::assertSame(FrameDataImportBatch::STATUS_COMPLETED, $persistedBatch->getStatus());
+        self::assertNotNull($persistedBatch->getCompletedAt());
+        self::assertStringContainsString('Import batch:', $tester->getDisplay());
+        self::assertStringContainsString('2026-08-29', $tester->getDisplay());
+
+        unlink($path);
         rmdir($tempDir . '/data');
         rmdir($tempDir);
     }

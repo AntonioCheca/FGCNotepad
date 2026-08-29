@@ -12,6 +12,7 @@ class FrameDataImportBatch
 {
     public const SOURCE_UPSTREAM = 'upstream';
     public const SOURCE_SUPPLEMENTAL = 'supplemental';
+    public const STATUS_COMPLETED = 'completed';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -27,11 +28,23 @@ class FrameDataImportBatch
     #[ORM\Column(name: 'source_reference', type: Types::TEXT, nullable: true)]
     private ?string $sourceReference = null;
 
+    #[ORM\Column(name: 'source_version', type: Types::STRING, length: 64)]
+    private string $sourceVersion = 'legacy-unknown';
+
+    #[ORM\Column(name: 'source_checksum', type: Types::STRING, length: 64, nullable: true)]
+    private ?string $sourceChecksum = null;
+
+    #[ORM\Column(type: Types::STRING, length: 32)]
+    private string $status = self::STATUS_COMPLETED;
+
     #[ORM\Column(name: 'is_active', type: Types::BOOLEAN, options: ['default' => true])]
     private bool $active = true;
 
     #[ORM\Column(name: 'imported_at', type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $importedAt;
+
+    #[ORM\Column(name: 'completed_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $completedAt = null;
 
     #[ORM\Column(name: 'retired_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $retiredAt = null;
@@ -91,6 +104,52 @@ class FrameDataImportBatch
         return $this;
     }
 
+    public function getSourceVersion(): string
+    {
+        return $this->sourceVersion;
+    }
+
+    public function setSourceVersion(string $sourceVersion): static
+    {
+        $trimmed = trim($sourceVersion);
+        if ('' === $trimmed) {
+            throw new \InvalidArgumentException('Import batch source version cannot be empty.');
+        }
+
+        $this->sourceVersion = $trimmed;
+
+        return $this;
+    }
+
+    public function getSourceChecksum(): ?string
+    {
+        return $this->sourceChecksum;
+    }
+
+    public function setSourceChecksum(?string $sourceChecksum): static
+    {
+        $this->sourceChecksum = null === $sourceChecksum || '' === trim($sourceChecksum) ? null : trim($sourceChecksum);
+
+        return $this;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): static
+    {
+        $trimmed = trim($status);
+        if ('' === $trimmed) {
+            throw new \InvalidArgumentException('Import batch status cannot be empty.');
+        }
+
+        $this->status = $trimmed;
+
+        return $this;
+    }
+
     public function isActive(): bool
     {
         return $this->active;
@@ -107,6 +166,19 @@ class FrameDataImportBatch
     public function getImportedAt(): \DateTimeImmutable
     {
         return $this->importedAt;
+    }
+
+    public function markCompleted(): static
+    {
+        $this->status = self::STATUS_COMPLETED;
+        $this->completedAt = new \DateTimeImmutable();
+
+        return $this;
+    }
+
+    public function getCompletedAt(): ?\DateTimeImmutable
+    {
+        return $this->completedAt;
     }
 
     public function getRetiredAt(): ?\DateTimeImmutable

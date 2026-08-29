@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Entity\FrameDataImportBatch;
+
 final class FrameDataImportResult
 {
     /** @var list<string> */
@@ -15,6 +17,7 @@ final class FrameDataImportResult
         public int $frameDataUpdated = 0,
         public int $unchanged = 0,
         public int $skipped = 0,
+        public ?FrameDataImportBatch $importBatch = null,
     ) {
     }
 

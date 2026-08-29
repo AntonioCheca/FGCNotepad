@@ -25,6 +25,9 @@ class ImportFrameDataFromFatJsonCommand extends Command
     {
         $this
             ->addOption('path', null, InputOption::VALUE_REQUIRED, 'Path to FAT JSON file. Defaults to backend data/fat_data.json.')
+            ->addOption('label', null, InputOption::VALUE_REQUIRED, 'Human-readable import batch label. Defaults to FAT JSON plus source version.')
+            ->addOption('source-version', null, InputOption::VALUE_REQUIRED, 'Patch/source version including day, for example 2026-08-29. Defaults to today.')
+            ->addOption('source-reference', null, InputOption::VALUE_REQUIRED, 'Source reference for the imported file. Defaults to the file basename.')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Parse and report changes without flushing them.');
     }
 
@@ -45,7 +48,17 @@ class ImportFrameDataFromFatJsonCommand extends Command
             return Command::FAILURE;
         }
 
-        $result = $this->frameDataUpsertService->upsertFatData($data, (bool) $input->getOption('dry-run'));
+        $labelOption = $input->getOption('label');
+        $sourceVersionOption = $input->getOption('source-version');
+        $sourceReferenceOption = $input->getOption('source-reference');
+        $result = $this->frameDataUpsertService->upsertFatData(
+            $data,
+            (bool) $input->getOption('dry-run'),
+            is_string($sourceVersionOption) && '' !== trim($sourceVersionOption) ? trim($sourceVersionOption) : null,
+            is_string($sourceReferenceOption) && '' !== trim($sourceReferenceOption) ? trim($sourceReferenceOption) : basename($path),
+            hash_file('sha256', $path) ?: null,
+            is_string($labelOption) && '' !== trim($labelOption) ? trim($labelOption) : null,
+        );
         $this->writeResult($output, $result, (bool) $input->getOption('dry-run'));
 
         return Command::SUCCESS;
@@ -65,5 +78,9 @@ class ImportFrameDataFromFatJsonCommand extends Command
         $output->writeln(sprintf('<info>Existing moves updated due to differences: %d.</info>', $result->frameDataUpdated));
         $output->writeln(sprintf('<info>Existing moves unchanged: %d.</info>', $result->unchanged));
         $output->writeln(sprintf('<info>Skipped records: %d.</info>', $result->skipped));
+        if (!$dryRun && null !== $result->importBatch) {
+            $output->writeln(sprintf('<info>Import batch: #%d %s (%s).</info>', $result->importBatch->getId(), $result->importBatch->getLabel(), $result->importBatch->getSourceVersion()));
+            $output->writeln(sprintf('<info>Source checksum: %s.</info>', $result->importBatch->getSourceChecksum() ?? 'none'));
+        }
     }
 }

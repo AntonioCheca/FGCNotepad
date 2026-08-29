@@ -22,6 +22,7 @@ final class ImportFgTheorySupplementalCsvCommand extends Command
         $this
             ->addOption('path', null, InputOption::VALUE_REQUIRED, 'External CSV path to import.')
             ->addOption('label', null, InputOption::VALUE_REQUIRED, 'Human-readable import batch label.')
+            ->addOption('source-version', null, InputOption::VALUE_REQUIRED, 'Patch/source version including day, for example 2026-08-29. Defaults to today.')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Parse and report without writing changes.');
     }
 
@@ -35,7 +36,13 @@ final class ImportFgTheorySupplementalCsvCommand extends Command
         }
 
         try {
-            $result = $this->importService->import(trim($path), trim($label), (bool) $input->getOption('dry-run'));
+            $sourceVersionOption = $input->getOption('source-version');
+            $result = $this->importService->import(
+                trim($path),
+                trim($label),
+                (bool) $input->getOption('dry-run'),
+                is_string($sourceVersionOption) && '' !== trim($sourceVersionOption) ? trim($sourceVersionOption) : null,
+            );
         } catch (\Throwable $exception) {
             $output->writeln(sprintf('<error>%s</error>', $exception->getMessage()));
             return Command::FAILURE;
@@ -50,6 +57,10 @@ final class ImportFgTheorySupplementalCsvCommand extends Command
         $output->writeln(sprintf('<info>Moves created: %d.</info>', $result->movesCreated));
         $output->writeln(sprintf('<info>Frame data rows created: %d.</info>', $result->frameDataCreated));
         $output->writeln(sprintf('<info>Skipped records: %d.</info>', $result->skipped));
+        if (!$input->getOption('dry-run') && null !== $result->importBatch) {
+            $output->writeln(sprintf('<info>Import batch: #%d %s (%s).</info>', $result->importBatch->getId(), $result->importBatch->getLabel(), $result->importBatch->getSourceVersion()));
+            $output->writeln(sprintf('<info>Source checksum: %s.</info>', $result->importBatch->getSourceChecksum() ?? 'none'));
+        }
 
         return Command::SUCCESS;
     }

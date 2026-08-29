@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Character;
 use App\Entity\FrameData;
+use App\Entity\FrameDataImportBatch;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
@@ -33,10 +34,30 @@ final class FrameDataUpsertService
     ) {
     }
 
-    public function upsertFatData(array $data, bool $dryRun = false): FrameDataImportResult
+    public function upsertFatData(
+        array $data,
+        bool $dryRun = false,
+        ?string $sourceVersion = null,
+        ?string $sourceReference = null,
+        ?string $sourceChecksum = null,
+        ?string $label = null,
+    ): FrameDataImportResult
     {
         $this->resetImportCache();
         $result = new FrameDataImportResult();
+        $batch = null;
+
+        if (!$dryRun) {
+            $resolvedSourceVersion = $this->resolveSourceVersion($sourceVersion);
+            $batch = (new FrameDataImportBatch())
+                ->setSourceType(FrameDataImportBatch::SOURCE_UPSTREAM)
+                ->setSourceVersion($resolvedSourceVersion)
+                ->setLabel($label ?? sprintf('FAT JSON %s', $resolvedSourceVersion))
+                ->setSourceReference($sourceReference)
+                ->setSourceChecksum($sourceChecksum);
+            $this->entityManager->persist($batch);
+            $result->importBatch = $batch;
+        }
 
         foreach ($data as $characterName => $charData) {
             if (!is_string($characterName) || !is_array($charData)) {
@@ -82,10 +103,18 @@ final class FrameDataUpsertService
         }
 
         if (!$dryRun) {
+            $batch?->markCompleted();
             $this->entityManager->flush();
         }
 
         return $result;
+    }
+
+    private function resolveSourceVersion(?string $sourceVersion): string
+    {
+        $trimmed = null === $sourceVersion ? '' : trim($sourceVersion);
+
+        return '' === $trimmed ? (new \DateTimeImmutable())->format('Y-m-d') : $trimmed;
     }
 
     public function resetImportCache(): void
