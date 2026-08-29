@@ -22,6 +22,7 @@ type ComboFilterAction =
     | {type: "setEnderMoveQuery"; value: string}
     | {type: "setDifficultyRange"; minDifficulty?: string; maxDifficulty?: string}
     | {type: "setDamageRange"; minDamage?: string; maxDamage?: string}
+    | {type: "setAvailableResource"; resource: "drive" | "super"; value: string}
     | {type: "toggleSpacingCode"; code: string}
     | {type: "addDriveWindow"; metric: ComboDriveWindowMetric}
     | {type: "removeDriveWindow"; metric: ComboDriveWindowMetric}
@@ -62,6 +63,10 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
                 minDamage: action.minDamage ?? state.minDamage,
                 maxDamage: action.maxDamage ?? state.maxDamage,
             };
+        case "setAvailableResource":
+            return action.resource === "drive"
+                ? {...state, availableDrive: action.value}
+                : {...state, availableSuper: action.value};
         case "toggleSpacingCode": {
             const selected = state.spacingCodes.includes(action.code);
             return {
@@ -133,6 +138,8 @@ export function useComboFilterState() {
         setMaxDifficulty: (value: string) => dispatch({type: "setDifficultyRange", maxDifficulty: value}),
         setMinDamage: (value: string) => dispatch({type: "setDamageRange", minDamage: value}),
         setMaxDamage: (value: string) => dispatch({type: "setDamageRange", maxDamage: value}),
+        setAvailableDrive: (value: string) => dispatch({type: "setAvailableResource", resource: "drive", value}),
+        setAvailableSuper: (value: string) => dispatch({type: "setAvailableResource", resource: "super", value}),
         toggleSpacingCode: (code: string) => dispatch({type: "toggleSpacingCode", code}),
         addDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "addDriveWindow", metric}),
         removeDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "removeDriveWindow", metric}),

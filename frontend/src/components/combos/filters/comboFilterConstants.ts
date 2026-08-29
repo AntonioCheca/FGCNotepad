@@ -35,6 +35,8 @@ export const DEFAULT_COMBO_FILTER_STATE: ComboFilterState = {
     maxDifficulty: "",
     minDamage: "",
     maxDamage: "",
+    availableDrive: "",
+    availableSuper: "",
     spacingCodes: [],
     driveWindows: DEFAULT_COMBO_DRIVE_WINDOWS,
     requirements: DEFAULT_COMBO_REQUIREMENTS,

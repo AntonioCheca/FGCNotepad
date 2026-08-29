@@ -20,7 +20,7 @@ class ScenarioLinkedExpectedValueResolverService
     }
 
     /**
-     * @param array<string, array<string, float|int>|null> $resourceContext
+     * @param array<string, array<string, mixed>|null> $resourceContext
      *
      * @return array{scenarioId:string,depth:int,expectedValue:float|null,rowAxis:list<float|null>,columnAxis:list<float|null>,resolvedCells:list<array<string, mixed>>}
      */
@@ -36,7 +36,7 @@ class ScenarioLinkedExpectedValueResolverService
     }
 
     /**
-     * @param array<string, array<string, float|int>|null> $resourceContext
+     * @param array<string, array<string, mixed>|null> $resourceContext
      *
      * @return array{scenarioId:string,depth:int,expectedValue:float|null,rowAxis:list<float|null>,columnAxis:list<float|null>,resolvedCells:list<array<string, mixed>>}
      */
@@ -128,9 +128,9 @@ class ScenarioLinkedExpectedValueResolverService
     }
 
     /**
-     * @param array<string, array<string, float|int>|null> $resourceContext
+     * @param array<string, array<string, mixed>|null> $resourceContext
      *
-     * @return array{basePreValue:float,linkedExpectedValue:float,finalValue:float}
+     * @return array{basePreValue:float,linkedExpectedValue:float,finalValue:float,resourceContext:array<string,mixed>|null}
      */
     private function resolveCellValue(
         ?ScenarioCell $cell,
@@ -142,16 +142,18 @@ class ScenarioLinkedExpectedValueResolverService
         array $viewerContextPayload,
     ): array {
         if (!$cell instanceof ScenarioCell) {
-            return ['basePreValue' => 0.0, 'linkedExpectedValue' => 0.0, 'finalValue' => 0.0];
+            return ['basePreValue' => 0.0, 'linkedExpectedValue' => 0.0, 'finalValue' => 0.0, 'resourceContext' => $resourceContext];
         }
 
         if (ScenarioCell::KIND_REFERENCE === $cell->getKind()) {
-            $basePreValue = $this->resolveReferencePreValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
+            $referencePreValue = $this->resolveReferencePreValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
+            $basePreValue = $referencePreValue['value'];
+            $nextResourceContext = $referencePreValue['resourceContext'];
             $linkedExpectedValue = 0.0;
             $referenceScenario = $cell->getReferenceScenario();
 
             if ($referenceScenario instanceof Scenario && $depth < self::MAX_REFERENCE_DEPTH) {
-                $linked = $this->resolveScenarioAtDepth($referenceScenario, $depth + 1, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
+                $linked = $this->resolveScenarioAtDepth($referenceScenario, $depth + 1, $user, $executionMode, $difficultyCap, $nextResourceContext, $viewerContextPayload);
                 $linkedExpectedValue = null !== $linked['expectedValue'] ? $linked['expectedValue'] : 0.0;
             }
 
@@ -159,22 +161,25 @@ class ScenarioLinkedExpectedValueResolverService
                 'basePreValue' => $basePreValue,
                 'linkedExpectedValue' => $linkedExpectedValue,
                 'finalValue' => $basePreValue + $linkedExpectedValue,
+                'resourceContext' => $nextResourceContext,
             ];
         }
 
         if (ScenarioCell::KIND_DYNAMIC_COMBO === $cell->getKind()) {
-            $value = $this->resolveDynamicComboValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
+            $resolved = $this->resolveDynamicComboValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
 
-            return ['basePreValue' => $value, 'linkedExpectedValue' => 0.0, 'finalValue' => $value];
+            return ['basePreValue' => $resolved['value'], 'linkedExpectedValue' => 0.0, 'finalValue' => $resolved['value'], 'resourceContext' => $resolved['resourceContext']];
         }
 
         $value = null !== $cell->getStaticValue() ? (float) $cell->getStaticValue() : 0.0;
 
-        return ['basePreValue' => $value, 'linkedExpectedValue' => 0.0, 'finalValue' => $value];
+        return ['basePreValue' => $value, 'linkedExpectedValue' => 0.0, 'finalValue' => $value, 'resourceContext' => $resourceContext];
     }
 
     /**
-     * @param array<string, array<string, float|int>|null> $resourceContext
+     * @param array<string, array<string, mixed>|null> $resourceContext
+     *
+     * @return array{value:float,resourceContext:array<string,mixed>|null}
      */
     private function resolveReferencePreValue(
         ScenarioCell $cell,
@@ -183,16 +188,21 @@ class ScenarioLinkedExpectedValueResolverService
         ?int $difficultyCap,
         ?array $resourceContext,
         array $viewerContextPayload,
-    ): float {
+    ): array {
         if ($cell->getStarterMoves()->count() > 0) {
             return $this->resolveDynamicComboValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
         }
 
-        return null !== $cell->getStaticValue() ? (float) $cell->getStaticValue() : 0.0;
+        return [
+            'value' => null !== $cell->getStaticValue() ? (float) $cell->getStaticValue() : 0.0,
+            'resourceContext' => $resourceContext,
+        ];
     }
 
     /**
-     * @param array<string, array<string, float|int>|null> $resourceContext
+     * @param array<string, array<string, mixed>|null> $resourceContext
+     *
+     * @return array{value:float,resourceContext:array<string,mixed>|null}
      */
     private function resolveDynamicComboValue(
         ScenarioCell $cell,
@@ -201,12 +211,12 @@ class ScenarioLinkedExpectedValueResolverService
         ?int $difficultyCap,
         ?array $resourceContext,
         array $viewerContextPayload,
-    ): float {
+    ): array {
         $scenario = $cell->getScenario();
         $attackerCharacterId = $scenario?->getAttackerCharacter()?->getId()?->toRfc4122();
         $defenderCharacterId = $scenario?->getDefenderCharacter()?->getId()?->toRfc4122();
         if (null === $attackerCharacterId || null === $defenderCharacterId) {
-            return 0.0;
+            return ['value' => 0.0, 'resourceContext' => $resourceContext];
         }
 
         $starterMoveIds = [];
@@ -218,10 +228,12 @@ class ScenarioLinkedExpectedValueResolverService
         }
 
         if ([] === $starterMoveIds) {
-            return 0.0;
+            return ['value' => 0.0, 'resourceContext' => $resourceContext];
         }
 
         $isAttackerInitiated = $cell->isComboInitiatorAttacker();
+        $initiatorRole = $isAttackerInitiated ? 'attacker' : 'defender';
+        $initiatorContext = null !== $resourceContext ? ($resourceContext[$initiatorRole] ?? null) : null;
         $resolution = $this->resolveDynamicComboCellService->resolve(
             $isAttackerInitiated ? $attackerCharacterId : $defenderCharacterId,
             $starterMoveIds,
@@ -229,11 +241,19 @@ class ScenarioLinkedExpectedValueResolverService
             $user,
             $executionMode,
             $difficultyCap,
-            null !== $resourceContext ? $resourceContext[$isAttackerInitiated ? 'attacker' : 'defender'] : null,
+            is_array($initiatorContext) ? $initiatorContext : null,
             $this->scenarioComboContextService->buildEffectiveContext($scenario, $viewerContextPayload),
         );
 
-        return is_numeric($resolution['resolvedDamage']) ? (float) $resolution['resolvedDamage'] : 0.0;
+        $nextResourceContext = $resourceContext;
+        if (null !== $nextResourceContext && is_array($resolution['resourceContext'] ?? null)) {
+            $nextResourceContext[$initiatorRole] = $resolution['resourceContext'];
+        }
+
+        return [
+            'value' => is_numeric($resolution['resolvedDamage']) ? (float) $resolution['resolvedDamage'] : 0.0,
+            'resourceContext' => $nextResourceContext,
+        ];
     }
 
     /**

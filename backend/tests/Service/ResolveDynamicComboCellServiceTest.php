@@ -3,6 +3,7 @@
 namespace App\Tests\Service;
 
 use App\Entity\Character;
+use App\Entity\CharacterObjectState;
 use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
@@ -15,6 +16,7 @@ use App\Entity\User;
 use App\Entity\UserCombo;
 use App\Entity\Visibility;
 use App\Service\ResolveDynamicComboCellService;
+use App\Service\ComboValueEstimator;
 use App\Tests\DatabaseTestCase;
 
 class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
@@ -120,6 +122,39 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
         self::assertSame(1500.0, $result['resolvedDamage']);
     }
 
+    public function testObjectRequirementsUseAvailableResourceContextAndAdjustedValue(): void
+    {
+        [$character, $starterMove, , $comboIdsByDamage] = $this->seedComboGraph();
+
+        $combo = $this->entityManager->getRepository(ComboSequences::class)->find($comboIdsByDamage[1200]);
+        self::assertInstanceOf(ComboSequences::class, $combo);
+        $objectState = (new CharacterObjectState())
+            ->setObjectKey('juri_fuha')
+            ->setObjectName('Fuha')
+            ->setConsumed(true);
+        $combo->getComboRequirement()?->addCharacterObjectState($objectState);
+        $this->entityManager->persist($objectState);
+        $this->entityManager->flush();
+
+        self::assertSame(1000.0, (new ComboValueEstimator())->estimateSequenceValue($combo, ['objectStatuses' => ['juri_fuha' => '1']]));
+
+        $withoutObject = $this->service->resolve((string) $character->getId(), [(string) $starterMove->getId()], 'normal');
+        self::assertSame(300.0, $withoutObject['resolvedDamage']);
+
+        $withObject = $this->service->resolve(
+            (string) $character->getId(),
+            [(string) $starterMove->getId()],
+            'normal',
+            null,
+            null,
+            null,
+            ['drive' => 6.0, 'super' => 0.0, 'objectStatuses' => ['juri_fuha' => '1']]
+        );
+
+        self::assertSame(1000.0, $withObject['resolvedDamage']);
+        self::assertSame([], $withObject['resourceContext']['objectStatuses']);
+    }
+
     /**
      * @return array{0: Character, 1: Move, 2: Move, 3: array<int, int>}
      */
@@ -214,6 +249,7 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
             ->setSequence($combo)
             ->setDamage($damage)
             ->setDifficultyLevel($difficultyLevel);
+        $combo->setComboMetrics($metrics);
         $this->entityManager->persist($metrics);
 
         $step = (new Step())
@@ -230,6 +266,7 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
             ->setCornerRequired(false)
             ->setAirborneRequired(false)
             ->setNotCrouchingRequired(false);
+        $combo->setComboRequirement($requirement);
         $this->entityManager->persist($requirement);
 
         return $combo;

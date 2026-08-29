@@ -62,7 +62,7 @@ export interface ScenarioComboContextViewerPayload {
 
 export interface ScenarioComboContextCatalog {
     positionLocks: Array<{value: ScenarioPositionLock; label: string}>;
-    characterStatuses: Array<{name: string; status_type: "integer" | "boolean"; max_status: number | null}>;
+    characterStatuses: Array<{object_key?: string; name: string; character_name?: string; display_name?: string; status_type: "integer" | "boolean"; max_status: number | null}>;
 }
 
 export interface ScenarioSavePayload {
@@ -100,11 +100,13 @@ export interface ScenarioResourceContextPayload {
         health: number;
         drive: number;
         super: number;
+        objectStatuses?: Record<string, string | number | boolean>;
     };
     defender: {
         health: number;
         drive: number;
         super: number;
+        objectStatuses?: Record<string, string | number | boolean>;
     };
 }
 

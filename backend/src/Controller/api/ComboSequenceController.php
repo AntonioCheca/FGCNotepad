@@ -27,6 +27,7 @@ use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
 use App\Service\CharacterObjectCatalog;
+use App\Service\ComboValueEstimator;
 use App\Util\Enum\ModerationState;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -58,6 +59,7 @@ class ComboSequenceController extends AbstractController
         private NotationCanonicalizer $notationCanonicalizer,
         private Sf6ComboDamageEstimatorService $sf6ComboDamageEstimatorService,
         private Sf6ComboResourceEstimatorService $sf6ComboResourceEstimatorService,
+        private ComboValueEstimator $comboValueEstimator,
         private ComboCrouchRequirementInferenceService $comboCrouchRequirementInferenceService,
         private SituationRepository $situationRepository,
         private SituationComboMatcher $situationComboMatcher,
@@ -113,6 +115,9 @@ class ComboSequenceController extends AbstractController
             'addedObjectName' => $this->normalizeStringFilter($request->query->get('addedObjectName')),
             'addedObjectStatus' => $this->normalizeStringFilter($request->query->get('addedObjectStatus')),
             'consumedObjectName' => $this->normalizeStringFilter($request->query->get('consumedObjectName')),
+            'availableDrive' => $this->normalizeFloatFilter($request->query->get('availableDrive')),
+            'availableSuper' => $this->normalizeFloatFilter($request->query->get('availableSuper')),
+            'availableObjectStatuses' => $this->normalizeObjectStatusQuery($request->query->all()['availableObjectStatuses'] ?? []),
             'spacingCodes' => $this->normalizeStringListFilter($request->query->all()['spacingCodes'] ?? $request->query->all()['spacing'] ?? []),
             'sort' => $this->normalizeSortFilter($request->query->get('sort')),
             'sortDirection' => $this->normalizeSortDirectionFilter($request->query->get('sortDirection')),
@@ -150,6 +155,30 @@ class ComboSequenceController extends AbstractController
             }
             $sequences = $filteredSequences;
         }
+
+        if ('resourceAdjustedDamage' === $filters['sort'] && (null !== $filters['availableDrive'] || null !== $filters['availableSuper'] || [] !== $filters['availableObjectStatuses'])) {
+            $resourceContext = [
+                'drive' => $filters['availableDrive'] ?? 6.0,
+                'super' => $filters['availableSuper'] ?? 0.0,
+                'objectStatuses' => $filters['availableObjectStatuses'],
+            ];
+            usort($sequences, function (ComboSequences $left, ComboSequences $right) use ($resourceContext, $filters): int {
+                $leftValue = $this->comboValueEstimator->estimateSequenceValue($left, $resourceContext);
+                $rightValue = $this->comboValueEstimator->estimateSequenceValue($right, $resourceContext);
+                if ($leftValue === $rightValue) {
+                    return ($left->getId() ?? 0) <=> ($right->getId() ?? 0);
+                }
+                if (null === $leftValue) {
+                    return 1;
+                }
+                if (null === $rightValue) {
+                    return -1;
+                }
+
+                return 'asc' === $filters['sortDirection'] ? $leftValue <=> $rightValue : $rightValue <=> $leftValue;
+            });
+        }
+
         $json = $this->serializer->serialize($sequences, 'json');
 
         if ([] !== $compatibilityByComboId) {
@@ -235,6 +264,35 @@ class ComboSequenceController extends AbstractController
         }
 
         return array_values($normalized);
+    }
+
+    /** @return array<string,string> */
+    private function normalizeObjectStatusQuery(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $statuses = [];
+        foreach ($value as $objectName => $statusValue) {
+            if (!is_string($objectName) || '' === trim($objectName)) {
+                continue;
+            }
+
+            if (is_bool($statusValue)) {
+                $statuses[trim($objectName)] = $statusValue ? 'true' : 'false';
+                continue;
+            }
+
+            if (is_string($statusValue) || is_int($statusValue) || is_float($statusValue)) {
+                $trimmedStatus = trim((string) $statusValue);
+                if ('' !== $trimmedStatus) {
+                    $statuses[trim($objectName)] = $trimmedStatus;
+                }
+            }
+        }
+
+        return $statuses;
     }
 
     private function normalizeIntegerFilter(mixed $value): ?int

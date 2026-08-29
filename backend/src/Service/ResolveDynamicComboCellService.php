@@ -12,15 +12,16 @@ class ResolveDynamicComboCellService
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly MoveRepository $moveRepository,
         private readonly ScenarioExecutionModeService $scenarioExecutionModeService,
+        private readonly ComboValueEstimator $comboValueEstimator,
     ) {
     }
 
     /**
      * @param list<string> $starterMoveIds
-     * @param array{health:float,drive:float,super:float}|null $availableResources
+     * @param array{health?:float,drive?:float,super?:float,objectStatuses?:array<string,string|int|float|bool>}|null $availableResources
      * @param array{allowedPositions:list<string>,characterStatuses:array<string,string>}|null $comboContext
      *
-     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
+     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null,resourceContext:array<string,mixed>|null}
      */
     public function resolve(
         string $attackerCharacterId,
@@ -39,11 +40,7 @@ class ResolveDynamicComboCellService
         ));
 
         if ([] === $normalizedStarterMoveIds || '' === trim($attackerCharacterId)) {
-            return [
-                'resolvedDamage' => null,
-                'resolvedComboId' => null,
-                'resolvedStarterMoveId' => null,
-            ];
+            return $this->emptyResolution();
         }
 
         $filter = $this->scenarioExecutionModeService->resolveComboFilter(
@@ -64,23 +61,24 @@ class ResolveDynamicComboCellService
             $filter['includeUnratedDifficulty'],
             $availableResources['drive'] ?? null,
             $availableResources['super'] ?? null,
-            $comboContext
+            $this->mergeAvailableObjectStatuses($comboContext, $availableResources)
         );
 
         return $this->buildResolutionFromComboMatch(
             trim($attackerCharacterId),
             $normalizedStarterMoveIds,
-            $comboMatch
+            $comboMatch,
+            $availableResources
         );
     }
 
     /**
      * @param list<string> $starterMoveIds
      * @param list<int>|null $allowedComboIds
-     * @param array{health:float,drive:float,super:float}|null $availableResources
+     * @param array{health?:float,drive?:float,super?:float,objectStatuses?:array<string,string|int|float|bool>}|null $availableResources
      * @param array{allowedPositions:list<string>,characterStatuses:array<string,string>}|null $comboContext
      *
-     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
+     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null,resourceContext:array<string,mixed>|null}
      */
     public function resolveWithComboFilter(
         string $attackerCharacterId,
@@ -98,11 +96,7 @@ class ResolveDynamicComboCellService
         ));
 
         if ([] === $normalizedStarterMoveIds || '' === trim($attackerCharacterId)) {
-            return [
-                'resolvedDamage' => null,
-                'resolvedComboId' => null,
-                'resolvedStarterMoveId' => null,
-            ];
+            return $this->emptyResolution();
         }
 
         $normalizedHitType = $this->normalizeHitType($hitType);
@@ -116,48 +110,95 @@ class ResolveDynamicComboCellService
             $includeUnratedDifficulty,
             $availableResources['drive'] ?? null,
             $availableResources['super'] ?? null,
-            $comboContext
+            $this->mergeAvailableObjectStatuses($comboContext, $availableResources)
         );
 
         return $this->buildResolutionFromComboMatch(
             trim($attackerCharacterId),
             $normalizedStarterMoveIds,
-            $comboMatch
+            $comboMatch,
+            $availableResources
         );
     }
 
     /**
      * @param list<string> $starterMoveIds
      * @param array{combo_id:int,resolved_damage:int,starter_move_id:string}|null $comboMatch
+     * @param array<string,mixed>|null $availableResources
      *
-     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null}
+     * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null,resourceContext:array<string,mixed>|null}
      */
     private function buildResolutionFromComboMatch(
         string $attackerCharacterId,
         array $starterMoveIds,
-        ?array $comboMatch
+        ?array $comboMatch,
+        ?array $availableResources
     ): array {
         if (null !== $comboMatch) {
+            $combo = $this->comboSequencesRepository->find($comboMatch['combo_id']);
+            $resolvedValue = (float) $comboMatch['resolved_damage'];
+            $nextResourceContext = $availableResources;
+            if (null !== $combo) {
+                $resolvedValue = $this->comboValueEstimator->estimateSequenceValue($combo, $availableResources) ?? $resolvedValue;
+                $nextResourceContext = $this->comboValueEstimator->applySequenceResourceDeltas($combo, $availableResources);
+            }
+
             return [
-                'resolvedDamage' => (float) $comboMatch['resolved_damage'],
+                'resolvedDamage' => $resolvedValue,
                 'resolvedComboId' => $comboMatch['combo_id'],
                 'resolvedStarterMoveId' => $comboMatch['starter_move_id'],
+                'resourceContext' => $nextResourceContext,
             ];
         }
 
         $starterMoveFallback = $this->findStarterMoveFallbackDamage($attackerCharacterId, $starterMoveIds);
         if (null === $starterMoveFallback) {
-            return [
-                'resolvedDamage' => null,
-                'resolvedComboId' => null,
-                'resolvedStarterMoveId' => null,
-            ];
+            return $this->emptyResolution();
         }
 
         return [
             'resolvedDamage' => (float) $starterMoveFallback['damage'],
             'resolvedComboId' => null,
             'resolvedStarterMoveId' => $starterMoveFallback['move_id'],
+            'resourceContext' => $availableResources,
+        ];
+    }
+
+    /**
+     * @param array{allowedPositions:list<string>,characterStatuses:array<string,string>}|null $comboContext
+     * @param array<string,mixed>|null $availableResources
+     *
+     * @return array{allowedPositions:list<string>,characterStatuses:array<string,string>}
+     */
+    private function mergeAvailableObjectStatuses(?array $comboContext, ?array $availableResources): array
+    {
+        $merged = $comboContext ?? ['allowedPositions' => ['midscreen'], 'characterStatuses' => []];
+        $objectStatuses = is_array($availableResources['objectStatuses'] ?? null) ? $availableResources['objectStatuses'] : [];
+        if ([] === $objectStatuses) {
+            return $merged;
+        }
+
+        $characterStatuses = is_array($merged['characterStatuses'] ?? null) ? $merged['characterStatuses'] : [];
+        foreach ($objectStatuses as $objectName => $statusValue) {
+            if (!is_string($objectName) || (!is_string($statusValue) && !is_int($statusValue) && !is_float($statusValue) && !is_bool($statusValue))) {
+                continue;
+            }
+
+            $characterStatuses[$objectName] = true === $statusValue ? 'true' : (string) $statusValue;
+        }
+        $merged['characterStatuses'] = $characterStatuses;
+
+        return $merged;
+    }
+
+    /** @return array{resolvedDamage:null,resolvedComboId:null,resolvedStarterMoveId:null,resourceContext:null} */
+    private function emptyResolution(): array
+    {
+        return [
+            'resolvedDamage' => null,
+            'resolvedComboId' => null,
+            'resolvedStarterMoveId' => null,
+            'resourceContext' => null,
         ];
     }
 

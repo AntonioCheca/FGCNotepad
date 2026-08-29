@@ -2,14 +2,19 @@ import React from "react";
 
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppSlider} from "@/src/components/ui/AppSlider";
+import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import type {Theme} from "@/src/components/ui/AppThemeUtils";
-import type {ScenarioResourceContextPayload} from "@/hooks/useScenarios";
+import type {ScenarioDetail, ScenarioResourceContextPayload} from "@/hooks/useScenarios";
+
+type ObjectDefinition = {object_key?: string; name: string; character_name?: string; display_name?: string; status_type: "integer" | "boolean"; max_status: number | null};
 
 interface ScenarioResourcesPanelProps {
     scenarioResources: ScenarioResourceContextPayload;
     attackerLifeMax: number;
     defenderLifeMax: number;
+    scenario: ScenarioDetail;
+    objectDefinitions: ObjectDefinition[];
     dynamicRefreshQueued: boolean;
     refreshingDynamicCombos: boolean;
     theme: Theme;
@@ -20,6 +25,8 @@ export function ScenarioResourcesPanel({
     scenarioResources,
     attackerLifeMax,
     defenderLifeMax,
+    scenario,
+    objectDefinitions,
     dynamicRefreshQueued,
     refreshingDynamicCombos,
     theme,
@@ -36,10 +43,11 @@ export function ScenarioResourcesPanel({
             </AppTypography>
             <AppBox sx={{display: "grid", gap: {xs: 0.8, md: 1.2}, gridTemplateColumns: {xs: "1fr", md: "repeat(auto-fit, minmax(280px, 1fr))"}}}>
                 {([
-                    {key: "attacker", label: "Attacker Resources", lifeMax: attackerLifeMax},
-                    {key: "defender", label: "Defender Resources", lifeMax: defenderLifeMax},
+                    {key: "attacker", label: `${scenario.attackerCharacterName ?? "Attacker"} Resources`, characterName: scenario.attackerCharacterName, lifeMax: attackerLifeMax},
+                    {key: "defender", label: `${scenario.defenderCharacterName ?? "Defender"} Resources`, characterName: scenario.defenderCharacterName, lifeMax: defenderLifeMax},
                 ] as const).map((player) => {
                     const values = scenarioResources[player.key];
+                    const playerObjects = objectDefinitions.filter((definition) => player.characterName && definition.character_name?.toLowerCase() === player.characterName.toLowerCase());
                     return (
                         <AppBox
                             key={player.key}
@@ -101,6 +109,49 @@ export function ScenarioResourcesPanel({
                                     },
                                 }))}
                             />
+                            {playerObjects.length > 0 ? (
+                                <AppBox sx={{display: "grid", gap: 0.65, pt: 0.35}}>
+                                    <AppTypography variant="body2" color="text.secondary">Character objects</AppTypography>
+                                    <AppBox sx={{display: "grid", gap: 0.7, gridTemplateColumns: {xs: "1fr", sm: "repeat(auto-fit, minmax(150px, 1fr))"}}}>
+                                        {playerObjects.map((definition) => {
+                                            const objectKey = definition.object_key ?? definition.name;
+                                            const objectStatuses = values.objectStatuses ?? {};
+                                            const currentValue = objectStatuses[objectKey] ?? "";
+
+                                            return (
+                                                <AppTextField
+                                                    key={objectKey}
+                                                    label={definition.name}
+                                                    size="small"
+                                                    type={definition.status_type === "integer" ? "number" : undefined}
+                                                    value={String(currentValue)}
+                                                    inputProps={definition.status_type === "integer" ? {min: 0, max: definition.max_status ?? undefined} : undefined}
+                                                    placeholder={definition.status_type === "boolean" ? "true/false" : "0"}
+                                                    onChange={(event) => {
+                                                        const rawValue = event.target.value.trim();
+                                                        onScenarioResourcesChange((current) => {
+                                                            const nextObjectStatuses = {...(current[player.key].objectStatuses ?? {})};
+                                                            if (rawValue === "" || rawValue === "0" || rawValue.toLowerCase() === "false") {
+                                                                delete nextObjectStatuses[objectKey];
+                                                            } else {
+                                                                nextObjectStatuses[objectKey] = definition.status_type === "integer" ? Number.parseInt(rawValue, 10) || 0 : rawValue;
+                                                            }
+
+                                                            return {
+                                                                ...current,
+                                                                [player.key]: {
+                                                                    ...current[player.key],
+                                                                    objectStatuses: nextObjectStatuses,
+                                                                },
+                                                            };
+                                                        });
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </AppBox>
+                                </AppBox>
+                            ) : null}
                         </AppBox>
                     );
                 })}

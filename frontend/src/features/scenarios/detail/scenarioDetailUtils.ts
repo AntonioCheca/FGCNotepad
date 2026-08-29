@@ -14,11 +14,13 @@ export const DEFAULT_SCENARIO_RESOURCES: ScenarioResourceContextPayload = {
         health: 10000,
         drive: 6,
         super: 0,
+        objectStatuses: {},
     },
     defender: {
         health: 10000,
         drive: 6,
         super: 0,
+        objectStatuses: {},
     },
 };
 

@@ -46,6 +46,8 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
         setMaxDifficulty,
         setMinDamage,
         setMaxDamage,
+        setAvailableDrive,
+        setAvailableSuper,
         toggleSpacingCode,
         addDriveWindow,
         removeDriveWindow,
@@ -169,10 +171,14 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
                         maxDifficulty={state.maxDifficulty}
                         minDamage={state.minDamage}
                         maxDamage={state.maxDamage}
+                        availableDrive={state.availableDrive}
+                        availableSuper={state.availableSuper}
                         onMinDifficultyChange={setMinDifficulty}
                         onMaxDifficultyChange={setMaxDifficulty}
                         onMinDamageChange={setMinDamage}
                         onMaxDamageChange={setMaxDamage}
+                        onAvailableDriveChange={setAvailableDrive}
+                        onAvailableSuperChange={setAvailableSuper}
                     />
 
                     <ComboSpacingFiltersSection

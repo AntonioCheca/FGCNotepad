@@ -4,6 +4,7 @@ export interface MatrixPlayerResourceState {
     health: number;
     drive: number;
     super: number;
+    objectStatuses?: Record<string, string | number | boolean>;
 }
 
 export interface MatrixResourceContext {

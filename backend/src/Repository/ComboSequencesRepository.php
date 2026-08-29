@@ -74,6 +74,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     addedObjectName?: string|null,
      *     addedObjectStatus?: string|null,
      *     consumedObjectName?: string|null,
+     *     availableDrive?: float|null,
+     *     availableSuper?: float|null,
+     *     availableObjectStatuses?: array<string,string>,
      *     spacingCodes?: list<string>,
      *     sort?: string|null,
      *     sortDirection?: string|null
@@ -172,6 +175,18 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ['minMinimumDriveCostNoBurnout', 'maxMinimumDriveCostNoBurnout', 'metrics.minimumDriveCostNoBurnout'],
         ]);
 
+        $availableDrive = isset($filters['availableDrive']) && is_float($filters['availableDrive']) ? $filters['availableDrive'] : null;
+        if (null !== $availableDrive) {
+            $qb->andWhere('((metrics.minimumDriveCost IS NOT NULL AND metrics.minimumDriveCost <= :availableDrive) OR (metrics.minimumDriveCost IS NULL AND (metrics.driveCost IS NULL OR metrics.driveCost <= :availableDrive)))')
+                ->setParameter('availableDrive', $availableDrive);
+        }
+
+        $availableSuper = isset($filters['availableSuper']) && is_float($filters['availableSuper']) ? $filters['availableSuper'] : null;
+        if (null !== $availableSuper) {
+            $qb->andWhere('(metrics.superCost IS NULL OR metrics.superCost <= :availableSuper)')
+                ->setParameter('availableSuper', $availableSuper);
+        }
+
         $minDifficulty = isset($filters['minDifficulty']) && is_int($filters['minDifficulty']) ? $filters['minDifficulty'] : null;
         if (null !== $minDifficulty) {
             $qb->andWhere('metrics.difficultyLevel >= :minDifficulty')
@@ -244,6 +259,30 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->andWhere('(consumedObjectState.objectKey = :consumedObjectName OR consumedObjectState.objectName = :consumedObjectName)')
                 ->andWhere('consumedObjectState.consumed = true')
                 ->setParameter('consumedObjectName', $consumedObjectName);
+        }
+
+        $availableObjectStatuses = isset($filters['availableObjectStatuses']) && is_array($filters['availableObjectStatuses']) ? $filters['availableObjectStatuses'] : [];
+        if ([] !== $availableObjectStatuses) {
+            $qb->leftJoin('requirement.characterObjectStates', 'availabilityObjectState');
+            $availabilityExpressions = [
+                'availabilityObjectState.id IS NULL',
+                '(availabilityObjectState.statusRequired IS NULL AND availabilityObjectState.consumed = false)',
+            ];
+            $availabilityIndex = 0;
+            foreach ($availableObjectStatuses as $objectName => $statusValue) {
+                if (!is_string($objectName) || !is_string($statusValue)) {
+                    continue;
+                }
+
+                $objectParameter = sprintf('availableObject%d', $availabilityIndex);
+                $valueParameter = sprintf('availableObjectValue%d', $availabilityIndex);
+                $availabilityExpressions[] = sprintf('((availabilityObjectState.objectKey = :%s OR availabilityObjectState.objectName = :%s) AND ((availabilityObjectState.statusRequired IS NOT NULL AND availabilityObjectState.statusRequired <= :%s) OR (availabilityObjectState.consumed = true AND :%s <> \'\' AND :%s <> \'0\' AND :%s <> \'false\')))', $objectParameter, $objectParameter, $valueParameter, $valueParameter, $valueParameter, $valueParameter);
+                $qb->setParameter($objectParameter, $objectName)
+                    ->setParameter($valueParameter, $statusValue);
+                ++$availabilityIndex;
+            }
+
+            $qb->andWhere(sprintf('(%s)', implode(' OR ', $availabilityExpressions)));
         }
 
         $moveTypes = isset($filters['moveTypes']) && is_array($filters['moveTypes']) ? array_values($filters['moveTypes']) : [];
@@ -397,7 +436,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('combo')
             ->select(
                 'combo.id AS combo_id',
-                'metrics.damage AS resolved_damage',
+                'COALESCE(metrics.resourceAdjustedDamage, metrics.damage) AS resolved_damage',
                 'starterMove.id AS starter_move_id'
             )
             ->innerJoin('combo.type', 'comboType')
@@ -416,7 +455,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->setParameter('approvedState', 'approved')
             ->setParameter('attackerCharacterId', $attackerCharacterId)
             ->setParameter('starterMoveIds', $starterMoveIds)
-            ->orderBy('metrics.damage', 'DESC')
+            ->orderBy('COALESCE(metrics.resourceAdjustedDamage, metrics.damage)', 'DESC')
             ->addOrderBy('combo.id', 'ASC')
             ->setMaxResults(1);
 
@@ -666,9 +705,12 @@ class ComboSequencesRepository extends ServiceEntityRepository
             }
             $characterStatuses = is_array($comboContext['characterStatuses'] ?? null) ? $comboContext['characterStatuses'] : [];
             if ([] === $characterStatuses) {
-                $qb->andWhere('requirementSpecificCharacter.id IS NULL');
+                $qb->andWhere('(requirementSpecificCharacter.id IS NULL OR (requirementSpecificCharacter.statusRequired IS NULL AND requirementSpecificCharacter.consumed = false))');
             } else {
-                $statusExpressions = ['requirementSpecificCharacter.id IS NULL'];
+                $statusExpressions = [
+                    'requirementSpecificCharacter.id IS NULL',
+                    '(requirementSpecificCharacter.statusRequired IS NULL AND requirementSpecificCharacter.consumed = false)',
+                ];
                 $statusIndex = 0;
                 foreach ($characterStatuses as $objectName => $statusRequired) {
                     if (!is_string($objectName) || !is_string($statusRequired)) {
@@ -677,7 +719,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
 
                     $objectParameter = sprintf('statusObject%d', $statusIndex);
                     $valueParameter = sprintf('statusValue%d', $statusIndex);
-                    $statusExpressions[] = sprintf('(requirementSpecificCharacter.objectName = :%s AND requirementSpecificCharacter.statusRequired <= :%s)', $objectParameter, $valueParameter);
+                    $statusExpressions[] = sprintf('((requirementSpecificCharacter.objectKey = :%s OR requirementSpecificCharacter.objectName = :%s) AND ((requirementSpecificCharacter.statusRequired IS NOT NULL AND requirementSpecificCharacter.statusRequired <= :%s) OR (requirementSpecificCharacter.consumed = true AND :%s <> \'\' AND :%s <> \'0\' AND :%s <> \'false\')))', $objectParameter, $objectParameter, $valueParameter, $valueParameter, $valueParameter, $valueParameter);
                     $qb->setParameter($objectParameter, $objectName)
                         ->setParameter($valueParameter, $statusRequired);
                     ++$statusIndex;

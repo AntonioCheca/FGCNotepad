@@ -8,6 +8,7 @@ import {AppBox} from "@/src/components/ui/AppBox";
 import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {useCharacters} from "@/hooks/useCharacters";
 import {useScenarios} from "@/hooks/useScenarios";
+import type {ScenarioComboContextCatalog} from "@/hooks/useScenarios";
 import {useMode} from "@/src/context/ThemeContext";
 import {useScenarioDetailData} from "@/src/features/scenarios/detail/hooks/useScenarioDetailData";
 import {useScenarioDynamicResolution} from "@/src/features/scenarios/detail/hooks/useScenarioDynamicResolution";
@@ -29,6 +30,7 @@ export default function ScenarioDetailPage() {
     const {
         getScenario,
         resolveDynamicCells,
+        getComboContextCatalog,
         getAggregatedDefenseCapabilities,
         solveScenarioLayers,
         solveScenarioLinkedExpectedValue,
@@ -39,6 +41,7 @@ export default function ScenarioDetailPage() {
     const [includeCornerSpecific, setIncludeCornerSpecific] = React.useState(false);
     const [personalizedDefenderId, setPersonalizedDefenderId] = React.useState("");
     const [columnVisibilityByLabel, setColumnVisibilityByLabel] = React.useState<Record<string, boolean> | null>(null);
+    const [comboContextCatalog, setComboContextCatalog] = React.useState<ScenarioComboContextCatalog | null>(null);
 
     const {scenario, setScenario, loading, error} = useScenarioDetailData({scenarioId, getScenario});
     const {executionSelection, setExecutionSelection, isAuthenticated} = useScenarioExecutionSelection({getExecutionPreference});
@@ -64,6 +67,25 @@ export default function ScenarioDetailPage() {
     React.useEffect(() => {
         setIncludeCornerSpecific(false);
     }, [scenarioId]);
+
+    React.useEffect(() => {
+        let canceled = false;
+        getComboContextCatalog()
+            .then((catalog) => {
+                if (!canceled) {
+                    setComboContextCatalog(catalog);
+                }
+            })
+            .catch(() => {
+                if (!canceled) {
+                    setComboContextCatalog(null);
+                }
+            });
+
+        return () => {
+            canceled = true;
+        };
+    }, [getComboContextCatalog]);
 
     React.useEffect(() => {
         if (!scenario || scenario.scenarioType !== "aggregated_oki") {
@@ -142,6 +164,8 @@ export default function ScenarioDetailPage() {
                     scenarioResources={scenarioResources}
                     attackerLifeMax={attackerLifeMax}
                     defenderLifeMax={defenderLifeMax}
+                    scenario={scenario}
+                    objectDefinitions={comboContextCatalog?.characterStatuses ?? []}
                     dynamicRefreshQueued={dynamicResolution.dynamicRefreshQueued}
                     refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
                     theme={theme}
