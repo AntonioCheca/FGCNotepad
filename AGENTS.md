@@ -80,6 +80,15 @@ Use `CI=1` to force non-interactive behavior, `--no-telemetry` to avoid the tele
 $env:CI = "1"; npx react-doctor@0.8.1 --no-telemetry --verbose
 ```
 
+## Dependency Security Maintenance
+
+- Run dependency audits before releases and at least monthly.
+- In the Linux Docker workflow, run `docker compose exec -T frontend npm audit` and `docker compose exec -T backend composer audit`.
+- Apply non-breaking npm remediation first with `docker compose exec -T frontend npm audit fix`; inspect the resulting manifest and lockfile changes.
+- Do not use `npm audit fix --force` without explicit user approval because it may introduce breaking major-version updates.
+- After dependency changes, run `npm ci`, `npm run check`, and a production frontend build using the project-supported runtime.
+- When project OpenCode skills change, quit and restart OpenCode before relying on them.
+
 ## Mobile and responsive UI requirements
 
 - New or updated frontend screens must be mobile-first unless explicitly scoped to desktop-only tooling.
