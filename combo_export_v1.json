@@ -1,0 +1,602 @@
+{
+  "combos": [
+    {
+      "character": "Ed",
+      "corner_candidate": false,
+      "damage": 1110,
+      "export_blockers": [],
+      "id": "r1-s1-c1",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 5,
+      "opponent_character": "Yasmine",
+      "opponent_player_slot": 1,
+      "player_slot": 2,
+      "ready_to_export": true,
+      "reported_hit_count": 5,
+      "round_number": 1,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Crouching Light Punch",
+          "notation": "2LP"
+        },
+        {
+          "kind": "move",
+          "name": "Standing Light Punch",
+          "notation": "5LP"
+        },
+        {
+          "kind": "move",
+          "name": "Psycho Blitz",
+          "notation": "214+MP"
+        }
+      ],
+      "sequence_notation": "2LP > 5LP > 214+MP",
+      "source_indexes": [
+        865,
+        884,
+        906,
+        917,
+        931
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Yasmine",
+      "corner_candidate": false,
+      "damage": 2500,
+      "export_blockers": [],
+      "id": "r1-s1-c2",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 7,
+      "opponent_character": "Ed",
+      "opponent_player_slot": 2,
+      "player_slot": 1,
+      "ready_to_export": true,
+      "reported_hit_count": 7,
+      "round_number": 1,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Jumping Heavy Kick",
+          "notation": "j.HK"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Heavy Punch",
+          "notation": "2HP"
+        },
+        {
+          "kind": "move",
+          "name": "Daloy ng Tubig",
+          "notation": "236+HP"
+        }
+      ],
+      "sequence_notation": "j.HK > 2HP > 236+HP",
+      "source_indexes": [
+        1208,
+        1236,
+        1270,
+        1298,
+        1307,
+        1319,
+        1349
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Ed",
+      "corner_candidate": false,
+      "damage": 2404,
+      "export_blockers": [
+        "unmapped_move"
+      ],
+      "id": "r1-s1-c3",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 6,
+      "opponent_character": "Yasmine",
+      "opponent_player_slot": 1,
+      "player_slot": 2,
+      "ready_to_export": false,
+      "reported_hit_count": 6,
+      "round_number": 1,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Crouching Light Punch",
+          "notation": "2LP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Medium Punch",
+          "notation": "2MP"
+        },
+        {
+          "kind": "move",
+          "name": "Standing Medium Punch",
+          "notation": "5MP"
+        },
+        {
+          "kind": "move",
+          "name": "Standing Heavy Punch",
+          "notation": "5HP"
+        },
+        {
+          "kind": "unmapped",
+          "name": null,
+          "notation": null
+        },
+        {
+          "kind": "move",
+          "name": "Cobra Punch",
+          "notation": "6HP"
+        }
+      ],
+      "sequence_notation": "2LP > 2MP > 5MP > 5HP > [unmapped] > 6HP",
+      "source_indexes": [
+        1538,
+        1567,
+        1603,
+        1641,
+        1678,
+        1725
+      ],
+      "starter_hit_type": "punish_counter"
+    },
+    {
+      "character": "Yasmine",
+      "corner_candidate": false,
+      "damage": 600,
+      "export_blockers": [],
+      "id": "r1-s1-c4",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 2,
+      "opponent_character": "Ed",
+      "opponent_player_slot": 2,
+      "player_slot": 1,
+      "ready_to_export": true,
+      "reported_hit_count": 2,
+      "round_number": 1,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Crouching Light Punch",
+          "notation": "2LP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Light Punch",
+          "notation": "2LP"
+        }
+      ],
+      "sequence_notation": "2LP > 2LP",
+      "source_indexes": [
+        2311,
+        2330
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Yasmine",
+      "corner_candidate": true,
+      "damage": 1420,
+      "export_blockers": [],
+      "id": "r1-s1-c5",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 7,
+      "opponent_character": "Ed",
+      "opponent_player_slot": 2,
+      "player_slot": 1,
+      "ready_to_export": true,
+      "reported_hit_count": 7,
+      "round_number": 1,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Crouching Light Punch",
+          "notation": "2LP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Light Punch",
+          "notation": "2LP"
+        },
+        {
+          "kind": "move",
+          "name": "Daloy ng Tubig",
+          "notation": "236+LP"
+        }
+      ],
+      "sequence_notation": "2LP > 2LP > 236+LP",
+      "source_indexes": [
+        2645,
+        2664,
+        2685,
+        2713,
+        2722,
+        2734,
+        2758
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Ed",
+      "corner_candidate": true,
+      "damage": 1350,
+      "export_blockers": [],
+      "id": "r1-s1-c6",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 6,
+      "opponent_character": "Yasmine",
+      "opponent_player_slot": 1,
+      "player_slot": 2,
+      "ready_to_export": true,
+      "reported_hit_count": 6,
+      "round_number": 1,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Standing Light Punch",
+          "notation": "5LP"
+        },
+        {
+          "kind": "move",
+          "name": "Standing Light Punch",
+          "notation": "5LP"
+        },
+        {
+          "kind": "move",
+          "name": "Standing Light Punch",
+          "notation": "5LP"
+        },
+        {
+          "kind": "move",
+          "name": "Psycho Blitz",
+          "notation": "214+MP"
+        }
+      ],
+      "sequence_notation": "5LP > 5LP > 5LP > 214+MP",
+      "source_indexes": [
+        2837,
+        2855,
+        2873,
+        2895,
+        2906,
+        2920
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Yasmine",
+      "corner_candidate": false,
+      "damage": 1230,
+      "export_blockers": [],
+      "id": "r1-s1-c7",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 3,
+      "opponent_character": "Ed",
+      "opponent_player_slot": 2,
+      "player_slot": 1,
+      "ready_to_export": true,
+      "reported_hit_count": 3,
+      "round_number": 1,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Mukha ng Langit",
+          "notation": "236+HK"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Light Punch",
+          "notation": "2LP"
+        },
+        {
+          "kind": "move",
+          "name": "Standing Light Punch",
+          "notation": "5LP"
+        }
+      ],
+      "sequence_notation": "236+HK > 2LP > 5LP",
+      "source_indexes": [
+        3264,
+        3301,
+        3321
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Ed",
+      "corner_candidate": false,
+      "damage": 1300,
+      "export_blockers": [],
+      "id": "r2-s1-c8",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 3,
+      "opponent_character": "Yasmine",
+      "opponent_player_slot": 1,
+      "player_slot": 2,
+      "ready_to_export": true,
+      "reported_hit_count": 3,
+      "round_number": 2,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Standing Light Punch",
+          "notation": "5LP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Light Kick",
+          "notation": "2LK"
+        },
+        {
+          "kind": "move",
+          "name": "Psycho Uppercut",
+          "notation": "623+MP"
+        }
+      ],
+      "sequence_notation": "5LP > 2LK > 623+MP",
+      "source_indexes": [
+        4040,
+        4063,
+        4087
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Yasmine",
+      "corner_candidate": false,
+      "damage": 1440,
+      "export_blockers": [],
+      "id": "r2-s1-c9",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 4,
+      "opponent_character": "Ed",
+      "opponent_player_slot": 2,
+      "player_slot": 1,
+      "ready_to_export": true,
+      "reported_hit_count": 4,
+      "round_number": 2,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Daloy ng Tubig",
+          "notation": "236+LP"
+        },
+        {
+          "kind": "move",
+          "name": "Standing Heavy Punch",
+          "notation": "5HP"
+        }
+      ],
+      "sequence_notation": "236+LP > 5HP",
+      "source_indexes": [
+        4229,
+        4464,
+        4472,
+        4486
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Ed",
+      "corner_candidate": false,
+      "damage": 1335,
+      "export_blockers": [
+        "unmapped_move"
+      ],
+      "id": "r2-s1-c10",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 4,
+      "opponent_character": "Yasmine",
+      "opponent_player_slot": 1,
+      "player_slot": 2,
+      "ready_to_export": false,
+      "reported_hit_count": 4,
+      "round_number": 2,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Standing Heavy Punch",
+          "notation": "5HP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Medium Kick",
+          "notation": "2MK"
+        },
+        {
+          "kind": "unmapped",
+          "name": null,
+          "notation": null
+        },
+        {
+          "kind": "move",
+          "name": "Cobra Punch",
+          "notation": "6HP"
+        }
+      ],
+      "sequence_notation": "5HP > 2MK > [unmapped] > 6HP",
+      "source_indexes": [
+        4737,
+        4780,
+        4815,
+        4862
+      ],
+      "starter_hit_type": "punish_counter"
+    },
+    {
+      "character": "Ed",
+      "corner_candidate": false,
+      "damage": 1300,
+      "export_blockers": [],
+      "id": "r2-s1-c11",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 3,
+      "opponent_character": "Yasmine",
+      "opponent_player_slot": 1,
+      "player_slot": 2,
+      "ready_to_export": true,
+      "reported_hit_count": 3,
+      "round_number": 2,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Standing Light Punch",
+          "notation": "5LP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Light Kick",
+          "notation": "2LK"
+        },
+        {
+          "kind": "move",
+          "name": "Psycho Uppercut",
+          "notation": "623+MP"
+        }
+      ],
+      "sequence_notation": "5LP > 2LK > 623+MP",
+      "source_indexes": [
+        5142,
+        5165,
+        5189
+      ],
+      "starter_hit_type": "punish_counter"
+    },
+    {
+      "character": "Yasmine",
+      "corner_candidate": false,
+      "damage": 3980,
+      "export_blockers": [],
+      "id": "r2-s1-c12",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 18,
+      "opponent_character": "Ed",
+      "opponent_player_slot": 2,
+      "player_slot": 1,
+      "ready_to_export": true,
+      "reported_hit_count": 18,
+      "round_number": 2,
+      "sequence": [
+        {
+          "kind": "move",
+          "name": "Daloy ng Tubig",
+          "notation": "236+LP"
+        },
+        {
+          "kind": "move",
+          "name": "Pamumukadkad ng Sampaguita (continued)",
+          "notation": "236236P"
+        }
+      ],
+      "sequence_notation": "236+LP > 236236P",
+      "source_indexes": [
+        5900,
+        5928,
+        5937,
+        5949,
+        5973,
+        6059,
+        6131,
+        6211,
+        6240,
+        6325,
+        6336,
+        6351,
+        6363,
+        6378,
+        6390,
+        6404,
+        6516,
+        6531
+      ],
+      "starter_hit_type": "counter_hit"
+    },
+    {
+      "character": "Yasmine",
+      "corner_candidate": false,
+      "damage": 2375,
+      "export_blockers": [],
+      "id": "r2-s1-c13",
+      "juggle_starter": false,
+      "observed_damaging_contacts": 9,
+      "opponent_character": "Ed",
+      "opponent_player_slot": 2,
+      "player_slot": 1,
+      "ready_to_export": true,
+      "reported_hit_count": 9,
+      "round_number": 2,
+      "sequence": [
+        {
+          "kind": "drive_rush",
+          "name": "Drive Rush",
+          "notation": null
+        },
+        {
+          "kind": "move",
+          "name": "Standing Heavy Punch",
+          "notation": "5HP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Heavy Punch",
+          "notation": "2HP"
+        },
+        {
+          "kind": "move",
+          "name": "Pangil sa Likuran",
+          "notation": "22+LP+MP"
+        },
+        {
+          "kind": "move",
+          "name": "Crouching Heavy Punch",
+          "notation": "2HP"
+        },
+        {
+          "kind": "move",
+          "name": "Daloy ng Tubig",
+          "notation": "236+MP"
+        },
+        {
+          "kind": "move",
+          "name": "Daloy ng Tubig",
+          "notation": "236+PP"
+        },
+        {
+          "kind": "move",
+          "name": "Daloy ng Tubig",
+          "notation": "236+PP"
+        }
+      ],
+      "sequence_notation": "[DR] > 5HP > 2HP > 22+LP+MP > 2HP > 236+MP > 236+PP > 236+PP",
+      "source_indexes": [
+        6999,
+        7007,
+        7021,
+        7058,
+        7099,
+        7152,
+        7237,
+        7389,
+        7512
+      ],
+      "starter_hit_type": "punish_counter"
+    }
+  ],
+  "format": "combo_export_v1",
+  "source": {
+    "analysis_format": "replay_analysis_v1",
+    "analyzer_name": "conservative_damaging_combo",
+    "analyzer_version": "1",
+    "extractor_schema_version": "0.17",
+    "replay_id": "RR95Y8A56",
+    "source_sha256": "adc983d55273b2bb561d4361314bde3b14a5107d7cfa0da82d899f8ad3dc1d5f"
+  },
+  "summary": {
+    "combo_count": 13,
+    "not_ready_to_export_count": 2,
+    "ready_to_export_count": 11
+  }
+}

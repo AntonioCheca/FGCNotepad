@@ -31,6 +31,13 @@ composer-install:
 npm-install:
 	docker exec -it fgc_frontend npm install
 
+# Install the Playwright Chromium binary into the Docker-managed browser cache.
+playwright-install:
+	docker compose exec -T frontend npx playwright install chromium
+
+playwright-test-mobile:
+	docker compose exec -T frontend npm run test:mobile
+
 # Install all dependencies
 install: composer-install npm-install
 
@@ -156,6 +163,8 @@ help:
 	@echo "  up                   - Start Docker containers"
 	@echo "  stop                 - Stop Docker containers"
 	@echo "  composer-install     - Install PHP dependencies in Docker"
+	@echo "  playwright-install   - Install Playwright Chromium in Docker"
+	@echo "  playwright-test-mobile - Run responsive Playwright tests in Docker"
 	@echo "  migrate              - Run migrations in Docker"
 	@echo "  migrate-test         - Run test migrations in Docker"
 	@echo "  create-test-database - Create test database in Docker"
@@ -187,4 +196,4 @@ help:
 	@echo ""
 	@echo "Run 'make help' to see this message"
 
-.PHONY: build up stop logs migrate migrate-test create-test-database composer-install bash frontend-bash psql prod-db-backup prod-db-backup-list prod-db-restore local-setup local-composer-install local-npm-install local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit verify-frontend-upgrade help
+.PHONY: build up stop logs migrate migrate-test create-test-database composer-install npm-install playwright-install playwright-test-mobile bash frontend-bash psql prod-db-backup prod-db-backup-list prod-db-restore local-setup local-composer-install local-npm-install local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit verify-frontend-upgrade help

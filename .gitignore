@@ -24,3 +24,5 @@ frame-data-imports/
 
 # Generated frontend vendor assets
 frontend/public/ffmpeg-core/
+frontend/test-results/
+frontend/playwright-report/

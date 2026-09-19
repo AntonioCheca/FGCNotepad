@@ -103,7 +103,7 @@ final class FrameDataUpsertService
         }
 
         if (!$dryRun) {
-            $batch?->markCompleted();
+            $batch->markCompleted();
             $this->entityManager->flush();
         }
 

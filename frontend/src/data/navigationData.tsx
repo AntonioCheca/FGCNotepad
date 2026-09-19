@@ -170,6 +170,13 @@ export const navigationSections: NavigationSection[] = [
                 icon: <SettingsOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_ADMIN"],
+            },
+            {
+                label: "Replay Combo Import",
+                href: "/admin/replay-combo-imports",
+                icon: <TimelineIcon/>,
+                requiresAuth: true,
+                allowedRoles: ["ROLE_ADMIN"],
             }
         ]
     },

@@ -62,6 +62,18 @@ make frontend-dev
 
 Frontend: `http://localhost:3000`. Backend through development Nginx: `http://localhost:8000`.
 
+### Docker Browser Tests
+
+The frontend image includes Chromium's Linux dependencies. Install its browser
+binary once into the Docker-managed volume, then run the responsive suite:
+
+```bash
+make playwright-install
+make playwright-test-mobile
+```
+
+Playwright failure artifacts stay inside the container in Docker development.
+
 ### Local Host Development
 
 Recommended for Windows contributors.

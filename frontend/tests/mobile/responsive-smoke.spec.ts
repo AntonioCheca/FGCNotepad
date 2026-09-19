@@ -14,6 +14,7 @@ const routes = [
     "/profile",
     "/profile/recommend-combo",
     "/admin/users",
+    "/admin/replay-combo-imports",
     "/admin/situations",
     "/moderation/queue",
     "/moderation/frame-data",
