@@ -9,8 +9,6 @@ export default function usePersistentState<T>(
     const [state, setState] = useState<T>(initial);
     const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
 
-    initialRef.current = initial;
-
     useEffect(() => {
         try {
             const saved = localStorage.getItem(key);

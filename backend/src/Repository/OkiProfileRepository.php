@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\OkiProfile;
+use App\Entity\User;
+use App\Util\Enum\ModerationState;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -18,7 +20,7 @@ class OkiProfileRepository extends ServiceEntityRepository
      * @param array<string, mixed> $filters
      * @return list<OkiProfile>
      */
-    public function searchByFilters(array $filters, int $limit = 100): array
+    public function searchByFilters(array $filters, int $limit = 100, ?User $viewer = null, bool $seeAllSetups = false): array
     {
         $safeLimit = max(1, min($limit, 300));
         $qb = $this->createQueryBuilder('profile')
@@ -30,6 +32,14 @@ class OkiProfileRepository extends ServiceEntityRepository
             ->distinct()
             ->orderBy('character.name', 'ASC')
             ->addOrderBy('move.numpadNotation', 'ASC');
+
+        if (!$seeAllSetups) {
+            $qb->andWhere('setup.id IS NULL OR setup.moderationState = :approvedState' . (null !== $viewer ? ' OR setup.author = :viewer' : ''))
+                ->setParameter('approvedState', ModerationState::APPROVED->value);
+            if (null !== $viewer) {
+                $qb->setParameter('viewer', $viewer);
+            }
+        }
 
         $query = isset($filters['q']) && is_string($filters['q']) ? trim(mb_strtolower($filters['q'])) : '';
         if ('' !== $query) {

@@ -3,9 +3,11 @@
 namespace App\Controller\api;
 
 use App\Entity\ComboSequences;
+use App\Entity\OkiSetup;
 use App\Entity\Scenario;
 use App\Entity\User;
 use App\Repository\ComboSequencesRepository;
+use App\Repository\OkiSetupRepository;
 use App\Repository\ScenarioRepository;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationQueueService;
@@ -33,6 +35,7 @@ class ModerationController extends AbstractController
         private readonly ModerationTransitionService $moderationTransitionService,
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly ScenarioRepository $scenarioRepository,
+        private readonly OkiSetupRepository $okiSetupRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly Security $security,
     ) {
@@ -78,6 +81,8 @@ class ModerationController extends AbstractController
             $target = $this->resolveTarget($type, $id);
             if ($target instanceof ComboSequences) {
                 $this->moderationTransitionService->approveCombo($target, $actor);
+            } elseif ($target instanceof OkiSetup) {
+                $this->moderationTransitionService->approveOkiSetup($target, $actor);
             } else {
                 $this->moderationTransitionService->approveScenario($target, $actor);
             }
@@ -110,6 +115,8 @@ class ModerationController extends AbstractController
             $target = $this->resolveTarget($type, $id);
             if ($target instanceof ComboSequences) {
                 $this->moderationTransitionService->rejectCombo($target, $actor, $reason);
+            } elseif ($target instanceof OkiSetup) {
+                $this->moderationTransitionService->rejectOkiSetup($target, $actor, $reason);
             } else {
                 $this->moderationTransitionService->rejectScenario($target, $actor, $reason);
             }
@@ -142,6 +149,8 @@ class ModerationController extends AbstractController
             $target = $this->resolveTarget($type, $id);
             if ($target instanceof ComboSequences) {
                 $this->moderationTransitionService->hideCombo($target, $actor, $reason);
+            } elseif ($target instanceof OkiSetup) {
+                $this->moderationTransitionService->hideOkiSetup($target, $actor, $reason);
             } else {
                 $this->moderationTransitionService->hideScenario($target, $actor, $reason);
             }
@@ -219,7 +228,7 @@ class ModerationController extends AbstractController
         return $reason;
     }
 
-    private function resolveTarget(string $type, string $id): ComboSequences|Scenario
+    private function resolveTarget(string $type, string $id): ComboSequences|Scenario|OkiSetup
     {
         $normalizedType = trim(mb_strtolower($type));
 
@@ -249,18 +258,27 @@ class ModerationController extends AbstractController
             return $scenario;
         }
 
+        if ('oki' === $normalizedType) {
+            $setup = ctype_digit($id) ? $this->okiSetupRepository->find((int) $id) : null;
+            if (!$setup instanceof OkiSetup) {
+                throw new NotFoundHttpException('Oki setup not found.');
+            }
+
+            return $setup;
+        }
+
         throw new NotFoundHttpException('Unsupported moderation type.');
     }
 
     /**
      * @return array<string,mixed>
      */
-    private function buildDecisionResponse(string $type, ComboSequences|Scenario $target): array
+    private function buildDecisionResponse(string $type, ComboSequences|Scenario|OkiSetup $target): array
     {
         $contentType = trim(mb_strtolower($type));
-        $contentId = $target instanceof ComboSequences
-            ? (string) $target->getId()
-            : $target->getPublicId()->toRfc4122();
+        $contentId = $target instanceof Scenario
+            ? $target->getPublicId()->toRfc4122()
+            : (string) $target->getId();
 
         $decidedBy = $target->getModerationDecidedBy();
 

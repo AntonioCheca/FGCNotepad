@@ -122,6 +122,12 @@ function SetupCard({setup, index}: {setup: OkiSetup; index: number}) {
                 setup.cornerOnly ? {label: "Position", value: "Corner only"} : null,
             ].filter((fact): fact is FactItem => fact !== null)} compact />
 
+            {setup.moderationState !== "approved" ? (
+                <InlineNotice severity={setup.moderationState === "pending_review" ? "info" : "warning"}>
+                    {setup.moderationState === "pending_review" ? "Pending moderation. Only you and moderators can see this setup." : `${setup.moderationState === "rejected" ? "Rejected" : "Hidden"}${setup.moderationReason ? `: ${setup.moderationReason}` : "."}`}
+                </InlineNotice>
+            ) : null}
+
             <RecoveryWarnings setup={setup} />
 
             <RouteBlock title="Primary sequence" route={defaultRoute} />

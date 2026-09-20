@@ -4,11 +4,10 @@ namespace App\Service;
 
 use App\Entity\Character;
 use App\Entity\ComboSequences;
-use App\Entity\ConnectionType;
+use App\Entity\Replay;
 use App\Entity\User;
 use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
-use App\Repository\ConnectionTypeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -17,32 +16,89 @@ final class ReplayComboImportService
     public function __construct(
         private readonly CharacterRepository $characterRepository,
         private readonly ComboSequencesRepository $comboSequencesRepository,
-        private readonly ConnectionTypeRepository $connectionTypeRepository,
+        private readonly ReplayComboStepResolver $stepResolver,
         private readonly ComboSequenceCreationService $comboSequenceCreationService,
         private readonly ModerationTransitionService $moderationTransitionService,
+        private readonly ReplayContextImportService $replayContextImportService,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
     /**
+     * Accepts a single combo_export_v1 document or a combo_export_bundle_v1 wrapping many of them.
+     *
      * @param array<string, mixed> $document
      *
-     * @return array{importedCount:int,skippedCount:int,results:list<array{id:string,status:string,comboId?:int,reason?:string}>}
+     * @return array<string, mixed>
      */
     public function import(array $document, User $actor): array
     {
+        if ('combo_export_bundle_v1' === ($document['format'] ?? null)) {
+            return $this->importBundle($document, $actor);
+        }
+
+        return $this->importDocument($document, $actor);
+    }
+
+    /**
+     * @param array<string, mixed> $bundle
+     *
+     * @return array<string, mixed>
+     */
+    private function importBundle(array $bundle, User $actor): array
+    {
+        if (!is_array($bundle['documents'] ?? null) || !array_is_list($bundle['documents'])) {
+            throw new BadRequestHttpException('documents must be an array.');
+        }
+
+        $documents = [];
+        foreach ($bundle['documents'] as $index => $document) {
+            $replayId = is_array($document) && is_array($document['source'] ?? null) && is_string($document['source']['replay_id'] ?? null)
+                ? $document['source']['replay_id']
+                : sprintf('documents[%d]', $index);
+
+            try {
+                if (!is_array($document)) {
+                    throw new BadRequestHttpException('Document must be an object.');
+                }
+                $documents[] = ['replayId' => $replayId] + $this->importDocument($document, $actor);
+            } catch (BadRequestHttpException $exception) {
+                $documents[] = ['replayId' => $replayId, 'importedCount' => 0, 'observedCount' => 0, 'skippedCount' => 0, 'results' => [], 'error' => $exception->getMessage()];
+            }
+        }
+
+        return [
+            'importedCount' => array_sum(array_column($documents, 'importedCount')),
+            'observedCount' => array_sum(array_column($documents, 'observedCount')),
+            'skippedCount' => array_sum(array_column($documents, 'skippedCount')),
+            'results' => [],
+            'documents' => $documents,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $document
+     *
+     * @return array<string, mixed>
+     */
+    private function importDocument(array $document, User $actor): array
+    {
         $combos = $this->validateDocument($document);
+        $replay = $this->replayContextImportService->upsert($document);
         $results = [];
 
         foreach ($combos as $index => $combo) {
-            $results[] = $this->importOccurrence($combo, $index, $actor);
+            $results[] = $this->importOccurrence($combo, $index, $actor, $replay);
         }
 
         $importedCount = count(array_filter($results, static fn (array $result): bool => 'imported' === $result['status']));
+        $observedCount = count(array_filter($results, static fn (array $result): bool => 'observed' === $result['status']));
 
         return [
             'importedCount' => $importedCount,
-            'skippedCount' => count($results) - $importedCount,
+            'observedCount' => $observedCount,
+            'skippedCount' => count($results) - $importedCount - $observedCount,
+            'replay' => $this->replayContextImportService->summarize($replay),
             'results' => $results,
         ];
     }
@@ -86,7 +142,7 @@ final class ReplayComboImportService
      *
      * @return array{id:string,status:string,comboId?:int,reason?:string}
      */
-    private function importOccurrence(array $combo, int $index, User $actor): array
+    private function importOccurrence(array $combo, int $index, User $actor, Replay $replay): array
     {
         $id = is_string($combo['id'] ?? null) && '' !== trim($combo['id'])
             ? $combo['id']
@@ -96,11 +152,29 @@ final class ReplayComboImportService
             return $this->skipped($id, $this->blockedReason($combo));
         }
 
+        if ($this->replayContextImportService->hasComboObservation($replay, $id)) {
+            return $this->skipped($id, 'Already recorded for this replay.');
+        }
+
         try {
-            $payload = $this->buildCreationPayload($combo);
-            $sequence = $this->entityManager->wrapInTransaction(function () use ($payload, $actor): ComboSequences {
-                $sequence = $this->comboSequenceCreationService->createFromPayload($payload, 'combo', $payload['steps'], $actor);
-                $this->moderationTransitionService->submitComboForReview($sequence);
+            $payload = $this->buildCreationPayload($combo, $replay->getExtractorReplayId(), $id);
+            $knownId = $this->comboSequencesRepository->findIdWithSteps(array_map(
+                static fn (array $step): array => ['leaf' => $step['child_sequence_id'], 'connection' => $step['connection_type_id']],
+                $payload['steps'],
+            ));
+            $status = 'imported';
+            $sequence = $this->entityManager->wrapInTransaction(function () use ($payload, $actor, $knownId, $combo, $id, $replay, &$status): ComboSequences {
+                if (null !== $knownId) {
+                    $status = 'observed';
+                    $sequence = $this->comboSequencesRepository->find($knownId);
+                    if (!$sequence instanceof ComboSequences) {
+                        throw new \RuntimeException('Existing combo disappeared during import.');
+                    }
+                } else {
+                    $sequence = $this->comboSequenceCreationService->createFromPayload($payload, 'combo', $payload['steps'], $actor);
+                    $this->moderationTransitionService->submitComboForReview($sequence);
+                }
+                $this->replayContextImportService->recordComboObservation($replay, $sequence, $id, $combo);
                 $this->entityManager->flush();
 
                 return $sequence;
@@ -111,7 +185,7 @@ final class ReplayComboImportService
 
         return [
             'id' => $id,
-            'status' => 'imported',
+            'status' => $status,
             'comboId' => $sequence->getId(),
         ];
     }
@@ -121,10 +195,10 @@ final class ReplayComboImportService
      *
      * @return array<string, mixed>
      */
-    private function buildCreationPayload(array $combo): array
+    private function buildCreationPayload(array $combo, string $replayId, string $occurrenceId): array
     {
         $characterName = $this->requireString($combo, 'character');
-        $character = $this->characterRepository->findOneBy(['name' => $characterName]);
+        $character = $this->characterRepository->findOneByExportName($characterName);
         if (!$character instanceof Character) {
             throw new \InvalidArgumentException(sprintf('Character "%s" is not available in the move catalog.', $characterName));
         }
@@ -134,8 +208,9 @@ final class ReplayComboImportService
             throw new \InvalidArgumentException('sequence must contain at least one supported step.');
         }
 
-        $steps = $this->resolveSteps($sequence, $character);
-        $notation = $this->requireString($combo, 'sequence_notation');
+        $resolution = $this->stepResolver->resolve($sequence, $character);
+        $steps = $resolution['steps'];
+        $notation = $resolution['notation'];
         $starterHitType = $combo['starter_hit_type'] ?? null;
         if (null !== $starterHitType && !in_array($starterHitType, ['counter_hit', 'punish_counter', 'normal'], true)) {
             throw new \InvalidArgumentException('starter_hit_type must be counter_hit, punish_counter, normal, or null.');
@@ -153,108 +228,13 @@ final class ReplayComboImportService
         };
 
         return [
-            'name' => $this->comboName($notation, $starterHitType),
-            'description' => 'Imported from a replay combo export.',
+            'name' => $this->comboName($notation, $starterHitType, $replayId, $occurrenceId, $combo['start_round_timer'] ?? null),
+            'description' => trim('Imported from a replay combo export. ' . implode(' ', $resolution['notes'])),
             'visibility' => 'public',
             'metrics' => ['damage' => $damage],
             'requirements' => $requirements,
             'steps' => $steps,
         ];
-    }
-
-    /**
-     * @param list<mixed> $sourceSteps
-     *
-     * @return list<array{child_sequence_id:int,ordinal_in_combo:int,connection_type_id:int}>
-     */
-    private function resolveSteps(array $sourceSteps, Character $character): array
-    {
-        $connectionTypes = $this->connectionTypesByName();
-        $resolvedSteps = [];
-        $pendingDriveRushCancel = false;
-
-        foreach ($sourceSteps as $index => $sourceStep) {
-            if (!is_array($sourceStep)) {
-                throw new \InvalidArgumentException(sprintf('sequence step %d must be an object.', $index + 1));
-            }
-
-            $kind = $this->requireString($sourceStep, 'kind');
-            if ('drive_rush_cancel' === $kind) {
-                if ([] === $resolvedSteps || $pendingDriveRushCancel) {
-                    throw new \InvalidArgumentException('drive_rush_cancel must appear between resolved moves.');
-                }
-                $pendingDriveRushCancel = true;
-                continue;
-            }
-
-            if ('unmapped' === $kind) {
-                throw new \InvalidArgumentException('sequence contains an unmapped move.');
-            }
-
-            $notation = 'drive_rush' === $kind ? 'DR' : ($sourceStep['notation'] ?? null);
-            if ('move' !== $kind || !is_string($notation) || '' === trim($notation)) {
-                throw new \InvalidArgumentException(sprintf('Unsupported sequence step kind "%s".', $kind));
-            }
-
-            $leaf = $this->resolveLeaf($character, $notation);
-            $leafId = $leaf->getId();
-            if (null === $leafId) {
-                throw new \InvalidArgumentException(sprintf('Leaf move "%s" has not been persisted.', $notation));
-            }
-            $connectionName = [] === $resolvedSteps
-                ? 'initialmove'
-                : ($pendingDriveRushCancel ? 'driverushcancel' : 'link');
-            $connectionType = $connectionTypes[$connectionName] ?? null;
-            if (!$connectionType instanceof ConnectionType || null === $connectionType->getId()) {
-                throw new \InvalidArgumentException(sprintf('Required connection type "%s" is not configured.', $connectionName));
-            }
-
-            $resolvedSteps[] = [
-                'child_sequence_id' => $leafId,
-                'ordinal_in_combo' => count($resolvedSteps) + 1,
-                'connection_type_id' => $connectionType->getId(),
-            ];
-            $pendingDriveRushCancel = false;
-        }
-
-        if ($pendingDriveRushCancel) {
-            throw new \InvalidArgumentException('drive_rush_cancel must be followed by a move.');
-        }
-
-        return $resolvedSteps;
-    }
-
-    private function resolveLeaf(Character $character, string $notation): ComboSequences
-    {
-        $matches = array_values(array_filter(
-            $this->comboSequencesRepository->findLeafsByCharacterId((string) $character->getId()),
-            fn (ComboSequences $leaf): bool => $this->normalizeNotation($leaf->getMove()?->getNumpadNotation() ?? '') === $this->normalizeNotation($notation),
-        ));
-
-        if ([] === $matches) {
-            throw new \InvalidArgumentException(sprintf('No leaf move matches notation "%s" for %s.', $notation, $character->getName()));
-        }
-
-        if (count($matches) > 1) {
-            throw new \InvalidArgumentException(sprintf('Notation "%s" is ambiguous for %s.', $notation, $character->getName()));
-        }
-
-        return $matches[0];
-    }
-
-    /**
-     * @return array<string, ConnectionType>
-     */
-    private function connectionTypesByName(): array
-    {
-        $types = [];
-        foreach ($this->connectionTypeRepository->findAll() as $connectionType) {
-            if ($connectionType instanceof ConnectionType) {
-                $types[$this->normalizeConnectionName((string) $connectionType->getName())] = $connectionType;
-            }
-        }
-
-        return $types;
     }
 
     /** @param array<string, mixed> $data */
@@ -278,27 +258,29 @@ final class ReplayComboImportService
         return 'Export is not ready.';
     }
 
-    private function comboName(string $notation, ?string $starterHitType): string
+    /** The trailing tag lets a reviewer find the occurrence in its replay: replay id, occurrence id (round, slot, number) and, when exported, the round timer at combo start. */
+    private function comboName(string $notation, ?string $starterHitType, string $replayId, string $occurrenceId, mixed $startRoundTimer): string
     {
         $prefix = match ($starterHitType) {
             'counter_hit' => 'CH: ',
             'punish_counter' => 'PC: ',
             default => '',
         };
+        $tag = [
+            $this->identifierForName($replayId),
+            $this->identifierForName($occurrenceId),
+        ];
+        if (is_int($startRoundTimer) && $startRoundTimer >= 0 && $startRoundTimer <= 999) {
+            $tag[] = 't' . $startRoundTimer;
+        }
 
-        return $prefix . $notation;
+        return sprintf('%s%s [%s]', $prefix, $notation, implode(' ', array_filter($tag, static fn (string $part): bool => '' !== $part)));
     }
 
-    private function normalizeNotation(string $notation): string
+    /** Replay and occurrence ids come from the export; only plain identifier characters reach the combo name. */
+    private function identifierForName(string $value): string
     {
-        return strtoupper((string) preg_replace('/\s+/', '', trim($notation)));
-    }
-
-    private function normalizeConnectionName(string $name): string
-    {
-        $normalized = strtolower($name);
-
-        return (string) preg_replace('/[^a-z0-9]/', '', $normalized);
+        return substr((string) preg_replace('/[^A-Za-z0-9_.:-]/', '', $value), 0, 64);
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Repository\CharacterReversalRepository;
 use App\Repository\OkiProfileRepository;
 use App\Service\EndpointAuthorizationService;
 use App\Service\OkiProfileMutationService;
+use App\Service\OkiSetupAccessService;
 use App\Service\OkiResponseBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,7 @@ final class OkiController extends AbstractController
         private readonly CharacterReversalRepository $characterReversalRepository,
         private readonly OkiResponseBuilder $responseBuilder,
         private readonly OkiProfileMutationService $mutationService,
+        private readonly OkiSetupAccessService $accessService,
         private readonly EndpointAuthorizationService $authorizationService,
         private readonly Security $security,
     ) {
@@ -51,21 +53,24 @@ final class OkiController extends AbstractController
             'property' => $this->normalizeString($request->query->get('property')),
         ];
 
-        $profiles = $this->okiProfileRepository->searchByFilters($filters, $request->query->getInt('size', 100));
+        $viewer = $this->currentUser();
+        $profiles = $this->okiProfileRepository->searchByFilters($filters, $request->query->getInt('size', 100), $viewer, $this->accessService->canModerate($viewer));
 
-        return new JsonResponse($this->responseBuilder->buildList($profiles), JsonResponse::HTTP_OK);
+        return new JsonResponse($this->responseBuilder->buildList($profiles, $viewer), JsonResponse::HTTP_OK);
     }
 
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        $this->requireAuthenticated();
+        $actor = $this->requireAuthenticated();
         $payload = $this->decodePayload($request);
-        $profile = new OkiProfile();
+        $moveId = $this->normalizeString($payload['moveId'] ?? null);
+        $profile = null !== $moveId ? $this->okiProfileRepository->findOneBy(['move' => $moveId]) : null;
+        $profile ??= new OkiProfile();
 
         try {
-            $this->entityManager->getConnection()->transactional(function () use ($profile, $payload): void {
-                $this->mutationService->hydrateProfile($profile, $payload);
+            $this->entityManager->getConnection()->transactional(function () use ($profile, $payload, $actor): void {
+                $this->mutationService->hydrateProfile($profile, $payload, $actor);
                 $this->entityManager->persist($profile);
                 $this->entityManager->flush();
             });
@@ -73,7 +78,7 @@ final class OkiController extends AbstractController
             return new JsonResponse(['error' => $exception->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        return new JsonResponse($this->responseBuilder->buildDetail($profile), JsonResponse::HTTP_CREATED);
+        return new JsonResponse($this->responseBuilder->buildDetail($profile, $actor), JsonResponse::HTTP_CREATED);
     }
 
     #[Route('/reversals', name: 'reversal_list', methods: ['GET'])]
@@ -150,34 +155,40 @@ final class OkiController extends AbstractController
             throw new NotFoundHttpException(sprintf('Oki profile %d not found.', $id));
         }
 
-        return new JsonResponse($this->responseBuilder->buildDetail($profile), JsonResponse::HTTP_OK);
+        $viewer = $this->currentUser();
+        if ([] === $this->responseBuilder->visibleSetups($profile, $viewer) && !$profile->getSetups()->isEmpty()) {
+            throw new NotFoundHttpException(sprintf('Oki profile %d not found.', $id));
+        }
+
+        return new JsonResponse($this->responseBuilder->buildDetail($profile, $viewer), JsonResponse::HTTP_OK);
     }
 
     #[Route('/{id}', name: 'update', requirements: ['id' => '\\d+'], methods: ['PATCH'])]
     public function update(int $id, Request $request): JsonResponse
     {
-        $this->requireAuthenticated();
+        $actor = $this->requireAuthenticated();
         $profile = $this->okiProfileRepository->findWithDetail($id);
         if (!$profile instanceof OkiProfile) {
             throw new NotFoundHttpException(sprintf('Oki profile %d not found.', $id));
         }
 
         try {
-            $this->entityManager->getConnection()->transactional(function () use ($profile, $request): void {
-                $this->mutationService->hydrateProfile($profile, $this->decodePayload($request));
+            $this->entityManager->getConnection()->transactional(function () use ($profile, $request, $actor): void {
+                $this->mutationService->hydrateProfile($profile, $this->decodePayload($request), $actor);
                 $this->entityManager->flush();
             });
         } catch (BadRequestHttpException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        return new JsonResponse($this->responseBuilder->buildDetail($profile), JsonResponse::HTTP_OK);
+        return new JsonResponse($this->responseBuilder->buildDetail($profile, $actor), JsonResponse::HTTP_OK);
     }
 
     #[Route('/{id}', name: 'delete', requirements: ['id' => '\\d+'], methods: ['DELETE'])]
     public function delete(int $id): JsonResponse
     {
-        $this->requireAuthenticated();
+        $actor = $this->requireAuthenticated();
+        $this->authorizationService->assertCanModerateContent($actor);
         $profile = $this->okiProfileRepository->find($id);
         if (!$profile instanceof OkiProfile) {
             throw new NotFoundHttpException(sprintf('Oki profile %d not found.', $id));
@@ -198,6 +209,13 @@ final class OkiController extends AbstractController
         }
 
         return $payload;
+    }
+
+    private function currentUser(): ?User
+    {
+        $user = $this->security->getUser();
+
+        return $user instanceof User ? $user : null;
     }
 
     private function requireAuthenticated(): User

@@ -101,7 +101,7 @@ final class ComboStepFactory
         }
 
         if (!$this->isDelayConnection($connectionType)) {
-            throw new BadRequestHttpException(sprintf('Step %d cannot define delay frames unless connection type is Delay.', $index + 1));
+            throw new BadRequestHttpException(sprintf('Step %d cannot define delay frames unless the connection type is Delay, Walk Forward or Walk Back.', $index + 1));
         }
 
         $delayMinUnverified = $this->readOptionalBoolean($stepData, 'delay_min_unverified', $index);
@@ -144,7 +144,8 @@ final class ComboStepFactory
         $normalized = strtolower((string) $connectionType->getName());
         $normalized = preg_replace('/[^a-z0-9]/', '', $normalized) ?? $normalized;
 
-        return 'delay' === $normalized;
+        // Delay and the walk connections are timed: they carry a frame window.
+        return in_array($normalized, ['delay', 'walkforward', 'walkback'], true);
     }
 
     /**

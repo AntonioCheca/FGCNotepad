@@ -7,7 +7,7 @@ use Doctrine\DBAL\Connection;
 
 class ModerationQueueService
 {
-    private const ALLOWED_CONTENT_TYPES = ['combo', 'scenario'];
+    private const ALLOWED_CONTENT_TYPES = ['combo', 'scenario', 'oki'];
     private const ALLOWED_SORT_VALUES = ['oldest', 'newest'];
 
     public function __construct(
@@ -33,6 +33,10 @@ class ModerationQueueService
         }
         if (in_array('scenario', $normalizedContentTypes, true)) {
             $rows = array_merge($rows, $this->fetchScenarioRows());
+        }
+
+        if (in_array('oki', $normalizedContentTypes, true)) {
+            $rows = array_merge($rows, $this->fetchOkiRows());
         }
 
         $includeFlagged = in_array('flagged', $normalizedStates, true);
@@ -214,6 +218,41 @@ class ModerationQueueService
             'createdAt' => self::normalizeDateValue($row['created_at'] ?? null),
             'updatedAt' => self::normalizeDateValue($row['updated_at'] ?? null),
             'flagCount' => (int) $row['flag_count'],
+        ], $rows);
+    }
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    private function fetchOkiRows(): array
+    {
+        $rows = $this->connection->executeQuery(<<<'SQL'
+            SELECT
+                os.id::text AS content_id,
+                op.id AS profile_id,
+                'oki' AS content_type,
+                c.name || ' ' || m.numpad_notation || ' setup #' || os.id AS title,
+                COALESCE(u.username, 'UNKNOWN_USER') AS author,
+                os.moderation_state AS state,
+                COALESCE(os.submitted_for_review_at, os.moderation_decided_at) AS created_at,
+                COALESCE(os.moderation_decided_at, os.submitted_for_review_at) AS updated_at
+            FROM sf6.oki_setup os
+            INNER JOIN sf6.oki_profile op ON op.id = os.oki_profile_id
+            INNER JOIN sf6.move m ON m.id = op.move_id
+            INNER JOIN sf6.character c ON c.id = m.character_id
+            LEFT JOIN forum."user" u ON u.id = os.author_id
+        SQL)->fetchAllAssociative();
+
+        return array_map(static fn (array $row): array => [
+            'contentId' => (string) $row['content_id'],
+            'contentType' => (string) $row['content_type'],
+            'title' => (string) $row['title'],
+            'author' => (string) $row['author'],
+            'state' => (string) $row['state'],
+            'createdAt' => self::normalizeDateValue($row['created_at'] ?? null),
+            'updatedAt' => self::normalizeDateValue($row['updated_at'] ?? null),
+            'flagCount' => 0,
+            'profileId' => (int) $row['profile_id'],
         ], $rows);
     }
 

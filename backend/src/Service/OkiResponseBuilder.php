@@ -7,18 +7,32 @@ use App\Entity\Move;
 use App\Entity\OkiNode;
 use App\Entity\OkiProfile;
 use App\Entity\OkiSetup;
+use App\Entity\User;
 
 final class OkiResponseBuilder
 {
-    /** @param list<OkiProfile> $profiles */
-    public function buildList(array $profiles): array
+    public function __construct(private readonly OkiSetupAccessService $accessService)
     {
-        return array_map(fn (OkiProfile $profile): array => $this->buildSummary($profile), $profiles);
     }
 
-    public function buildSummary(OkiProfile $profile): array
+    /** @return list<OkiSetup> */
+    public function visibleSetups(OkiProfile $profile, ?User $viewer): array
     {
-        $setups = $profile->getSetups()->toArray();
+        return array_values(array_filter(
+            $profile->getSetups()->toArray(),
+            fn (OkiSetup $setup): bool => $this->accessService->canView($setup, $viewer),
+        ));
+    }
+
+    /** @param list<OkiProfile> $profiles */
+    public function buildList(array $profiles, ?User $viewer): array
+    {
+        return array_map(fn (OkiProfile $profile): array => $this->buildSummary($profile, $viewer), $profiles);
+    }
+
+    public function buildSummary(OkiProfile $profile, ?User $viewer): array
+    {
+        $setups = $this->visibleSetups($profile, $viewer);
         $finalNodes = $this->collectFinalNodes($setups);
         $properties = [];
         $optionTypes = [];
@@ -51,10 +65,10 @@ final class OkiResponseBuilder
         ];
     }
 
-    public function buildDetail(OkiProfile $profile): array
+    public function buildDetail(OkiProfile $profile, ?User $viewer): array
     {
-        $payload = $this->buildSummary($profile);
-        $payload['setups'] = array_map(fn (OkiSetup $setup): array => $this->buildSetup($setup), $profile->getSetups()->toArray());
+        $payload = $this->buildSummary($profile, $viewer);
+        $payload['setups'] = array_map(fn (OkiSetup $setup): array => $this->buildSetup($setup, $viewer), $this->visibleSetups($profile, $viewer));
 
         return $payload;
     }
@@ -80,10 +94,16 @@ final class OkiResponseBuilder
         ];
     }
 
-    private function buildSetup(OkiSetup $setup): array
+    private function buildSetup(OkiSetup $setup, ?User $viewer): array
     {
+        $canEdit = $this->accessService->canEdit($setup, $viewer);
+
         return [
             'id' => $setup->getId(),
+            'moderationState' => $setup->getModerationState(),
+            'moderationReason' => $canEdit ? $setup->getModerationReason() : null,
+            'author' => $setup->getAuthor()?->getUsername(),
+            'canEdit' => $canEdit,
             'usesDriveRush' => $setup->usesDriveRush(),
             'autoTimed' => $setup->isAutoTimed(),
             'cornerOnly' => $setup->isCornerOnly(),

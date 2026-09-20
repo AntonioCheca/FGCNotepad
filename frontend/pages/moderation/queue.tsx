@@ -41,6 +41,7 @@ const CONTENT_FILTER_OPTIONS: Array<{value: ContentFilter; label: string}> = [
     {value: "all", label: "All Content"},
     {value: "combo", label: "Combos"},
     {value: "scenario", label: "Scenarios"},
+    {value: "oki", label: "Okis"},
 ];
 
 const STATE_FILTER_OPTIONS: Array<{value: StateFilter; label: string}> = [
@@ -68,6 +69,10 @@ function toApiFilters(contentType: ContentFilter, state: StateFilter, sort: Sort
 function buildContentLink(item: ModerationQueueItem): string {
     if (item.contentType === "combo") {
         return `/combos?highlightComboId=${item.contentId}`;
+    }
+
+    if (item.contentType === "oki") {
+        return `/okis/${item.profileId}`;
     }
 
     return `/scenarios/${item.contentId}`;

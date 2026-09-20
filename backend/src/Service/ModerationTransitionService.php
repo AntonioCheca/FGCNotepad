@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\ComboSequences;
 use App\Entity\BlockstringSequence;
+use App\Entity\OkiSetup;
 use App\Entity\Scenario;
 use App\Entity\User;
 use App\Util\Enum\ModerationState;
@@ -52,6 +53,48 @@ class ModerationTransitionService
             static fn (?User $decider) => $blockstring->setModerationDecidedBy($decider),
             static fn (?string $reason) => $blockstring->setModerationReason($reason),
         );
+    }
+
+    public function submitOkiSetupForReview(OkiSetup $setup): void
+    {
+        $this->submitForReview(
+            static fn (): string => $setup->getModerationState(),
+            static fn (string $state) => $setup->setModerationState($state),
+            static fn (?\DateTimeImmutable $submittedAt) => $setup->setSubmittedForReviewAt($submittedAt),
+            static fn (?\DateTimeImmutable $decidedAt) => $setup->setModerationDecidedAt($decidedAt),
+            static fn (?User $decider) => $setup->setModerationDecidedBy($decider),
+            static fn (?string $reason) => $setup->setModerationReason($reason),
+        );
+    }
+
+    public function moderateOkiSetup(OkiSetup $setup, User $actor, string $targetState, ?string $reason): void
+    {
+        $this->moderate(
+            static fn (): string => $setup->getModerationState(),
+            static fn (string $state) => $setup->setModerationState($state),
+            static fn (?\DateTimeImmutable $submittedAt) => $setup->setSubmittedForReviewAt($submittedAt),
+            static fn (?\DateTimeImmutable $decidedAt) => $setup->setModerationDecidedAt($decidedAt),
+            static fn (?User $decider) => $setup->setModerationDecidedBy($decider),
+            static fn (?string $moderationReason) => $setup->setModerationReason($moderationReason),
+            $actor,
+            $targetState,
+            $reason,
+        );
+    }
+
+    public function approveOkiSetup(OkiSetup $setup, User $actor): void
+    {
+        $this->moderateOkiSetup($setup, $actor, ModerationState::APPROVED->value, null);
+    }
+
+    public function rejectOkiSetup(OkiSetup $setup, User $actor, string $reason): void
+    {
+        $this->moderateOkiSetup($setup, $actor, ModerationState::REJECTED->value, $reason);
+    }
+
+    public function hideOkiSetup(OkiSetup $setup, User $actor, string $reason): void
+    {
+        $this->moderateOkiSetup($setup, $actor, ModerationState::HIDDEN->value, $reason);
     }
 
     public function moderateCombo(ComboSequences $combo, User $actor, string $targetState, ?string $reason): void

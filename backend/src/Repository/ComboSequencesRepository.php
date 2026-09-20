@@ -19,6 +19,43 @@ class ComboSequencesRepository extends ServiceEntityRepository
         parent::__construct($registry, ComboSequences::class);
     }
 
+    /**
+     * Id of a combo, in any moderation state, that already has exactly these ordered leaf moves joined by
+     * the same connection types (a walk or a Drive Rush Cancel makes it a different combo than a plain link).
+     * Timed windows such as walk frames are not compared.
+     *
+     * @param list<array{leaf:int,connection:int}> $steps
+     */
+    public function findIdWithSteps(array $steps): ?int
+    {
+        if ([] === $steps) {
+            return null;
+        }
+
+        $rows = $this->getEntityManager()->createQueryBuilder()
+            ->select('IDENTITY(s.parent_sequence) AS parentId', 'IDENTITY(s.child_sequence) AS childId', 'IDENTITY(s.connection_type) AS connectionId')
+            ->from(Step::class, 's')
+            ->where('s.parent_sequence IN (SELECT IDENTITY(f.parent_sequence) FROM ' . Step::class . ' f WHERE f.ordinal_in_combo = 1 AND IDENTITY(f.child_sequence) = :firstLeafId)')
+            ->setParameter('firstLeafId', $steps[0]['leaf'])
+            ->orderBy('s.parent_sequence', 'ASC')
+            ->addOrderBy('s.ordinal_in_combo', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        $byParent = [];
+        foreach ($rows as $row) {
+            $byParent[$row['parentId']][] = ['leaf' => (int) $row['childId'], 'connection' => (int) $row['connectionId']];
+        }
+
+        foreach ($byParent as $parentId => $existing) {
+            if ($existing === $steps) {
+                return (int) $parentId;
+            }
+        }
+
+        return null;
+    }
+
     public function findAllLeafs(): array
     {
         $qb = $this->createQueryBuilder('cs')

@@ -148,7 +148,8 @@ export function isDelayConnection(connection: ConnectionType | null): boolean {
 
     const normalized = connection.name.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-    return normalized === "delay";
+    // Delay and the walk connections are timed: they carry a frame window.
+    return normalized === "delay" || normalized === "walkforward" || normalized === "walkback";
 }
 
 export interface TranslateComboNotationResponse {

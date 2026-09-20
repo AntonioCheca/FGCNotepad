@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Character;
+use App\Util\ReplayMoveNotation;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -29,5 +30,26 @@ class CharacterRepository extends ServiceEntityRepository
         $stmt = $conn->executeQuery($sql);
 
         return $stmt->fetchAllAssociative();
+    }
+
+    /** Matches export names loosely ("E. Honda" finds "E.Honda"): case, spaces and punctuation are ignored. */
+    public function findOneByExportName(string $name): ?Character
+    {
+        $exact = $this->findOneBy(['name' => $name]);
+        if ($exact instanceof Character) {
+            return $exact;
+        }
+
+        $wanted = ReplayMoveNotation::characterKey($name);
+        if ('' === $wanted) {
+            return null;
+        }
+        foreach ($this->findAll() as $character) {
+            if (ReplayMoveNotation::characterKey($character->getName()) === $wanted) {
+                return $character;
+            }
+        }
+
+        return null;
     }
 }

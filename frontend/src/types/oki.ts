@@ -65,8 +65,14 @@ export interface OkiNodeLink {
     maxFrames: number | null;
 }
 
+export type OkiModerationState = "pending_review" | "approved" | "rejected" | "hidden";
+
 export interface OkiSetup {
     id: number;
+    moderationState: OkiModerationState;
+    moderationReason: string | null;
+    author: string | null;
+    canEdit: boolean;
     usesDriveRush: boolean;
     autoTimed: boolean;
     cornerOnly: boolean;
@@ -122,6 +128,7 @@ export interface OkiNodeLinkPayload {
 }
 
 export interface OkiSetupPayload {
+    id?: number;
     usesDriveRush: boolean;
     autoTimed: boolean;
     cornerOnly: boolean;

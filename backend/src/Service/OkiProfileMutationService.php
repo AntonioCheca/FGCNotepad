@@ -12,6 +12,7 @@ use App\Entity\OkiOptionInteraction;
 use App\Entity\OkiProfile;
 use App\Entity\OkiSetup;
 use App\Entity\ReversalProperty;
+use App\Entity\User;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
 use App\Util\Enum\OkiInteractionResult;
@@ -20,6 +21,7 @@ use App\Util\Enum\OkiOptionType;
 use App\Util\Enum\OkiStepType;
 use App\Util\Enum\ReversalPropertyType;
 use App\Util\Enum\ReversalType;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 final class OkiProfileMutationService
@@ -27,16 +29,26 @@ final class OkiProfileMutationService
     public function __construct(
         private readonly MoveRepository $moveRepository,
         private readonly CharacterRepository $characterRepository,
+        private readonly OkiSetupAccessService $accessService,
+        private readonly ModerationTransitionService $moderationTransitionService,
     ) {
     }
 
-    /** @param array<string, mixed> $payload */
-    public function hydrateProfile(OkiProfile $profile, array $payload): void
+    /**
+     * Applies the actor's view of the profile: payload setups with an id replace that setup (author kept),
+     * payload setups without an id are created, and setups the actor may edit but omitted are removed.
+     * Every created or replaced setup goes back to pending review; setups the actor cannot edit are untouched.
+     *
+     * @param array<string, mixed> $payload
+     */
+    public function hydrateProfile(OkiProfile $profile, array $payload, User $actor): void
     {
         $move = $this->requireMove($payload['moveId'] ?? null, 'moveId');
+        if (null !== $profile->getId() && (string) $profile->getMove()->getId() !== (string) $move->getId()) {
+            throw new BadRequestHttpException('moveId cannot be changed on an existing oki profile.');
+        }
         $profile->setMove($move);
         $profile->setFrameAdvantage($move->getFrameData()?->getOnHit());
-        $profile->clearSetups();
 
         $setups = $payload['setups'] ?? [];
         if (!is_array($setups)) {
@@ -48,8 +60,38 @@ final class OkiProfileMutationService
                 throw new BadRequestHttpException('Each setup must be an object.');
             }
 
-            $profile->addSetup($this->buildSetup($setupPayload));
+            $author = $actor;
+            $existingId = $setupPayload['id'] ?? null;
+            if (null !== $existingId && '' !== $existingId) {
+                $existing = $this->findSetup($profile, $this->requireInt($existingId, 'setup.id'));
+                if (!$this->accessService->canEdit($existing, $actor)) {
+                    throw new AccessDeniedHttpException('You cannot edit this oki setup.');
+                }
+                $author = $existing->getAuthor();
+                $profile->removeSetup($existing);
+            }
+
+            $setup = $this->buildSetup($setupPayload)->setAuthor($author);
+            $this->moderationTransitionService->submitOkiSetupForReview($setup);
+            $profile->addSetup($setup);
         }
+
+        foreach ($profile->getSetups()->toArray() as $existing) {
+            if (null !== $existing->getId() && $this->accessService->canEdit($existing, $actor)) {
+                $profile->removeSetup($existing);
+            }
+        }
+    }
+
+    private function findSetup(OkiProfile $profile, int $id): OkiSetup
+    {
+        foreach ($profile->getSetups() as $setup) {
+            if ($setup->getId() === $id) {
+                return $setup;
+            }
+        }
+
+        throw new BadRequestHttpException('setup.id does not belong to this oki profile.');
     }
 
     /** @param array<string, mixed> $payload */

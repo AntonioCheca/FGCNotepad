@@ -1,4 +1,4 @@
-export type ModerationContentType = "combo" | "scenario";
+export type ModerationContentType = "combo" | "scenario" | "oki";
 
 export type ModerationState = "pending_review" | "approved" | "rejected" | "hidden";
 
@@ -11,6 +11,7 @@ export interface ModerationQueueItem {
     createdAt: string;
     updatedAt: string;
     flagCount: number;
+    profileId?: number;
 }
 
 export interface ModerationQueueMeta {

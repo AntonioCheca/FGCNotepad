@@ -50,13 +50,68 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
         $created = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
         self::assertInstanceOf(ComboSequences::class, $created);
         self::assertSame('pending_review', $created->getModerationState());
-        self::assertSame('CH: 2LP > 5LP', $created->getName());
+        self::assertSame('CH: 2LP > 5LP [RR95Y8A56 r1-s1-c1]', $created->getName());
         self::assertCount(2, $created->getSteps());
         self::assertSame('Initial Move', $created->getSteps()->first()->getConnectionType()?->getName());
 
         $requirement = $this->entityManager->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $created]);
         self::assertInstanceOf(ComboRequirement::class, $requirement);
         self::assertTrue($requirement->isCounterHitRequired());
+    }
+
+    public function testAdminImportsComboExportBundleAndReportsPerDocumentErrors(): void
+    {
+        $this->persistComboCatalog();
+        $admin = $this->createUser([UserRole::ADMIN]);
+        $headers = $this->loginHeaders($admin->getUsername(), 'testpassword');
+        $first = $this->document([
+            $this->combo('r1-s1-c1', true, [
+                ['kind' => 'move', 'notation' => '2LP', 'name' => 'Crouching Light Punch'],
+                ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch'],
+            ], null),
+        ]);
+        $broken = $this->document([]);
+        unset($broken['source']);
+
+        $this->client->request('POST', '/api/admin/replay-combo-imports', [], [], $headers, json_encode([
+            'format' => 'combo_export_bundle_v1',
+            'documents' => [$first, $broken],
+        ], JSON_THROW_ON_ERROR));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(1, $payload['importedCount']);
+        self::assertCount(2, $payload['documents']);
+        self::assertSame(1, $payload['documents'][0]['importedCount']);
+        self::assertSame('imported', $payload['documents'][0]['results'][0]['status']);
+        self::assertSame(0, $payload['documents'][1]['importedCount']);
+        self::assertSame('source must be an object.', $payload['documents'][1]['error']);
+    }
+
+    public function testSameMoveSequenceIsRecordedAsObservationNotDuplicated(): void
+    {
+        $this->persistComboCatalog();
+        $admin = $this->createUser([UserRole::ADMIN]);
+        $headers = $this->loginHeaders($admin->getUsername(), 'testpassword');
+        $combo = fn (string $id): array => $this->combo($id, true, [
+            ['kind' => 'move', 'notation' => '2LP', 'name' => 'Crouching Light Punch'],
+            ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch'],
+        ], null);
+
+        $payloads = [];
+        foreach ([[$combo('a'), $combo('b')], [$combo('a'), $combo('c')]] as $combos) {
+            $this->client->request('POST', '/api/admin/replay-combo-imports', [], [], $headers, json_encode($this->document($combos), JSON_THROW_ON_ERROR));
+            $payloads[] = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        }
+
+        self::assertSame('imported', $payloads[0]['results'][0]['status']);
+        self::assertSame('observed', $payloads[0]['results'][1]['status']);
+        self::assertSame($payloads[0]['results'][0]['comboId'], $payloads[0]['results'][1]['comboId']);
+        self::assertSame(1, $payloads[0]['observedCount']);
+        self::assertSame('skipped', $payloads[1]['results'][0]['status']);
+        self::assertSame('Already recorded for this replay.', $payloads[1]['results'][0]['reason']);
+        self::assertSame('observed', $payloads[1]['results'][1]['status']);
+        self::assertCount(1, array_filter($this->entityManager->getRepository(ComboSequences::class)->findAll(), static fn (ComboSequences $combo): bool => str_starts_with((string) $combo->getName(), '2LP > 5LP [')));
     }
 
     public function testImportRejectsUnsupportedDocumentFormat(): void

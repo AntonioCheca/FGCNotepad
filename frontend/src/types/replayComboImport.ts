@@ -15,13 +15,20 @@ export interface ReplayComboExportDocument {
 
 export interface ReplayComboImportResultRow {
     id: string;
-    status: "imported" | "skipped";
+    status: "imported" | "observed" | "skipped";
     comboId?: number;
     reason?: string;
 }
 
-export interface ReplayComboImportResponse {
+export interface ReplayComboImportDocumentResult {
+    replayId?: string;
     importedCount: number;
+    observedCount?: number;
     skippedCount: number;
     results: ReplayComboImportResultRow[];
+    error?: string;
+}
+
+export interface ReplayComboImportResponse extends ReplayComboImportDocumentResult {
+    documents?: ReplayComboImportDocumentResult[];
 }

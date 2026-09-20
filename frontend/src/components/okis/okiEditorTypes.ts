@@ -35,6 +35,7 @@ export interface OkiTreeChildDraft {
 }
 
 export interface OkiSetupDraft {
+    id?: number;
     usesDriveRush: boolean;
     autoTimed: boolean;
     cornerOnly: boolean;
@@ -74,7 +75,7 @@ export function mapDetailToDraft(detail: OkiProfileDetail): OkiProfileDraft {
     return {
         move: {id: detail.move.id, summary: detail.move.name, characterId: detail.move.character.id},
         frameAdvantage: detail.frameAdvantage,
-        setups: detail.setups.map((setup, setupIndex) => {
+        setups: detail.setups.filter((setup) => setup.canEdit).map((setup, setupIndex) => {
             const clientIdByNodeId = new Map<number, string>();
             const nodes = setup.nodes.map((node, nodeIndex) => {
                 const clientId = `setup${setupIndex + 1}-node${nodeIndex + 1}`;
@@ -111,6 +112,7 @@ export function mapDetailToDraft(detail: OkiProfileDetail): OkiProfileDraft {
             }
 
             return {
+                id: setup.id,
                 usesDriveRush: setup.usesDriveRush,
                 autoTimed: setup.autoTimed,
                 cornerOnly: setup.cornerOnly,
@@ -132,6 +134,7 @@ export function buildOkiPayload(draft: OkiProfileDraft): OkiProfilePayload {
     return {
         moveId: draft.move.id,
         setups: draft.setups.map((setup) => ({
+            ...(setup.id === undefined ? {} : {id: setup.id}),
             usesDriveRush: setup.usesDriveRush,
             autoTimed: setup.autoTimed,
             cornerOnly: setup.cornerOnly,

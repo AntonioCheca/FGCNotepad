@@ -98,7 +98,7 @@ export function OkiEditorForm({mode, initialProfile}: OkiEditorFormProps) {
 
             <SectionCard title="Ender" variant="input">
                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(280px, 560px) minmax(160px, 220px)"}, gap: 1.1, alignItems: "center"}}>
-                    <OkiMovePicker label="Ender move" value={draft.move} onChange={handleEnderChange} />
+                    <OkiMovePicker label="Ender move" value={draft.move} disabled={mode === "edit"} onChange={handleEnderChange} />
                     <AppPaper variant="outlined" sx={{px: 1.15, py: 0.95, borderRadius: 1.5, backgroundColor: "fgc.surface.sunken"}}>
                         <AppTypography variant="caption" sx={{display: "block", color: "text.secondary", fontWeight: 800, letterSpacing: 0.4}}>FRAME ADVANTAGE</AppTypography>
                         <AppTypography variant="h6" sx={{fontWeight: 850, lineHeight: 1.2}}>{formatFrameAdvantage(draft.frameAdvantage)}</AppTypography>
