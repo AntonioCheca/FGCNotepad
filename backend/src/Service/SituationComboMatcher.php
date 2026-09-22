@@ -139,6 +139,10 @@ class SituationComboMatcher
     private function evaluateCounterState(ComboRequirement $requirement, Situation $situation): array
     {
         $state = $situation->getCounterHitState();
+        if ($requirement->isPerfectParryRequired()) {
+            return [true, ['Combo requires a Perfect Parry starter, which situations do not provide.']];
+        }
+
         if ($requirement->isPunishCounterRequired()) {
             if (Situation::COUNTER_PUNISH_COUNTER !== $state) {
                 return [true, ['Combo requires Punish Counter but the situation does not provide it.']];

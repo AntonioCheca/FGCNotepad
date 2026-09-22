@@ -7,6 +7,7 @@ use App\Entity\ComboSequences;
 use App\Entity\ConnectionType;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
+use App\Util\MoveNotationAliases;
 use App\Util\ReplayMoveNotation;
 
 /**
@@ -38,10 +39,23 @@ final class ReplayComboStepResolver
         'drive_rush_cancel' => 'drc',
     ];
 
+    /** @var array<string, array<string, list<ComboSequences>>> */
+    private array $leafsByCharacter = [];
+
+    /** @var array<string, ConnectionType>|null */
+    private ?array $connectionTypes = null;
+
     public function __construct(
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly ConnectionTypeRepository $connectionTypeRepository,
     ) {
+    }
+
+    /** Clear entity-backed caches after each import document before Doctrine clears its unit of work. */
+    public function clearCache(): void
+    {
+        $this->leafsByCharacter = [];
+        $this->connectionTypes = null;
     }
 
     /**
@@ -367,13 +381,23 @@ final class ReplayComboStepResolver
     /** @return array<string, list<ComboSequences>> */
     private function leafsByKey(Character $character): array
     {
+        $characterId = (string) $character->getId();
+        if (isset($this->leafsByCharacter[$characterId])) {
+            return $this->leafsByCharacter[$characterId];
+        }
+
         $byKey = [];
-        foreach ($this->comboSequencesRepository->findLeafsByCharacterId((string) $character->getId()) as $leaf) {
+        foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leaf) {
             $notation = $leaf->getMove()?->getNumpadNotation();
-            if (null !== $notation) {
-                $byKey[ReplayMoveNotation::key($notation)][] = $leaf;
+            if (null === $notation) {
+                continue;
+            }
+            foreach ([$notation, ...MoveNotationAliases::alternatives($notation)] as $alias) {
+                $byKey[ReplayMoveNotation::key($alias)][] = $leaf;
             }
         }
+
+        $this->leafsByCharacter[$characterId] = $byKey;
 
         return $byKey;
     }
@@ -381,6 +405,10 @@ final class ReplayComboStepResolver
     /** @return array<string, ConnectionType> */
     private function connectionTypesByKey(): array
     {
+        if (null !== $this->connectionTypes) {
+            return $this->connectionTypes;
+        }
+
         $types = [];
         foreach ($this->connectionTypeRepository->findAll() as $connectionType) {
             if ($connectionType instanceof ConnectionType) {
@@ -391,6 +419,8 @@ final class ReplayComboStepResolver
         if (!isset($types['driverushcancel']) && isset($types['drcancel'])) {
             $types['driverushcancel'] = $types['drcancel'];
         }
+
+        $this->connectionTypes = $types;
 
         return $types;
     }

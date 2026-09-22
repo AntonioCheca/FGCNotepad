@@ -10,18 +10,16 @@ use InvalidArgumentException;
 class ComboRequirementFactory
 {
     public function __construct(
-        ?CharacterObjectCatalog $catalog = null,
+        private readonly CharacterResourceService $catalog,
     ) {
-        $this->catalog = $catalog ?? new CharacterObjectCatalog();
     }
-
-    private CharacterObjectCatalog $catalog;
 
     /** @param array<string, mixed> $requirements */
     public function createFromPayload(ComboSequences $sequence, array $requirements): ?ComboRequirement
     {
         $counterHitRequired = (bool) ($requirements['counter_hit_required'] ?? false);
         $punishCounterRequired = (bool) ($requirements['punish_counter_required'] ?? false);
+        $perfectParryRequired = (bool) ($requirements['perfect_parry_required'] ?? false);
         $cornerRequired = (bool) ($requirements['corner_required'] ?? false);
         $airborneRequired = (bool) ($requirements['airborne_required'] ?? false);
         $notCrouchingRequired = (bool) ($requirements['not_crouching_required'] ?? false);
@@ -42,6 +40,7 @@ class ComboRequirementFactory
         $hasBooleanRequirement =
             $counterHitRequired
             || $punishCounterRequired
+            || $perfectParryRequired
             || $cornerRequired
             || $airborneRequired
             || $notCrouchingRequired
@@ -55,6 +54,7 @@ class ComboRequirementFactory
         $comboRequirement->setSequence($sequence)
             ->setCounterHitRequired($counterHitRequired)
             ->setPunishCounterRequired($punishCounterRequired)
+            ->setPerfectParryRequired($perfectParryRequired)
             ->setCornerRequired($cornerRequired)
             ->setAirborneRequired($airborneRequired)
             ->setNotCrouchingRequired($notCrouchingRequired)

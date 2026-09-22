@@ -25,6 +25,8 @@ import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {FrameDataEditableColumn, FrameDataModerationMove} from "@/src/types/frameDataModeration";
+import {MoveResourceEffectsSection} from "@/src/components/resources/MoveResourceEffectsSection";
+import {CharacterResource} from "@/src/types/characterResource";
 
 function normalizeApiError(error: unknown, fallbackMessage: string): string {
     if (typeof error !== "object" || error === null) {
@@ -50,7 +52,8 @@ function manualMetadataFor(move: FrameDataModerationMove): {whiffOnCrouch: boole
 export default function FrameDataModerationPage() {
     const authContext = React.useContext(AuthContext);
     const {characters, loading: loadingCharacters} = useCharacters();
-    const {getMovesForCharacter, saveOverride, saveManualMetadata} = useFrameDataModeration();
+    const {getMovesForCharacter, saveOverride, saveManualMetadata, saveResourceEffects} = useFrameDataModeration();
+    const [resources, setResources] = React.useState<CharacterResource[]>([]);
 
     const [selectedCharacterId, setSelectedCharacterId] = React.useState("");
     const [columns, setColumns] = React.useState<FrameDataEditableColumn[]>([]);
@@ -78,6 +81,7 @@ export default function FrameDataModerationPage() {
         try {
             const payload = await getMovesForCharacter(characterId);
             setColumns(payload.columns);
+            setResources(payload.resources ?? []);
             setMoves(payload.moves.map((move) => ({...move, manualMetadata: manualMetadataFor(move)})));
             const nextDrafts: Record<string, string> = {};
             for (const move of payload.moves) {
@@ -140,6 +144,20 @@ export default function FrameDataModerationPage() {
             showToast("success", "Manual metadata saved.");
         } catch (error: unknown) {
             showToast("error", normalizeApiError(error, "Unable to save manual metadata."));
+        } finally {
+            setPendingCell(null);
+        }
+    };
+
+    const handleSaveResourceEffects = async (move: FrameDataModerationMove, effects: Array<{resourceId: number; mode: "relative" | "set"; amount: number}>) => {
+        const key = `effects:${move.moveId}`;
+        setPendingCell(key);
+        try {
+            const response = await saveResourceEffects(move.moveId, effects);
+            setMoves((current) => current.map((currentMove) => currentMove.moveId === move.moveId ? {...currentMove, resourceEffects: response.resourceEffects} : currentMove));
+            showToast("success", "Resource effects saved.");
+        } catch (error: unknown) {
+            showToast("error", normalizeApiError(error, "Unable to save resource effects."));
         } finally {
             setPendingCell(null);
         }
@@ -231,6 +249,17 @@ export default function FrameDataModerationPage() {
                         </AppTableContainer>
                     )}
                 </SectionCard>
+
+                {resources.length > 0 && moves.length > 0 ? (
+                    <SectionCard title="Resource Effects" variant="review">
+                        <MoveResourceEffectsSection
+                            moves={moves}
+                            resources={resources}
+                            pendingMoveId={pendingCell?.startsWith("effects:") ? pendingCell.slice("effects:".length) : null}
+                            onSave={(move, effects) => void handleSaveResourceEffects(move, effects)}
+                        />
+                    </SectionCard>
+                ) : null}
 
                 <SectionCard title="Manual Metadata" variant="review">
                     {moves.length === 0 ? (

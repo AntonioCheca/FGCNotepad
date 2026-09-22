@@ -32,6 +32,7 @@ export interface ComboRequirementFilters {
     isEssential: ComboBooleanFilterValue;
     counterHitRequired: ComboBooleanFilterValue;
     punishCounterRequired: ComboBooleanFilterValue;
+    perfectParryRequired: ComboBooleanFilterValue;
     cornerRequired: ComboBooleanFilterValue;
     airborneRequired: ComboBooleanFilterValue;
     notCrouchingRequired: ComboBooleanFilterValue;
@@ -51,6 +52,7 @@ export interface ComboFilterState {
     situation: ComboSituationOption | null;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
+    firstMoveAfterDriveRush: boolean;
     enderMove: ComboMoveSearchOption | null;
     enderMoveQuery: string;
     minDifficulty: string;
@@ -72,6 +74,7 @@ export interface ComboSearchFilters {
     characterId?: string;
     situationId?: number;
     firstMoveId?: string;
+    firstMoveAfterDriveRush?: boolean;
     enderMoveId?: string;
     minDifficulty?: number;
     maxDifficulty?: number;
@@ -87,6 +90,7 @@ export interface ComboSearchFilters {
     isEssential?: boolean;
     counterHitRequired?: boolean;
     punishCounterRequired?: boolean;
+    perfectParryRequired?: boolean;
     cornerRequired?: boolean;
     airborneRequired?: boolean;
     notCrouchingRequired?: boolean;

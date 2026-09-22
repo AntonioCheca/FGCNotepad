@@ -3,6 +3,7 @@
 namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
+use App\Entity\ComboMetrics;
 use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
 use App\Entity\ComboSequenceType;
@@ -59,6 +60,46 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
         self::assertTrue($requirement->isCounterHitRequired());
     }
 
+    public function testPerfectParryStarterImportsWithPunishCounterAndObservedDamage(): void
+    {
+        $this->persistComboCatalog();
+        $admin = $this->createUser([UserRole::ADMIN]);
+        $headers = $this->loginHeaders($admin->getUsername(), 'testpassword');
+        $sequence = [
+            ['kind' => 'move', 'notation' => '2LP', 'name' => 'Crouching Light Punch'],
+            ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch'],
+        ];
+        $perfectParryCombo = ['damage' => 230, 'starter_defense' => ['perfect_parry' => true]] + $this->combo('r1-s1-c1', true, $sequence, 'punish_counter');
+        $legacyCombo = ['starter_defense' => ['perfect_parry' => null]] + $this->combo('r1-s1-c2', true, [$sequence[1], $sequence[0]], 'punish_counter');
+        $perfectParryWithoutPunishCounter = ['starter_defense' => ['perfect_parry' => true]] + $this->combo('r1-s1-c3', true, [$sequence[0]], 'normal');
+
+        $this->client->request('POST', '/api/admin/replay-combo-imports', [], [], $headers, json_encode(
+            $this->document([$perfectParryCombo, $legacyCombo, $perfectParryWithoutPunishCounter]),
+            JSON_THROW_ON_ERROR
+        ));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(['imported', 'imported', 'skipped'], array_column($payload['results'], 'status'));
+        self::assertSame('starter_defense.perfect_parry requires a punish_counter starter.', $payload['results'][2]['reason']);
+
+        $perfectParry = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
+        self::assertInstanceOf(ComboSequences::class, $perfectParry);
+        self::assertSame('PP+PC: 2LP > 5LP [RR95Y8A56 r1-s1-c1]', $perfectParry->getName());
+        self::assertSame(230, $this->entityManager->getRepository(ComboMetrics::class)->findOneBy(['sequence' => $perfectParry])?->getDamage());
+        $requirement = $this->entityManager->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $perfectParry]);
+        self::assertInstanceOf(ComboRequirement::class, $requirement);
+        self::assertTrue($requirement->isPerfectParryRequired());
+        self::assertTrue($requirement->isPunishCounterRequired());
+
+        $legacy = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][1]['comboId']);
+        self::assertInstanceOf(ComboSequences::class, $legacy);
+        self::assertStringStartsWith('PC: ', (string) $legacy->getName());
+        $legacyRequirement = $this->entityManager->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $legacy]);
+        self::assertInstanceOf(ComboRequirement::class, $legacyRequirement);
+        self::assertFalse($legacyRequirement->isPerfectParryRequired());
+    }
+
     public function testAdminImportsComboExportBundleAndReportsPerDocumentErrors(): void
     {
         $this->persistComboCatalog();
@@ -86,6 +127,32 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
         self::assertSame('imported', $payload['documents'][0]['results'][0]['status']);
         self::assertSame(0, $payload['documents'][1]['importedCount']);
         self::assertSame('source must be an object.', $payload['documents'][1]['error']);
+    }
+
+    public function testBundleImportsRemainUsableAcrossDocumentBoundaries(): void
+    {
+        $this->persistComboCatalog();
+        $admin = $this->createUser([UserRole::ADMIN]);
+        $headers = $this->loginHeaders($admin->getUsername(), 'testpassword');
+        $combo = $this->combo('r1-s1-c1', true, [
+            ['kind' => 'move', 'notation' => '2LP', 'name' => 'Crouching Light Punch'],
+            ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch'],
+        ], null);
+
+        $this->client->request('POST', '/api/admin/replay-combo-imports', [], [], $headers, json_encode([
+            'format' => 'combo_export_bundle_v1',
+            'documents' => [
+                $this->document([$combo], 'BUNDLEA001'),
+                $this->document([$combo], 'BUNDLEB002'),
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(1, $payload['importedCount']);
+        self::assertSame(1, $payload['observedCount']);
+        self::assertSame('imported', $payload['documents'][0]['results'][0]['status']);
+        self::assertSame('observed', $payload['documents'][1]['results'][0]['status']);
     }
 
     public function testSameMoveSequenceIsRecordedAsObservationNotDuplicated(): void
@@ -173,12 +240,12 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
      *
      * @return array<string, mixed>
      */
-    private function document(array $combos): array
+    private function document(array $combos, string $replayId = 'RR95Y8A56'): array
     {
         return [
             'format' => 'combo_export_v1',
             'source' => [
-                'replay_id' => 'RR95Y8A56',
+                'replay_id' => $replayId,
                 'source_sha256' => str_repeat('a', 64),
                 'extractor_schema_version' => '0.17',
                 'analysis_format' => 'replay_analysis_v1',

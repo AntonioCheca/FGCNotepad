@@ -8,6 +8,7 @@ use App\Entity\FrameDataImportBatch;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
+use App\Util\MoveNotationAliases;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class FrameDataUpsertService
@@ -128,6 +129,7 @@ final class FrameDataUpsertService
      */
     public function getOrCreateMoveFrameData(Character $character, string $numpadNotation, FrameDataImportResult $result, bool $dryRun): array
     {
+        $numpadNotation = MoveNotationAliases::canonicalize($numpadNotation);
         $cacheKey = sprintf('%s:%s', $character->getId()?->toRfc4122() ?? spl_object_id($character), $numpadNotation);
         if (isset($this->moveCache[$cacheKey])) {
             $move = $this->moveCache[$cacheKey];

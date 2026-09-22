@@ -11,6 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: "combo_requirement", schema: "sf6")]
 #[ORM\Index(name: "idx_combo_requirement_counter_hit", columns: ["counter_hit_required"])]
 #[ORM\Index(name: "idx_combo_requirement_punish_counter", columns: ["punish_counter_required"])]
+#[ORM\Index(name: "idx_combo_requirement_perfect_parry", columns: ["perfect_parry_required"])]
 #[ORM\Index(name: "idx_combo_requirement_corner", columns: ["corner_required"])]
 #[ORM\Index(name: "idx_combo_requirement_airborne", columns: ["airborne_required"])]
 #[ORM\Index(name: "idx_combo_requirement_not_crouching", columns: ["not_crouching_required"])]
@@ -39,6 +40,9 @@ class ComboRequirement
 
     #[ORM\Column]
     private ?bool $punish_counter_required = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $perfect_parry_required = false;
 
     #[ORM\Column]
     private ?bool $corner_required = null;
@@ -114,6 +118,18 @@ class ComboRequirement
     public function setPunishCounterRequired(bool $punish_counter_required): static
     {
         $this->punish_counter_required = $punish_counter_required;
+
+        return $this;
+    }
+
+    public function isPerfectParryRequired(): bool
+    {
+        return $this->perfect_parry_required;
+    }
+
+    public function setPerfectParryRequired(bool $perfect_parry_required): static
+    {
+        $this->perfect_parry_required = $perfect_parry_required;
 
         return $this;
     }

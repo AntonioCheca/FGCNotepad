@@ -40,6 +40,7 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
         setSituation,
         setFirstMove,
         setFirstMoveQuery,
+        setFirstMoveAfterDriveRush,
         setEnderMove,
         setEnderMoveQuery,
         setMinDifficulty,
@@ -136,6 +137,7 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
                 selectedSituation={state.situation}
                 firstMove={state.firstMove}
                 firstMoveQuery={state.firstMoveQuery}
+                firstMoveAfterDriveRush={state.firstMoveAfterDriveRush}
                 firstMoveOptions={firstMoveOptions}
                 searchingFirstMoves={searchingFirstMoves}
                 enderMove={state.enderMove}
@@ -152,6 +154,7 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
                 onSituationChange={setSituation}
                 onFirstMoveChange={setFirstMove}
                 onFirstMoveQueryChange={setFirstMoveQuery}
+                onFirstMoveAfterDriveRushChange={setFirstMoveAfterDriveRush}
                 onEnderMoveChange={setEnderMove}
                 onEnderMoveQueryChange={setEnderMoveQuery}
                 onQueryChange={setQuery}

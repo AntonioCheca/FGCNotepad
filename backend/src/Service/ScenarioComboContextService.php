@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 class ScenarioComboContextService
 {
     public function __construct(
-        private readonly CharacterObjectCatalog $catalog,
+        private readonly CharacterResourceService $catalog,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }

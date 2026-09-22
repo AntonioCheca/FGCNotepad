@@ -158,7 +158,7 @@ function buildFiltersFromQuery(query: Record<string, string | string[] | undefin
             filters[key] = value;
         }
     }
-    for (const key of ["counterHitRequired", "punishCounterRequired", "cornerRequired"] as const) {
+    for (const key of ["firstMoveAfterDriveRush", "counterHitRequired", "punishCounterRequired", "perfectParryRequired", "cornerRequired"] as const) {
         const value = boolValue(key);
         if (value !== undefined) {
             filters[key] = value;

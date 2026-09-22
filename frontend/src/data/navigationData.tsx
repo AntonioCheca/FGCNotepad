@@ -153,6 +153,13 @@ export const navigationSections: NavigationSection[] = [
                 allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
             },
             {
+                label: "Resources",
+                href: "/moderation/resources",
+                icon: <ArticleOutlinedIcon/>,
+                requiresAuth: true,
+                allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
+            },
+            {
                 label: "Situations",
                 href: "/admin/situations",
                 icon: <SearchOutlinedIcon/>,

@@ -93,6 +93,16 @@ const useCombos = () => {
         }
     }, [request]);
 
+    const previewResourceLedger = useCallback(async (payload) => {
+        const data = await request(() => api.post("/combo-sequences/resource-ledger", payload));
+        return data.ledger;
+    }, [request]);
+
+    const getResourceLedger = useCallback(async (id) => {
+        const data = await request(() => api.get(`/combo-sequences/${id}/resource-ledger`));
+        return data.ledger;
+    }, [request]);
+
     const fetchRequirementObjects = useCallback(async () => {
         try {
             return await request(() =>
@@ -147,6 +157,8 @@ const useCombos = () => {
         translateComboNotation,
         estimateComboDamage,
         estimateComboResources,
+        previewResourceLedger,
+        getResourceLedger,
         fetchRequirementObjects,
         getCombo,
         updateCombo,

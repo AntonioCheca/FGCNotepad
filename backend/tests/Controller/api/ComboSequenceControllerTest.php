@@ -160,6 +160,40 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame($notSideSwitching->getName(), $payload[0]['name']);
     }
 
+    public function testFirstMoveFilterCanTargetMoveAfterRawDriveRush(): void
+    {
+        $comboType = (new ComboSequenceType())->setName('combo');
+        $leafType = (new ComboSequenceType())->setName('leaf');
+        $visibility = (new Visibility())->setName('public');
+        $connectionType = (new ConnectionType())->setName('Initial Move');
+        foreach ([$comboType, $leafType, $visibility, $connectionType] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+
+        $character = new Character();
+        $character->setName('Ryu');
+        $this->entityManager->persist($character);
+
+        $heavyKick = $this->createLeafForFilters($character, $leafType, $visibility, '5HK', 'normal');
+        $driveRush = $this->createLeafForFilters($character, $leafType, $visibility, 'DR', 'drive');
+
+        $normal = $this->createComboForFilters('Normal 5HK', $comboType, $visibility, $heavyKick, null, $connectionType, 2000, 4, false, false);
+        $afterDriveRush = $this->createComboForFilters('DR 5HK', $comboType, $visibility, $driveRush, $heavyKick, $connectionType, 2500, 5, false, false);
+        $this->entityManager->flush();
+
+        $moveId = urlencode((string) $heavyKick->getMove()?->getId());
+        $names = function (string $query): array {
+            $this->client->request('GET', '/api/combo-sequences?' . $query, [], [], $this->getHeaders());
+            $response = $this->client->getResponse();
+            $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+
+            return array_column(json_decode((string) $response->getContent(), true), 'name');
+        };
+
+        $this->assertSame([$normal->getName()], $names('firstMoveId=' . $moveId));
+        $this->assertSame([$afterDriveRush->getName()], $names('firstMoveId=' . $moveId . '&firstMoveAfterDriveRush=true'));
+    }
+
     public function testListIncludesOwnPendingCombosButHidesOthers(): void
     {
         $comboType = new ComboSequenceType();
@@ -353,6 +387,35 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertNotContains($tooHardCombo->getName(), $returnedNames);
         $this->assertNotContains($wrongRequirementCombo->getName(), $returnedNames);
         $this->assertNotContains($wrongMoveTypeCombo->getName(), $returnedNames);
+    }
+
+    public function testListFiltersByPerfectParryRequirement(): void
+    {
+        $comboType = (new ComboSequenceType())->setName('combo');
+        $leafType = (new ComboSequenceType())->setName('leaf');
+        $visibility = (new Visibility())->setName('public');
+        $connectionType = (new ConnectionType())->setName('Initial Move');
+        $character = (new Character())->setName('Ken');
+        foreach ([$comboType, $leafType, $visibility, $connectionType, $character] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+
+        $starterLeaf = $this->createLeafForFilters($character, $leafType, $visibility, '5HP', 'normal');
+        $perfectParryCombo = $this->createComboForFilters('Ken PP Punish', $comboType, $visibility, $starterLeaf, null, $connectionType, 1300, 3, false, false);
+        $perfectParryCombo->getComboRequirement()?->setPunishCounterRequired(true)->setPerfectParryRequired(true);
+        $this->createComboForFilters('Ken Plain Punish', $comboType, $visibility, $starterLeaf, null, $connectionType, 2600, 3, false, false);
+        $this->entityManager->flush();
+
+        $namesFor = function (string $value) use ($character): array {
+            $this->client->request('GET', sprintf('/api/combo-sequences?characterId=%s&perfectParryRequired=%s', urlencode((string) $character->getId()), $value), [], [], $this->getHeaders());
+            self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+            $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+            return array_map(static fn (array $row): string => (string) ($row['name'] ?? ''), $payload);
+        };
+
+        self::assertSame(['Ken PP Punish'], $namesFor('true'));
+        self::assertSame(['Ken Plain Punish'], $namesFor('false'));
     }
 
     public function testTranslateNotationReturnsSteps(): void
@@ -585,6 +648,56 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame([], $payload['errors']);
     }
 
+    public function testEstimateDamageAppliesPerfectParryStarterMarkerAsPunishCounterAtHalfScaling(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-damage',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'PP cr. mp, cr. hk',
+            ])
+        );
+
+        $response = $this->client->getResponse();
+        $payload = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame([360, 450], $payload['stepDamages']);
+        $this->assertSame(810, $payload['estimatedDamage']);
+        $this->assertTrue($payload['requirements']['perfect_parry_required']);
+        $this->assertTrue($payload['requirements']['punish_counter_required']);
+        $this->assertSame([], $payload['errors']);
+    }
+
+    public function testEstimateDamagePerfectParryOptionImpliesPunishCounterStarter(): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-damage',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => 'cr. mp, cr. hk',
+                'options' => ['perfectParry' => true],
+            ])
+        );
+
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame([360, 450], $payload['stepDamages']);
+    }
+
     public function testEstimateDamageUsesDirectionalTargetComboComposite(): void
     {
         $character = $this->seedTranslationData();
@@ -803,6 +916,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
     public function testCreateFullComboPersistsRequirementsAndSpecificCharacter(): void
     {
+        $this->seedCharacterResources();
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
 
         $payload = [
@@ -1582,6 +1696,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
     public function testListRequirementObjectsReturnsCatalog(): void
     {
+        $this->seedCharacterResources();
         $this->client->request(
             'GET',
             '/api/combo-sequences/requirements/objects',

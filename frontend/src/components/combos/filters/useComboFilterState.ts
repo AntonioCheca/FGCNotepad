@@ -18,6 +18,7 @@ type ComboFilterAction =
     | {type: "setSituation"; value: ComboSituationOption | null}
     | {type: "setFirstMove"; value: ComboMoveSearchOption | null}
     | {type: "setFirstMoveQuery"; value: string}
+    | {type: "setFirstMoveAfterDriveRush"; value: boolean}
     | {type: "setEnderMove"; value: ComboMoveSearchOption | null}
     | {type: "setEnderMoveQuery"; value: string}
     | {type: "setDifficultyRange"; minDifficulty?: string; maxDifficulty?: string}
@@ -40,13 +41,15 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
         case "setQuery":
             return {...state, query: action.value};
         case "selectCharacter":
-            return {...state, characterId: action.characterId, firstMove: null, firstMoveQuery: "", enderMove: null, enderMoveQuery: ""};
+            return {...state, characterId: action.characterId, firstMove: null, firstMoveQuery: "", firstMoveAfterDriveRush: false, enderMove: null, enderMoveQuery: ""};
         case "setSituation":
             return {...state, situation: action.value};
         case "setFirstMove":
             return {...state, firstMove: action.value};
         case "setFirstMoveQuery":
             return {...state, firstMoveQuery: action.value};
+        case "setFirstMoveAfterDriveRush":
+            return {...state, firstMoveAfterDriveRush: action.value};
         case "setEnderMove":
             return {...state, enderMove: action.value};
         case "setEnderMoveQuery":
@@ -132,6 +135,7 @@ export function useComboFilterState() {
         setSituation: (value: ComboSituationOption | null) => dispatch({type: "setSituation", value}),
         setFirstMove: (value: ComboMoveSearchOption | null) => dispatch({type: "setFirstMove", value}),
         setFirstMoveQuery: (value: string) => dispatch({type: "setFirstMoveQuery", value}),
+        setFirstMoveAfterDriveRush: (value: boolean) => dispatch({type: "setFirstMoveAfterDriveRush", value}),
         setEnderMove: (value: ComboMoveSearchOption | null) => dispatch({type: "setEnderMove", value}),
         setEnderMoveQuery: (value: string) => dispatch({type: "setEnderMoveQuery", value}),
         setMinDifficulty: (value: string) => dispatch({type: "setDifficultyRange", minDifficulty: value}),

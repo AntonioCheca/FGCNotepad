@@ -1,3 +1,4 @@
+import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 import {useEffect, useMemo, useState} from "react";
 import useCombos from "@/hooks/useCombos";
 import {useCharacters} from "@/hooks/useCharacters";
@@ -22,6 +23,7 @@ import {
     buildRequirementsPayload,
     createEmptyStep,
     emptyRequirements,
+    applyRequirementToggle,
     FormNotice,
     getCompletedStepsCount,
     parseNotationTokens,
@@ -64,7 +66,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
     const [showAdvancedConditions, setShowAdvancedConditions] = useState<boolean>(false);
 
-    const {fetchLeafs, createFullCombo, translateComboNotation, estimateComboDamage, estimateComboResources, fetchRequirementObjects} = useCombos();
+    const {fetchLeafs, createFullCombo, translateComboNotation, estimateComboDamage, estimateComboResources, fetchRequirementObjects, previewResourceLedger} = useCombos();
+    const [resourceLedger, setResourceLedger] = useState<ResourceLedgerEntry[]>([]);
     const [leafs, setLeafs] = useState<LeafSequenceOption[]>([]);
 
     const {characters: characterOptions, loading: charactersLoading} = useCharacters();
@@ -218,20 +221,34 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         });
     };
 
+    const refreshDamageEstimate = async (characterId: string, perfectParry: boolean) => {
+        try {
+            const estimation = (await estimateComboDamage({
+                characterId,
+                notation: notationInput,
+                options: {
+                    perfectParry,
+                    driveRushMidCombo: false,
+                    driveImpactState: "none",
+                    specialCancelIntoSa3: false,
+                },
+            })) as EstimateComboDamageResponse;
+
+            if (Number.isFinite(estimation.estimatedDamage)) {
+                setDamage(String(Math.trunc(estimation.estimatedDamage)));
+            }
+        } catch {
+            setNotice({severity: "warning", message: "Notation parsed but damage estimate is currently unavailable."});
+        }
+    };
+
     const handleRequirementToggle = (key: (typeof requirementToggles)[number]["key"], checked: boolean) => {
-        setRequirements((previousRequirements) => {
-            const nextRequirements = {...previousRequirements, [key]: checked};
+        setRequirements((previousRequirements) => applyRequirementToggle(previousRequirements, key, checked));
 
-            if (key === "counter_hit_required" && checked) {
-                nextRequirements.punish_counter_required = false;
-            }
-
-            if (key === "punish_counter_required" && checked) {
-                nextRequirements.counter_hit_required = false;
-            }
-
-            return nextRequirements;
-        });
+        const characterId = String(character?.id ?? "").trim();
+        if (key === "perfect_parry_required" && characterId && notationInput.trim() && steps.length > 0) {
+            void refreshDamageEstimate(characterId, checked);
+        }
     };
 
     const selectedRequirementObject = requirementObjects.find((option) => option.name === specificRequirementObject) ?? null;
@@ -270,11 +287,13 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             setParseTokens(parsedTokenList);
             setSelectedStepIndex(translatedSteps.length > 0 ? 0 : null);
 
+            const perfectParry = Boolean(translated.requirements?.perfect_parry_required || requirements.perfect_parry_required);
             if (translated.requirements) {
                 setRequirements((previousRequirements) => ({
                     ...previousRequirements,
-                    punish_counter_required: Boolean(translated.requirements?.punish_counter_required),
-                    counter_hit_required: Boolean(translated.requirements?.counter_hit_required),
+                    punish_counter_required: Boolean(translated.requirements?.punish_counter_required) || perfectParry,
+                    counter_hit_required: Boolean(translated.requirements?.counter_hit_required) && !perfectParry,
+                    perfect_parry_required: perfectParry,
                     not_crouching_required: Boolean(translated.requirements?.not_crouching_required),
                 }));
             }
@@ -286,24 +305,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 }
             }
 
-            try {
-                const estimation = (await estimateComboDamage({
-                    characterId,
-                    notation: notationInput,
-                    options: {
-                        perfectParry: false,
-                        driveRushMidCombo: false,
-                        driveImpactState: "none",
-                        specialCancelIntoSa3: false,
-                    },
-                })) as EstimateComboDamageResponse;
-
-                if (Number.isFinite(estimation.estimatedDamage)) {
-                    setDamage(String(Math.trunc(estimation.estimatedDamage)));
-                }
-            } catch {
-                setNotice({severity: "warning", message: "Notation parsed but damage estimate is currently unavailable."});
-            }
+            await refreshDamageEstimate(characterId, perfectParry);
 
             try {
                 const resources = (await estimateComboResources({
@@ -486,7 +488,40 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         };
     }, [character?.id, estimateComboResources, setDriveCost, setDriveGain, setMinimumDriveCost, setMinimumDriveCostNoBurnout, setSuperCost, setSuperGain, steps]);
 
+    useEffect(() => {
+        if (validateSteps(steps) !== null) {
+            setResourceLedger([]);
+            return;
+        }
+
+        const starts: Record<string, number> = {};
+        for (const state of objectStates) {
+            const required = state.status_required === "true" ? 1 : Number.parseInt(state.status_required, 10);
+            if (state.object_key && Number.isFinite(required)) {
+                starts[state.object_key] = required;
+            }
+        }
+
+        let canceled = false;
+        previewResourceLedger({leafSequenceIds: steps.map((step) => step.move?.id ?? 0), starts})
+            .then((ledger: ResourceLedgerEntry[]) => {
+                if (!canceled) {
+                    setResourceLedger(ledger);
+                }
+            })
+            .catch(() => {
+                if (!canceled) {
+                    setResourceLedger([]);
+                }
+            });
+
+        return () => {
+            canceled = true;
+        };
+    }, [objectStates, previewResourceLedger, steps]);
+
     return {
+        resourceLedger,
         title,
         character,
         damage,

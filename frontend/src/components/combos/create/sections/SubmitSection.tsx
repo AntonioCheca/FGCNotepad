@@ -15,6 +15,7 @@ import type {
     RequirementObjectOption,
 } from "@/src/types/combo";
 import {
+    isRequirementToggleLocked,
     requirementToggles,
     type RequirementToggleKey,
 } from "@/src/components/combos/create/utils/comboForm";
@@ -265,11 +266,7 @@ export function SubmitSection({
                                 key={key}
                                 label={label}
                                 checked={Boolean(requirements[key])}
-                                disabled={
-                                    readOnly
-                                    || (key === "counter_hit_required" && Boolean(requirements.punish_counter_required))
-                                    || (key === "punish_counter_required" && Boolean(requirements.counter_hit_required))
-                                }
+                                disabled={readOnly || isRequirementToggleLocked(requirements, key)}
                                 onChange={(checked) => onRequirementToggle(key, checked)}
                             />
                         ))}

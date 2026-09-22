@@ -302,6 +302,7 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
 
     public function testScenarioCharacterStatusContextUnlocksMatchingCombo(): void
     {
+        $this->seedCharacterResources();
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
         $starterMove = $this->createMoveWithDamage($attacker, '2LK', 260);
         $this->createComboForStarter($attacker, $starterMove, 1000, false, false);

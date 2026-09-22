@@ -2,6 +2,7 @@
 
 namespace App\Tests;
 
+use App\Entity\CharacterObject;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -37,6 +38,28 @@ abstract class DatabaseTestCase extends WebTestCase
         $this->client = null;
 
         parent::tearDown();
+    }
+
+    protected function seedCharacterResources(): void
+    {
+        $definitions = [
+            ['Jamie', 'jamie_drinks', 'Drinks', CharacterObject::KIND_SCALER, 'integer', 4, false],
+            ['Ryu', 'ryu_denjin_charge', 'Denjin Charge', CharacterObject::KIND_STOCK, 'boolean', null, true],
+        ];
+        foreach ($definitions as [$characterName, $key, $name, $kind, $statusType, $max, $consumed]) {
+            $this->entityManager->persist(
+                (new CharacterObject())
+                    ->setCharacterName($characterName)
+                    ->setObjectKey($key)
+                    ->setName($name)
+                    ->setKind($kind)
+                    ->setStatusType($statusType)
+                    ->setMaxStatus($max)
+                    ->setCanBeConsumed($consumed)
+                    ->setCanBeAddedRelative(true)
+            );
+        }
+        $this->entityManager->flush();
     }
 
     private function truncateDatabase(): void

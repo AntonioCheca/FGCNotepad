@@ -14,6 +14,7 @@ import type {
 export type RequirementToggleKey =
     | "counter_hit_required"
     | "punish_counter_required"
+    | "perfect_parry_required"
     | "corner_required"
     | "airborne_required"
     | "not_crouching_required"
@@ -27,6 +28,7 @@ export type FormNotice = {
 export const requirementToggles: Array<{ key: RequirementToggleKey; label: string }> = [
     {key: "counter_hit_required", label: "Counter Hit Required"},
     {key: "punish_counter_required", label: "Punish Counter Required"},
+    {key: "perfect_parry_required", label: "Perfect Parry Starter"},
     {key: "corner_required", label: "Corner Required"},
     {key: "airborne_required", label: "Airborne Required"},
     {key: "not_crouching_required", label: "Opponent Not Crouching"},
@@ -36,11 +38,47 @@ export const requirementToggles: Array<{ key: RequirementToggleKey; label: strin
 export const emptyRequirements: ComboRequirementsPayload = {
     counter_hit_required: false,
     punish_counter_required: false,
+    perfect_parry_required: false,
     corner_required: false,
     airborne_required: false,
     not_crouching_required: false,
     side_switches_required: false,
 };
+
+export function applyRequirementToggle(requirements: ComboRequirementsPayload, key: RequirementToggleKey, checked: boolean): ComboRequirementsPayload {
+    const next = {...requirements, [key]: checked};
+
+    if (checked && key === "counter_hit_required") {
+        next.punish_counter_required = false;
+        next.perfect_parry_required = false;
+    }
+
+    if (checked && (key === "punish_counter_required" || key === "perfect_parry_required")) {
+        next.counter_hit_required = false;
+    }
+
+    if (checked && key === "perfect_parry_required") {
+        next.punish_counter_required = true;
+    }
+
+    if (!checked && key === "punish_counter_required") {
+        next.perfect_parry_required = false;
+    }
+
+    return next;
+}
+
+export function isRequirementToggleLocked(requirements: ComboRequirementsPayload, key: RequirementToggleKey): boolean {
+    if (key === "counter_hit_required") {
+        return Boolean(requirements.punish_counter_required);
+    }
+
+    if (key === "punish_counter_required") {
+        return Boolean(requirements.counter_hit_required || requirements.perfect_parry_required);
+    }
+
+    return false;
+}
 
 export function createEmptyStep(): StepDraft {
     return {

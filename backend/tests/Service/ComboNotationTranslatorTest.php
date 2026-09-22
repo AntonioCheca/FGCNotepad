@@ -69,6 +69,21 @@ class ComboNotationTranslatorTest extends TestCase
         self::assertSame([], $result['errors']);
     }
 
+    public function testEitherInputOfAnAliasedMoveResolvesToTheSameLeaf(): void
+    {
+        $leafOptions = [
+            ...$this->leafOptions,
+            ['id' => 130, 'notation' => '4MP or 6MP', 'aliases' => ['4MP', '6MP'], 'moveType' => 'normal', 'cancelTypeCodes' => []],
+        ];
+
+        foreach (['4MP', '6MP'] as $typed) {
+            $result = $this->translator->translateNotationToInternalSteps(sprintf('2LP, %s', $typed), $leafOptions, $this->connectionTypes);
+
+            self::assertSame([], $result['errors']);
+            self::assertSame(130, $result['steps'][1]['child_sequence_id'] ?? $result['steps'][1]['leaf_id'] ?? null);
+        }
+    }
+
     public function testTranslateReturnsPartialErrorsForUnknownMove(): void
     {
         $result = $this->translator->translateNotationToInternalSteps('2LP, 0LP, 236MK', $this->leafOptions, $this->connectionTypes);

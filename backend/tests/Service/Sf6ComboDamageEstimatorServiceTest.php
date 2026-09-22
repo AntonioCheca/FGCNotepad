@@ -41,6 +41,20 @@ final class Sf6ComboDamageEstimatorServiceTest extends TestCase
         self::assertSame(840, $result['estimatedDamage']);
     }
 
+    public function testEstimateStacksPunishCounterStarterBonusWithPerfectParryScaling(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5HP'],
+            ['damage' => 1000, 'moveType' => 'special', 'notation' => '214LP'],
+        ], [
+            'perfectParry' => true,
+            'starterHitState' => 'punish_counter',
+        ]);
+
+        self::assertSame([600, 500], $result['stepDamages']);
+        self::assertSame(1100, $result['estimatedDamage']);
+    }
+
     public function testEstimateAppliesDriveRushCancelScalingFromConnectedMove(): void
     {
         $result = $this->service->estimate([

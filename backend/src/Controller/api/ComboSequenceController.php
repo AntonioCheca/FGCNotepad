@@ -26,9 +26,11 @@ use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
-use App\Service\CharacterObjectCatalog;
+use App\Service\CharacterResourceService;
+use App\Service\ComboResourceLedgerService;
 use App\Service\ComboValueEstimator;
 use App\Util\Enum\ModerationState;
+use App\Util\MoveNotationAliases;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -90,6 +92,7 @@ class ComboSequenceController extends AbstractController
             'q' => $this->normalizeStringFilter($request->query->get('q')),
             'characterId' => $this->normalizeStringFilter($request->query->get('characterId')),
             'firstMoveId' => $this->normalizeStringFilter($request->query->get('firstMoveId')),
+            'firstMoveAfterDriveRush' => $this->normalizeBooleanFilter($request->query->get('firstMoveAfterDriveRush')),
             'enderMoveId' => $this->normalizeStringFilter($request->query->get('enderMoveId')),
             'seasonId' => $this->normalizeIntegerFilter($request->query->get('seasonId')),
             'minDamage' => $this->normalizeIntegerFilter($request->query->get('minDamage')),
@@ -104,6 +107,7 @@ class ComboSequenceController extends AbstractController
             'maxDifficulty' => $this->normalizeIntegerFilter($request->query->get('maxDifficulty')),
             'counterHitRequired' => $this->normalizeBooleanFilter($request->query->get('counterHitRequired')),
             'punishCounterRequired' => $this->normalizeBooleanFilter($request->query->get('punishCounterRequired')),
+            'perfectParryRequired' => $this->normalizeBooleanFilter($request->query->get('perfectParryRequired')),
             'cornerRequired' => $this->normalizeBooleanFilter($request->query->get('cornerRequired')),
             'airborneRequired' => $this->normalizeBooleanFilter($request->query->get('airborneRequired')),
             'notCrouchingRequired' => $this->normalizeBooleanFilter($request->query->get('notCrouchingRequired')),
@@ -224,7 +228,7 @@ class ComboSequenceController extends AbstractController
     }
 
     #[Route('/requirements/objects', name: 'requirement_objects', methods: ['GET'])]
-    public function listRequirementObjects(Request $request, CharacterObjectCatalog $catalog): JsonResponse
+    public function listRequirementObjects(Request $request, CharacterResourceService $catalog): JsonResponse
     {
         $characterName = $this->normalizeStringFilter($request->query->get('characterName'));
 
@@ -506,6 +510,7 @@ class ComboSequenceController extends AbstractController
             $leafOptions[] = [
                 'id' => (int) $leafSequence->getId(),
                 'notation' => $move->getNumpadNotation(),
+                'aliases' => MoveNotationAliases::alternatives($move->getNumpadNotation()),
                 'moveType' => $move->getFrameData()?->getMoveType(),
                 'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
             ];
@@ -579,6 +584,7 @@ class ComboSequenceController extends AbstractController
             $leafOptions[] = [
                 'id' => (int) $leafSequence->getId(),
                 'notation' => $move->getNumpadNotation(),
+                'aliases' => MoveNotationAliases::alternatives($move->getNumpadNotation()),
                 'moveType' => $move->getFrameData()?->getMoveType(),
                 'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
             ];
@@ -647,7 +653,10 @@ class ComboSequenceController extends AbstractController
         }
 
         $options = is_array($data['options'] ?? null) ? $data['options'] : [];
-        $options['starterHitState'] = $starterExtraction['starterHitState'];
+        $options['perfectParry'] = true === ($options['perfectParry'] ?? false) || $starterExtraction['perfectParry'];
+        $options['starterHitState'] = $options['perfectParry']
+            ? ComboStarterModifierExtractor::STARTER_HIT_STATE_PUNISH_COUNTER
+            : $starterExtraction['starterHitState'];
 
         $estimation = $this->sf6ComboDamageEstimatorService->estimate($resolvedMoves, $options);
 
@@ -710,6 +719,7 @@ class ComboSequenceController extends AbstractController
             $leafOptions[] = [
                 'id' => (int) $leafSequence->getId(),
                 'notation' => $move->getNumpadNotation(),
+                'aliases' => MoveNotationAliases::alternatives($move->getNumpadNotation()),
                 'moveType' => $move->getFrameData()?->getMoveType(),
                 'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
             ];
@@ -808,8 +818,48 @@ class ComboSequenceController extends AbstractController
         ], JsonResponse::HTTP_OK);
     }
 
+    #[Route('/{id}/resource-ledger', name: 'resource_ledger', requirements: ['id' => '\\d+'], methods: ['GET'])]
+    public function readResourceLedger(ComboSequences $sequence, ComboResourceLedgerService $ledgerService): JsonResponse
+    {
+        $this->assertReadable($sequence);
+
+        return new JsonResponse(['ledger' => $ledgerService->forCombo($sequence)], JsonResponse::HTTP_OK);
+    }
+
+    /** Live preview for the combo form: moves are leaf sequence ids in combo order. */
+    #[Route('/resource-ledger', name: 'resource_ledger_preview', methods: ['POST'])]
+    public function previewResourceLedger(Request $request, ComboResourceLedgerService $ledgerService): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $leafIds = is_array($data) && is_array($data['leafSequenceIds'] ?? null) ? array_values($data['leafSequenceIds']) : null;
+        if (null === $leafIds) {
+            throw new BadRequestHttpException('leafSequenceIds must be an array.');
+        }
+
+        $moves = [];
+        foreach ($leafIds as $leafId) {
+            $moves[] = is_int($leafId) ? $this->comboSequencesRepository->find($leafId)?->getMove() : null;
+        }
+
+        $starts = [];
+        foreach (is_array($data['starts'] ?? null) ? $data['starts'] : [] as $objectKey => $value) {
+            if (is_string($objectKey) && is_numeric($value)) {
+                $starts[$objectKey] = max(0, (int) $value);
+            }
+        }
+
+        return new JsonResponse(['ledger' => $ledgerService->forMoves($moves, $starts)], JsonResponse::HTTP_OK);
+    }
+
     #[Route('/{id}', name: 'read', requirements: ['id' => '\\d+'], methods: ['GET'])]
     public function read(Request $request, ComboSequences $sequence): JsonResponse
+    {
+        $this->assertReadable($sequence);
+
+        return $this->serializedCombo($sequence);
+    }
+
+    private function assertReadable(ComboSequences $sequence): void
     {
         if (!in_array($sequence->getType()?->getName(), ['combo', 'sequence'])) {
             throw new NotFoundHttpException('Not accessible');
@@ -827,7 +877,10 @@ class ComboSequenceController extends AbstractController
                 throw new NotFoundHttpException('Not accessible');
             }
         }
+    }
 
+    private function serializedCombo(ComboSequences $sequence): JsonResponse
+    {
         return new JsonResponse(
             $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
             JsonResponse::HTTP_OK,

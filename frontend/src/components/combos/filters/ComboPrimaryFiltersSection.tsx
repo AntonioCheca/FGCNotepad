@@ -1,4 +1,5 @@
 import {AppAutocomplete} from "@/src/components/ui/AppAutocomplete";
+import {AppChip} from "@/src/components/ui/AppChip";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
@@ -11,6 +12,7 @@ interface ComboPrimaryFiltersSectionProps {
     selectedSituation: ComboSituationOption | null;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
+    firstMoveAfterDriveRush: boolean;
     firstMoveOptions: ComboMoveSearchOption[];
     searchingFirstMoves: boolean;
     enderMove: ComboMoveSearchOption | null;
@@ -23,6 +25,7 @@ interface ComboPrimaryFiltersSectionProps {
     onSituationChange: (value: ComboSituationOption | null) => void;
     onFirstMoveChange: (value: ComboMoveSearchOption | null) => void;
     onFirstMoveQueryChange: (value: string) => void;
+    onFirstMoveAfterDriveRushChange: (value: boolean) => void;
     onEnderMoveChange: (value: ComboMoveSearchOption | null) => void;
     onEnderMoveQueryChange: (value: string) => void;
     onQueryChange: (value: string) => void;
@@ -35,6 +38,7 @@ export function ComboPrimaryFiltersSection({
     selectedSituation,
     firstMove,
     firstMoveQuery,
+    firstMoveAfterDriveRush,
     firstMoveOptions,
     searchingFirstMoves,
     enderMove,
@@ -47,6 +51,7 @@ export function ComboPrimaryFiltersSection({
     onSituationChange,
     onFirstMoveChange,
     onFirstMoveQueryChange,
+    onFirstMoveAfterDriveRushChange,
     onEnderMoveChange,
     onEnderMoveQueryChange,
     onQueryChange,
@@ -83,7 +88,38 @@ export function ComboPrimaryFiltersSection({
                     getOptionLabel={(option) => option.summary}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     noOptionsText="No moves found"
-                    renderInput={(params) => <AppTextField {...params} label="First move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
+                    renderInput={(params) => (
+                        <AppTextField
+                            {...params}
+                            label="First move"
+                            size="small"
+                            InputLabelProps={{shrink: true}}
+                            sx={compactFieldSx}
+                            InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                    <>
+                                        <AppChip
+                                            label="Raw DR"
+                                            size="small"
+                                            clickable
+                                            aria-pressed={firstMoveAfterDriveRush}
+                                            variant={firstMoveAfterDriveRush ? "filled" : "outlined"}
+                                            onClick={() => onFirstMoveAfterDriveRushChange(!firstMoveAfterDriveRush)}
+                                            sx={{
+                                                mr: 0.5,
+                                                borderColor: firstMoveAfterDriveRush ? "fgc.border.strong" : "divider",
+                                                backgroundColor: (theme) => (firstMoveAfterDriveRush ? theme.fgc.surface.selected : "transparent"),
+                                                color: "text.primary",
+                                                fontWeight: firstMoveAfterDriveRush ? 700 : 500,
+                                            }}
+                                        />
+                                        {params.InputProps.endAdornment}
+                                    </>
+                                ),
+                            }}
+                        />
+                    )}
                 />
 
                 <AppAutocomplete<ComboMoveSearchOption, false, false, false>

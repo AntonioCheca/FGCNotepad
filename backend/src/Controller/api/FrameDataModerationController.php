@@ -9,7 +9,10 @@ use App\Repository\FrameDataOverrideRepository;
 use App\Repository\MoveRepository;
 use App\Service\EndpointAuthorizationService;
 use App\Service\FrameDataOverrideService;
+use App\Service\CharacterResourceService;
 use App\Service\MoveManualMetadataService;
+use App\Service\MoveResourceEffectService;
+use App\Repository\MoveResourceEffectRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -31,6 +34,9 @@ class FrameDataModerationController extends AbstractController
         private readonly FrameDataOverrideRepository $frameDataOverrideRepository,
         private readonly FrameDataOverrideService $frameDataOverrideService,
         private readonly MoveManualMetadataService $moveManualMetadataService,
+        private readonly MoveResourceEffectService $moveResourceEffectService,
+        private readonly MoveResourceEffectRepository $moveResourceEffectRepository,
+        private readonly CharacterResourceService $characterResourceService,
         private readonly EntityManagerInterface $entityManager,
         private readonly Security $security,
     ) {
@@ -64,10 +70,17 @@ class FrameDataModerationController extends AbstractController
         $moves = $this->moveRepository->findByCharacterWithEffectiveFrameData($characterId);
         $metadataMap = $this->moveManualMetadataService->findMapForMoves($moves);
         $overrideMap = $this->buildOverrideMap($moves);
+        $effectsByMove = $this->moveResourceEffectRepository->findGroupedByMove($moves);
+        $characterName = (($moves[0] ?? null) instanceof Move) ? $moves[0]->getCharacter()->getName() : null;
 
         return new JsonResponse([
             'columns' => $this->frameDataOverrideService->getEditableColumns(),
-            'moves' => array_map(fn (Move $move): array => $this->serializeMove($move, $metadataMap, $overrideMap), $moves),
+            'resources' => $characterName ? $this->characterResourceService->listForApi($characterName) : [],
+            'moves' => array_map(function (Move $move) use ($metadataMap, $overrideMap, $effectsByMove): array {
+                return $this->serializeMove($move, $metadataMap, $overrideMap) + [
+                    'resourceEffects' => array_map(fn ($effect): array => $this->moveResourceEffectService->toApi($effect), $effectsByMove[(string) $move->getId()] ?? []),
+                ];
+            }, $moves),
         ], Response::HTTP_OK);
     }
 
@@ -136,6 +149,37 @@ class FrameDataModerationController extends AbstractController
             'moveId' => $moveId,
             'whiffOnCrouch' => $metadata->whiffsOnCrouch(),
             'forcesStanding' => $metadata->forcesStanding(),
+        ], Response::HTTP_OK);
+    }
+
+    #[Route('/resource-effects/{moveId}', name: 'save_resource_effects', methods: ['PATCH'])]
+    public function saveResourceEffects(string $moveId, Request $request): JsonResponse
+    {
+        try {
+            $actor = $this->requireModeratorActor();
+            $payload = $this->decodePayload($request);
+            $move = $this->moveRepository->find($moveId);
+            if (!$move instanceof Move) {
+                throw new NotFoundHttpException('Move not found.');
+            }
+            if (!is_array($payload['effects'] ?? null)) {
+                throw new BadRequestHttpException('effects must be an array.');
+            }
+
+            $effects = $this->moveResourceEffectService->replaceEffects($move, array_values($payload['effects']), $actor);
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
+        } catch (BadRequestHttpException|\InvalidArgumentException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_BAD_REQUEST);
+        } catch (NotFoundHttpException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
+        }
+
+        return new JsonResponse([
+            'moveId' => $moveId,
+            'resourceEffects' => array_map(fn ($effect): array => $this->moveResourceEffectService->toApi($effect), $effects),
         ], Response::HTTP_OK);
     }
 

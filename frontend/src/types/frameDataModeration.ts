@@ -1,3 +1,5 @@
+import {CharacterResource} from "@/src/types/characterResource";
+
 export interface FrameDataEditableColumn {
     columnName: string;
     label: string;
@@ -10,6 +12,15 @@ export interface FrameDataModerationValue {
     isOverridden: boolean;
 }
 
+export interface MoveResourceEffect {
+    resourceId: number;
+    resourceName: string;
+    mode: "relative" | "set";
+    amount: number;
+    source: "manual" | "inferred";
+    observationCount: number;
+}
+
 export interface FrameDataModerationMove {
     moveId: string;
     frameDataId: string;
@@ -20,9 +31,11 @@ export interface FrameDataModerationMove {
         whiffOnCrouch: boolean;
         forcesStanding: boolean;
     };
+    resourceEffects?: MoveResourceEffect[];
 }
 
 export interface FrameDataModerationMovesResponse {
     columns: FrameDataEditableColumn[];
+    resources?: CharacterResource[];
     moves: FrameDataModerationMove[];
 }

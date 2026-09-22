@@ -20,6 +20,7 @@ final class ComboSequenceUpdateService
         private readonly ComboValueEstimator $comboValueEstimator,
         private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
         private readonly ComboSpacingResolver $comboSpacingResolver,
+        private readonly ComboResourceLedgerService $comboResourceLedgerService,
     ) {
     }
 
@@ -69,6 +70,7 @@ final class ComboSequenceUpdateService
         }
 
         $this->recalculateMetricsFromSteps($sequence);
+        $this->comboResourceLedgerService->syncUsage($sequence);
 
         return $sequence;
     }
@@ -125,6 +127,7 @@ final class ComboSequenceUpdateService
             $existingRequirement
                 ->setCounterHitRequired(false)
                 ->setPunishCounterRequired(false)
+                ->setPerfectParryRequired(false)
                 ->setCornerRequired(false)
                 ->setAirborneRequired(false)
                 ->setNotCrouchingRequired(false)
@@ -137,6 +140,7 @@ final class ComboSequenceUpdateService
         $existingRequirement
             ->setCounterHitRequired((bool) $nextRequirement->isCounterHitRequired())
             ->setPunishCounterRequired((bool) $nextRequirement->isPunishCounterRequired())
+            ->setPerfectParryRequired($nextRequirement->isPerfectParryRequired())
             ->setCornerRequired((bool) $nextRequirement->isCornerRequired())
             ->setAirborneRequired((bool) $nextRequirement->isAirborneRequired())
             ->setNotCrouchingRequired((bool) $nextRequirement->isNotCrouchingRequired())

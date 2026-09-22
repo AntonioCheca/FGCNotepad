@@ -17,11 +17,14 @@ import {AppDialogContent} from "@/src/components/ui/AppDialogContent";
 import {AppDialogTitle} from "@/src/components/ui/AppDialogTitle";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppTypography} from "@/src/components/ui/AppTypography";
+import {ComboResourceCard} from "@/src/components/combos/ComboResourceCard";
+import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 import {ComboReadOnlySummary} from "@/src/components/combos/ComboReadOnlySummary";
 import {ParserVerificationSection} from "@/src/components/combos/create/sections/ParserVerificationSection";
 import {SubmitSection} from "@/src/components/combos/create/sections/SubmitSection";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
 import {
+    applyRequirementToggle,
     buildCreateFullComboPayload,
     buildRequirementsPayload,
     emptyRequirements,
@@ -58,6 +61,7 @@ function getInitialRequirements(combo: ComboDetailView | null): ComboRequirement
         ...emptyRequirements,
         counter_hit_required: source?.counter_hit_required ?? false,
         punish_counter_required: source?.punish_counter_required ?? false,
+        perfect_parry_required: source?.perfect_parry_required ?? false,
         corner_required: source?.corner_required ?? false,
         airborne_required: source?.airborne_required ?? false,
         not_crouching_required: source?.not_crouching_required ?? false,
@@ -144,7 +148,8 @@ export default function ComboDetailPage() {
     const numericComboId = comboId ? Number.parseInt(comboId, 10) : null;
     const canModerate = authContext.canModerate;
 
-    const {getCombo, updateCombo, deleteCombo, fetchLeafs, fetchRequirementObjects} = useCombos();
+    const {getCombo, updateCombo, deleteCombo, fetchLeafs, fetchRequirementObjects, getResourceLedger} = useCombos();
+    const [resourceLedger, setResourceLedger] = React.useState<ResourceLedgerEntry[]>([]);
     const {connections, loading: connectionsLoading, fetchConnections} = useConnections();
     const {spacings: spacingOptions, loading: spacingLoading, fetchComboSpacings} = useComboSpacings();
 
@@ -203,6 +208,18 @@ export default function ComboDetailPage() {
         setLoading(true);
         setError(null);
 
+        getResourceLedger(comboId)
+            .then((ledger: ResourceLedgerEntry[]) => {
+                if (!canceled) {
+                    setResourceLedger(ledger);
+                }
+            })
+            .catch(() => {
+                if (!canceled) {
+                    setResourceLedger([]);
+                }
+            });
+
         Promise.all([getCombo(comboId), fetchConnections(), fetchRequirementObjects(), fetchComboSpacings()])
             .then(async ([comboResponse, connectionResponse, requirementResponse]: [ComboDetailApi, ConnectionType[], RequirementObjectOption[], unknown]) => {
                 const nextCombo = mapComboToDetailView(comboResponse);
@@ -230,7 +247,7 @@ export default function ComboDetailPage() {
         return () => {
             canceled = true;
         };
-    }, [comboId, fetchComboSpacings, fetchConnections, fetchLeafs, fetchRequirementObjects, getCombo, resetDraftFromCombo]);
+    }, [comboId, fetchComboSpacings, fetchConnections, fetchLeafs, fetchRequirementObjects, getCombo, getResourceLedger, resetDraftFromCombo]);
 
     const selectedRequirementObject = requirementObjects.find((option) => option.name === specificRequirementObject) ?? null;
     const activeRequirementsCount = requirementToggles.filter(({key}) => Boolean(requirements[key])).length + objectStates.length;
@@ -259,12 +276,7 @@ export default function ComboDetailPage() {
     };
 
     const handleRequirementToggle = (key: RequirementToggleKey, checked: boolean) => {
-        setRequirements((previous) => ({
-            ...previous,
-            [key]: checked,
-            ...(key === "counter_hit_required" && checked ? {punish_counter_required: false} : {}),
-            ...(key === "punish_counter_required" && checked ? {counter_hit_required: false} : {}),
-        }));
+        setRequirements((previous) => applyRequirementToggle(previous, key, checked));
     };
 
     const handleSave = async (event: React.FormEvent) => {
@@ -408,7 +420,10 @@ export default function ComboDetailPage() {
                         onObjectStatesChange={setObjectStates}
                     />
                 ) : (
-                    <ComboReadOnlySummary combo={combo} />
+                    <>
+                        <ComboResourceCard ledger={resourceLedger} />
+                        <ComboReadOnlySummary combo={combo} />
+                    </>
                 )}
 
                 <ParserVerificationSection

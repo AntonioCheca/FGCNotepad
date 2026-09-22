@@ -33,6 +33,12 @@ final class ReplayContextImportService
     ) {
     }
 
+    /** Clear entity-backed lookups after a bundle document before Doctrine clears its unit of work. */
+    public function clearCache(): void
+    {
+        $this->characterCache = [];
+    }
+
     /**
      * Upserts the replay and its players from an export document. Expects `source.replay_id` and
      * `source.source_sha256` to be validated non-empty strings already.

@@ -38,6 +38,7 @@ class ComboRequirementDenormalizer implements DenormalizerInterface
 
         $requirement->setCounterHitRequired((bool) ($data['counter_hit_required'] ?? false));
         $requirement->setPunishCounterRequired((bool) ($data['punish_counter_required'] ?? false));
+        $requirement->setPerfectParryRequired((bool) ($data['perfect_parry_required'] ?? false));
         $requirement->setCornerRequired((bool) ($data['corner_required'] ?? false));
         $requirement->setAirborneRequired((bool) ($data['airborne_required'] ?? false));
         $requirement->setNotCrouchingRequired((bool) ($data['not_crouching_required'] ?? false));

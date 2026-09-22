@@ -27,6 +27,7 @@ final class ComboSequenceCreationService
         private readonly ComboValueEstimator $comboValueEstimator,
         private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
         private readonly ComboSpacingResolver $comboSpacingResolver,
+        private readonly ComboResourceLedgerService $comboResourceLedgerService,
     ) {
     }
 
@@ -34,7 +35,13 @@ final class ComboSequenceCreationService
      * @param array<string, mixed> $payload
      * @param array<int, array<string, mixed>>|null $stepsPayload
      */
-    public function createFromPayload(array $payload, string $typeName, ?array $stepsPayload = null, ?User $author = null): ComboSequences
+    public function createFromPayload(
+        array $payload,
+        string $typeName,
+        ?array $stepsPayload = null,
+        ?User $author = null,
+        bool $flush = true,
+    ): ComboSequences
     {
         $type = $this->resolveType($typeName);
 
@@ -59,8 +66,11 @@ final class ComboSequenceCreationService
         $this->persistRequirement($sequence, $payload);
         $this->persistSteps($sequence, $stepsPayload);
         $this->recalculateMetricsFromSteps($sequence);
+        $this->comboResourceLedgerService->syncUsage($sequence);
 
-        $this->entityManager->flush();
+        if ($flush) {
+            $this->entityManager->flush();
+        }
 
         return $sequence;
     }

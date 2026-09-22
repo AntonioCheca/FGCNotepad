@@ -87,6 +87,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     q?: string|null,
      *     characterId?: string|null,
      *     firstMoveId?: string|null,
+     *     firstMoveAfterDriveRush?: bool|null,
      *     enderMoveId?: string|null,
      *     seasonId?: int|null,
      *     minDamage?: int|null,
@@ -101,6 +102,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     maxDifficulty?: int|null,
      *     counterHitRequired?: bool|null,
      *     punishCounterRequired?: bool|null,
+     *     perfectParryRequired?: bool|null,
      *     cornerRequired?: bool|null,
      *     airborneRequired?: bool|null,
      *     notCrouchingRequired?: bool|null,
@@ -165,7 +167,16 @@ class ComboSequencesRepository extends ServiceEntityRepository
                     ->setParameter('characterId', $characterId);
             }
 
-            if ('' !== $firstMoveId) {
+            if ('' !== $firstMoveId && true === ($filters['firstMoveAfterDriveRush'] ?? null)) {
+                $qb->innerJoin('combo.steps', 'followUpStep')
+                    ->innerJoin('followUpStep.child_sequence', 'followUpSequence')
+                    ->innerJoin('followUpSequence.move', 'followUpMove')
+                    ->andWhere('followUpStep.ordinal_in_combo = 2')
+                    ->andWhere('starterMove.numpadNotation = :rawDriveRushNotation')
+                    ->andWhere('followUpMove.id = :firstMoveId')
+                    ->setParameter('rawDriveRushNotation', 'DR')
+                    ->setParameter('firstMoveId', $firstMoveId);
+            } elseif ('' !== $firstMoveId) {
                 $qb->andWhere('starterMove.id = :firstMoveId')
                     ->setParameter('firstMoveId', $firstMoveId);
             }
@@ -239,6 +250,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
         $booleanRequirementFilters = [
             'counterHitRequired' => 'requirement.counter_hit_required',
             'punishCounterRequired' => 'requirement.punish_counter_required',
+            'perfectParryRequired' => 'requirement.perfect_parry_required',
             'cornerRequired' => 'requirement.corner_required',
             'airborneRequired' => 'requirement.airborne_required',
             'notCrouchingRequired' => 'requirement.not_crouching_required',
@@ -725,6 +737,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
             $qb->andWhere('(metrics.superCost IS NULL OR metrics.superCost <= :availableSuper)')
                 ->setParameter('availableSuper', $availableSuper);
         }
+
+        $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.perfect_parry_required = false)');
 
         if ('normal' === $hitType) {
             $qb->andWhere(

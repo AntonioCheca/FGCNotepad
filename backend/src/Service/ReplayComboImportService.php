@@ -52,6 +52,7 @@ final class ReplayComboImportService
         }
 
         $documents = [];
+        $actorId = $actor->getId();
         foreach ($bundle['documents'] as $index => $document) {
             $replayId = is_array($document) && is_array($document['source'] ?? null) && is_string($document['source']['replay_id'] ?? null)
                 ? $document['source']['replay_id']
@@ -64,6 +65,12 @@ final class ReplayComboImportService
                 $documents[] = ['replayId' => $replayId] + $this->importDocument($document, $actor);
             } catch (BadRequestHttpException $exception) {
                 $documents[] = ['replayId' => $replayId, 'importedCount' => 0, 'observedCount' => 0, 'skippedCount' => 0, 'results' => [], 'error' => $exception->getMessage()];
+            } finally {
+                // A bundle can contain hundreds of combos. Keep only one document's ORM graph managed.
+                $this->entityManager->clear();
+                $this->stepResolver->clearCache();
+                $this->replayContextImportService->clearCache();
+                $actor = $this->entityManager->getReference(User::class, $actorId);
             }
         }
 
@@ -171,7 +178,13 @@ final class ReplayComboImportService
                         throw new \RuntimeException('Existing combo disappeared during import.');
                     }
                 } else {
-                    $sequence = $this->comboSequenceCreationService->createFromPayload($payload, 'combo', $payload['steps'], $actor);
+                    $sequence = $this->comboSequenceCreationService->createFromPayload(
+                        $payload,
+                        'combo',
+                        $payload['steps'],
+                        $actor,
+                        false,
+                    );
                     $this->moderationTransitionService->submitComboForReview($sequence);
                 }
                 $this->replayContextImportService->recordComboObservation($replay, $sequence, $id, $combo);
@@ -221,20 +234,44 @@ final class ReplayComboImportService
             throw new \InvalidArgumentException('damage must be a non-negative integer.');
         }
 
+        $perfectParry = $this->starterPerfectParry($combo);
+        if ($perfectParry && 'punish_counter' !== $starterHitType) {
+            throw new \InvalidArgumentException('starter_defense.perfect_parry requires a punish_counter starter.');
+        }
+
         $requirements = match ($starterHitType) {
             'counter_hit' => ['counter_hit_required' => true],
             'punish_counter' => ['punish_counter_required' => true],
             default => [],
         };
+        if ($perfectParry) {
+            $requirements['perfect_parry_required'] = true;
+        }
 
         return [
-            'name' => $this->comboName($notation, $starterHitType, $replayId, $occurrenceId, $combo['start_round_timer'] ?? null),
+            'name' => $this->comboName($notation, $starterHitType, $perfectParry, $replayId, $occurrenceId, $combo['start_round_timer'] ?? null),
             'description' => trim('Imported from a replay combo export. ' . implode(' ', $resolution['notes'])),
             'visibility' => 'public',
             'metrics' => ['damage' => $damage],
             'requirements' => $requirements,
             'steps' => $steps,
         ];
+    }
+
+    /**
+     * Pre-0.28 exports carry no starter_defense, or perfect_parry: null; both mean no Perfect Parry evidence.
+     *
+     * @param array<string, mixed> $combo
+     */
+    private function starterPerfectParry(array $combo): bool
+    {
+        $starterDefense = $combo['starter_defense'] ?? [];
+        $perfectParry = is_array($starterDefense) ? ($starterDefense['perfect_parry'] ?? null) : false;
+        if (!is_array($starterDefense) || (null !== $perfectParry && !is_bool($perfectParry))) {
+            throw new \InvalidArgumentException('starter_defense.perfect_parry must be a boolean or null.');
+        }
+
+        return true === $perfectParry;
     }
 
     /** @param array<string, mixed> $data */
@@ -259,11 +296,12 @@ final class ReplayComboImportService
     }
 
     /** The trailing tag lets a reviewer find the occurrence in its replay: replay id, occurrence id (round, slot, number) and, when exported, the round timer at combo start. */
-    private function comboName(string $notation, ?string $starterHitType, string $replayId, string $occurrenceId, mixed $startRoundTimer): string
+    private function comboName(string $notation, ?string $starterHitType, bool $perfectParry, string $replayId, string $occurrenceId, mixed $startRoundTimer): string
     {
-        $prefix = match ($starterHitType) {
-            'counter_hit' => 'CH: ',
-            'punish_counter' => 'PC: ',
+        $prefix = match (true) {
+            $perfectParry => 'PP+PC: ',
+            'counter_hit' === $starterHitType => 'CH: ',
+            'punish_counter' === $starterHitType => 'PC: ',
             default => '',
         };
         $tag = [

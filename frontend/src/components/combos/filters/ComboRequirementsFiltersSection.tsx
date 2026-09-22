@@ -18,6 +18,7 @@ const booleanRequirementFilters: Array<{key: ComboRequirementFilterKey; label: s
     {key: "isEssential", label: "Essential"},
     {key: "counterHitRequired", label: "Counter hit"},
     {key: "punishCounterRequired", label: "Punish counter"},
+    {key: "perfectParryRequired", label: "Perfect Parry"},
     {key: "cornerRequired", label: "Corner"},
     {key: "airborneRequired", label: "Airborne"},
     {key: "notCrouchingRequired", label: "Not crouching"},

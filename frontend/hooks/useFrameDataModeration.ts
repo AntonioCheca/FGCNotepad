@@ -1,7 +1,7 @@
 import React from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
-import {FrameDataModerationMovesResponse, FrameDataModerationValue} from "@/src/types/frameDataModeration";
+import {FrameDataModerationMovesResponse, FrameDataModerationValue, MoveResourceEffect} from "@/src/types/frameDataModeration";
 
 export function useFrameDataModeration() {
     const {request} = useApi();
@@ -26,5 +26,12 @@ export function useFrameDataModeration() {
         return request(() => api.patch(`/moderation/frame-data/manual-metadata/${moveId}`, {whiffOnCrouch, forcesStanding}));
     }, [request]);
 
-    return {getMovesForCharacter, saveOverride, saveManualMetadata};
+    const saveResourceEffects = React.useCallback(async (
+        moveId: string,
+        effects: Array<{resourceId: number; mode: "relative" | "set"; amount: number}>
+    ): Promise<{moveId: string; resourceEffects: MoveResourceEffect[]}> => {
+        return request(() => api.patch(`/moderation/frame-data/resource-effects/${moveId}`, {effects}));
+    }, [request]);
+
+    return {getMovesForCharacter, saveOverride, saveManualMetadata, saveResourceEffects};
 }

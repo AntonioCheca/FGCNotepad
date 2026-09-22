@@ -96,6 +96,7 @@ export interface ComboObjectStateDraft {
 export interface ComboRequirementsPayload {
     counter_hit_required?: boolean;
     punish_counter_required?: boolean;
+    perfect_parry_required?: boolean;
     corner_required?: boolean;
     airborne_required?: boolean;
     not_crouching_required?: boolean;
@@ -157,7 +158,7 @@ export interface TranslateComboNotationResponse {
     parsedTokens: TranslateParsedToken[];
     warnings: string[];
     errors: TranslateErrorToken[];
-    requirements?: Pick<ComboRequirementsPayload, "counter_hit_required" | "punish_counter_required" | "not_crouching_required">;
+    requirements?: Pick<ComboRequirementsPayload, "counter_hit_required" | "punish_counter_required" | "perfect_parry_required" | "not_crouching_required">;
 }
 
 export interface EstimateComboDamageResponse extends TranslateComboNotationResponse {
@@ -238,6 +239,34 @@ export interface ComboApiSummary {
     compatibility?: CompatibilityResultPayload | null;
 }
 
+const RAW_DRIVE_RUSH_NOTATIONS = new Set(["dr", "drive rush", "raw drive rush"]);
+
+// Move names are "<Character> - <notation>" (e.g. "Ryu - DR"); bare notations are accepted too.
+function moveNotation(moveName: string): string {
+    const separatorIndex = moveName.indexOf(" - ");
+    return (separatorIndex >= 0 ? moveName.slice(separatorIndex + 3) : moveName).trim();
+}
+
+function isRawDriveRush(moveName: string | undefined): boolean {
+    return RAW_DRIVE_RUSH_NOTATIONS.has(moveNotation(moveName ?? "").toLowerCase());
+}
+
+/**
+ * Drive Rush cannot hit, so a combo opening with Raw Drive Rush is started by the
+ * next move, in Drive Rush context ("DR > 5HK"). The move sequence itself is unchanged.
+ */
+export function deriveComboStarter(moves: string[]): string {
+    const first = moves[0];
+    if (first === undefined) {
+        return "-";
+    }
+    const next = moves[1];
+    if (isRawDriveRush(first) && next !== undefined) {
+        return `DR > ${moveNotation(next)}`;
+    }
+    return moveNotation(first);
+}
+
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     const moveNamesFromLegacyField = combo.moves?.map((move) => move.name ?? "-") ?? [];
     const moveNamesFromSteps: string[] = [];
@@ -256,8 +285,8 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         moderationState: combo.moderationState ?? "approved",
         characterName: combo.character?.name ?? "-",
         moves,
-        starter: moves[0] ?? "-",
-        ender: moves.length > 0 ? moves[moves.length - 1] : "-",
+        starter: deriveComboStarter(moves),
+        ender: moves.length > 0 ? moveNotation(moves[moves.length - 1]) : "-",
         damage: combo.comboMetrics?.damage ?? "-",
         resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",
         driveCost: combo.comboMetrics?.driveCost ?? "-",
@@ -281,6 +310,7 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
 export interface ComboRequirement {
     counter_hit_required?: boolean;
     punish_counter_required?: boolean;
+    perfect_parry_required?: boolean;
     corner_required?: boolean;
     airborne_required?: boolean;
     not_crouching_required?: boolean;

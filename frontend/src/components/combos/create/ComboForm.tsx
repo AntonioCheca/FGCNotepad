@@ -1,3 +1,4 @@
+import {ComboResourceCard} from "@/src/components/combos/ComboResourceCard";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
@@ -63,6 +64,8 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 onAddStep={controller.handleAddStep}
                 onRemoveStep={controller.handleRemoveStep}
             />
+
+            <ComboResourceCard ledger={controller.resourceLedger} />
 
             <SubmitSection
                 title={controller.title}

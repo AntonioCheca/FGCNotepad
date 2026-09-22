@@ -55,8 +55,27 @@ final class ComboSequenceCreationServiceTest extends DatabaseTestCase
         self::assertSame(1820, $persistedMetrics->getDamage());
     }
 
+    public function testCreateFromPayloadCanDeferFlushForBulkImport(): void
+    {
+        $this->persistCreationLookups();
+
+        $sequence = $this->service->createFromPayload([
+            'name' => 'Deferred Sequence',
+            'description' => 'Created inside an importer transaction.',
+            'visibility' => 'public',
+            'metrics' => ['damage' => 900],
+        ], 'sequence', null, null, false);
+
+        self::assertNull($sequence->getId());
+
+        $this->entityManager->flush();
+
+        self::assertNotNull($sequence->getId());
+    }
+
     public function testCreateFromPayloadPersistsRequirementsAndStepsForFullFlow(): void
     {
+        $this->seedCharacterResources();
         $this->persistCreationLookups();
         $initialConnection = (new ConnectionType())->setName('Initial Move');
         $this->entityManager->persist($initialConnection);

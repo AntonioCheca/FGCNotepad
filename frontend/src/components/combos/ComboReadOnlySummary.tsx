@@ -10,6 +10,7 @@ interface ComboReadOnlySummaryProps {
 const conditionLabels: Array<{key: keyof ComboRequirement; label: string}> = [
     {key: "counter_hit_required", label: "Counter Hit required"},
     {key: "punish_counter_required", label: "Punish Counter required"},
+    {key: "perfect_parry_required", label: "Perfect Parry starter"},
     {key: "corner_required", label: "Corner required"},
     {key: "airborne_required", label: "Opponent airborne required"},
     {key: "not_crouching_required", label: "Opponent not crouching"},

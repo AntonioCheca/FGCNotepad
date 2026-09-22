@@ -10,6 +10,7 @@ use App\Entity\OkiProfile;
 use App\Entity\OkiSetup;
 use App\Entity\Replay;
 use App\Entity\User;
+use App\Util\MoveNotationAliases;
 use App\Util\ReplayMoveNotation;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
@@ -276,7 +277,9 @@ final class ReplayOkiImportService
     {
         $moves = [];
         foreach ($this->moveRepository->findByCharacterWithEffectiveFrameData((string) $character->getId()) as $move) {
-            $moves[ReplayMoveNotation::key($move->getNumpadNotation())][] = $move;
+            foreach ([$move->getNumpadNotation(), ...MoveNotationAliases::alternatives($move->getNumpadNotation())] as $alias) {
+                $moves[ReplayMoveNotation::key($alias)][] = $move;
+            }
         }
 
         return $moves;
