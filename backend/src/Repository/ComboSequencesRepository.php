@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
 use App\Entity\Step;
 use App\Entity\User;
@@ -20,16 +21,38 @@ class ComboSequencesRepository extends ServiceEntityRepository
     }
 
     /**
-     * Id of a combo, in any moderation state, that already has exactly these ordered leaf moves joined by
+     * Ids of combos, in any moderation state, that already have exactly these ordered leaf moves joined by
      * the same connection types (a walk or a Drive Rush Cancel makes it a different combo than a plain link).
-     * Timed windows such as walk frames are not compared.
+     * Timed windows such as walk frames are not compared. The starter conditions (counter hit, punish
+     * counter, Perfect Parry) must match too; a combo without a requirement row has none of them.
      *
      * @param list<array{leaf:int,connection:int}> $steps
+     *
+     * @return list<int>
      */
-    public function findIdWithSteps(array $steps): ?int
+    public function findIdsWithStepsAndStarterConditions(array $steps, bool $counterHit, bool $punishCounter, bool $perfectParry): array
+    {
+        $wanted = [$counterHit, $punishCounter, $perfectParry];
+
+        return array_values(array_filter($this->findIdsWithSteps($steps), function (int $id) use ($wanted): bool {
+            $requirement = $this->getEntityManager()->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $id]);
+            $conditions = $requirement instanceof ComboRequirement
+                ? [true === $requirement->isCounterHitRequired(), true === $requirement->isPunishCounterRequired(), $requirement->isPerfectParryRequired()]
+                : [false, false, false];
+
+            return $conditions === $wanted;
+        }));
+    }
+
+    /**
+     * @param list<array{leaf:int,connection:int}> $steps
+     *
+     * @return list<int>
+     */
+    private function findIdsWithSteps(array $steps): array
     {
         if ([] === $steps) {
-            return null;
+            return [];
         }
 
         $rows = $this->getEntityManager()->createQueryBuilder()
@@ -47,13 +70,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
             $byParent[$row['parentId']][] = ['leaf' => (int) $row['childId'], 'connection' => (int) $row['connectionId']];
         }
 
-        foreach ($byParent as $parentId => $existing) {
-            if ($existing === $steps) {
-                return (int) $parentId;
-            }
-        }
-
-        return null;
+        return array_values(array_map('intval', array_keys(array_filter($byParent, static fn (array $existing): bool => $existing === $steps))));
     }
 
     public function findAllLeafs(): array

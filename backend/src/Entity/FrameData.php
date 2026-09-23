@@ -143,6 +143,9 @@ class FrameData
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     private ?int $hitstop = null;
 
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    private ?float $spacing = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $extraInformation = null;
 
@@ -687,6 +690,18 @@ class FrameData
         return $this;
     }
 
+    public function getSpacing(): ?float
+    {
+        return $this->spacing;
+    }
+
+    public function setSpacing(?float $spacing): static
+    {
+        $this->spacing = $spacing;
+
+        return $this;
+    }
+
     public function getExtraInformation(): ?string
     {
         return $this->extraInformation;
@@ -798,6 +813,7 @@ class FrameData
         $dataAsArray['hitstun'] = $this->hitstun;
         $dataAsArray['blockstun'] = $this->blockstun;
         $dataAsArray['hitstop'] = $this->hitstop;
+        $dataAsArray['spacing'] = $this->spacing;
 
         return $dataAsArray;
     }

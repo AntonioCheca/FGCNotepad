@@ -69,4 +69,43 @@ final class FrameDataRecordApplierTest extends TestCase
         self::assertSame(900, $frameData->getDamage());
         self::assertSame(700, $frameData->getRawValue('damage'));
     }
+
+    public function testItStoresPlainNumericSpacing(): void
+    {
+        self::assertSame(1.545, $this->applySpacing(1.545)->getSpacing());
+    }
+
+    public function testItStoresTheLargestNumberOfRangedSpacing(): void
+    {
+        self::assertSame(1.736, $this->applySpacing('1.548~1.736')->getSpacing());
+    }
+
+    public function testItStoresTheLargestNumberAcrossSpacingVariants(): void
+    {
+        self::assertSame(1.71, $this->applySpacing('0.89~1.18 / 1.71')->getSpacing());
+        self::assertSame(1.863, $this->applySpacing('1.863 Fwd / 0.767 Back')->getSpacing());
+    }
+
+    public function testItLeavesSpacingEmptyWhenFatHasNoNumber(): void
+    {
+        self::assertNull($this->applySpacing('?')->getSpacing());
+    }
+
+    public function testItLeavesSpacingEmptyWhenFatHasNoRange(): void
+    {
+        self::assertNull($this->applySpacing(null)->getSpacing());
+    }
+
+    private function applySpacing(mixed $range): FrameData
+    {
+        $frameData = new FrameData();
+        $record = ['moveType' => 'normal', 'dmg' => 600];
+        if (null !== $range) {
+            $record['range'] = $range;
+        }
+
+        (new FrameDataRecordApplier(new FrameDataScalingNormalizerService()))->applyFatRecord($frameData, $record);
+
+        return $frameData;
+    }
 }

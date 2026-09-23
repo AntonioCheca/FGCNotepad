@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Character;
+use App\Entity\CharacterObjectState;
 use App\Entity\ComboSequences;
 use App\Entity\Replay;
 use App\Entity\User;
@@ -20,6 +21,8 @@ final class ReplayComboImportService
         private readonly ComboSequenceCreationService $comboSequenceCreationService,
         private readonly ModerationTransitionService $moderationTransitionService,
         private readonly ReplayContextImportService $replayContextImportService,
+        private readonly ComboSpacingResolver $comboSpacingResolver,
+        private readonly ReplayComboResourceMapper $resourceMapper,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -147,7 +150,7 @@ final class ReplayComboImportService
     /**
      * @param array<string, mixed> $combo
      *
-     * @return array{id:string,status:string,comboId?:int,reason?:string}
+     * @return array{id:string,status:string,comboId?:int,reason?:string,warnings?:list<string>}
      */
     private function importOccurrence(array $combo, int $index, User $actor, Replay $replay): array
     {
@@ -164,11 +167,17 @@ final class ReplayComboImportService
         }
 
         try {
-            $payload = $this->buildCreationPayload($combo, $replay->getExtractorReplayId(), $id);
-            $knownId = $this->comboSequencesRepository->findIdWithSteps(array_map(
-                static fn (array $step): array => ['leaf' => $step['child_sequence_id'], 'connection' => $step['connection_type_id']],
-                $payload['steps'],
-            ));
+            ['payload' => $payload, 'resourceTrace' => $resourceTrace, 'warnings' => $warnings] = $this->buildCreationPayload($combo, $replay->getExtractorReplayId(), $id);
+            $candidateIds = $this->comboSequencesRepository->findIdsWithStepsAndStarterConditions(
+                array_map(
+                    static fn (array $step): array => ['leaf' => $step['child_sequence_id'], 'connection' => $step['connection_type_id']],
+                    $payload['steps'],
+                ),
+                true === ($payload['requirements']['counter_hit_required'] ?? false),
+                true === ($payload['requirements']['punish_counter_required'] ?? false),
+                true === ($payload['requirements']['perfect_parry_required'] ?? false),
+            );
+            $knownId = $this->matchingComboId($candidateIds, $payload['metrics']['damage'], $resourceTrace, $warnings);
             $status = 'imported';
             $sequence = $this->entityManager->wrapInTransaction(function () use ($payload, $actor, $knownId, $combo, $id, $replay, &$status): ComboSequences {
                 if (null !== $knownId) {
@@ -177,6 +186,7 @@ final class ReplayComboImportService
                     if (!$sequence instanceof ComboSequences) {
                         throw new \RuntimeException('Existing combo disappeared during import.');
                     }
+                    $this->widenSpacing($sequence, $payload['spacingCode']);
                 } else {
                     $sequence = $this->comboSequenceCreationService->createFromPayload(
                         $payload,
@@ -196,17 +206,70 @@ final class ReplayComboImportService
             return $this->skipped($id, $exception->getMessage());
         }
 
-        return [
+        $result = [
             'id' => $id,
             'status' => $status,
             'comboId' => $sequence->getId(),
         ];
+
+        return [] === $warnings ? $result : $result + ['warnings' => $warnings];
+    }
+
+    /**
+     * Same moves, connections and starter conditions with the same damage is the same combo. Different damage
+     * normally means different resources; if even the resources match, the damage gap is only reported.
+     *
+     * @param list<int> $candidateIds
+     * @param array{starts: array<string, int>, steps: array<int, array{0: string, 1: int}>} $resourceTrace
+     * @param list<string> $warnings
+     */
+    private function matchingComboId(array $candidateIds, int $damage, array $resourceTrace, array &$warnings): ?int
+    {
+        $candidates = array_filter(array_map(fn (int $id): ?ComboSequences => $this->comboSequencesRepository->find($id), $candidateIds));
+        foreach ($candidates as $candidate) {
+            if ($damage === $candidate->getComboMetrics()?->getDamage()) {
+                return (int) $candidate->getId();
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($resourceTrace === $this->resourceTraceOf($candidate)) {
+                $warnings[] = sprintf('Same moves and resources as combo #%d, but damage %d vs %s; recorded as that combo.', (int) $candidate->getId(), $damage, (string) ($candidate->getComboMetrics()?->getDamage() ?? 'unknown'));
+
+                return (int) $candidate->getId();
+            }
+        }
+
+        return null;
+    }
+
+    /** @return array{starts: array<string, int>, steps: array<int, array{0: string, 1: int}>} */
+    private function resourceTraceOf(ComboSequences $combo): array
+    {
+        $starts = [];
+        foreach ($combo->getComboRequirement()?->getCharacterObjectStates() ?? [] as $state) {
+            if ($state instanceof CharacterObjectState && null !== $state->getObjectKey() && null !== $state->getStatusRequired()) {
+                $starts[$state->getObjectKey()] = 'true' === $state->getStatusRequired() ? 1 : (int) $state->getStatusRequired();
+            }
+        }
+        ksort($starts);
+
+        $steps = [];
+        foreach ($combo->getSteps() as $step) {
+            $resource = $step->getResourceObject();
+            if (null !== $resource && null !== $step->getResourceDelta()) {
+                $steps[(int) $step->getOrdinalInCombo()] = [(string) $resource->getObjectKey(), $step->getResourceDelta()];
+            }
+        }
+        ksort($steps);
+
+        return ['starts' => $starts, 'steps' => $steps];
     }
 
     /**
      * @param array<string, mixed> $combo
      *
-     * @return array<string, mixed>
+     * @return array{payload: array<string, mixed>, resourceTrace: array{starts: array<string, int>, steps: array<int, array{0: string, 1: int}>}, warnings: list<string>}
      */
     private function buildCreationPayload(array $combo, string $replayId, string $occurrenceId): array
     {
@@ -222,7 +285,11 @@ final class ReplayComboImportService
         }
 
         $resolution = $this->stepResolver->resolve($sequence, $character);
+        $resources = $this->resourceMapper->map($combo, $character, $resolution['sourceIndexes']);
         $steps = $resolution['steps'];
+        foreach ($resources['stepChanges'] as $ordinal => $change) {
+            $steps[$ordinal - 1] += ['resource_object_id' => $change['resource']->getId(), 'resource_delta' => $change['delta']];
+        }
         $notation = $resolution['notation'];
         $starterHitType = $combo['starter_hit_type'] ?? null;
         if (null !== $starterHitType && !in_array($starterHitType, ['counter_hit', 'punish_counter', 'normal'], true)) {
@@ -247,15 +314,19 @@ final class ReplayComboImportService
         if ($perfectParry) {
             $requirements['perfect_parry_required'] = true;
         }
+        if ([] !== $resources['objectStates']) {
+            $requirements['combo_object_states'] = $resources['objectStates'];
+        }
 
-        return [
+        return ['resourceTrace' => $resources['trace'], 'warnings' => $resources['warnings'], 'payload' => [
             'name' => $this->comboName($notation, $starterHitType, $perfectParry, $replayId, $occurrenceId, $combo['start_round_timer'] ?? null),
             'description' => trim('Imported from a replay combo export. ' . implode(' ', $resolution['notes'])),
             'visibility' => 'public',
             'metrics' => ['damage' => $damage],
             'requirements' => $requirements,
+            'spacingCode' => $this->starterSpacingCode($combo),
             'steps' => $steps,
-        ];
+        ]];
     }
 
     /**
@@ -272,6 +343,41 @@ final class ReplayComboImportService
         }
 
         return true === $perfectParry;
+    }
+
+    /**
+     * A combo that connects at some spacing also connects at every closer one, so the furthest observed
+     * spacing is the informative one; a closer re-observation never narrows it.
+     */
+    private function widenSpacing(ComboSequences $sequence, ?string $spacingCode): void
+    {
+        $observed = $this->comboSpacingResolver->resolveFromPayload(['spacingCode' => $spacingCode]);
+        $current = $sequence->getSpacing();
+        if (null !== $observed && (null === $current || $observed->getSortOrder() > $current->getSortOrder())) {
+            $sequence->setSpacing($observed);
+        }
+    }
+
+    /**
+     * Exports without starter_spacing, or with a null classification, carry no spacing evidence.
+     *
+     * @param array<string, mixed> $combo
+     */
+    private function starterSpacingCode(array $combo): ?string
+    {
+        $starterSpacing = $combo['starter_spacing'] ?? null;
+        if (null !== $starterSpacing && !is_array($starterSpacing)) {
+            throw new \InvalidArgumentException('starter_spacing must be an object or null.');
+        }
+
+        return match ($starterSpacing['classification'] ?? null) {
+            null => null,
+            'close' => 'close',
+            'mid' => 'mid',
+            'far' => 'tip',
+            'very_far' => 'punish_tip',
+            default => throw new \InvalidArgumentException('starter_spacing.classification must be close, mid, far, very_far, or null.'),
+        };
     }
 
     /** @param array<string, mixed> $data */

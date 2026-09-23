@@ -143,6 +143,7 @@ final class ComboSequenceCreationService
         }
 
         if ($requirement instanceof ComboRequirement) {
+            $sequence->setComboRequirement($requirement);
             $this->entityManager->persist($requirement);
         }
     }

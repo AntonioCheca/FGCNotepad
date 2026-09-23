@@ -61,7 +61,10 @@ final class ReplayComboStepResolver
     /**
      * @param list<mixed> $sourceSteps
      *
-     * @return array{steps: list<array<string, mixed>>, notation: string, notes: list<string>}
+     * sourceIndexes lists, per returned step, the export sequence indexes folded into it: its own move, target
+     * hops collapsed into it, and connective entries (Drive Rush Cancel, walk, skipped movement) leading into it.
+     *
+     * @return array{steps: list<array<string, mixed>>, notation: string, notes: list<string>, sourceIndexes: list<list<int>>}
      */
     public function resolve(array $sourceSteps, Character $character): array
     {
@@ -74,6 +77,8 @@ final class ReplayComboStepResolver
         $pendingWalk = null;
         $previousExportKind = null;
         $notes = [];
+        $pendingIndexes = [];
+        $sourceIndexes = [];
 
         foreach ($sourceSteps as $index => $sourceStep) {
             if (!is_array($sourceStep)) {
@@ -95,6 +100,7 @@ final class ReplayComboStepResolver
                 }
                 $pendingDriveRushCancel = true;
                 $previousExportKind = $kind;
+                $pendingIndexes[] = $index;
                 continue;
             }
 
@@ -103,20 +109,24 @@ final class ReplayComboStepResolver
                     $frames = is_int($sourceStep['duration_samples'] ?? null) && $sourceStep['duration_samples'] >= 0 ? $sourceStep['duration_samples'] : null;
                     $pendingWalk = ['connection' => 'back' === ($sourceStep['direction'] ?? null) ? 'walk_back' : 'walk_forward', 'frames' => $frames];
                 }
+                $pendingIndexes[] = $index;
                 continue;
             }
 
             if (!in_array($kind, ['move', 'drive_rush', 'dash', 'jump'], true)) {
+                $pendingIndexes[] = $index;
                 continue; // Unknown or future connective kinds are ignored, never a failure.
             }
 
             [$key, $label] = $this->keyAndLabel($kind, $sourceStep);
             if (null === $key) {
+                $pendingIndexes[] = $index;
                 continue;
             }
 
             if ('move' === $kind && $this->isTargetCombo($sourceStep)) {
                 $this->collapseTargetHop($resolved, $sourceStep, $leafsByKey, $character);
+                $sourceIndexes[array_key_last($resolved)][] = $index;
                 $previousExportKind = $kind;
                 continue;
             }
@@ -125,6 +135,7 @@ final class ReplayComboStepResolver
 
             $leaf = $this->findLeaf($leafsByKey, $key, $sourceStep, $character, $notes, $kind);
             if (null === $leaf) {
+                $pendingIndexes[] = $index;
                 continue; // A dash/jump whose movement leaf is not in the catalogue: noted, not fatal.
             }
 
@@ -150,6 +161,8 @@ final class ReplayComboStepResolver
                 'special' => 1 === preg_match('/^\d{2,}[A-Z]/', $key),
                 'pending' => false,
             ];
+            $sourceIndexes[] = [...$pendingIndexes, $index];
+            $pendingIndexes = [];
             $pendingDriveRushCancel = false;
             $pendingWalk = null;
             $previousExportKind = $kind;
@@ -164,6 +177,7 @@ final class ReplayComboStepResolver
             'steps' => $this->buildSteps($resolved, $connectionTypes),
             'notation' => $this->notation($resolved),
             'notes' => $notes,
+            'sourceIndexes' => $sourceIndexes,
         ];
     }
 

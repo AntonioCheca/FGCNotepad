@@ -62,6 +62,7 @@ final class FrameDataRecordApplier
             'hitstun' => (int) ($record['hitstun'] ?? 0),
             'blockstun' => (int) ($record['blockstun'] ?? 0),
             'hitstop' => (int) ($record['hitstop'] ?? 0),
+            'spacing' => $this->parseSpacing($record['range'] ?? null),
             'extraInformation' => $this->buildExtraInformation($record),
         ]);
     }
@@ -87,6 +88,20 @@ final class FrameDataRecordApplier
         }
 
         return $changed;
+    }
+
+    /** FAT spacing may be text such as "1.548~1.736" or "1.863 Fwd / 0.767 Back"; its largest number is kept. */
+    private function parseSpacing(mixed $value): ?float
+    {
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        if (!is_string($value) || preg_match_all('/\d+(?:\.\d+)?/', $value, $matches) < 1) {
+            return null;
+        }
+
+        return max(array_map('floatval', $matches[0]));
     }
 
     /**

@@ -53,9 +53,6 @@ function getConditionLines(requirements: ComboRequirement | null): string[] {
         }
 
         const parts = [];
-        if (objectState.status_required !== undefined && objectState.status_required !== null) {
-            parts.push(`requires ${String(objectState.status_required)}`);
-        }
         if (objectState.consumed) {
             parts.push("consumes");
         }
@@ -66,7 +63,9 @@ function getConditionLines(requirements: ComboRequirement | null): string[] {
             parts.push(`ends at ${String(objectState.added_absolute)}`);
         }
 
-        lines.push(`${objectState.object_name}${parts.length > 0 ? `: ${parts.join(", ")}` : ""}`);
+        if (parts.length > 0) {
+            lines.push(`${objectState.object_name}: ${parts.join(", ")}`);
+        }
     }
 
     return lines;

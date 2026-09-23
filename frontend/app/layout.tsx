@@ -28,7 +28,7 @@ export default function RootLayout({children}: { children: React.ReactNode }) {
         <head>
         <script dangerouslySetInnerHTML={{__html: THEME_MODE_PRELOAD_SCRIPT}} />
         </head>
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <AppRouterCacheProvider>
             <AuthProvider>
                 <ThemeModeProvider>

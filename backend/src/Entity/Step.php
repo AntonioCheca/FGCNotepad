@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: "step_combo", schema: "sf6")]
 #[ORM\Index(name: "idx_step_combo_parent_ordinal_child", columns: ["parent_sequence_id", "ordinal_in_combo", "child_sequence_id"])]
 #[ORM\Index(name: "idx_step_combo_child_ordinal_parent", columns: ["child_sequence_id", "ordinal_in_combo", "parent_sequence_id"])]
+#[ORM\Index(name: "idx_step_combo_resource_object", columns: ["resource_object_id"])]
 class Step
 {
     #[ORM\Id]
@@ -42,6 +43,13 @@ class Step
 
     #[ORM\Column(options: ['default' => false])]
     private bool $delay_max_unverified = false;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: "resource_object_id", referencedColumnName: "id", nullable: true, onDelete: "SET NULL")]
+    private ?CharacterObject $resource_object = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $resource_delta = null;
 
     public function getId(): ?int
     {
@@ -140,6 +148,25 @@ class Step
     public function setDelayMaxUnverified(bool $delay_max_unverified): static
     {
         $this->delay_max_unverified = $delay_max_unverified;
+
+        return $this;
+    }
+
+    public function getResourceObject(): ?CharacterObject
+    {
+        return $this->resource_object;
+    }
+
+    public function getResourceDelta(): ?int
+    {
+        return $this->resource_delta;
+    }
+
+    /** A resource change observed on this step, e.g. -1 Denjin Charge on a Hadoken. */
+    public function setResourceChange(?CharacterObject $resourceObject, ?int $resourceDelta): static
+    {
+        $this->resource_object = null === $resourceDelta ? null : $resourceObject;
+        $this->resource_delta = null === $resourceObject ? null : $resourceDelta;
 
         return $this;
     }

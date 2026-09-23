@@ -2,9 +2,11 @@
 
 namespace App\Service;
 
+use App\Entity\CharacterObject;
 use App\Entity\ComboSequences;
 use App\Entity\ConnectionType;
 use App\Entity\Step;
+use App\Repository\CharacterObjectRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -15,6 +17,7 @@ final class ComboStepFactory
     public function __construct(
         private ComboSequencesRepository $comboSequencesRepository,
         private ConnectionTypeRepository $connectionTypeRepository,
+        private CharacterObjectRepository $characterObjectRepository,
     ) {
     }
 
@@ -56,12 +59,45 @@ final class ComboStepFactory
                 $step->setConnectionType($connectionType);
             }
 
+            [$resourceObject, $resourceDelta] = $this->resolveResourceChange($stepData, $index);
+            $step->setResourceChange($resourceObject, $resourceDelta);
+
             $parentSequence->addStep($step);
 
             $steps[] = $step;
         }
 
         return $steps;
+    }
+
+    /**
+     * @param array<string, mixed> $stepData
+     *
+     * @return array{0:CharacterObject|null,1:int|null}
+     */
+    private function resolveResourceChange(array $stepData, int $index): array
+    {
+        $hasObject = null !== ($stepData['resource_object_id'] ?? null);
+        $hasDelta = null !== ($stepData['resource_delta'] ?? null);
+        if (!$hasObject && !$hasDelta) {
+            return [null, null];
+        }
+
+        if (!$hasObject || !$hasDelta) {
+            throw new BadRequestHttpException(sprintf('Step %d must define both resource_object_id and resource_delta, or neither.', $index + 1));
+        }
+
+        $delta = $stepData['resource_delta'];
+        if (!is_int($delta) || 0 === $delta) {
+            throw new BadRequestHttpException(sprintf('Step %d field resource_delta must be a non-zero integer.', $index + 1));
+        }
+
+        $resourceObject = $this->characterObjectRepository->find($this->requirePositiveInteger($stepData, 'resource_object_id', $index));
+        if (!$resourceObject instanceof CharacterObject) {
+            throw new NotFoundHttpException(sprintf('Step %d resource_object_id does not reference an existing resource.', $index + 1));
+        }
+
+        return [$resourceObject, $delta];
     }
 
     /**

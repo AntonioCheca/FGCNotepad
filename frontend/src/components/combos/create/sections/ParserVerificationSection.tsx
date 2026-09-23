@@ -28,6 +28,10 @@ import type {
     TranslateParsedToken,
 } from "@/src/types/combo";
 import {getDelayLabel} from "@/src/components/combos/create/utils/comboForm";
+import {resourceChangesByOrdinal, resourceLedgerWarnings} from "@/src/components/combos/resources/resourceTimeline";
+import {StartingRequirements} from "@/src/components/combos/resources/StartingRequirements";
+import {StepResourceBadges} from "@/src/components/combos/resources/StepResourceBadges";
+import type {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 
 interface ParserVerificationSectionProps {
     hasParseResult: boolean;
@@ -43,6 +47,8 @@ interface ParserVerificationSectionProps {
     connectionsLoading: boolean;
     translateWarnings: string[];
     translateErrors: TranslateErrorToken[];
+    resourceLedger?: ResourceLedgerEntry[];
+    startingRequirements?: string[];
     readOnly?: boolean;
     onSelectStep: (index: number) => void;
     onChangeStep: (index: number, update: Partial<StepDraft>) => void;
@@ -64,6 +70,8 @@ export function ParserVerificationSection({
     connectionsLoading,
     translateWarnings,
     translateErrors,
+    resourceLedger = [],
+    startingRequirements = [],
     readOnly = false,
     onSelectStep,
     onChangeStep,
@@ -76,12 +84,17 @@ export function ParserVerificationSection({
         return null;
     }
 
+    const resourceChanges = resourceChangesByOrdinal(resourceLedger);
+    const stepResourceChanges = (stepIndex: number | undefined) => (stepIndex === undefined ? [] : resourceChanges.get(stepIndex + 1) ?? []);
+    const warnings = [...translateWarnings, ...resourceLedgerWarnings(resourceLedger)];
+
     return (
         <SectionCard
             title="Parser Verification"
             tone="raised"
             variant="review"
         >
+            <StartingRequirements labels={startingRequirements} />
             <AppBox sx={{display: "grid", gap: 1, gridTemplateColumns: {xs: "1fr", lg: "minmax(0, 1fr) 320px"}, alignItems: {xs: "start", lg: "stretch"}, minWidth: 0}}>
                 <AppBox sx={{display: {xs: "none", lg: "flex"}, gap: 0.35, flexWrap: "wrap", alignItems: "center", minWidth: 0, overflowX: "hidden"}}>
                     {verificationTokens.map((token, index) => {
@@ -153,9 +166,12 @@ export function ParserVerificationSection({
                                             <DeleteIcon sx={{fontSize: 13}} />
                                         </AppIconButton>
                                     ) : null}
-                                    <AppTypography variant="caption" color="text.secondary" sx={{fontWeight: 600}}>
-                                        Step {token.index}
-                                    </AppTypography>
+                                    <AppBox sx={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 0.5, pr: mappedStepIndex !== undefined && !readOnly ? 2.5 : 0}}>
+                                        <AppTypography variant="caption" color="text.secondary" sx={{fontWeight: 600, whiteSpace: "nowrap"}}>
+                                            Step {token.index}
+                                        </AppTypography>
+                                        <StepResourceBadges changes={stepResourceChanges(mappedStepIndex)} />
+                                    </AppBox>
                                     <AppTypography variant="caption" sx={{fontWeight: 700, fontFamily: "'IBM Plex Mono', 'Consolas', monospace", fontSize: "0.73rem"}}>
                                         {token.token}
                                     </AppTypography>
@@ -233,7 +249,7 @@ export function ParserVerificationSection({
                                 }}
                                 sx={(theme) => ({
                                     display: "grid",
-                                    gridTemplateColumns: "2.25rem minmax(0, 1fr) auto",
+                                    gridTemplateColumns: "2.25rem minmax(0, 1fr) auto auto",
                                     gap: 0.75,
                                     alignItems: "center",
                                     width: "100%",
@@ -273,6 +289,7 @@ export function ParserVerificationSection({
                                         </AppTypography>
                                     ) : null}
                                 </AppBox>
+                                <StepResourceBadges changes={stepResourceChanges(mappedStepIndex)} />
                                 {mappedStepIndex !== undefined && !readOnly ? (
                                     <AppIconButton
                                         type="button"
@@ -342,10 +359,10 @@ export function ParserVerificationSection({
                 </AppDialogActions>
             </AppDialog>
 
-            {translateWarnings.length > 0 ? (
+            {warnings.length > 0 ? (
                 <InlineNotice severity="warning">
                     <AppBox sx={{display: "grid", gap: 0.35}}>
-                        {translateWarnings.map((warning) => (
+                        {warnings.map((warning) => (
                             <AppTypography key={`warning-${warning}`} variant="body2" sx={{display: "flex", gap: 0.5, alignItems: "center"}}>
                                 <WarningAmberIcon fontSize="inherit" />
                                 {warning}

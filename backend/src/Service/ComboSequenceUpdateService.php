@@ -160,16 +160,29 @@ final class ComboSequenceUpdateService
      */
     private function replaceSteps(ComboSequences $sequence, array $stepsPayload): void
     {
+        $previousByOrdinal = [];
         foreach ($sequence->getSteps()->toArray() as $step) {
             if ($step instanceof Step) {
+                $previousByOrdinal[(int) $step->getOrdinalInCombo()] = $step;
                 $sequence->removeStep($step);
                 $this->entityManager->remove($step);
             }
         }
 
         foreach ($this->comboStepFactory->createFromPayload($sequence, $stepsPayload) as $step) {
+            $this->keepObservedResourceChange($step, $previousByOrdinal[(int) $step->getOrdinalInCombo()] ?? null);
             $this->entityManager->persist($step);
         }
+    }
+
+    /** Replay-observed resource changes survive an edit when the same move stays at the same position. */
+    private function keepObservedResourceChange(Step $step, ?Step $previous): void
+    {
+        if (null === $previous || null !== $step->getResourceObject() || $previous->getChildSequence() !== $step->getChildSequence()) {
+            return;
+        }
+
+        $step->setResourceChange($previous->getResourceObject(), $previous->getResourceDelta());
     }
 
     private function recalculateMetricsFromSteps(ComboSequences $sequence): void

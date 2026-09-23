@@ -10,6 +10,7 @@ export interface ImportRow {
     id: string;
     status: "imported" | "observed" | "skipped";
     reason?: string;
+    warnings?: string[];
     comboId?: number;
     profileId?: number;
     setupId?: number;
@@ -94,6 +95,9 @@ function ImportResults({results, importedLabel}: {results: FileImportResult[]; i
                             ) : (
                                 <AppTypography variant="caption" color="error.main" sx={{overflowWrap: "anywhere"}}>{row.reason}</AppTypography>
                             )}
+                            {(row.warnings ?? []).map((warning) => (
+                                <AppTypography key={warning} variant="caption" color="warning.main" sx={{overflowWrap: "anywhere"}}>{warning}</AppTypography>
+                            ))}
                         </AppBox>
                     ))}
                 </AppBox>

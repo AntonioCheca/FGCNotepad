@@ -17,7 +17,7 @@ import {AppDialogContent} from "@/src/components/ui/AppDialogContent";
 import {AppDialogTitle} from "@/src/components/ui/AppDialogTitle";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import {ComboResourceCard} from "@/src/components/combos/ComboResourceCard";
+import {startingRequirementLabels} from "@/src/components/combos/resources/resourceTimeline";
 import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 import {ComboReadOnlySummary} from "@/src/components/combos/ComboReadOnlySummary";
 import {ParserVerificationSection} from "@/src/components/combos/create/sections/ParserVerificationSection";
@@ -420,10 +420,7 @@ export default function ComboDetailPage() {
                         onObjectStatesChange={setObjectStates}
                     />
                 ) : (
-                    <>
-                        <ComboResourceCard ledger={resourceLedger} />
-                        <ComboReadOnlySummary combo={combo} />
-                    </>
+                    <ComboReadOnlySummary combo={combo} />
                 )}
 
                 <ParserVerificationSection
@@ -440,6 +437,8 @@ export default function ComboDetailPage() {
                     connectionsLoading={connectionsLoading}
                     translateWarnings={[]}
                     translateErrors={[]}
+                    resourceLedger={editMode ? [] : resourceLedger}
+                    startingRequirements={editMode ? [] : startingRequirementLabels(combo.requirements)}
                     readOnly={!editMode}
                     onSelectStep={setSelectedStepIndex}
                     onChangeStep={handleChangeStep}

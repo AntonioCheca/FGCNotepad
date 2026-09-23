@@ -16,6 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 /**
  * Walks a combo's moves against their resource effects: where each resource starts, what every step spends or
  * gains, and where it ends. Start value = the combo's declared status requirement, else the resource's default.
+ * A combo whose steps carry observed resource changes (from a replay) is walked from those instead.
  */
 class ComboResourceLedgerService
 {
@@ -92,7 +93,7 @@ class ComboResourceLedgerService
     /** @return list<array<string, mixed>> */
     public function forCombo(ComboSequences $combo): array
     {
-        $moves = array_map(static fn (Step $step): ?Move => $step->getChildSequence()?->getMove(), $this->orderedSteps($combo));
+        $steps = $this->orderedSteps($combo);
         $starts = [];
         foreach ($combo->getComboRequirement()?->getCharacterObjectStates() ?? [] as $state) {
             if ($state instanceof CharacterObjectState && null !== $state->getStatusRequired() && null !== $state->getObjectKey()) {
@@ -100,7 +101,88 @@ class ComboResourceLedgerService
             }
         }
 
-        return $this->forMoves($moves, $starts);
+        if ([] !== array_filter($steps, static fn (Step $step): bool => null !== $step->getResourceObject())) {
+            return $this->forObservedSteps($steps, $starts);
+        }
+
+        return $this->forMoves(array_map(static fn (Step $step): ?Move => $step->getChildSequence()?->getMove(), $steps), $starts);
+    }
+
+    /**
+     * Declared resources that no step changes are listed too, so a combo started at 4 Medals shows them.
+     *
+     * @param list<Step> $steps in combo order
+     * @param array<string, int> $startsByObjectKey declared starting amounts
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function forObservedSteps(array $steps, array $startsByObjectKey): array
+    {
+        $resources = [];
+        $stepInputs = [];
+        foreach ($steps as $index => $step) {
+            $resource = $step->getResourceObject();
+            $effects = [];
+            if ($resource instanceof CharacterObject && null !== $step->getResourceDelta()) {
+                $resources[(int) $resource->getId()] = $this->resourceInput($resource);
+                $effects[] = ['resource_id' => (int) $resource->getId(), 'mode' => 'relative', 'amount' => $step->getResourceDelta()];
+            }
+            $stepInputs[] = ['ordinal' => $step->getOrdinalInCombo() ?? $index + 1, 'notation' => $step->getChildSequence()?->getMove()?->getNumpadNotation() ?? '?', 'effects' => $effects];
+        }
+
+        $ledger = $this->calculate($resources, $stepInputs, $this->declaredStartsById($resources, $startsByObjectKey));
+        $listed = array_map(static fn (array $entry): string => $entry['resource']['object_key'], $ledger);
+        foreach ($startsByObjectKey as $objectKey => $start) {
+            $resource = in_array($objectKey, $listed, true) ? null : $this->entityManager->getRepository(CharacterObject::class)->findOneBy(['objectKey' => $objectKey]);
+            if ($resource instanceof CharacterObject) {
+                $ledger[] = $this->unchangedEntry($this->resourceInput($resource), $start);
+            }
+        }
+
+        return $ledger;
+    }
+
+    /**
+     * @param array{id:int, object_key:string, name:string, kind:string, min:int, max:int|null, starts_with:int} $resource
+     *
+     * @return array<string, mixed>
+     */
+    private function unchangedEntry(array $resource, int $start): array
+    {
+        return [
+            'resource' => [
+                'id' => $resource['id'],
+                'object_key' => $resource['object_key'],
+                'name' => $resource['name'],
+                'kind' => $resource['kind'],
+                'min_status' => $resource['min'],
+                'max_status' => $resource['max'],
+            ],
+            'start' => $start,
+            'end' => $start,
+            'spent' => 0,
+            'gained' => 0,
+            'steps' => [],
+            'warnings' => [],
+        ];
+    }
+
+    /**
+     * @param array<int, array{id:int, object_key:string, name:string, kind:string, min:int, max:int|null, starts_with:int}> $resources
+     * @param array<string, int> $startsByObjectKey
+     *
+     * @return array<int, int> resource id => start value
+     */
+    private function declaredStartsById(array $resources, array $startsByObjectKey): array
+    {
+        $declared = [];
+        foreach ($resources as $resource) {
+            if (isset($startsByObjectKey[$resource['object_key']])) {
+                $declared[$resource['id']] = $startsByObjectKey[$resource['object_key']];
+            }
+        }
+
+        return $declared;
     }
 
     /**
@@ -124,14 +206,7 @@ class ComboResourceLedgerService
             $stepInputs[] = ['ordinal' => $index + 1, 'notation' => $move instanceof Move ? $move->getNumpadNotation() : '?', 'effects' => $effects];
         }
 
-        $declared = [];
-        foreach ($resources as $resource) {
-            if (isset($startsByObjectKey[$resource['object_key']])) {
-                $declared[$resource['id']] = $startsByObjectKey[$resource['object_key']];
-            }
-        }
-
-        return $this->calculate($resources, $stepInputs, $declared);
+        return $this->calculate($resources, $stepInputs, $this->declaredStartsById($resources, $startsByObjectKey));
     }
 
     /** Rewrites the stored usage rows of a combo from its current moves and effects (caller flushes). */
