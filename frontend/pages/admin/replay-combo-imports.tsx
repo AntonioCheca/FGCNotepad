@@ -3,6 +3,7 @@ import AuthContext from "@/services/AuthContext";
 import {useReplayComboImport} from "@/hooks/useReplayComboImport";
 import {useReplayOkiImport} from "@/hooks/useReplayOkiImport";
 import {ImportRow, ReplayImportSection} from "@/src/components/admin/ReplayImportSection";
+import {NeutralStatsImportSection} from "@/src/components/admin/NeutralStatsImportSection";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
@@ -58,6 +59,7 @@ export default function ReplayImportsPage() {
                     importDocument={importOkiDocument}
                     onFinished={() => setToastMessage("Import finished. Created Oki setups are pending moderation.")}
                 />
+                <NeutralStatsImportSection onFinished={() => setToastMessage("Neutral stats import finished.")}/>
             </PageShell>
 
             <AppSnackbar open={toastMessage !== null} autoHideDuration={4000} onClose={() => setToastMessage(null)} anchorOrigin={{vertical: "bottom", horizontal: "right"}}>

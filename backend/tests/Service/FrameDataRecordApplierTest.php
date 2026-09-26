@@ -96,6 +96,18 @@ final class FrameDataRecordApplierTest extends TestCase
         self::assertNull($this->applySpacing(null)->getSpacing());
     }
 
+    public function testItStoresTheFatMoveName(): void
+    {
+        $frameData = new FrameData();
+        $applier = new FrameDataRecordApplier(new FrameDataScalingNormalizerService());
+
+        $applier->applyFatRecord($frameData, ['moveType' => 'special', 'moveName' => '  HP Sonic Boom ']);
+        self::assertSame('HP Sonic Boom', $frameData->getMoveName());
+
+        $applier->applyFatRecord($frameData, ['moveType' => 'special', 'moveName' => '']);
+        self::assertNull($frameData->getMoveName());
+    }
+
     private function applySpacing(mixed $range): FrameData
     {
         $frameData = new FrameData();

@@ -13,6 +13,9 @@ parameters:
         -
             identifier: property.onlyWritten
         -
+            identifier: property.onlyRead
+            path: src/Entity/NeutralObservation*.php
+        -
             identifier: doctrine.columnType
             path: src/Entity/*
         -

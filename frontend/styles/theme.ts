@@ -119,6 +119,22 @@ type FgcTokenSet = {
         helper: string;
         metadata: string;
     };
+    chart: {
+        line: string;
+        rangeMarker: string;
+        grid: string;
+        axis: string;
+        other: string;
+        families: {
+            light: string[];
+            medium: string[];
+            heavy: string[];
+            driveRush: string[];
+            special: string[];
+            specialOd: string[];
+            misc: string[];
+        };
+    };
 };
 
 type Theme = {
@@ -249,6 +265,26 @@ const lightTokens: FgcTokenSet = {
         helper: "#5f728a",
         metadata: "#556a81",
     },
+    // Neutral Stats data encoding. Move families are functional hue families (blue light, gold medium, red heavy,
+    // green Drive Rush, violet specials, gray misc) validated for CVD separation on the light chart surface; each
+    // family lists base, tint, deep and deepest shades. OD specials use the deeper violet family.
+    chart: {
+        line: "#246f89",
+        // Move Profiles max-range marker: artist orange in both modes; dashed and labelled in the caption.
+        rangeMarker: "#f78002",
+        grid: "#e6edf4",
+        axis: "#64748b",
+        other: "#c9bfa8",
+        families: {
+            light: ["#2563eb", "#60a5fa", "#1e40af", "#93c5fd"],
+            medium: ["#ca8a04", "#eab308", "#a16207", "#fde047"],
+            heavy: ["#b91c1c", "#ef4444", "#7f1d1d", "#fca5a5"],
+            driveRush: ["#22c55e", "#86efac", "#15803d", "#4ade80"],
+            special: ["#7c3aed", "#a78bfa", "#c4b5fd", "#8b5cf6"],
+            specialOd: ["#5b21b6", "#4c1d95", "#6d28d9", "#3b0764"],
+            misc: ["#64748b", "#94a3b8", "#475569", "#cbd5e1"],
+        },
+    },
 };
 
 const darkTokens: FgcTokenSet = {
@@ -369,6 +405,23 @@ const darkTokens: FgcTokenSet = {
         body: "#d3e7ef",
         helper: "#9fbfcb",
         metadata: "#86a9b7",
+    },
+    // Dark-surface counterparts of the Neutral Stats families, re-validated against surface.base.
+    chart: {
+        line: "#4d9eba",
+        rangeMarker: "#f78002",
+        grid: "#1a445a",
+        axis: "#98bac8",
+        other: "#6b6457",
+        families: {
+            light: ["#3b82f6", "#93c5fd", "#1d4ed8", "#60a5fa"],
+            medium: ["#c08a0c", "#facc15", "#92650a", "#eab308"],
+            heavy: ["#b91c1c", "#f87171", "#7f1d1d", "#ef4444"],
+            driveRush: ["#2aa65a", "#86efac", "#15803d", "#4ade80"],
+            special: ["#8b5cf6", "#c4b5fd", "#a78bfa", "#7c3aed"],
+            specialOd: ["#6d28d9", "#5b21b6", "#4c1d95", "#7e22ce"],
+            misc: ["#94a3b8", "#cbd5e1", "#64748b", "#e2e8f0"],
+        },
     },
 };
 

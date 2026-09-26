@@ -53,6 +53,7 @@ security:
         - { path: ^/api/shared-review, roles: PUBLIC_ACCESS }
         - { path: ^/api/guides, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/scenarios, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/neutral-stats, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api, roles: ROLE_USER }
 
 # ========================

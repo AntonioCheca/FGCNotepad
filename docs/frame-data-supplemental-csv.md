@@ -35,7 +35,7 @@ php bin/console frame-data:supplemental:retire --batch=1
 Copy this header row into Google Sheets. Export populated data as CSV.
 
 ```csv
-character_name,character_life,move_name,numpad_notation,startup,active,recovery,total,on_hit,on_block,on_punish_counter,move_type,cancels_to,damage,full_damage,scaling,chip_damage,attack_level,on_hit_after_drive_rush,on_block_after_drive_rush,on_perfect_parry,drive_damage_on_hit,drive_damage_on_block,drive_gain,on_hit_self_super_meter_gain,on_block_self_super_meter_gain,on_hit_opponent_super_meter_gain,on_block_opponent_super_meter_gain,hit_confirm_specials_and_supers,hit_confirm_target_combos,juggle_limit,juggle_increase,juggle_start,hitstun,blockstun,hitstop,extra_information
+character_name,character_life,move_name,numpad_notation,startup,active,recovery,total,on_hit,on_block,on_punish_counter,move_type,cancels_to,damage,full_damage,scaling,chip_damage,attack_level,on_hit_after_drive_rush,on_block_after_drive_rush,on_perfect_parry,drive_damage_on_hit,drive_damage_on_block,drive_gain,on_hit_self_super_meter_gain,on_block_self_super_meter_gain,on_hit_opponent_super_meter_gain,on_block_opponent_super_meter_gain,hit_confirm_specials_and_supers,hit_confirm_target_combos,juggle_limit,juggle_increase,juggle_start,hitstun,blockstun,hitstop,extra_information,range
 ```
 
 ## Notes
@@ -45,4 +45,5 @@ character_name,character_life,move_name,numpad_notation,startup,active,recovery,
 - Empty frame-data cells are ignored by the supplemental overlay.
 - `cancels_to` accepts comma-separated FAT-style cancel codes, for example `sp,su`.
 - `full_damage` can contain FAT-style composite text such as `1300 (600*700)` when `damage` is empty.
+- `range` is the move's max reach in game units. It accepts FAT-style text such as `1.97 (1.46)` or `1.548~1.736` and keeps the largest number; `?` or an empty cell leaves it unset. The column is optional.
 - Manual moderator overrides still win over supplemental values.

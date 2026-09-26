@@ -86,6 +86,12 @@ class Replay
     #[ORM\Column(name: 'is_rival_ai', type: Types::BOOLEAN, nullable: true)]
     private ?bool $isRivalAi = null;
 
+    #[ORM\Column(name: 'neutral_algorithm_version', type: Types::STRING, length: 16, nullable: true)]
+    private ?string $neutralAlgorithmVersion = null;
+
+    #[ORM\Column(name: 'neutral_imported_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $neutralImportedAt = null;
+
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
@@ -147,6 +153,16 @@ class Replay
     public function setIsRegistered(?bool $value): self { $this->isRegistered = $value; return $this->touch(); }
     public function isRivalAi(): ?bool { return $this->isRivalAi; }
     public function setIsRivalAi(?bool $value): self { $this->isRivalAi = $value; return $this->touch(); }
+    public function getNeutralAlgorithmVersion(): ?string { return $this->neutralAlgorithmVersion; }
+    public function getNeutralImportedAt(): ?\DateTimeImmutable { return $this->neutralImportedAt; }
+
+    public function markNeutralImported(?string $algorithmVersion): self
+    {
+        $this->neutralAlgorithmVersion = $algorithmVersion;
+        $this->neutralImportedAt = new \DateTimeImmutable();
+
+        return $this->touch();
+    }
 
     /** @return Collection<int, ReplayPlayer> */
     public function getPlayers(): Collection { return $this->players; }

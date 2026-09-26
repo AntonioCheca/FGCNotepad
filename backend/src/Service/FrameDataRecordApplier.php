@@ -64,6 +64,7 @@ final class FrameDataRecordApplier
             'hitstop' => (int) ($record['hitstop'] ?? 0),
             'spacing' => $this->parseSpacing($record['range'] ?? null),
             'extraInformation' => $this->buildExtraInformation($record),
+            'moveName' => $this->parseMoveName($record['moveName'] ?? null),
         ]);
     }
 
@@ -90,8 +91,15 @@ final class FrameDataRecordApplier
         return $changed;
     }
 
+    private function parseMoveName(mixed $value): ?string
+    {
+        $name = is_string($value) ? trim($value) : '';
+
+        return '' === $name ? null : mb_substr($name, 0, 128);
+    }
+
     /** FAT spacing may be text such as "1.548~1.736" or "1.863 Fwd / 0.767 Back"; its largest number is kept. */
-    private function parseSpacing(mixed $value): ?float
+    public function parseSpacing(mixed $value): ?float
     {
         if (is_int($value) || is_float($value)) {
             return (float) $value;

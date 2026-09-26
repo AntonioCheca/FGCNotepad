@@ -66,6 +66,7 @@ class FrameDataSupplementalValue
     #[ORM\Column(type: Types::SMALLINT, nullable: true)] private ?int $hitstun = null;
     #[ORM\Column(type: Types::SMALLINT, nullable: true)] private ?int $blockstun = null;
     #[ORM\Column(type: Types::SMALLINT, nullable: true)] private ?int $hitstop = null;
+    #[ORM\Column(type: Types::FLOAT, nullable: true)] private ?float $spacing = null;
     #[ORM\Column(name: 'extra_information', type: Types::TEXT, nullable: true)] private ?string $extraInformation = null;
 
     public function getId(): ?int { return $this->id; }
@@ -93,7 +94,7 @@ class FrameDataSupplementalValue
     /** @return list<string> */
     public static function getImportableColumns(): array
     {
-        return ['startup', 'active', 'recovery', 'total', 'onHit', 'onBlock', 'onPunishCounter', 'moveType', 'cancelsTo', 'damage', 'scaling', 'scalingStartPercent', 'scalingImmediatePercent', 'scalingMinimumPercent', 'scalingComboHits', 'scalingComboExtraPercent', 'scalingMultiplierPercent', 'scalingParseStatus', 'scalingParseNote', 'chipDamage', 'attackLevel', 'onHitAfterDriveRush', 'onBlockAfterDriveRush', 'onPerfectParry', 'driveDamageOnHit', 'driveDamageOnBlock', 'driveGain', 'onHitSelfSuperMeterGain', 'onBlockSelfSuperMeterGain', 'onHitOpponentSuperMeterGain', 'onBlockOpponentSuperMeterGain', 'hitConfirmSpecialsAndSupers', 'hitConfirmTargetCombos', 'juggleLimit', 'juggleIncrease', 'juggleStart', 'hitstun', 'blockstun', 'hitstop', 'extraInformation'];
+        return ['startup', 'active', 'recovery', 'total', 'onHit', 'onBlock', 'onPunishCounter', 'moveType', 'cancelsTo', 'damage', 'scaling', 'scalingStartPercent', 'scalingImmediatePercent', 'scalingMinimumPercent', 'scalingComboHits', 'scalingComboExtraPercent', 'scalingMultiplierPercent', 'scalingParseStatus', 'scalingParseNote', 'chipDamage', 'attackLevel', 'onHitAfterDriveRush', 'onBlockAfterDriveRush', 'onPerfectParry', 'driveDamageOnHit', 'driveDamageOnBlock', 'driveGain', 'onHitSelfSuperMeterGain', 'onBlockSelfSuperMeterGain', 'onHitOpponentSuperMeterGain', 'onBlockOpponentSuperMeterGain', 'hitConfirmSpecialsAndSupers', 'hitConfirmTargetCombos', 'juggleLimit', 'juggleIncrease', 'juggleStart', 'hitstun', 'blockstun', 'hitstop', 'spacing', 'extraInformation'];
     }
 
     public function setValue(string $columnName, mixed $value): void

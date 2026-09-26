@@ -195,6 +195,10 @@ final class ReplayContextImportService
             ->setRegionId($this->int32($data['region_id'] ?? null))
             ->setHomeId($this->int32($data['home_id'] ?? null))
             ->setHomeCategoryId($this->int32($data['home_category_id'] ?? null));
+        // Most exports do not report the scheme; absence must not erase one stored from an export that did.
+        if (array_key_exists('control_scheme', $data)) {
+            $player->setControlScheme($this->text($data['control_scheme'], 16));
+        }
 
         $rank = is_array($data['rank'] ?? null) ? $data['rank'] : [];
         $player

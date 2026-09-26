@@ -25,7 +25,7 @@ final class FgTheorySupplementalCsvImportService
         'hit_confirm_specials_and_supers' => 'hitConfirmSpecialsAndSupers',
         'hit_confirm_target_combos' => 'hitConfirmTargetCombos', 'juggle_limit' => 'juggleLimit',
         'juggle_increase' => 'juggleIncrease', 'juggle_start' => 'juggleStart', 'hitstun' => 'hitstun',
-        'blockstun' => 'blockstun', 'hitstop' => 'hitstop', 'extra_information' => 'extraInformation',
+        'blockstun' => 'blockstun', 'hitstop' => 'hitstop', 'range' => 'spacing', 'extra_information' => 'extraInformation',
     ];
 
     /** @var list<string> */
@@ -150,6 +150,11 @@ final class FgTheorySupplementalCsvImportService
         foreach (self::HEADER_TO_COLUMN as $header => $columnName) {
             $raw = trim($data[$header] ?? '');
             if ('' === $raw) {
+                continue;
+            }
+
+            if ('spacing' === $columnName) {
+                $values[$columnName] = $this->recordApplier->parseSpacing($raw);
                 continue;
             }
 

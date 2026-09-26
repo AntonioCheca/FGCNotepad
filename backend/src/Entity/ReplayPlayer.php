@@ -44,6 +44,10 @@ class ReplayPlayer
     #[ORM\Column(name: 'short_id', type: Types::BIGINT, nullable: true)]
     private ?string $shortId = null;
 
+    /** classic / modern as exported; null when the export did not report it. */
+    #[ORM\Column(name: 'control_scheme', type: Types::STRING, length: 16, nullable: true)]
+    private ?string $controlScheme = null;
+
     #[ORM\Column(type: Types::STRING, length: 64, nullable: true)]
     private ?string $region = null;
 
@@ -120,6 +124,8 @@ class ReplayPlayer
     public function setCfnName(?string $value): self { $this->cfnName = $value; return $this; }
     public function getShortId(): ?string { return $this->shortId; }
     public function setShortId(?string $value): self { $this->shortId = $value; return $this; }
+    public function getControlScheme(): ?string { return $this->controlScheme; }
+    public function setControlScheme(?string $value): self { $this->controlScheme = $value; return $this; }
     public function getRegion(): ?string { return $this->region; }
     public function setRegion(?string $value): self { $this->region = $value; return $this; }
     public function getRegionId(): ?int { return $this->regionId; }

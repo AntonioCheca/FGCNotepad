@@ -149,6 +149,9 @@ class FrameData
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $extraInformation = null;
 
+    #[ORM\Column(name: 'move_name', type: Types::STRING, length: 128, nullable: true)]
+    private ?string $moveName = null;
+
     #[ORM\OneToOne(mappedBy: 'frameData', cascade: ['persist', 'remove'])]
     private ?Move $move = null;
 
@@ -692,12 +695,24 @@ class FrameData
 
     public function getSpacing(): ?float
     {
-        return $this->spacing;
+        return $this->getEffectiveValue('spacing', $this->spacing);
     }
 
     public function setSpacing(?float $spacing): static
     {
         $this->spacing = $spacing;
+
+        return $this;
+    }
+
+    public function getMoveName(): ?string
+    {
+        return $this->moveName;
+    }
+
+    public function setMoveName(?string $moveName): static
+    {
+        $this->moveName = $moveName;
 
         return $this;
     }

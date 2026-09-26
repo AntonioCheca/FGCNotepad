@@ -11,6 +11,7 @@ const routes = [
     "/replay-lab/practice-tasks",
     "/replay-lab/study-deck",
     "/scenarios",
+    "/neutral-stats",
     "/profile",
     "/profile/recommend-combo",
     "/admin/users",

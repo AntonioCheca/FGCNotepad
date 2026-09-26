@@ -25,3 +25,5 @@ export {default as ArrowUpwardIcon} from "@mui/icons-material/ArrowUpward";
 export {default as ArrowDownwardIcon} from "@mui/icons-material/ArrowDownward";
 export {default as ChatBubbleOutlineIcon} from "@mui/icons-material/ChatBubbleOutline";
 export {default as AltRouteIcon} from "@mui/icons-material/AltRoute";
+export {default as TuneIcon} from "@mui/icons-material/Tune";
+export {default as QueryStatsIcon} from "@mui/icons-material/QueryStats";

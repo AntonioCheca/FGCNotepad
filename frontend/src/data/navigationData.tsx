@@ -4,6 +4,7 @@ import {
     ArticleOutlinedIcon,
     HelpOutlineOutlinedIcon,
     PendingActionsIcon,
+    QueryStatsIcon,
     SearchOutlinedIcon,
     SettingsOutlinedIcon,
     ScheduleIcon,
@@ -82,6 +83,16 @@ export const navigationSections: NavigationSection[] = [
                 label: "Create Scenario",
                 href: "/scenarios/new",
                 icon: <SportsKabaddiOutlinedIcon/>
+            }
+        ]
+    },
+    {
+        title: "Stats",
+        items: [
+            {
+                label: "Neutral Stats",
+                href: "/neutral-stats",
+                icon: <QueryStatsIcon/>
             }
         ]
     },

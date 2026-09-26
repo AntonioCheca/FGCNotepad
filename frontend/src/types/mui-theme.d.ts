@@ -119,6 +119,22 @@ type FgcTokenGroup = {
         helper: string;
         metadata: string;
     };
+    chart: {
+        line: string;
+        rangeMarker: string;
+        grid: string;
+        axis: string;
+        other: string;
+        families: {
+            light: string[];
+            medium: string[];
+            heavy: string[];
+            driveRush: string[];
+            special: string[];
+            specialOd: string[];
+            misc: string[];
+        };
+    };
 };
 
 declare module "@mui/material/styles" {
