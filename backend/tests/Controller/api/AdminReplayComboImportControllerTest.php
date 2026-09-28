@@ -13,6 +13,7 @@ use App\Entity\ComboSequenceType;
 use App\Entity\ComboSpacing;
 use App\Entity\ConnectionType;
 use App\Entity\Move;
+use App\Entity\NotationTranslation;
 use App\Entity\Season;
 use App\Entity\Step;
 use App\Entity\User;
@@ -385,6 +386,24 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
         self::assertSame('Already recorded for this replay.', $payloads[1]['results'][0]['reason']);
         self::assertSame('observed', $payloads[1]['results'][1]['status']);
         self::assertCount(1, array_filter($this->entityManager->getRepository(ComboSequences::class)->findAll(), static fn (ComboSequences $combo): bool => str_starts_with((string) $combo->getName(), '2LP > 5LP [')));
+    }
+
+    public function testNotationTranslationRulesResolveExportNotationAndAreNotedOnTheCombo(): void
+    {
+        $this->persistComboCatalog();
+        $this->entityManager->persist(new NotationTranslation(null, NotationTranslation::KIND_REGEX, '^cr\.', '2', 0, null));
+        $this->entityManager->flush();
+
+        $payload = $this->importCombos([$this->combo('r1-s1-c1', true, [
+            ['kind' => 'move', 'notation' => 'cr.LP', 'name' => 'Crouching Light Punch'],
+            ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch'],
+        ], null)]);
+
+        self::assertSame('imported', $payload['results'][0]['status']);
+        $created = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
+        self::assertInstanceOf(ComboSequences::class, $created);
+        self::assertSame('2LP > 5LP [RR95Y8A56 r1-s1-c1]', $created->getName());
+        self::assertStringContainsString('"cr.LP" read as "2LP".', (string) $created->getDescription());
     }
 
     public function testImportRejectsUnsupportedDocumentFormat(): void

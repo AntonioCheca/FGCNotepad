@@ -48,6 +48,7 @@ final class ReplayComboStepResolver
     public function __construct(
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly ConnectionTypeRepository $connectionTypeRepository,
+        private readonly ReplayNotationTranslator $translator,
     ) {
     }
 
@@ -56,6 +57,7 @@ final class ReplayComboStepResolver
     {
         $this->leafsByCharacter = [];
         $this->connectionTypes = null;
+        $this->translator->clearCache();
     }
 
     /**
@@ -125,7 +127,7 @@ final class ReplayComboStepResolver
             }
 
             if ('move' === $kind && $this->isTargetCombo($sourceStep)) {
-                $this->collapseTargetHop($resolved, $sourceStep, $leafsByKey, $character);
+                $this->collapseTargetHop($resolved, $sourceStep, $leafsByKey, $character, $notes);
                 $sourceIndexes[array_key_last($resolved)][] = $index;
                 $previousExportKind = $kind;
                 continue;
@@ -133,11 +135,12 @@ final class ReplayComboStepResolver
 
             $this->assertTargetChainResolved($resolved, $character);
 
-            $leaf = $this->findLeaf($leafsByKey, $key, $sourceStep, $character, $notes, $kind);
-            if (null === $leaf) {
+            $match = $this->findLeaf($leafsByKey, $key, $sourceStep, $character, $notes, $kind);
+            if (null === $match) {
                 $pendingIndexes[] = $index;
                 continue; // A dash/jump whose movement leaf is not in the catalogue: noted, not fatal.
             }
+            [$leaf, $key] = $match;
 
             $delay = null;
             if ([] === $resolved) {
@@ -185,8 +188,9 @@ final class ReplayComboStepResolver
      * @param list<array{leaf: ComboSequences, connection: string, delay: int|null, root: string, chain: string|null, label: string, special: bool, pending: bool}> $resolved
      * @param array<string, mixed> $sourceStep
      * @param array<string, list<ComboSequences>> $leafsByKey
+     * @param list<string> $notes
      */
-    private function collapseTargetHop(array &$resolved, array $sourceStep, array $leafsByKey, Character $character): void
+    private function collapseTargetHop(array &$resolved, array $sourceStep, array $leafsByKey, Character $character, array &$notes): void
     {
         $target = is_string($sourceStep['target_notation'] ?? null) ? trim($sourceStep['target_notation']) : '';
         if ('' === $target) {
@@ -197,26 +201,39 @@ final class ReplayComboStepResolver
             throw new \InvalidArgumentException(sprintf('Target combo notation "%s" is not understood.', $target));
         }
 
+        // The hop names what it follows either as the first hit ("5HK > HP" then "5HK > HK") or as the chain so far
+        // ("5MP > MP" then "5MP~MP > MP"); both are compared after translation.
         $last = $resolved[array_key_last($resolved)] ?? null;
-        if (null === $last || $last['root'] !== ReplayMoveNotation::key($parts[0])) {
+        $followedKeys = array_map(static fn (string $candidate): string => ReplayMoveNotation::key($candidate), $this->translator->candidates($parts[0], $character));
+        $follows = null !== $last && (
+            in_array($last['root'], $followedKeys, true)
+            || (null !== $last['chain'] && in_array(ReplayMoveNotation::key($last['chain']), $followedKeys, true))
+        );
+        if (!$follows) {
             throw new \InvalidArgumentException(sprintf('Target combo hop "%s" does not follow its first hit.', $target));
         }
 
         // Consecutive hops compose: "5HK > HP" then "5HK > HK" is the leaf "5HK > HP > HK".
         $chain = null !== $last['chain'] ? $last['chain'] . ' > ' . $parts[1] : $target;
-        $chainParts = array_map('trim', explode('>', $chain));
-        $candidates = [ReplayMoveNotation::key($chain)];
-        $stance = 1 === preg_match('/^(\d)/', ReplayMoveNotation::key($chainParts[0]), $matches) ? $matches[1] : '';
-        if ('' !== $stance) {
-            $candidates[] = ReplayMoveNotation::key(implode(' > ', array_merge([$chainParts[0]], array_map(static fn (string $part): string => $stance . $part, array_slice($chainParts, 1)))));
+        $candidates = [];
+        foreach ($this->translator->candidates($chain, $character) as $translated) {
+            $chainParts = array_map('trim', explode('>', $translated));
+            $candidates[ReplayMoveNotation::key($translated)] = $translated;
+            $stance = 1 === preg_match('/^(\d)/', ReplayMoveNotation::key($chainParts[0]), $matches) ? $matches[1] : '';
+            if ('' !== $stance) {
+                $candidates[ReplayMoveNotation::key(implode(' > ', array_merge([$chainParts[0]], array_map(static fn (string $part): string => $stance . $part, array_slice($chainParts, 1)))))] = $translated;
+            }
         }
 
-        foreach ($candidates as $candidateKey) {
+        foreach ($candidates as $candidateKey => $translated) {
             $matches = $leafsByKey[$candidateKey] ?? [];
             if (1 === count($matches)) {
+                if ($translated !== $chain) {
+                    $notes[] = sprintf('"%s" read as "%s".', $chain, $translated);
+                }
                 $entry = array_pop($resolved);
                 $entry['leaf'] = $matches[0];
-                $entry['chain'] = $chain;
+                $entry['chain'] = $translated; // Later hops compose on the catalogue's spelling of the chain.
                 $entry['pending'] = false;
                 $entry['label'] = $matches[0]->getMove()?->getNumpadNotation() ?? $chain;
                 $resolved[] = $entry;
@@ -281,33 +298,51 @@ final class ReplayComboStepResolver
      * @param array<string, list<ComboSequences>> $leafsByKey
      * @param array<string, mixed> $sourceStep
      * @param list<string> $notes
+     *
+     * The first translation candidate that names exactly one leaf wins; ambiguous candidates are passed over.
+     *
+     * @return array{0: ComboSequences, 1: string}|null the leaf and the key it matched on
      */
-    private function findLeaf(array $leafsByKey, string $key, array $sourceStep, Character $character, array &$notes, string $kind): ?ComboSequences
+    private function findLeaf(array $leafsByKey, string $key, array $sourceStep, Character $character, array &$notes, string $kind): ?array
     {
-        $matches = $leafsByKey[$key] ?? [];
-        if ([] === $matches && null !== ($jumpKey = ReplayMoveNotation::jumpAliasKey($key))) {
-            $matches = $leafsByKey[$jumpKey] ?? [];
-        }
-
-        if ([] === $matches) {
-            if (in_array($kind, ['dash', 'jump'], true)) {
-                $notes[] = sprintf('%s step skipped: no "%s" move in the catalogue.', $kind, $key);
-
-                return null;
+        $notation = (string) ($sourceStep['notation'] ?? $key);
+        $candidates = 'move' === $kind ? $this->translator->candidates($notation, $character) : [$key];
+        $ambiguous = false;
+        foreach ($candidates as $candidate) {
+            $candidateKey = 'move' === $kind ? ReplayMoveNotation::key($candidate) : $candidate;
+            $matches = $leafsByKey[$candidateKey] ?? [];
+            if ([] === $matches && null !== ($jumpKey = ReplayMoveNotation::jumpAliasKey($candidateKey))) {
+                $matches = $leafsByKey[$jumpKey] ?? [];
             }
-            $notation = (string) ($sourceStep['notation'] ?? $key);
-            if (ReplayMoveNotation::isStrengthAgnostic($key)) {
-                throw new \InvalidArgumentException(sprintf('Notation "%s" does not say which strength was used, so it cannot be matched to one %s move.', $notation, $character->getName()));
+            if (1 === count($matches)) {
+                if ($candidate !== $notation) {
+                    $notes[] = sprintf('"%s" read as "%s".', $notation, $candidate);
+                }
+
+                return [$matches[0], $candidateKey];
             }
-
-            throw new \InvalidArgumentException(sprintf('No leaf move matches notation "%s" for %s.', $notation, $character->getName()));
+            $ambiguous = $ambiguous || [] !== $matches;
         }
 
-        if (count($matches) > 1) {
-            throw new \InvalidArgumentException(sprintf('Notation "%s" is ambiguous for %s.', (string) ($sourceStep['notation'] ?? $key), $character->getName()));
+        if ($ambiguous) {
+            throw new \InvalidArgumentException(sprintf('Notation "%s" is ambiguous for %s.', $notation, $character->getName()));
         }
+        if (in_array($kind, ['dash', 'jump'], true)) {
+            $notes[] = sprintf('%s step skipped: no "%s" move in the catalogue.', $kind, $key);
 
-        return $matches[0];
+            return null;
+        }
+        if (ReplayMoveNotation::isStrengthAgnostic($key)) {
+            throw new \InvalidArgumentException(sprintf('Notation "%s" does not say which strength was used, so it cannot be matched to one %s move.', $notation, $character->getName()));
+        }
+        $tried = array_slice($candidates, 1);
+
+        throw new \InvalidArgumentException(sprintf(
+            'No leaf move matches notation "%s" for %s%s.',
+            $notation,
+            $character->getName(),
+            [] === $tried ? '' : sprintf(' (also tried "%s")', implode('", "', $tried)),
+        ));
     }
 
     /**

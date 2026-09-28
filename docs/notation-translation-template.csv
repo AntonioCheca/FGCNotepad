@@ -1,0 +1,2 @@
+character,kind,from,to,priority,note
+,regex,~, > ,10,Example: rewrite an export follow-up separator into the catalogue's separator
