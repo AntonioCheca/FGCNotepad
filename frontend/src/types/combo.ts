@@ -97,6 +97,7 @@ export interface ComboRequirementsPayload {
     counter_hit_required?: boolean;
     punish_counter_required?: boolean;
     perfect_parry_required?: boolean;
+    blocked_drive_impact_stun_required?: boolean;
     corner_required?: boolean;
     airborne_required?: boolean;
     not_crouching_required?: boolean;
@@ -158,7 +159,7 @@ export interface TranslateComboNotationResponse {
     parsedTokens: TranslateParsedToken[];
     warnings: string[];
     errors: TranslateErrorToken[];
-    requirements?: Pick<ComboRequirementsPayload, "counter_hit_required" | "punish_counter_required" | "perfect_parry_required" | "not_crouching_required">;
+    requirements?: Pick<ComboRequirementsPayload, "counter_hit_required" | "punish_counter_required" | "perfect_parry_required" | "blocked_drive_impact_stun_required" | "not_crouching_required">;
 }
 
 export interface EstimateComboDamageResponse extends TranslateComboNotationResponse {
@@ -311,6 +312,7 @@ export interface ComboRequirement {
     counter_hit_required?: boolean;
     punish_counter_required?: boolean;
     perfect_parry_required?: boolean;
+    blocked_drive_impact_stun_required?: boolean;
     corner_required?: boolean;
     airborne_required?: boolean;
     not_crouching_required?: boolean;

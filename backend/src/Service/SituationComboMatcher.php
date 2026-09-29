@@ -142,6 +142,9 @@ class SituationComboMatcher
         if ($requirement->isPerfectParryRequired()) {
             return [true, ['Combo requires a Perfect Parry starter, which situations do not provide.']];
         }
+        if ($requirement->isBlockedDriveImpactStunRequired()) {
+            return [true, ['Combo requires a blocked Drive Impact wall stun starter, which situations do not provide.']];
+        }
 
         if ($requirement->isPunishCounterRequired()) {
             if (Situation::COUNTER_PUNISH_COUNTER !== $state) {

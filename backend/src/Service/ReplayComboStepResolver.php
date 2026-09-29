@@ -52,6 +52,16 @@ final class ReplayComboStepResolver
     ) {
     }
 
+    /**
+     * @param array{install?: bool, defenderStatusByIndex?: array<int, string>} $state
+     *
+     * @return array{install: bool, defenderStatus: string|null}
+     */
+    private function stepState(array $state, int $index): array
+    {
+        return ['install' => true === ($state['install'] ?? false), 'defenderStatus' => $state['defenderStatusByIndex'][$index] ?? null];
+    }
+
     /** Clear entity-backed caches after each import document before Doctrine clears its unit of work. */
     public function clearCache(): void
     {
@@ -62,13 +72,14 @@ final class ReplayComboStepResolver
 
     /**
      * @param list<mixed> $sourceSteps
+     * @param array{install?: bool, defenderStatusByIndex?: array<int, string>} $state picks state-specific move variants
      *
      * sourceIndexes lists, per returned step, the export sequence indexes folded into it: its own move, target
      * hops collapsed into it, and connective entries (Drive Rush Cancel, walk, skipped movement) leading into it.
      *
      * @return array{steps: list<array<string, mixed>>, notation: string, notes: list<string>, sourceIndexes: list<list<int>>}
      */
-    public function resolve(array $sourceSteps, Character $character): array
+    public function resolve(array $sourceSteps, Character $character, array $state = []): array
     {
         $leafsByKey = $this->leafsByKey($character);
         $connectionTypes = $this->connectionTypesByKey();
@@ -127,7 +138,7 @@ final class ReplayComboStepResolver
             }
 
             if ('move' === $kind && $this->isTargetCombo($sourceStep)) {
-                $this->collapseTargetHop($resolved, $sourceStep, $leafsByKey, $character, $notes);
+                $this->collapseTargetHop($resolved, $sourceStep, $leafsByKey, $character, $notes, $this->stepState($state, $index));
                 $sourceIndexes[array_key_last($resolved)][] = $index;
                 $previousExportKind = $kind;
                 continue;
@@ -135,7 +146,7 @@ final class ReplayComboStepResolver
 
             $this->assertTargetChainResolved($resolved, $character);
 
-            $match = $this->findLeaf($leafsByKey, $key, $sourceStep, $character, $notes, $kind);
+            $match = $this->findLeaf($leafsByKey, $key, $sourceStep, $character, $notes, $kind, $this->stepState($state, $index));
             if (null === $match) {
                 $pendingIndexes[] = $index;
                 continue; // A dash/jump whose movement leaf is not in the catalogue: noted, not fatal.
@@ -189,8 +200,9 @@ final class ReplayComboStepResolver
      * @param array<string, mixed> $sourceStep
      * @param array<string, list<ComboSequences>> $leafsByKey
      * @param list<string> $notes
+     * @param array{install: bool, defenderStatus: string|null} $stepState
      */
-    private function collapseTargetHop(array &$resolved, array $sourceStep, array $leafsByKey, Character $character, array &$notes): void
+    private function collapseTargetHop(array &$resolved, array $sourceStep, array $leafsByKey, Character $character, array &$notes, array $stepState): void
     {
         $target = is_string($sourceStep['target_notation'] ?? null) ? trim($sourceStep['target_notation']) : '';
         if ('' === $target) {
@@ -204,7 +216,7 @@ final class ReplayComboStepResolver
         // The hop names what it follows either as the first hit ("5HK > HP" then "5HK > HK") or as the chain so far
         // ("5MP > MP" then "5MP~MP > MP"); both are compared after translation.
         $last = $resolved[array_key_last($resolved)] ?? null;
-        $followedKeys = array_map(static fn (string $candidate): string => ReplayMoveNotation::key($candidate), $this->translator->candidates($parts[0], $character));
+        $followedKeys = array_map(static fn (string $candidate): string => ReplayMoveNotation::key($candidate), $this->translator->candidates($parts[0], $character, $stepState));
         $follows = null !== $last && (
             in_array($last['root'], $followedKeys, true)
             || (null !== $last['chain'] && in_array(ReplayMoveNotation::key($last['chain']), $followedKeys, true))
@@ -216,7 +228,7 @@ final class ReplayComboStepResolver
         // Consecutive hops compose: "5HK > HP" then "5HK > HK" is the leaf "5HK > HP > HK".
         $chain = null !== $last['chain'] ? $last['chain'] . ' > ' . $parts[1] : $target;
         $candidates = [];
-        foreach ($this->translator->candidates($chain, $character) as $translated) {
+        foreach ($this->translator->candidates($chain, $character, $stepState) as $translated) {
             $chainParts = array_map('trim', explode('>', $translated));
             $candidates[ReplayMoveNotation::key($translated)] = $translated;
             $stance = 1 === preg_match('/^(\d)/', ReplayMoveNotation::key($chainParts[0]), $matches) ? $matches[1] : '';
@@ -298,15 +310,16 @@ final class ReplayComboStepResolver
      * @param array<string, list<ComboSequences>> $leafsByKey
      * @param array<string, mixed> $sourceStep
      * @param list<string> $notes
+     * @param array{install: bool, defenderStatus: string|null} $stepState
      *
      * The first translation candidate that names exactly one leaf wins; ambiguous candidates are passed over.
      *
      * @return array{0: ComboSequences, 1: string}|null the leaf and the key it matched on
      */
-    private function findLeaf(array $leafsByKey, string $key, array $sourceStep, Character $character, array &$notes, string $kind): ?array
+    private function findLeaf(array $leafsByKey, string $key, array $sourceStep, Character $character, array &$notes, string $kind, array $stepState): ?array
     {
         $notation = (string) ($sourceStep['notation'] ?? $key);
-        $candidates = 'move' === $kind ? $this->translator->candidates($notation, $character) : [$key];
+        $candidates = 'move' === $kind ? $this->translator->candidates($notation, $character, $stepState) : [$key];
         $ambiguous = false;
         foreach ($candidates as $candidate) {
             $candidateKey = 'move' === $kind ? ReplayMoveNotation::key($candidate) : $candidate;

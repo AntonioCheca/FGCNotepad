@@ -18,6 +18,7 @@ final class ReplayComboImportService
         private readonly CharacterRepository $characterRepository,
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly ReplayComboStepResolver $stepResolver,
+        private readonly ReplayComboStateReader $stateReader,
         private readonly ComboSequenceCreationService $comboSequenceCreationService,
         private readonly ModerationTransitionService $moderationTransitionService,
         private readonly ReplayContextImportService $replayContextImportService,
@@ -176,6 +177,7 @@ final class ReplayComboImportService
                 true === ($payload['requirements']['counter_hit_required'] ?? false),
                 true === ($payload['requirements']['punish_counter_required'] ?? false),
                 true === ($payload['requirements']['perfect_parry_required'] ?? false),
+                true === ($payload['requirements']['blocked_drive_impact_stun_required'] ?? false),
             );
             $knownId = $this->matchingComboId($candidateIds, $payload['metrics']['damage'], $resourceTrace, $warnings);
             $status = 'imported';
@@ -284,7 +286,7 @@ final class ReplayComboImportService
             throw new \InvalidArgumentException('sequence must contain at least one supported step.');
         }
 
-        $resolution = $this->stepResolver->resolve($sequence, $character);
+        $resolution = $this->stepResolver->resolve($sequence, $character, $this->stateReader->read($combo));
         $resources = $this->resourceMapper->map($combo, $character, $resolution['sourceIndexes']);
         $steps = $resolution['steps'];
         foreach ($resources['stepChanges'] as $ordinal => $change) {
@@ -314,12 +316,16 @@ final class ReplayComboImportService
         if ($perfectParry) {
             $requirements['perfect_parry_required'] = true;
         }
+        $blockedDriveImpactStun = $this->starterBlockedDriveImpactStun($combo);
+        if ($blockedDriveImpactStun) {
+            $requirements['blocked_drive_impact_stun_required'] = true;
+        }
         if ([] !== $resources['objectStates']) {
             $requirements['combo_object_states'] = $resources['objectStates'];
         }
 
         return ['resourceTrace' => $resources['trace'], 'warnings' => $resources['warnings'], 'payload' => [
-            'name' => $this->comboName($notation, $starterHitType, $perfectParry, $replayId, $occurrenceId, $combo['start_round_timer'] ?? null),
+            'name' => $this->comboName($notation, $starterHitType, $perfectParry, $blockedDriveImpactStun, $replayId, $occurrenceId, $combo['start_round_timer'] ?? null),
             'description' => trim('Imported from a replay combo export. ' . implode(' ', $resolution['notes'])),
             'visibility' => 'public',
             'metrics' => ['damage' => $damage],
@@ -343,6 +349,22 @@ final class ReplayComboImportService
         }
 
         return true === $perfectParry;
+    }
+
+    /**
+     * Exports before analyzer v7 carry no blocked_drive_impact_stun, or null; both mean no evidence of the stun.
+     *
+     * @param array<string, mixed> $combo
+     */
+    private function starterBlockedDriveImpactStun(array $combo): bool
+    {
+        $starterDefense = $combo['starter_defense'] ?? [];
+        $stunned = is_array($starterDefense) ? ($starterDefense['blocked_drive_impact_stun'] ?? null) : null;
+        if (null !== $stunned && !is_bool($stunned)) {
+            throw new \InvalidArgumentException('starter_defense.blocked_drive_impact_stun must be a boolean or null.');
+        }
+
+        return true === $stunned;
     }
 
     /**
@@ -402,14 +424,16 @@ final class ReplayComboImportService
     }
 
     /** The trailing tag lets a reviewer find the occurrence in its replay: replay id, occurrence id (round, slot, number) and, when exported, the round timer at combo start. */
-    private function comboName(string $notation, ?string $starterHitType, bool $perfectParry, string $replayId, string $occurrenceId, mixed $startRoundTimer): string
+    private function comboName(string $notation, ?string $starterHitType, bool $perfectParry, bool $blockedDriveImpactStun, string $replayId, string $occurrenceId, mixed $startRoundTimer): string
     {
-        $prefix = match (true) {
-            $perfectParry => 'PP+PC: ',
-            'counter_hit' === $starterHitType => 'CH: ',
-            'punish_counter' === $starterHitType => 'PC: ',
-            default => '',
+        $hitState = match (true) {
+            $perfectParry => 'PP+PC',
+            'counter_hit' === $starterHitType => 'CH',
+            'punish_counter' === $starterHitType => 'PC',
+            default => null,
         };
+        $starter = array_filter([$blockedDriveImpactStun ? 'Bl-DI-St' : null, $hitState]);
+        $prefix = [] === $starter ? '' : implode('+', $starter) . ': ';
         $tag = [
             $this->identifierForName($replayId),
             $this->identifierForName($occurrenceId),

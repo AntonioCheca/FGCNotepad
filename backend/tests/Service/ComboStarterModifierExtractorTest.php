@@ -27,6 +27,33 @@ final class ComboStarterModifierExtractorTest extends TestCase
         self::assertFalse($result['requirements']['punish_counter_required']);
     }
 
+    /** @dataProvider blockedDriveImpactStunNotations */
+    public function testExtractsBlockedDriveImpactStunStarter(string $notation, ?string $hitState): void
+    {
+        $result = (new ComboStarterModifierExtractor())->extract($notation);
+
+        self::assertSame('5HP, 214LP', $result['notation']);
+        self::assertTrue($result['blockedDriveImpactStun']);
+        self::assertTrue($result['requirements']['blocked_drive_impact_stun_required']);
+        self::assertSame($hitState, $result['starterHitState']);
+    }
+
+    /** @return iterable<string, array{0: string, 1: string|null}> */
+    public static function blockedDriveImpactStunNotations(): iterable
+    {
+        yield 'prefix with colon' => ['Bl-DI-St: 5HP, 214LP', null];
+        yield 'prefix with space' => ['bl-di-st 5HP, 214LP', null];
+        yield 'combined with a hit state' => ['Bl-DI-St+PC 5HP, 214LP', ComboStarterModifierExtractor::STARTER_HIT_STATE_PUNISH_COUNTER];
+    }
+
+    public function testNotationWithoutBlockedDriveImpactStunKeepsItOff(): void
+    {
+        $result = (new ComboStarterModifierExtractor())->extract('CH 5HP, 214LP');
+
+        self::assertFalse($result['blockedDriveImpactStun']);
+        self::assertFalse($result['requirements']['blocked_drive_impact_stun_required']);
+    }
+
     /** @dataProvider perfectParryNotations */
     public function testPerfectParryTagImpliesPunishCounter(string $notation): void
     {

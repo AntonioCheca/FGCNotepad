@@ -1,0 +1,3 @@
+character,kind,source,target,note
+,section,Example Section,(variant),Every move in the FAT section "Example Section" becomes "<notation> (variant)"; empty character = every character with that section
+Example Character,alternate,5HP,5HP (enhanced),"The move's parenthesised damage, e.g. ""600(700)"", becomes a separate move named by target"

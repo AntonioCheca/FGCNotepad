@@ -675,6 +675,37 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertSame([], $payload['errors']);
     }
 
+    /** @dataProvider blockedDriveImpactStunEstimates */
+    public function testEstimateDamageScalesBlockedDriveImpactStunStarter(string $notation, array $stepDamages): void
+    {
+        $character = $this->seedTranslationData();
+
+        $this->client->request(
+            'POST',
+            '/api/combo-sequences/estimate-damage',
+            [],
+            [],
+            $this->getJsonHeaders(),
+            json_encode([
+                'characterId' => (string) $character->getId(),
+                'notation' => $notation,
+            ])
+        );
+
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame($stepDamages, $payload['stepDamages']);
+        $this->assertTrue($payload['requirements']['blocked_drive_impact_stun_required']);
+    }
+
+    /** @return iterable<string, array{0: string, 1: list<int>}> */
+    public static function blockedDriveImpactStunEstimates(): iterable
+    {
+        yield 'every hit at 80%' => ['Bl-DI-St: cr. mp, cr. hk', [480, 720]];
+        yield 'with a punish counter starter' => ['Bl-DI-St+PC cr. mp, cr. hk', [576, 720]];
+    }
+
     public function testEstimateDamagePerfectParryOptionImpliesPunishCounterStarter(): void
     {
         $character = $this->seedTranslationData();

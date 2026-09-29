@@ -388,6 +388,73 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
         self::assertCount(1, array_filter($this->entityManager->getRepository(ComboSequences::class)->findAll(), static fn (ComboSequences $combo): bool => str_starts_with((string) $combo->getName(), '2LP > 5LP [')));
     }
 
+    public function testBlockedDriveImpactStunStarterBecomesARequirementAndPartOfComboIdentity(): void
+    {
+        $this->persistComboCatalog();
+        $sequence = $this->distinctSequences()[2];
+        $stunned = static fn (array $combo): array => ['starter_defense' => ['perfect_parry' => false, 'blocked_drive_impact_stun' => true]] + $combo;
+
+        $payload = $this->importCombos([
+            $stunned($this->combo('c1', true, $sequence, null)),
+            $stunned($this->combo('c2', true, $sequence, 'punish_counter')),
+            ['starter_defense' => ['perfect_parry' => false, 'blocked_drive_impact_stun' => null]] + $this->combo('c3', true, $sequence, null),
+        ]);
+
+        self::assertSame(['imported', 'imported', 'imported'], array_column($payload['results'], 'status'));
+        self::assertCount(3, array_unique(array_column($payload['results'], 'comboId')));
+        $stunnedCombo = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
+        self::assertInstanceOf(ComboSequences::class, $stunnedCombo);
+        self::assertStringStartsWith('Bl-DI-St: ', (string) $stunnedCombo->getName());
+        self::assertTrue($this->requirementOf($stunnedCombo)->isBlockedDriveImpactStunRequired());
+        $withPunishCounter = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][1]['comboId']);
+        self::assertStringStartsWith('Bl-DI-St+PC: ', (string) $withPunishCounter?->getName());
+    }
+
+    public function testInstallActiveAtComboStartPicksTheInstallVariantAndFallsBackToTheRegularMove(): void
+    {
+        $this->persistComboCatalog();
+        $this->persistEdLeaf('2LP (install)');
+        $rule = new NotationTranslation(null, NotationTranslation::KIND_REGEX, '^(.+)$', '$1 (install)', 0, null);
+        $this->entityManager->persist($rule->setCondition(NotationTranslation::CONDITION_INSTALL, null));
+        $this->entityManager->flush();
+        $sequence = [
+            ['kind' => 'move', 'notation' => '2LP', 'name' => 'Crouching Light Punch'],
+            ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch'],
+        ];
+
+        $payload = $this->importCombos([
+            ['resources_at_start' => ['install' => ['active' => true, 'duration' => 1500, 'remaining' => 300], 'resources' => []]] + $this->combo('c1', true, $sequence, null),
+            $this->combo('c2', true, $sequence, null),
+        ]);
+
+        $installed = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
+        self::assertStringStartsWith('2LP (install) > 5LP [', (string) $installed?->getName());
+        $regular = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][1]['comboId']);
+        self::assertStringStartsWith('2LP > 5LP [', (string) $regular?->getName());
+    }
+
+    public function testDefenderStatusOnAHitPicksTheStatusVariantOfThatMoveOnly(): void
+    {
+        $this->persistComboCatalog();
+        $this->persistEdLeaf('5LP (Toxic)');
+        $rule = new NotationTranslation(null, NotationTranslation::KIND_EXACT, '5LP', '5LP (Toxic)', 0, null);
+        $this->entityManager->persist($rule->setCondition(NotationTranslation::CONDITION_DEFENDER_STATUS, 'p_hand'));
+        $this->entityManager->flush();
+        $combo = $this->combo('c1', true, [
+            ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch', 'start_source_index' => 10],
+            ['kind' => 'move', 'notation' => '5LP', 'name' => 'Standing Light Punch', 'start_source_index' => 20],
+        ], null);
+        $combo['contact_evidence'] = [
+            ['source_index' => 11, 'damage' => 300, 'notation' => '5LP', 'defender_status_effect_before' => null],
+            ['source_index' => 21, 'damage' => 241, 'notation' => '5LP', 'defender_status_effect_before' => ['kind' => 'p_hand', 'kind_raw' => 9, 'timer' => 400]],
+        ];
+
+        $payload = $this->importCombos([$combo]);
+
+        $created = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
+        self::assertStringStartsWith('5LP > 5LP (Toxic) [', (string) $created?->getName());
+    }
+
     public function testNotationTranslationRulesResolveExportNotationAndAreNotedOnTheCombo(): void
     {
         $this->persistComboCatalog();
@@ -458,6 +525,30 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
             $this->entityManager->persist($leaf);
         }
         $this->entityManager->flush();
+    }
+
+    private function persistEdLeaf(string $notation): void
+    {
+        $ed = $this->entityManager->getRepository(Character::class)->findOneBy(['name' => 'Ed']);
+        $move = (new Move())->setCharacter($ed)->setNumpadNotation($notation);
+        $this->entityManager->persist($move);
+        $this->entityManager->persist(
+            (new ComboSequences())
+                ->setName(sprintf('Ed %s', $notation))
+                ->setDescription('leaf')
+                ->setMove($move)
+                ->setType($this->entityManager->getRepository(ComboSequenceType::class)->findOneBy(['name' => 'leaf']))
+                ->setVisibility($this->entityManager->getRepository(Visibility::class)->findOneBy(['name' => 'public']))
+        );
+        $this->entityManager->flush();
+    }
+
+    private function requirementOf(ComboSequences $combo): ComboRequirement
+    {
+        $requirement = $this->entityManager->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $combo]);
+        self::assertInstanceOf(ComboRequirement::class, $requirement);
+
+        return $requirement;
     }
 
     private function persistEdResources(): void

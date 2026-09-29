@@ -33,6 +33,7 @@ export interface ComboRequirementFilters {
     counterHitRequired: ComboBooleanFilterValue;
     punishCounterRequired: ComboBooleanFilterValue;
     perfectParryRequired: ComboBooleanFilterValue;
+    blockedDriveImpactStunRequired: ComboBooleanFilterValue;
     cornerRequired: ComboBooleanFilterValue;
     airborneRequired: ComboBooleanFilterValue;
     notCrouchingRequired: ComboBooleanFilterValue;
@@ -91,6 +92,7 @@ export interface ComboSearchFilters {
     counterHitRequired?: boolean;
     punishCounterRequired?: boolean;
     perfectParryRequired?: boolean;
+    blockedDriveImpactStunRequired?: boolean;
     cornerRequired?: boolean;
     airborneRequired?: boolean;
     notCrouchingRequired?: boolean;

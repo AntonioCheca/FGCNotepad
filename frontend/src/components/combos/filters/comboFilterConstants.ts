@@ -7,6 +7,7 @@ export const DEFAULT_COMBO_REQUIREMENTS: ComboRequirementFilters = {
     counterHitRequired: "",
     punishCounterRequired: "",
     perfectParryRequired: "",
+    blockedDriveImpactStunRequired: "",
     cornerRequired: "",
     airborneRequired: "",
     notCrouchingRequired: "",

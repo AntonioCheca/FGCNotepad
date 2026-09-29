@@ -62,6 +62,7 @@ function getInitialRequirements(combo: ComboDetailView | null): ComboRequirement
         counter_hit_required: source?.counter_hit_required ?? false,
         punish_counter_required: source?.punish_counter_required ?? false,
         perfect_parry_required: source?.perfect_parry_required ?? false,
+        blocked_drive_impact_stun_required: source?.blocked_drive_impact_stun_required ?? false,
         corner_required: source?.corner_required ?? false,
         airborne_required: source?.airborne_required ?? false,
         not_crouching_required: source?.not_crouching_required ?? false,

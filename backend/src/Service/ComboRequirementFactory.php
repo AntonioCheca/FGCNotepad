@@ -20,6 +20,7 @@ class ComboRequirementFactory
         $counterHitRequired = (bool) ($requirements['counter_hit_required'] ?? false);
         $punishCounterRequired = (bool) ($requirements['punish_counter_required'] ?? false);
         $perfectParryRequired = (bool) ($requirements['perfect_parry_required'] ?? false);
+        $blockedDriveImpactStunRequired = (bool) ($requirements['blocked_drive_impact_stun_required'] ?? false);
         $cornerRequired = (bool) ($requirements['corner_required'] ?? false);
         $airborneRequired = (bool) ($requirements['airborne_required'] ?? false);
         $notCrouchingRequired = (bool) ($requirements['not_crouching_required'] ?? false);
@@ -41,6 +42,7 @@ class ComboRequirementFactory
             $counterHitRequired
             || $punishCounterRequired
             || $perfectParryRequired
+            || $blockedDriveImpactStunRequired
             || $cornerRequired
             || $airborneRequired
             || $notCrouchingRequired
@@ -55,6 +57,7 @@ class ComboRequirementFactory
             ->setCounterHitRequired($counterHitRequired)
             ->setPunishCounterRequired($punishCounterRequired)
             ->setPerfectParryRequired($perfectParryRequired)
+            ->setBlockedDriveImpactStunRequired($blockedDriveImpactStunRequired)
             ->setCornerRequired($cornerRequired)
             ->setAirborneRequired($airborneRequired)
             ->setNotCrouchingRequired($notCrouchingRequired)

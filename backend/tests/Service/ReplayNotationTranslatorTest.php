@@ -65,6 +65,24 @@ final class ReplayNotationTranslatorTest extends DatabaseTestCase
         self::assertSame(['28MK (Perfect)', '28MK'], $this->translator()->candidates('28MK (Perfect)', $this->fighter));
     }
 
+    public function testConditionalRewritesComeFirstOnlyWhileTheConditionHolds(): void
+    {
+        $this->rules([[null, NotationTranslation::KIND_REGEX, '~', ' > ', 0]]);
+        $install = new NotationTranslation(null, NotationTranslation::KIND_REGEX, '^(.+)$', '$1 (install)', 0, null);
+        $poisoned = new NotationTranslation($this->fighter, NotationTranslation::KIND_EXACT, '236MP', '236MP (Toxic)', 0, null);
+        $this->entityManager->persist($install->setCondition(NotationTranslation::CONDITION_INSTALL, null));
+        $this->entityManager->persist($poisoned->setCondition(NotationTranslation::CONDITION_DEFENDER_STATUS, 'p_hand'));
+        $this->entityManager->flush();
+
+        self::assertSame(['214+P~K'], array_slice($this->translator()->candidates('214+P~K', $this->fighter), 0, 1));
+        self::assertSame(
+            ['214+P~K (install)', '214+P > K (install)', '214+P~K', '214+P > K'],
+            $this->translator()->candidates('214+P~K', $this->fighter, ['install' => true]),
+        );
+        self::assertSame(['236MP (Toxic)', '236+MP'], $this->translator()->candidates('236+MP', $this->fighter, ['defenderStatus' => 'p_hand']));
+        self::assertSame(['236+MP'], $this->translator()->candidates('236+MP', $this->fighter, ['defenderStatus' => 'psy_bomb']));
+    }
+
     public function testInvalidRegexIsDetected(): void
     {
         self::assertTrue(ReplayNotationTranslator::isValidRegex('^W\.(.+)$'));

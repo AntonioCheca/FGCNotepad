@@ -15,6 +15,7 @@ export type RequirementToggleKey =
     | "counter_hit_required"
     | "punish_counter_required"
     | "perfect_parry_required"
+    | "blocked_drive_impact_stun_required"
     | "corner_required"
     | "airborne_required"
     | "not_crouching_required"
@@ -29,6 +30,7 @@ export const requirementToggles: Array<{ key: RequirementToggleKey; label: strin
     {key: "counter_hit_required", label: "Counter Hit Required"},
     {key: "punish_counter_required", label: "Punish Counter Required"},
     {key: "perfect_parry_required", label: "Perfect Parry Starter"},
+    {key: "blocked_drive_impact_stun_required", label: "Blocked DI Stun Starter"},
     {key: "corner_required", label: "Corner Required"},
     {key: "airborne_required", label: "Airborne Required"},
     {key: "not_crouching_required", label: "Opponent Not Crouching"},
@@ -39,6 +41,7 @@ export const emptyRequirements: ComboRequirementsPayload = {
     counter_hit_required: false,
     punish_counter_required: false,
     perfect_parry_required: false,
+    blocked_drive_impact_stun_required: false,
     corner_required: false,
     airborne_required: false,
     not_crouching_required: false,

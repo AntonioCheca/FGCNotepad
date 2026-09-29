@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: "idx_combo_requirement_counter_hit", columns: ["counter_hit_required"])]
 #[ORM\Index(name: "idx_combo_requirement_punish_counter", columns: ["punish_counter_required"])]
 #[ORM\Index(name: "idx_combo_requirement_perfect_parry", columns: ["perfect_parry_required"])]
+#[ORM\Index(name: "idx_combo_requirement_blocked_drive_impact_stun", columns: ["blocked_drive_impact_stun_required"])]
 #[ORM\Index(name: "idx_combo_requirement_corner", columns: ["corner_required"])]
 #[ORM\Index(name: "idx_combo_requirement_airborne", columns: ["airborne_required"])]
 #[ORM\Index(name: "idx_combo_requirement_not_crouching", columns: ["not_crouching_required"])]
@@ -43,6 +44,10 @@ class ComboRequirement
 
     #[ORM\Column(options: ['default' => false])]
     private bool $perfect_parry_required = false;
+
+    /** The starter hits an opponent stunned against the wall by a blocked Drive Impact; every hit is scaled. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $blocked_drive_impact_stun_required = false;
 
     #[ORM\Column]
     private ?bool $corner_required = null;
@@ -130,6 +135,18 @@ class ComboRequirement
     public function setPerfectParryRequired(bool $perfect_parry_required): static
     {
         $this->perfect_parry_required = $perfect_parry_required;
+
+        return $this;
+    }
+
+    public function isBlockedDriveImpactStunRequired(): bool
+    {
+        return $this->blocked_drive_impact_stun_required;
+    }
+
+    public function setBlockedDriveImpactStunRequired(bool $blocked_drive_impact_stun_required): static
+    {
+        $this->blocked_drive_impact_stun_required = $blocked_drive_impact_stun_required;
 
         return $this;
     }

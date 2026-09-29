@@ -11,7 +11,8 @@ use Doctrine\ORM\EntityManagerInterface;
  * Loads notation translation rules from an external CSV and checks a replay combo export against them.
  *
  * The CSV is the whole rule set: an import replaces every stored rule. Columns: character (empty = every
- * character), kind (exact|regex), from, to, priority (optional, lower runs first), note (optional).
+ * character), kind (exact|regex), from, to, priority (optional, lower runs first), condition (optional: "install" or
+ * "defender_status=<kind>"), note (optional).
  */
 final class NotationTranslationImportService
 {
@@ -21,6 +22,7 @@ final class NotationTranslationImportService
         private readonly EntityManagerInterface $entityManager,
         private readonly CharacterRepository $characterRepository,
         private readonly ReplayComboStepResolver $stepResolver,
+        private readonly ReplayComboStateReader $stateReader,
     ) {
     }
 
@@ -68,7 +70,7 @@ final class NotationTranslationImportService
                     if (!$character instanceof Character) {
                         throw new \InvalidArgumentException(sprintf('Character "%s" is not available in the move catalog.', $characterName));
                     }
-                    $resolution = $this->stepResolver->resolve(is_array($combo['sequence'] ?? null) ? $combo['sequence'] : [], $character);
+                    $resolution = $this->stepResolver->resolve(is_array($combo['sequence'] ?? null) ? $combo['sequence'] : [], $character, $this->stateReader->read($combo));
                     ++$report['resolved'];
                     $report['translatedSteps'] += count(array_filter($resolution['notes'], static fn (string $note): bool => str_contains($note, '" read as "')));
                 } catch (\InvalidArgumentException $exception) {
@@ -164,7 +166,26 @@ final class NotationTranslationImportService
             }
         }
         $note = trim((string) ($data['note'] ?? ''));
+        [$conditionKind, $conditionValue] = $this->condition(trim((string) ($data['condition'] ?? '')));
 
-        return new NotationTranslation($character, $kind, $from, NotationTranslation::KIND_EXACT === $kind ? trim($to) : $to, '' === $priority ? 0 : (int) $priority, '' === $note ? null : $note);
+        return (new NotationTranslation($character, $kind, $from, NotationTranslation::KIND_EXACT === $kind ? trim($to) : $to, '' === $priority ? 0 : (int) $priority, '' === $note ? null : $note))
+            ->setCondition($conditionKind, $conditionValue);
+    }
+
+    /** @return array{0: string|null, 1: string|null} */
+    private function condition(string $condition): array
+    {
+        if ('' === $condition) {
+            return [null, null];
+        }
+        if (NotationTranslation::CONDITION_INSTALL === $condition) {
+            return [NotationTranslation::CONDITION_INSTALL, null];
+        }
+        $prefix = NotationTranslation::CONDITION_DEFENDER_STATUS . '=';
+        if (str_starts_with($condition, $prefix) && '' !== trim(substr($condition, strlen($prefix)))) {
+            return [NotationTranslation::CONDITION_DEFENDER_STATUS, trim(substr($condition, strlen($prefix)))];
+        }
+
+        throw new \InvalidArgumentException(sprintf('condition must be empty, "install" or "defender_status=<kind>", got "%s".', $condition));
     }
 }

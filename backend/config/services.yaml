@@ -42,6 +42,9 @@ services:
     App\Command\ImportFrameDataFromFatJsonCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
+    App\Command\ImportFrameDataVariantsCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
     App\Service\ScenarioLayerSolveService:
         arguments:
             $cachePool: '@cache.app'

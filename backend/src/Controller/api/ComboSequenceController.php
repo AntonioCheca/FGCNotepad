@@ -108,6 +108,7 @@ class ComboSequenceController extends AbstractController
             'counterHitRequired' => $this->normalizeBooleanFilter($request->query->get('counterHitRequired')),
             'punishCounterRequired' => $this->normalizeBooleanFilter($request->query->get('punishCounterRequired')),
             'perfectParryRequired' => $this->normalizeBooleanFilter($request->query->get('perfectParryRequired')),
+            'blockedDriveImpactStunRequired' => $this->normalizeBooleanFilter($request->query->get('blockedDriveImpactStunRequired')),
             'cornerRequired' => $this->normalizeBooleanFilter($request->query->get('cornerRequired')),
             'airborneRequired' => $this->normalizeBooleanFilter($request->query->get('airborneRequired')),
             'notCrouchingRequired' => $this->normalizeBooleanFilter($request->query->get('notCrouchingRequired')),
@@ -654,6 +655,9 @@ class ComboSequenceController extends AbstractController
 
         $options = is_array($data['options'] ?? null) ? $data['options'] : [];
         $options['perfectParry'] = true === ($options['perfectParry'] ?? false) || $starterExtraction['perfectParry'];
+        if ($starterExtraction['blockedDriveImpactStun']) {
+            $options['driveImpactState'] = 'blocked_wallsplat';
+        }
         $options['starterHitState'] = $options['perfectParry']
             ? ComboStarterModifierExtractor::STARTER_HIT_STATE_PUNISH_COUNTER
             : $starterExtraction['starterHitState'];

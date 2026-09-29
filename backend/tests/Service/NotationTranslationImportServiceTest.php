@@ -34,6 +34,23 @@ final class NotationTranslationImportServiceTest extends DatabaseTestCase
         self::assertSame(0, $rules[0]->getPriority());
     }
 
+    public function testConditionColumnIsStoredOnTheRule(): void
+    {
+        $this->import("character,kind,from,to,condition\n,regex,^(.+)$,$1 (install),install\nTest Fighter,exact,236MP,236MP (Toxic),defender_status=p_hand\n,regex,~, > ,\n");
+
+        $rules = $this->entityManager->getRepository(NotationTranslation::class)->findBy([], ['id' => 'ASC']);
+        self::assertSame([['install', null], ['defender_status', 'p_hand'], [null, null]], array_map(
+            static fn (NotationTranslation $rule): array => [$rule->getConditionKind(), $rule->getConditionValue()],
+            $rules,
+        ));
+    }
+
+    public function testUnknownConditionRejectsTheFile(): void
+    {
+        $this->expectExceptionMessage('line 2: condition must be empty, "install" or "defender_status=<kind>", got "poisoned".');
+        $this->import("character,kind,from,to,condition\n,regex,~, > ,poisoned\n");
+    }
+
     public function testRegexReplacementKeepsItsSurroundingSpaces(): void
     {
         $this->import("character,kind,from,to\n,regex,~, > \n");

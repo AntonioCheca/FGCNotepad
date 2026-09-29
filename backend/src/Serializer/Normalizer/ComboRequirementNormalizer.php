@@ -32,6 +32,7 @@ class ComboRequirementNormalizer implements NormalizerInterface
             'counter_hit_required' => $object->isCounterHitRequired(),
             'punish_counter_required' => $object->isPunishCounterRequired(),
             'perfect_parry_required' => $object->isPerfectParryRequired(),
+            'blocked_drive_impact_stun_required' => $object->isBlockedDriveImpactStunRequired(),
             'corner_required' => $object->isCornerRequired(),
             'airborne_required' => $object->isAirborneRequired(),
             'not_crouching_required' => $object->isNotCrouchingRequired(),

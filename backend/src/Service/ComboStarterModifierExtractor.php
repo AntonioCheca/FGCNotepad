@@ -12,12 +12,17 @@ final class ComboStarterModifierExtractor
         '/^(.+?)\s*\(\s*(?:PP|PERFECT\s+PARRY)\s*\)(?=\s*(?:,|$))/iu',
     ];
 
+    /** "Bl-DI-St": the starter hits an opponent stunned by a blocked Drive Impact; it can precede a hit state ("Bl-DI-St+PC"). */
+    private const BLOCKED_DRIVE_IMPACT_STUN_PATTERN = '/^\s*(?:\(\s*BL-DI-ST\s*\)|BL-DI-ST)(?:\s*[+>,:]\s*|\s+)/iu';
+
     /**
-     * @return array{notation:string,starterHitState:string|null,perfectParry:bool,requirements:array{counter_hit_required:bool,punish_counter_required:bool,perfect_parry_required:bool}}
+     * @return array{notation:string,starterHitState:string|null,perfectParry:bool,blockedDriveImpactStun:bool,requirements:array{counter_hit_required:bool,punish_counter_required:bool,perfect_parry_required:bool,blocked_drive_impact_stun_required:bool}}
      */
     public function extract(string $notation): array
     {
-        [$cleanNotation, $perfectParry] = $this->extractPerfectParry(trim($notation));
+        $cleanNotation = (string) preg_replace(self::BLOCKED_DRIVE_IMPACT_STUN_PATTERN, '', trim($notation), 1, $blockedCount);
+        $blockedDriveImpactStun = $blockedCount > 0;
+        [$cleanNotation, $perfectParry] = $this->extractPerfectParry(trim($cleanNotation));
         $state = null;
 
         foreach ($this->patternsByState() as $nextState => $patterns) {
@@ -39,10 +44,12 @@ final class ComboStarterModifierExtractor
             'notation' => $cleanNotation,
             'starterHitState' => $state,
             'perfectParry' => $perfectParry,
+            'blockedDriveImpactStun' => $blockedDriveImpactStun,
             'requirements' => [
                 'counter_hit_required' => self::STARTER_HIT_STATE_COUNTER_HIT === $state,
                 'punish_counter_required' => self::STARTER_HIT_STATE_PUNISH_COUNTER === $state,
                 'perfect_parry_required' => $perfectParry,
+                'blocked_drive_impact_stun_required' => $blockedDriveImpactStun,
             ],
         ];
     }

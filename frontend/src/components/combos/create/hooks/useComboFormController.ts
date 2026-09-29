@@ -221,7 +221,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         });
     };
 
-    const refreshDamageEstimate = async (characterId: string, perfectParry: boolean) => {
+    const refreshDamageEstimate = async (characterId: string, perfectParry: boolean, blockedDriveImpactStun: boolean) => {
         try {
             const estimation = (await estimateComboDamage({
                 characterId,
@@ -229,7 +229,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 options: {
                     perfectParry,
                     driveRushMidCombo: false,
-                    driveImpactState: "none",
+                    driveImpactState: blockedDriveImpactStun ? "blocked_wallsplat" : "none",
                     specialCancelIntoSa3: false,
                 },
             })) as EstimateComboDamageResponse;
@@ -246,8 +246,10 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setRequirements((previousRequirements) => applyRequirementToggle(previousRequirements, key, checked));
 
         const characterId = String(character?.id ?? "").trim();
-        if (key === "perfect_parry_required" && characterId && notationInput.trim() && steps.length > 0) {
-            void refreshDamageEstimate(characterId, checked);
+        const affectsDamage = key === "perfect_parry_required" || key === "blocked_drive_impact_stun_required";
+        if (affectsDamage && characterId && notationInput.trim() && steps.length > 0) {
+            const next = applyRequirementToggle(requirements, key, checked);
+            void refreshDamageEstimate(characterId, Boolean(next.perfect_parry_required), Boolean(next.blocked_drive_impact_stun_required));
         }
     };
 
@@ -288,12 +290,14 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             setSelectedStepIndex(translatedSteps.length > 0 ? 0 : null);
 
             const perfectParry = Boolean(translated.requirements?.perfect_parry_required || requirements.perfect_parry_required);
+            const blockedDriveImpactStun = Boolean(translated.requirements?.blocked_drive_impact_stun_required || requirements.blocked_drive_impact_stun_required);
             if (translated.requirements) {
                 setRequirements((previousRequirements) => ({
                     ...previousRequirements,
                     punish_counter_required: Boolean(translated.requirements?.punish_counter_required) || perfectParry,
                     counter_hit_required: Boolean(translated.requirements?.counter_hit_required) && !perfectParry,
                     perfect_parry_required: perfectParry,
+                    blocked_drive_impact_stun_required: blockedDriveImpactStun,
                     not_crouching_required: Boolean(translated.requirements?.not_crouching_required),
                 }));
             }
@@ -305,7 +309,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
                 }
             }
 
-            await refreshDamageEstimate(characterId, perfectParry);
+            await refreshDamageEstimate(characterId, perfectParry, blockedDriveImpactStun);
 
             try {
                 const resources = (await estimateComboResources({

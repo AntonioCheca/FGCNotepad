@@ -24,21 +24,21 @@ class ComboSequencesRepository extends ServiceEntityRepository
      * Ids of combos, in any moderation state, that already have exactly these ordered leaf moves joined by
      * the same connection types (a walk or a Drive Rush Cancel makes it a different combo than a plain link).
      * Timed windows such as walk frames are not compared. The starter conditions (counter hit, punish
-     * counter, Perfect Parry) must match too; a combo without a requirement row has none of them.
+     * counter, Perfect Parry, blocked Drive Impact stun) must match too; a combo without a requirement row has none of them.
      *
      * @param list<array{leaf:int,connection:int}> $steps
      *
      * @return list<int>
      */
-    public function findIdsWithStepsAndStarterConditions(array $steps, bool $counterHit, bool $punishCounter, bool $perfectParry): array
+    public function findIdsWithStepsAndStarterConditions(array $steps, bool $counterHit, bool $punishCounter, bool $perfectParry, bool $blockedDriveImpactStun = false): array
     {
-        $wanted = [$counterHit, $punishCounter, $perfectParry];
+        $wanted = [$counterHit, $punishCounter, $perfectParry, $blockedDriveImpactStun];
 
         return array_values(array_filter($this->findIdsWithSteps($steps), function (int $id) use ($wanted): bool {
             $requirement = $this->getEntityManager()->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $id]);
             $conditions = $requirement instanceof ComboRequirement
-                ? [true === $requirement->isCounterHitRequired(), true === $requirement->isPunishCounterRequired(), $requirement->isPerfectParryRequired()]
-                : [false, false, false];
+                ? [true === $requirement->isCounterHitRequired(), true === $requirement->isPunishCounterRequired(), $requirement->isPerfectParryRequired(), $requirement->isBlockedDriveImpactStunRequired()]
+                : [false, false, false, false];
 
             return $conditions === $wanted;
         }));
@@ -120,6 +120,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     counterHitRequired?: bool|null,
      *     punishCounterRequired?: bool|null,
      *     perfectParryRequired?: bool|null,
+     *     blockedDriveImpactStunRequired?: bool|null,
      *     cornerRequired?: bool|null,
      *     airborneRequired?: bool|null,
      *     notCrouchingRequired?: bool|null,
@@ -268,6 +269,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
             'counterHitRequired' => 'requirement.counter_hit_required',
             'punishCounterRequired' => 'requirement.punish_counter_required',
             'perfectParryRequired' => 'requirement.perfect_parry_required',
+            'blockedDriveImpactStunRequired' => 'requirement.blocked_drive_impact_stun_required',
             'cornerRequired' => 'requirement.corner_required',
             'airborneRequired' => 'requirement.airborne_required',
             'notCrouchingRequired' => 'requirement.not_crouching_required',
@@ -755,7 +757,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('availableSuper', $availableSuper);
         }
 
-        $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.perfect_parry_required = false)');
+        $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.perfect_parry_required = false AND comboRequirement.blocked_drive_impact_stun_required = false)');
 
         if ('normal' === $hitType) {
             $qb->andWhere(

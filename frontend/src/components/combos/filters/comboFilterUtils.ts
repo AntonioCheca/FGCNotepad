@@ -174,6 +174,7 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
         counterHitRequired: parseBooleanFilter(state.requirements.counterHitRequired),
         punishCounterRequired: parseBooleanFilter(state.requirements.punishCounterRequired),
         perfectParryRequired: parseBooleanFilter(state.requirements.perfectParryRequired),
+        blockedDriveImpactStunRequired: parseBooleanFilter(state.requirements.blockedDriveImpactStunRequired),
         cornerRequired: parseBooleanFilter(state.requirements.cornerRequired),
         airborneRequired: parseBooleanFilter(state.requirements.airborneRequired),
         notCrouchingRequired: parseBooleanFilter(state.requirements.notCrouchingRequired),
