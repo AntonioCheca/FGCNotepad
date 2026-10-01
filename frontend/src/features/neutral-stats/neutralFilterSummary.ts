@@ -44,6 +44,9 @@ export function filterSummary(filters: NeutralStatsFilterState, options: Neutral
     if (filters.patch === "latest") {
         parts.push("Latest patch");
     }
+    if (filters.controlScheme === "modern") {
+        parts.push("Modern");
+    }
 
     return parts.join(" · ");
 }

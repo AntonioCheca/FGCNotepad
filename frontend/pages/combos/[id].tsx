@@ -17,6 +17,8 @@ import {AppDialogContent} from "@/src/components/ui/AppDialogContent";
 import {AppDialogTitle} from "@/src/components/ui/AppDialogTitle";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppTypography} from "@/src/components/ui/AppTypography";
+import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
+import {modernDamageModeLabel} from "@/src/types/comboExecution";
 import {startingRequirementLabels} from "@/src/components/combos/resources/resourceTimeline";
 import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 import {ComboReadOnlySummary} from "@/src/components/combos/ComboReadOnlySummary";
@@ -163,6 +165,7 @@ export default function ComboDetailPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [toast, setToast] = React.useState<{severity: "success" | "error"; message: string} | null>(null);
+    const [shownInClassic, setShownInClassic] = React.useState(false);
 
     const [title, setTitle] = React.useState("");
     const [damage, setDamage] = React.useState("");
@@ -180,6 +183,16 @@ export default function ComboDetailPage() {
     const [objectStates, setObjectStates] = React.useState<ComboObjectStateDraft[]>([]);
     const [steps, setSteps] = React.useState<StepDraft[]>([]);
     const [selectedStepIndex, setSelectedStepIndex] = React.useState<number | null>(0);
+
+    const getComboInExecutableMode = React.useCallback(async (id: string): Promise<ComboDetailApi> => {
+        const response = await getCombo(id) as ComboDetailApi;
+        if (response.executionMode === undefined || response.executionMode === "classic" || response.modernLegal) {
+            return response;
+        }
+
+        setShownInClassic(true);
+        return await getCombo(id, {executionMode: "classic"}) as ComboDetailApi;
+    }, [getCombo]);
 
     const resetDraftFromCombo = React.useCallback((nextCombo: ComboDetailView, nextLeafs: LeafSequenceOption[], nextConnections: ConnectionType[]) => {
         setTitle(nextCombo.title === "-" ? "" : nextCombo.title);
@@ -221,7 +234,7 @@ export default function ComboDetailPage() {
                 }
             });
 
-        Promise.all([getCombo(comboId), fetchConnections(), fetchRequirementObjects(), fetchComboSpacings()])
+        Promise.all([getComboInExecutableMode(comboId), fetchConnections(), fetchRequirementObjects(), fetchComboSpacings()])
             .then(async ([comboResponse, connectionResponse, requirementResponse]: [ComboDetailApi, ConnectionType[], RequirementObjectOption[], unknown]) => {
                 const nextCombo = mapComboToDetailView(comboResponse);
                 const nextLeafs = nextCombo.characterId ? await fetchLeafs(nextCombo.characterId) : [];
@@ -248,7 +261,7 @@ export default function ComboDetailPage() {
         return () => {
             canceled = true;
         };
-    }, [comboId, fetchComboSpacings, fetchConnections, fetchLeafs, fetchRequirementObjects, getCombo, getResourceLedger, resetDraftFromCombo]);
+    }, [comboId, fetchComboSpacings, fetchConnections, fetchLeafs, fetchRequirementObjects, getComboInExecutableMode, getResourceLedger, resetDraftFromCombo]);
 
     const selectedRequirementObject = requirementObjects.find((option) => option.name === specificRequirementObject) ?? null;
     const activeRequirementsCount = requirementToggles.filter(({key}) => Boolean(requirements[key])).length + objectStates.length;
@@ -312,7 +325,10 @@ export default function ComboDetailPage() {
                 requirements: requirementsResult.payload ?? emptyRequirements,
                 steps,
             });
-            const response = await updateCombo(comboId, payload) as ComboDetailApi;
+            if (payload.metrics && combo) {
+                payload.metrics.damageExecutionMode = combo.executionMode;
+            }
+            const response = await updateCombo(comboId, payload, {executionMode: combo?.executionMode}) as ComboDetailApi;
             const nextCombo = mapComboToDetailView(response);
             setCombo(nextCombo);
             resetDraftFromCombo(nextCombo, leafs, connections);
@@ -385,11 +401,14 @@ export default function ComboDetailPage() {
                     </AppBox>
                 </AppBox>
 
+                {shownInClassic ? <InlineNotice severity="info">Not possible with Modern controls. Shown with Classic notation and damage.</InlineNotice> : null}
+
                 {editMode ? (
                     <SubmitSection
                         sectionTitle="Combo Details"
                         title={title}
                         damage={damage}
+                        damageModeLabel={modernDamageModeLabel(combo.executionMode)}
                         driveCost={driveCost}
                         driveGain={driveGain}
                         superCost={superCost}

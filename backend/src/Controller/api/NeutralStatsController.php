@@ -2,7 +2,11 @@
 
 namespace App\Controller\api;
 
+use App\Entity\User;
+use App\Service\Modern\ComboExecutionModePreferenceService;
 use App\Service\NeutralStatsFilterParser;
+use App\Service\NeutralStatsFilters;
+use Symfony\Bundle\SecurityBundle\Security;
 use App\Service\NeutralStatsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +23,8 @@ class NeutralStatsController extends AbstractController
     public function __construct(
         private readonly NeutralStatsService $neutralStatsService,
         private readonly NeutralStatsFilterParser $filterParser,
+        private readonly ComboExecutionModePreferenceService $executionModePreferenceService,
+        private readonly Security $security,
     ) {
     }
 
@@ -26,7 +32,7 @@ class NeutralStatsController extends AbstractController
     public function show(Request $request): JsonResponse
     {
         try {
-            return new JsonResponse($this->neutralStatsService->stats($this->filterParser->parse($request->query->all())));
+            return new JsonResponse($this->neutralStatsService->stats($this->filterParser->parse($request->query->all(), $this->defaultControlScheme())));
         } catch (BadRequestHttpException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_BAD_REQUEST);
         } catch (NotFoundHttpException $exception) {
@@ -48,6 +54,15 @@ class NeutralStatsController extends AbstractController
         } catch (NotFoundHttpException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
         }
+    }
+
+    private function defaultControlScheme(): string
+    {
+        $user = $this->security->getUser();
+
+        return $this->executionModePreferenceService->resolveForUser($user instanceof User ? $user : null)->isModern()
+            ? NeutralStatsFilters::CONTROL_SCHEME_MODERN
+            : NeutralStatsFilters::CONTROL_SCHEME_CLASSIC;
     }
 
     private function uuidOrNull(mixed $value): string|false|null

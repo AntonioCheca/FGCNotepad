@@ -6,6 +6,7 @@ use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
 use App\Entity\Step;
 use App\Entity\User;
+use App\Util\Enum\ComboExecutionMode;
 use App\Util\Enum\ModerationState;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -136,7 +137,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *     availableObjectStatuses?: array<string,string>,
      *     spacingCodes?: list<string>,
      *     sort?: string|null,
-     *     sortDirection?: string|null
+     *     sortDirection?: string|null,
+     *     executionMode?: ComboExecutionMode
      * } $filters
      *
      * @return list<ComboSequences>
@@ -223,15 +225,21 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('seasonId', $seasonId);
         }
 
+        $executionMode = ($filters['executionMode'] ?? null) instanceof ComboExecutionMode ? $filters['executionMode'] : ComboExecutionMode::CLASSIC;
+        if ($executionMode->isModern()) {
+            $qb->andWhere('combo.modernLegal = true');
+        }
+        $damageColumn = $this->damageColumn($executionMode);
+
         $minDamage = isset($filters['minDamage']) && is_int($filters['minDamage']) ? $filters['minDamage'] : null;
         if (null !== $minDamage) {
-            $qb->andWhere('metrics.damage >= :minDamage')
+            $qb->andWhere(sprintf('%s >= :minDamage', $damageColumn))
                 ->setParameter('minDamage', $minDamage);
         }
 
         $maxDamage = isset($filters['maxDamage']) && is_int($filters['maxDamage']) ? $filters['maxDamage'] : null;
         if (null !== $maxDamage) {
-            $qb->andWhere('metrics.damage <= :maxDamage')
+            $qb->andWhere(sprintf('%s <= :maxDamage', $damageColumn))
                 ->setParameter('maxDamage', $maxDamage);
         }
 
@@ -416,9 +424,13 @@ class ComboSequencesRepository extends ServiceEntityRepository
         $sort = isset($filters['sort']) && is_string($filters['sort']) ? $filters['sort'] : 'resourceAdjustedDamage';
         $direction = isset($filters['sortDirection']) && 'asc' === strtolower((string) $filters['sortDirection']) ? 'ASC' : 'DESC';
 
+        $executionMode = ($filters['executionMode'] ?? null) instanceof ComboExecutionMode ? $filters['executionMode'] : ComboExecutionMode::CLASSIC;
+        $damageColumn = $this->damageColumn($executionMode);
         $sortColumns = [
-            'damage' => 'metrics.damage',
-            'resourceAdjustedDamage' => 'metrics.resourceAdjustedDamage',
+            'damage' => $damageColumn,
+            'resourceAdjustedDamage' => $executionMode->isModern()
+                ? sprintf('(metrics.resourceAdjustedDamage + %s - metrics.damage)', $damageColumn)
+                : 'metrics.resourceAdjustedDamage',
             'driveCost' => 'metrics.driveCost',
             'minimumDriveCost' => 'metrics.minimumDriveCost',
             'minimumDriveCostNoBurnout' => 'metrics.minimumDriveCostNoBurnout',
@@ -443,12 +455,27 @@ class ComboSequencesRepository extends ServiceEntityRepository
             return;
         }
 
-        $sortColumn = $sortColumns[$sort] ?? $sortColumns['resourceAdjustedDamage'];
+        $sortKey = isset($sortColumns[$sort]) ? $sort : 'resourceAdjustedDamage';
+        $sortColumn = $sortColumns[$sortKey];
+        $sortNullCondition = 'resourceAdjustedDamage' === $sortKey && $executionMode->isModern()
+            ? sprintf('metrics.resourceAdjustedDamage IS NULL OR %s IS NULL', $damageColumn)
+            : sprintf('%s IS NULL', $sortColumn);
         $sortNullAlias = sprintf('%sIsNull', $sort);
-        $qb->addSelect(sprintf('CASE WHEN %s IS NULL THEN 1 ELSE 0 END AS HIDDEN %s', $sortColumn, $sortNullAlias))
+        $sortValueAlias = sprintf('%sSortValue', $sort);
+        $qb->addSelect(sprintf('CASE WHEN %s THEN 1 ELSE 0 END AS HIDDEN %s', $sortNullCondition, $sortNullAlias))
+            ->addSelect(sprintf('%s AS HIDDEN %s', $sortColumn, $sortValueAlias))
             ->orderBy($sortNullAlias, 'ASC')
-            ->addOrderBy($sortColumn, $direction)
+            ->addOrderBy($sortValueAlias, $direction)
             ->addOrderBy('combo.id', 'ASC');
+    }
+
+    private function damageColumn(ComboExecutionMode $executionMode): string
+    {
+        return match ($executionMode) {
+            ComboExecutionMode::CLASSIC => 'metrics.damage',
+            ComboExecutionMode::MODERN_MAX => 'metrics.modernMaxDamage',
+            ComboExecutionMode::MODERN_SIMPLE => 'metrics.modernSimpleDamage',
+        };
     }
 
     /**
@@ -636,6 +663,32 @@ class ComboSequencesRepository extends ServiceEntityRepository
     }
 
     /**
+     * Every non-leaf combo, optionally only those of one character (by the character of the first step's move).
+     *
+     * @return list<int>
+     */
+    public function findNonLeafIds(?string $characterId = null): array
+    {
+        $qb = $this->createQueryBuilder('combo')
+            ->select('DISTINCT combo.id AS id')
+            ->innerJoin('combo.type', 'comboType')
+            ->andWhere('comboType.name != :leafType')
+            ->setParameter('leafType', 'leaf')
+            ->orderBy('combo.id', 'ASC');
+
+        if (null !== $characterId) {
+            $qb->innerJoin('combo.steps', 'starterStep')
+                ->innerJoin('starterStep.child_sequence', 'starterSequence')
+                ->innerJoin('starterSequence.move', 'starterMove')
+                ->andWhere('starterStep.ordinal_in_combo = 1')
+                ->andWhere('IDENTITY(starterMove.character) = :characterId')
+                ->setParameter('characterId', $characterId);
+        }
+
+        return array_map(static fn (array $row): int => (int) $row['id'], $qb->getQuery()->getArrayResult());
+    }
+
+    /**
      * @return list<array{id:string,name:string}>
      */
     public function findCharacterSummariesWithCombos(): array
@@ -673,7 +726,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
     public function findEssentialCandidateRowsByCharacterAndDifficulty(
         string $characterId,
         int $difficultyCap,
-        array $excludedComboIds = []
+        array $excludedComboIds = [],
+        bool $modernLegalOnly = false,
     ): array {
         $qb = $this->createQueryBuilder('combo')
             ->select(
@@ -703,6 +757,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
         if ([] !== $excludedComboIds) {
             $qb->andWhere('combo.id NOT IN (:excludedComboIds)')
                 ->setParameter('excludedComboIds', $excludedComboIds);
+        }
+        if ($modernLegalOnly) {
+            $qb->andWhere('combo.modernLegal = true');
         }
 
         $rows = $qb->getQuery()->getArrayResult();

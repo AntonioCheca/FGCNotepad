@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Repository\ComboSequenceTypeRepository;
 use App\Repository\SeasonRepository;
 use App\Repository\VisibilityRepository;
+use App\Service\Modern\ComboExecutionProfileService;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -28,6 +29,7 @@ final class ComboSequenceCreationService
         private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
         private readonly ComboSpacingResolver $comboSpacingResolver,
         private readonly ComboResourceLedgerService $comboResourceLedgerService,
+        private readonly ComboExecutionProfileService $comboExecutionProfileService,
     ) {
     }
 
@@ -67,6 +69,7 @@ final class ComboSequenceCreationService
         $this->persistSteps($sequence, $stepsPayload);
         $this->recalculateMetricsFromSteps($sequence);
         $this->comboResourceLedgerService->syncUsage($sequence);
+        $this->comboExecutionProfileService->apply($sequence, $this->comboExecutionProfileService->knownDamageMode($payload));
 
         if ($flush) {
             $this->entityManager->flush();

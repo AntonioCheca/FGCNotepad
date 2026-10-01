@@ -68,6 +68,7 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
             <SubmitSection
                 title={controller.title}
                 damage={controller.damage}
+                damageModeLabel={controller.damageModeLabel}
                 driveCost={controller.driveCost}
                 driveGain={controller.driveGain}
                 minimumDriveCost={controller.minimumDriveCost}

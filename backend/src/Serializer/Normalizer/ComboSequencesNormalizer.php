@@ -10,6 +10,8 @@ use App\Entity\Move;
 use App\Entity\Season;
 use App\Entity\Step;
 use App\Entity\Visibility;
+use App\Service\Modern\ComboExecutionNotationService;
+use App\Util\Enum\ComboExecutionMode;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 use Symfony\Component\Serializer\Normalizer\DenormalizerAwareInterface;
@@ -22,11 +24,16 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
     use NormalizerAwareTrait;
     use DenormalizerAwareTrait;
 
+    public function __construct(private readonly ComboExecutionNotationService $executionNotationService)
+    {
+    }
+
     public function normalize(mixed $object, ?string $format = null, array $context = []): array
     {
         /** @var ComboSequences $object */
         $sortedSteps = $this->sortStepsByOrdinal($object);
         $needsDelayAuditReview = $this->needsDelayAuditReview($sortedSteps);
+        $mode = $context[ComboExecutionMode::class] ?? ComboExecutionMode::CLASSIC;
 
         return [
             'id' => $object->getId(),
@@ -45,6 +52,9 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
             ] : null,
             'visibility' => $object->getVisibility() ? $this->normalizer->normalize($object->getVisibility(), $format, $context) : null,
             'moderationState' => $object->getModerationState(),
+            'modernLegal' => $object->isModernLegal(),
+            'executionMode' => $mode->value,
+            'executionNotation' => $this->executionNotationService->comboNotation($object, $mode),
             'season' => $this->normalizer->normalize($object->getSeason()->toArray(), $format, $context),
             'steps' => $this->normalizer->normalize($sortedSteps, $format, $context),
             'is_usable' => true,

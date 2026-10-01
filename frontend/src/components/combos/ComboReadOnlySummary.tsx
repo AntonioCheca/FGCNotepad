@@ -90,7 +90,7 @@ export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
                 minWidth: 0,
             }}
         >
-            <AppTypography variant="h5" sx={{fontWeight: 700, overflowWrap: "anywhere"}}>{combo.title}</AppTypography>
+            <AppTypography variant="h5" sx={{fontWeight: 700, overflowWrap: "anywhere"}}>{combo.displayTitle}</AppTypography>
             <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 0.75, minWidth: 0}}>
                 {comboNotation ? (
                     <AppTypography variant="body2" sx={{fontFamily: "'IBM Plex Mono', 'Consolas', monospace", fontWeight: 700, overflowWrap: "anywhere"}}>

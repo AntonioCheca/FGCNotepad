@@ -12,6 +12,9 @@ import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import useCombos from "@/hooks/useCombos";
 import {ComboRow, mapComboToRow} from "@/src/types/combo";
 import type {ComboSortDirection, ComboSortField} from "@/src/components/combos/filters/comboFilterTypes";
+import {ComboExecutionModeSelect} from "@/src/components/combos/execution/ComboExecutionModeSelect";
+import {useProfileComboExecutionMode} from "@/hooks/useProfileComboExecutionMode";
+import type {ComboExecutionMode} from "@/src/types/comboExecution";
 
 export default function SearchCombosPage() {
     const router = useRouter();
@@ -19,10 +22,13 @@ export default function SearchCombosPage() {
     const initialFilters = useMemo(() => buildFiltersFromQuery(router.query), [router.query]);
     const [filters, setFilters] = useState<ComboSearchFilters>({...initialFilters, sort: "resourceAdjustedDamage"});
     const [combos, setCombos] = useState<ComboRow[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [hasLoadedAtLeastOnce, setHasLoadedAtLeastOnce] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const requestSequence = useRef(0);
+    const {mode: profileExecutionMode, loading: profileExecutionModeLoading} = useProfileComboExecutionMode();
+    const [chosenExecutionMode, setChosenExecutionMode] = useState<ComboExecutionMode | null>(null);
+    const executionMode = chosenExecutionMode ?? profileExecutionMode;
 
     const areFiltersEqual = useCallback((left: ComboSearchFilters, right: ComboSearchFilters): boolean => {
         return JSON.stringify(left) === JSON.stringify(right);
@@ -49,13 +55,16 @@ export default function SearchCombosPage() {
     }, []);
 
     const loadCombos = useCallback(async () => {
+        if (profileExecutionModeLoading) {
+            return;
+        }
         const currentRequestId = requestSequence.current + 1;
         requestSequence.current = currentRequestId;
         setLoading(true);
         setErrorMessage(null);
 
         try {
-            const data = await fetchCombos(filters);
+            const data = await fetchCombos({...filters, executionMode});
             if (requestSequence.current !== currentRequestId) {
                 return;
             }
@@ -75,7 +84,7 @@ export default function SearchCombosPage() {
                 setLoading(false);
             }
         }
-    }, [fetchCombos, filters]);
+    }, [executionMode, fetchCombos, filters, profileExecutionModeLoading]);
 
     useEffect(() => {
         loadCombos();
@@ -88,6 +97,9 @@ export default function SearchCombosPage() {
                 badgeLabel={`${combos.length} result${combos.length === 1 ? "" : "s"}`}
             >
                 {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}
+                <AppBox sx={{display: "flex", justifyContent: {xs: "stretch", sm: "flex-end"}}}>
+                    <ComboExecutionModeSelect value={executionMode} onChange={setChosenExecutionMode} disabled={profileExecutionModeLoading} />
+                </AppBox>
                 <ComboFilters initialFilters={initialFilters} onChange={handleFiltersChange} />
 
                 {loading && hasLoadedAtLeastOnce ? (

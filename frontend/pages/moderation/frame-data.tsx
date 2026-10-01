@@ -26,6 +26,7 @@ import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {FrameDataEditableColumn, FrameDataModerationMove} from "@/src/types/frameDataModeration";
 import {MoveResourceEffectsSection} from "@/src/components/resources/MoveResourceEffectsSection";
+import {ModernControlsSection} from "@/src/components/moderation/ModernControlsSection";
 import {CharacterResource} from "@/src/types/characterResource";
 
 function normalizeApiError(error: unknown, fallbackMessage: string): string {
@@ -102,9 +103,13 @@ export default function FrameDataModerationPage() {
         void loadMoves(characterId);
     };
 
-    const showToast = (severity: "success" | "error", message: string) => {
+    const showToast = React.useCallback((severity: "success" | "error", message: string) => {
         setToast({open: true, severity, message});
-    };
+    }, []);
+
+    const handleModernSaved = React.useCallback((moveId: string, modern: FrameDataModerationMove["modern"]) => {
+        setMoves((current) => current.map((move) => move.moveId === moveId ? {...move, modern} : move));
+    }, []);
 
     const handleSaveOverride = async (move: FrameDataModerationMove, column: FrameDataEditableColumn) => {
         const key = `${move.frameDataId}:${column.columnName}`;
@@ -259,6 +264,10 @@ export default function FrameDataModerationPage() {
                             onSave={(move, effects) => void handleSaveResourceEffects(move, effects)}
                         />
                     </SectionCard>
+                ) : null}
+
+                {selectedCharacterId && moves.length > 0 ? (
+                    <ModernControlsSection characterId={selectedCharacterId} moves={moves} onMoveSaved={handleModernSaved} onFeedback={showToast} />
                 ) : null}
 
                 <SectionCard title="Manual Metadata" variant="review">

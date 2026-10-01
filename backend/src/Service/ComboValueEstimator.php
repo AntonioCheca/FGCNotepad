@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\ComboMetrics;
 use App\Entity\CharacterObjectState;
 use App\Entity\ComboSequences;
+use App\Util\Enum\ComboExecutionMode;
 
 final class ComboValueEstimator
 {
@@ -25,14 +26,16 @@ final class ComboValueEstimator
     /**
      * @param array{health?:float,drive?:float,super?:float,objectStatuses?:array<string,string>}|null $resourceContext
      */
-    public function estimateSequenceValue(ComboSequences $combo, ?array $resourceContext = null): ?float
+    public function estimateSequenceValue(ComboSequences $combo, ?array $resourceContext = null, ComboExecutionMode $mode = ComboExecutionMode::CLASSIC): ?float
     {
-        $metricsValue = $this->estimateMetricsValue($combo->getComboMetrics());
-        if (null === $metricsValue) {
+        $metrics = $combo->getComboMetrics();
+        $metricsValue = $this->estimateMetricsValue($metrics);
+        $modeDamage = $metrics?->getDamageFor($mode);
+        if (null === $metricsValue || null === $modeDamage) {
             return null;
         }
 
-        return $metricsValue + $this->estimateObjectDeltaValue($combo, $resourceContext['objectStatuses'] ?? []);
+        return $metricsValue + $modeDamage - (int) $metrics->getDamage() + $this->estimateObjectDeltaValue($combo, $resourceContext['objectStatuses'] ?? []);
     }
 
     /**

@@ -114,10 +114,10 @@ const useCombos = () => {
         }
     }, [request]);
 
-    const getCombo = useCallback(async (id) => {
+    const getCombo = useCallback(async (id, params = {}) => {
         try {
             const data = await request(() =>
-                api.get(`/combo-sequences/${id}`)
+                api.get(`/combo-sequences/${id}`, {params})
             );
             return data;
         } catch (error) {
@@ -126,10 +126,10 @@ const useCombos = () => {
         }
     }, [request]);
 
-    const updateCombo = useCallback(async (id, updateData) => {
+    const updateCombo = useCallback(async (id, updateData, params = {}) => {
         try {
             const data = await request(() =>
-                api.patch(`/combo-sequences/${id}`, updateData)
+                api.patch(`/combo-sequences/${id}`, updateData, {params})
             );
             return data;
         } catch (error) {

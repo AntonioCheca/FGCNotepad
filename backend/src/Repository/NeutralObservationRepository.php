@@ -15,8 +15,8 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Filtered neutral observation aggregates. Eligibility for the stats page is fixed: Ranked replays and actors not
- * confirmed as Modern players (an unreported control scheme counts as Classic).
+ * Filtered neutral observation aggregates. Only Ranked replays count, and samples are partitioned by the actor's
+ * control scheme: Modern players' toolkit differs, so the two are never mixed. An unreported scheme counts as Classic.
  *
  * @extends ServiceEntityRepository<NeutralObservation>
  */
@@ -180,7 +180,7 @@ class NeutralObservationRepository extends ServiceEntityRepository
         $conditions = [
             'o.character_id = :characterId',
             'r.game_mode = :rankedMode',
-            'ap.control_scheme IS DISTINCT FROM :modern',
+            NeutralStatsFilters::CONTROL_SCHEME_MODERN === $filters->controlScheme ? 'ap.control_scheme = :modern' : 'ap.control_scheme IS DISTINCT FROM :modern',
         ];
         $params = [
             'characterId' => $filters->characterId,

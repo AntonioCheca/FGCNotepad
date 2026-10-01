@@ -43,6 +43,8 @@ export type NeutralResourceSelection = Record<string, number[]>;
 export type NeutralPatchMode = "all" | "latest";
 export type NeutralStatsTab = "profiles" | "distribution";
 
+export type NeutralControlScheme = "classic" | "modern";
+
 export interface NeutralStatsFilterState {
     characterId: string | null;
     opponentId: string | null;
@@ -56,6 +58,8 @@ export interface NeutralStatsFilterState {
     opponentResources: NeutralResourceSelection;
     bucketSize: string;
     patch: NeutralPatchMode;
+    /** null follows the viewer's profile controls. */
+    controlScheme: NeutralControlScheme | null;
 }
 
 export interface NeutralMoveProfileCard {
@@ -83,6 +87,7 @@ export interface NeutralDistributionSeries {
 export interface NeutralStatsResponse {
     character: {id: string; name: string};
     opponent: {id: string; name: string} | null;
+    controlScheme: NeutralControlScheme;
     sample: {observationCount: number; replayCount: number; lowSample: boolean};
     spacing: {bucketSize: number; xMax: number; buckets: Array<{start: number; end: number}>};
     moveProfiles: {yMax: number; topLimit: number; cards: NeutralMoveProfileCard[]};

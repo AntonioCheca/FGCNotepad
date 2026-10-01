@@ -23,6 +23,7 @@ import {
 interface SubmitSectionProps {
     title: string;
     damage: string;
+    damageModeLabel?: string | null;
     driveCost: string;
     driveGain: string;
     minimumDriveCost?: string;
@@ -61,6 +62,7 @@ interface SubmitSectionProps {
 export function SubmitSection({
     title,
     damage,
+    damageModeLabel = null,
     driveCost,
     driveGain,
     minimumDriveCost = "",
@@ -169,7 +171,7 @@ export function SubmitSection({
             <AppBox sx={{display: "grid", gap: 1, pt: 0.5}}>
                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "160px minmax(220px, 1fr)"}, gap: 1, alignItems: "center"}}>
                     <AppTextField
-                        label="Estimated Damage"
+                        label={damageModeLabel ? `Estimated Damage (${damageModeLabel})` : "Estimated Damage"}
                         value={damage}
                         onChange={(event) => onDamageChange(event.target.value)}
                         inputMode="numeric"

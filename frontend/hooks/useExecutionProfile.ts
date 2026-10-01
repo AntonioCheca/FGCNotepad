@@ -9,6 +9,7 @@ import {
     ScenarioExecutionPreference,
     ScenarioExecutionSelection,
 } from "@/src/types/scenarioExecution";
+import type {ComboExecutionMode} from "@/src/types/comboExecution";
 
 export function useExecutionProfile() {
     const {request} = useApi();
@@ -80,7 +81,20 @@ export function useExecutionProfile() {
         [request]
     );
 
+    const getComboExecutionMode = React.useCallback(async (): Promise<{comboExecutionMode: ComboExecutionMode}> => {
+        return request(() => api.get("/profile/combo-execution-mode"));
+    }, [request]);
+
+    const updateComboExecutionMode = React.useCallback(
+        async (comboExecutionMode: ComboExecutionMode): Promise<{comboExecutionMode: ComboExecutionMode}> => {
+            return request(() => api.put("/profile/combo-execution-mode", {comboExecutionMode}));
+        },
+        [request]
+    );
+
     return {
+        getComboExecutionMode,
+        updateComboExecutionMode,
         getExecutionPreference,
         updateExecutionPreference,
         getComboKnowledge,

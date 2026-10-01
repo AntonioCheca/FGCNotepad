@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\UserScenarioPreferenceRepository;
+use App\Util\Enum\ComboExecutionMode;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserScenarioPreferenceRepository::class)]
@@ -28,6 +29,9 @@ class UserScenarioPreference
 
     #[ORM\Column(name: 'notation_dictionary', length: 32, options: ['default' => self::NOTATION_DICTIONARY_NUMPAD])]
     private string $notationDictionary = self::NOTATION_DICTIONARY_NUMPAD;
+
+    #[ORM\Column(name: 'combo_execution_mode', length: 16, enumType: ComboExecutionMode::class, options: ['default' => 'classic'])]
+    private ComboExecutionMode $comboExecutionMode = ComboExecutionMode::CLASSIC;
 
     public function getId(): ?int
     {
@@ -82,6 +86,18 @@ class UserScenarioPreference
     public function setNotationDictionary(string $notationDictionary): static
     {
         $this->notationDictionary = $notationDictionary;
+
+        return $this;
+    }
+
+    public function getComboExecutionMode(): ComboExecutionMode
+    {
+        return $this->comboExecutionMode;
+    }
+
+    public function setComboExecutionMode(ComboExecutionMode $comboExecutionMode): static
+    {
+        $this->comboExecutionMode = $comboExecutionMode;
 
         return $this;
     }

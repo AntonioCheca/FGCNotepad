@@ -14,6 +14,8 @@ import AuthContext from "@/services/AuthContext";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
+import {ComboExecutionModeSelect} from "@/src/components/combos/execution/ComboExecutionModeSelect";
+import type {ComboExecutionMode} from "@/src/types/comboExecution";
 
 function knownComboIds(combos: ComboKnowledgeItem[]): number[] {
     const ids: number[] = [];
@@ -113,6 +115,24 @@ function DefaultScenarioModeSection({executionSelection, savingPreference, onSel
                 ) : null}
 
                 <AppButton type="button" disabled={savingPreference} onClick={() => void onSave()} sx={{width: {xs: "100%", sm: "auto"}}}>{savingPreference ? "Saving..." : "Save Mode"}</AppButton>
+            </AppBox>
+        </SectionCard>
+    );
+}
+
+interface ControlsSectionProps {
+    mode: ComboExecutionMode;
+    saving: boolean;
+    onModeChange: (mode: ComboExecutionMode) => void;
+    onSave: () => Promise<void>;
+}
+
+function ControlsSection({mode, saving, onModeChange, onSave}: ControlsSectionProps) {
+    return (
+        <SectionCard title="Controls" variant="input" tone="raised">
+            <AppBox sx={{display: "flex", gap: 1.5, alignItems: {xs: "stretch", sm: "center"}, flexDirection: {xs: "column", sm: "row"}}}>
+                <ComboExecutionModeSelect value={mode} onChange={onModeChange} />
+                <AppButton type="button" disabled={saving} onClick={() => void onSave()} sx={{width: {xs: "100%", sm: "auto"}}}>{saving ? "Saving..." : "Save Controls"}</AppButton>
             </AppBox>
         </SectionCard>
     );
@@ -224,6 +244,8 @@ export default function ProfilePage() {
         updateComboKnowledge,
         getExecutionPreference,
         updateExecutionPreference,
+        getComboExecutionMode,
+        updateComboExecutionMode,
     } = useExecutionProfile();
     const authContext = React.useContext(AuthContext);
     const authLoading = authContext?.loading ?? true;
@@ -232,6 +254,8 @@ export default function ProfilePage() {
     const [loading, setLoading] = React.useState(true);
     const [savingKnowledge, setSavingKnowledge] = React.useState(false);
     const [savingPreference, setSavingPreference] = React.useState(false);
+    const [savingControls, setSavingControls] = React.useState(false);
+    const [comboExecutionMode, setComboExecutionMode] = React.useState<ComboExecutionMode>("classic");
     const [error, setError] = React.useState<string | null>(null);
     const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
 
@@ -268,12 +292,14 @@ export default function ProfilePage() {
         Promise.all([
             getExecutionPreference(),
             getComboKnowledge(),
+            getComboExecutionMode(),
         ])
-            .then(([preference, knowledge]) => {
+            .then(([preference, knowledge, controls]) => {
                 if (canceled) {
                     return;
                 }
 
+                setComboExecutionMode(controls.comboExecutionMode);
                 setExecutionSelection({
                     mode: preference.defaultMode,
                     difficultyCap: preference.difficultyCap,
@@ -296,7 +322,7 @@ export default function ProfilePage() {
         return () => {
             canceled = true;
         };
-    }, [authLoading, getComboKnowledge, getExecutionPreference, isAuthenticated]);
+    }, [authLoading, getComboExecutionMode, getComboKnowledge, getExecutionPreference, isAuthenticated]);
 
     if (!authContext) {
         throw new Error("AuthContext must be used within an AuthProvider");
@@ -325,6 +351,25 @@ export default function ProfilePage() {
             <PageShell title="Execution Profile" badgeLabel={selectedCharacterId ? `${combos.length} combos` : "No character"}>
                 {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
                 {saveMessage ? <InlineNotice severity="success">{saveMessage}</InlineNotice> : null}
+
+                <ControlsSection
+                    mode={comboExecutionMode}
+                    saving={savingControls}
+                    onModeChange={setComboExecutionMode}
+                    onSave={async () => {
+                        setSavingControls(true);
+                        setSaveMessage(null);
+                        try {
+                            const updated = await updateComboExecutionMode(comboExecutionMode);
+                            setComboExecutionMode(updated.comboExecutionMode);
+                            setSaveMessage("Controls saved.");
+                        } catch {
+                            setError("Unable to save controls.");
+                        } finally {
+                            setSavingControls(false);
+                        }
+                    }}
+                />
 
                 <DefaultScenarioModeSection
                     executionSelection={executionSelection}

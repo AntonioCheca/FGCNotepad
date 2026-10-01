@@ -117,6 +117,7 @@ export default function NeutralStatsPage() {
         writeUrl(current, nextTab);
     };
 
+    const controlScheme = current.controlScheme ?? data?.controlScheme ?? "classic";
     const characterName = options?.characters.find((character) => character.id === current.characterId)?.name ?? "";
 
     return (
@@ -134,6 +135,7 @@ export default function NeutralStatsPage() {
                         <AppBox ref={panelRef} sx={{scrollMarginTop: 16}}>
                             <NeutralFiltersPanel
                                 filters={current}
+                                controlScheme={controlScheme}
                                 options={options}
                                 loading={loading}
                                 error={error}
@@ -146,7 +148,7 @@ export default function NeutralStatsPage() {
                         <NeutralStickyBar
                             visible={panelScrolledAway}
                             title={characterName}
-                            summary={filterSummary(current, options)}
+                            summary={filterSummary({...current, controlScheme}, options)}
                             loading={loading}
                             hasError={error !== null}
                             onOpenFilters={() => panelRef.current?.scrollIntoView({behavior: "smooth", block: "start"})}

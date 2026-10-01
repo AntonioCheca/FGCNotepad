@@ -1,4 +1,5 @@
 import type {
+    NeutralControlScheme,
     NeutralGaugeRange,
     NeutralPatchMode,
     NeutralResourceSelection,
@@ -37,6 +38,7 @@ export const defaultFilterState = (): NeutralStatsFilterState => ({
     opponentResources: {},
     bucketSize: DEFAULT_BUCKET_SIZE,
     patch: "all",
+    controlScheme: null,
 });
 
 const first = (value: QueryValue): string => (Array.isArray(value) ? value[0] ?? "" : value ?? "").trim();
@@ -77,6 +79,8 @@ function parseResources(query: Record<string, QueryValue>, prefix: "res" | "oppR
 
 export function parseNeutralQuery(query: Record<string, QueryValue>): {filters: NeutralStatsFilterState; tab: NeutralStatsTab} {
     const patch: NeutralPatchMode = first(query.patch) === "latest" ? "latest" : "all";
+    const scheme = first(query.scheme);
+    const controlScheme: NeutralControlScheme | null = scheme === "classic" || scheme === "modern" ? scheme : null;
 
     return {
         filters: {
@@ -92,6 +96,7 @@ export function parseNeutralQuery(query: Record<string, QueryValue>): {filters: 
             opponentResources: parseResources(query, "oppRes"),
             bucketSize: first(query.bucket) || DEFAULT_BUCKET_SIZE,
             patch,
+            controlScheme,
         },
         tab: first(query.tab) === "distribution" ? "distribution" : "profiles",
     };
@@ -134,6 +139,7 @@ export function buildNeutralQuery(filters: NeutralStatsFilterState): NeutralQuer
     }
     if (filters.bucketSize !== DEFAULT_BUCKET_SIZE) query.bucket = filters.bucketSize;
     if (filters.patch !== "all") query.patch = filters.patch;
+    if (filters.controlScheme !== null) query.scheme = filters.controlScheme;
 
     return query;
 }

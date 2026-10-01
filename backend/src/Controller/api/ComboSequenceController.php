@@ -6,7 +6,6 @@ use App\Entity\ComboSequences;
 use App\Entity\User;
 use App\Util\Enum\MoveType;
 use App\Entity\ConnectionType;
-use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
@@ -29,8 +28,13 @@ use App\Service\ModerationTransitionService;
 use App\Service\CharacterResourceService;
 use App\Service\ComboResourceLedgerService;
 use App\Service\ComboValueEstimator;
+use App\Service\ComboLeafOptionFactory;
+use App\Service\ComboDamageMoveInputFactory;
+use App\Service\Modern\ModernMoveExecutionResolver;
+use App\Service\Modern\ComboExecutionNotationService;
+use App\Service\Modern\ComboExecutionModePreferenceService;
+use App\Util\Enum\ComboExecutionMode;
 use App\Util\Enum\ModerationState;
-use App\Util\MoveNotationAliases;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -65,6 +69,11 @@ class ComboSequenceController extends AbstractController
         private ComboCrouchRequirementInferenceService $comboCrouchRequirementInferenceService,
         private SituationRepository $situationRepository,
         private SituationComboMatcher $situationComboMatcher,
+        private ComboExecutionModePreferenceService $executionModePreferenceService,
+        private ComboLeafOptionFactory $comboLeafOptionFactory,
+        private ComboDamageMoveInputFactory $comboDamageMoveInputFactory,
+        private ModernMoveExecutionResolver $moveExecutionResolver,
+        private ComboExecutionNotationService $comboExecutionNotationService,
     )
     {
     }
@@ -132,6 +141,8 @@ class ComboSequenceController extends AbstractController
         $situationId = $this->normalizeIntegerFilter($request->query->get('situationId'));
 
         $actor = $this->security->getUser();
+        $executionMode = $this->executionModePreferenceService->resolveForRequest($request, $actor instanceof User ? $actor : null);
+        $filters['executionMode'] = $executionMode;
         $sequences = $this->comboSequencesRepository->searchNonLeafsByFilters(
             $filters,
             $limit,
@@ -167,9 +178,9 @@ class ComboSequenceController extends AbstractController
                 'super' => $filters['availableSuper'] ?? 0.0,
                 'objectStatuses' => $filters['availableObjectStatuses'],
             ];
-            usort($sequences, function (ComboSequences $left, ComboSequences $right) use ($resourceContext, $filters): int {
-                $leftValue = $this->comboValueEstimator->estimateSequenceValue($left, $resourceContext);
-                $rightValue = $this->comboValueEstimator->estimateSequenceValue($right, $resourceContext);
+            usort($sequences, function (ComboSequences $left, ComboSequences $right) use ($resourceContext, $filters, $executionMode): int {
+                $leftValue = $this->comboValueEstimator->estimateSequenceValue($left, $resourceContext, $executionMode);
+                $rightValue = $this->comboValueEstimator->estimateSequenceValue($right, $resourceContext, $executionMode);
                 if ($leftValue === $rightValue) {
                     return ($left->getId() ?? 0) <=> ($right->getId() ?? 0);
                 }
@@ -184,7 +195,7 @@ class ComboSequenceController extends AbstractController
             });
         }
 
-        $json = $this->serializer->serialize($sequences, 'json');
+        $json = $this->serializer->serialize($sequences, 'json', [ComboExecutionMode::class => $executionMode]);
 
         if ([] !== $compatibilityByComboId) {
             $payload = json_decode($json, true);
@@ -501,21 +512,7 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
         }
 
-        $leafOptions = [];
-        foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
-            $move = $leafSequence->getMove();
-            if (!$move instanceof Move) {
-                continue;
-            }
-
-            $leafOptions[] = [
-                'id' => (int) $leafSequence->getId(),
-                'notation' => $move->getNumpadNotation(),
-                'aliases' => MoveNotationAliases::alternatives($move->getNumpadNotation()),
-                'moveType' => $move->getFrameData()?->getMoveType(),
-                'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
-            ];
-        }
+        $leafOptions = $this->comboLeafOptionFactory->forCharacter($characterId);
 
         $connectionTypes = array_map(
             static fn (ConnectionType $connectionType): array => [
@@ -530,6 +527,13 @@ class ComboSequenceController extends AbstractController
             $leafOptions,
             $connectionTypes
         );
+
+        $actor = $this->security->getUser();
+        $executionMode = null === ($data['executionMode'] ?? null)
+            ? $this->executionModePreferenceService->resolveForUser($actor instanceof User ? $actor : null)
+            : $this->requestedExecutionMode($data);
+        $translated['executionMode'] = $executionMode->value;
+        $translated['executionNotation'] = $this->executionNotation($translated['steps'], $executionMode);
 
         $translated['input'] = [
             'rawNotation' => $notation,
@@ -575,21 +579,7 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
         }
 
-        $leafOptions = [];
-        foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
-            $move = $leafSequence->getMove();
-            if (!$move instanceof Move) {
-                continue;
-            }
-
-            $leafOptions[] = [
-                'id' => (int) $leafSequence->getId(),
-                'notation' => $move->getNumpadNotation(),
-                'aliases' => MoveNotationAliases::alternatives($move->getNumpadNotation()),
-                'moveType' => $move->getFrameData()?->getMoveType(),
-                'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
-            ];
-        }
+        $leafOptions = $this->comboLeafOptionFactory->forCharacter($characterId);
 
         $connectionTypes = array_map(
             static fn (ConnectionType $connectionType): array => [
@@ -607,50 +597,29 @@ class ComboSequenceController extends AbstractController
             $connectionTypes
         );
 
-        $moveByLeafId = [];
+        $executionMode = $this->requestedExecutionMode($data);
+        $movesByLeafId = [];
         foreach ($this->comboSequencesRepository->findBy(['id' => array_column($leafOptions, 'id')]) as $leafSequence) {
-            if (!$leafSequence instanceof ComboSequences) {
-                continue;
+            if ($leafSequence instanceof ComboSequences && null !== $leafSequence->getId() && $leafSequence->getMove() instanceof Move) {
+                $movesByLeafId[$leafSequence->getId()] = $leafSequence->getMove();
             }
-
-            $leafId = $leafSequence->getId();
-            $move = $leafSequence->getMove();
-            if (null === $leafId || !$move instanceof Move || null === $move->getFrameData()?->getDamage()) {
-                continue;
-            }
-
-            $frameData = $move->getFrameData();
-
-            $moveByLeafId[$leafId] = [
-                'damage' => (int) $frameData->getDamage(),
-                'moveType' => (string) $frameData->getMoveType(),
-                'notation' => (string) $move->getNumpadNotation(),
-                'scalingStartPercent' => $frameData->getScalingStartPercent(),
-                'scalingImmediatePercent' => $frameData->getScalingImmediatePercent(),
-                'scalingMinimumPercent' => $frameData->getScalingMinimumPercent(),
-                'scalingComboHits' => $frameData->getScalingComboHits(),
-                'scalingComboExtraPercent' => $frameData->getScalingComboExtraPercent(),
-                'scalingMultiplierPercent' => $frameData->getScalingMultiplierPercent(),
-                'damageParts' => $this->getDamageParts($frameData->getExtraInformation()),
-            ];
         }
 
         $resolvedMoves = [];
         foreach ($translated['steps'] as $step) {
-            if (!is_array($step)) {
+            $move = $movesByLeafId[(int) ($step['child_sequence_id'] ?? 0)] ?? null;
+            if (!$move instanceof Move) {
                 continue;
             }
 
-            $childSequenceId = isset($step['child_sequence_id']) ? (int) $step['child_sequence_id'] : 0;
-            if ($childSequenceId <= 0 || !isset($moveByLeafId[$childSequenceId])) {
-                continue;
+            $input = $this->comboDamageMoveInputFactory->fromMove(
+                $move,
+                is_string($step['connection_type_name'] ?? null) ? $step['connection_type_name'] : null,
+                $this->moveExecutionResolver->resolve($move, $executionMode)->damagePercent,
+            );
+            if (null !== $input) {
+                $resolvedMoves[] = $input;
             }
-
-            $move = $moveByLeafId[$childSequenceId];
-            $move['connectionTypeName'] = isset($step['connection_type_name']) && is_string($step['connection_type_name'])
-                ? $step['connection_type_name']
-                : null;
-            $resolvedMoves[] = $move;
         }
 
         $options = is_array($data['options'] ?? null) ? $data['options'] : [];
@@ -665,6 +634,7 @@ class ComboSequenceController extends AbstractController
         $estimation = $this->sf6ComboDamageEstimatorService->estimate($resolvedMoves, $options);
 
         return new JsonResponse([
+            'executionMode' => $executionMode->value,
             'estimatedDamage' => $estimation['estimatedDamage'],
             'stepDamages' => $estimation['stepDamages'],
             'warnings' => array_values(array_unique(array_merge($translated['warnings'] ?? [], $estimation['warnings']))),
@@ -713,21 +683,7 @@ class ComboSequenceController extends AbstractController
             throw new NotFoundHttpException(sprintf('Character ID %s not found.', $characterId));
         }
 
-        $leafOptions = [];
-        foreach ($this->comboSequencesRepository->findLeafsByCharacterId($characterId) as $leafSequence) {
-            $move = $leafSequence->getMove();
-            if (!$move instanceof Move) {
-                continue;
-            }
-
-            $leafOptions[] = [
-                'id' => (int) $leafSequence->getId(),
-                'notation' => $move->getNumpadNotation(),
-                'aliases' => MoveNotationAliases::alternatives($move->getNumpadNotation()),
-                'moveType' => $move->getFrameData()?->getMoveType(),
-                'cancelTypeCodes' => $this->getCancelTypeCodesForTranslation($move->getFrameData()),
-            ];
-        }
+        $leafOptions = $this->comboLeafOptionFactory->forCharacter($characterId);
 
         $connectionTypes = array_map(
             static fn (ConnectionType $connectionType): array => [
@@ -859,8 +815,9 @@ class ComboSequenceController extends AbstractController
     public function read(Request $request, ComboSequences $sequence): JsonResponse
     {
         $this->assertReadable($sequence);
+        $actor = $this->security->getUser();
 
-        return $this->serializedCombo($sequence);
+        return $this->serializedCombo($sequence, $this->executionModePreferenceService->resolveForRequest($request, $actor instanceof User ? $actor : null));
     }
 
     private function assertReadable(ComboSequences $sequence): void
@@ -883,10 +840,10 @@ class ComboSequenceController extends AbstractController
         }
     }
 
-    private function serializedCombo(ComboSequences $sequence): JsonResponse
+    private function serializedCombo(ComboSequences $sequence, ComboExecutionMode $executionMode): JsonResponse
     {
         return new JsonResponse(
-            $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
+            $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read'], ComboExecutionMode::class => $executionMode]),
             JsonResponse::HTTP_OK,
             [],
             true
@@ -925,12 +882,7 @@ class ComboSequenceController extends AbstractController
 
         $this->entityManager->flush();
 
-        return new JsonResponse(
-            $this->serializer->serialize($sequence, 'json', ['groups' => ['combo:read']]),
-            JsonResponse::HTTP_OK,
-            [],
-            true
-        );
+        return $this->serializedCombo($sequence, $this->executionModePreferenceService->resolveForRequest($request, $actor));
     }
 
     #[Route('/{id}', name: 'delete', requirements: ['id' => '\\d+'], methods: ['DELETE'])]
@@ -1032,51 +984,33 @@ class ComboSequenceController extends AbstractController
     /**
      * @return array<int, string>
      */
-    private function getCancelTypeCodesForTranslation(?FrameData $frameData): array
+    /** @param array<int, array{child_sequence_id:int, connection_type_name:string|null}> $steps */
+    private function executionNotation(array $steps, ComboExecutionMode $executionMode): ?string
     {
-        if (null === $frameData) {
-            return [];
+        $leafs = [];
+        foreach ($this->comboSequencesRepository->findBy(['id' => array_column($steps, 'child_sequence_id')]) as $leaf) {
+            $leafs[(int) $leaf->getId()] = $leaf;
         }
 
-        $codes = $frameData->getCancelTypeCodes();
-        if (($frameData->getHitConfirmTargetCombos() ?? 0) > 0 && !in_array('tc', $codes, true)) {
-            $codes[] = 'tc';
+        $moves = [];
+        foreach ($steps as $step) {
+            $move = ($leafs[$step['child_sequence_id']] ?? null)?->getMove();
+            if ($move instanceof Move) {
+                $moves[] = ['move' => $move, 'connectionTypeName' => $step['connection_type_name']];
+            }
         }
 
-        return $codes;
+        return $this->comboExecutionNotationService->sequenceNotation($moves, $executionMode);
     }
 
-    /**
-     * @return list<int>
-     */
-    private function getDamageParts(?string $extraInformation): array
+    /** @param array<string, mixed> $data */
+    private function requestedExecutionMode(array $data): ComboExecutionMode
     {
-        if (null === $extraInformation) {
-            return [];
+        $value = $data['executionMode'] ?? null;
+        if (null === $value) {
+            return ComboExecutionMode::CLASSIC;
         }
 
-        $decoded = json_decode($extraInformation, true);
-        if (!is_array($decoded)) {
-            return [];
-        }
-
-        foreach ($decoded as $item) {
-            if (!is_array($item) || !isset($item['fatDamageParts']) || !is_array($item['fatDamageParts'])) {
-                continue;
-            }
-
-            $parts = [];
-            foreach ($item['fatDamageParts'] as $part) {
-                if (!is_int($part) || $part <= 0) {
-                    return [];
-                }
-
-                $parts[] = $part;
-            }
-
-            return $parts;
-        }
-
-        return [];
+        return $this->executionModePreferenceService->parse(is_string($value) ? $value : '');
     }
 }

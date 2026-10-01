@@ -3,6 +3,7 @@
 namespace App\Serializer\Normalizer;
 
 use App\Entity\ComboMetrics;
+use App\Util\Enum\ComboExecutionMode;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 
@@ -14,9 +15,12 @@ class ComboMetricsNormalizer implements NormalizerInterface
             throw new InvalidArgumentException('Expected ComboMetrics object.');
         }
 
+        $mode = $context[ComboExecutionMode::class] ?? ComboExecutionMode::CLASSIC;
+        $damage = $object->getDamageFor($mode);
+
         return [
             'id' => $object->getId(),
-            'damage' => $object->getDamage(),
+            'damage' => $damage,
             'difficultyLevel' => $object->getDifficultyLevel(),
             'driveCost' => $object->getDriveCost(),
             'driveGain' => $object->getDriveGain(),
@@ -24,9 +28,20 @@ class ComboMetricsNormalizer implements NormalizerInterface
             'minimumDriveCostNoBurnout' => $object->getMinimumDriveCostNoBurnout(),
             'superCost' => $object->getSuperCost(),
             'superGain' => $object->getSuperGain(),
-            'resourceAdjustedDamage' => $object->getResourceAdjustedDamage(),
+            'resourceAdjustedDamage' => $this->resourceAdjustedDamage($object, $damage),
             'sequence_id' => $object->getSequence()?->getId(),
         ];
+    }
+
+    /** The resource adjustment is linear in damage, so the active mode's damage shifts it by the same amount. */
+    private function resourceAdjustedDamage(ComboMetrics $metrics, ?int $damage): ?float
+    {
+        $adjusted = $metrics->getResourceAdjustedDamage();
+        if (null === $adjusted || null === $damage || null === $metrics->getDamage()) {
+            return null === $damage ? null : $adjusted;
+        }
+
+        return $adjusted + $damage - $metrics->getDamage();
     }
 
     public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool

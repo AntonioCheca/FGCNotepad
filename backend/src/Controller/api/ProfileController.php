@@ -13,6 +13,7 @@ use App\Service\ComboRecommendationService;
 use App\Service\ComboNotationDictionaryTranslator;
 use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ScenarioExecutionModeService;
+use App\Service\Modern\ComboExecutionModePreferenceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -36,6 +37,7 @@ class ProfileController extends AbstractController
         private readonly ComboRecommendationService $comboRecommendationService,
         private readonly NotationDictionaryPreferenceService $notationDictionaryPreferenceService,
         private readonly ComboNotationDictionaryTranslator $comboNotationDictionaryTranslator,
+        private readonly ComboExecutionModePreferenceService $comboExecutionModePreferenceService,
     ) {
     }
 
@@ -50,7 +52,40 @@ class ProfileController extends AbstractController
             'roles' => $user->getRoles(),
             'isActive' => $user->isActive(),
             'notationDictionary' => $this->notationDictionaryPreferenceService->resolveForUser($user),
+            'comboExecutionMode' => $this->comboExecutionModePreferenceService->resolveForUser($user)->value,
         ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/combo-execution-mode', name: 'combo_execution_mode_get', methods: ['GET'])]
+    public function getComboExecutionMode(): JsonResponse
+    {
+        $user = $this->requireUser();
+
+        return new JsonResponse([
+            'comboExecutionMode' => $this->comboExecutionModePreferenceService->resolveForUser($user)->value,
+        ], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/combo-execution-mode', name: 'combo_execution_mode_update', methods: ['PUT'])]
+    public function updateComboExecutionMode(Request $request): JsonResponse
+    {
+        $user = $this->requireUser();
+        $data = json_decode((string) $request->getContent(), true);
+        if (!is_array($data) || !is_string($data['comboExecutionMode'] ?? null)) {
+            throw new BadRequestHttpException('comboExecutionMode must be a string.');
+        }
+
+        $mode = $this->comboExecutionModePreferenceService->parse($data['comboExecutionMode']);
+        $preference = $this->userScenarioPreferenceRepository->findOneByUser($user);
+        if (null === $preference) {
+            $preference = (new UserScenarioPreference())->setUser($user);
+            $this->entityManager->persist($preference);
+        }
+
+        $preference->setComboExecutionMode($mode);
+        $this->entityManager->flush();
+
+        return new JsonResponse(['comboExecutionMode' => $mode->value], JsonResponse::HTTP_OK);
     }
 
     #[Route('/notation-preference', name: 'notation_preference_get', methods: ['GET'])]

@@ -25,8 +25,11 @@ final class NeutralStatsFilterParser
     {
     }
 
-    /** @param array<string, mixed> $query */
-    public function parse(array $query): NeutralStatsFilters
+    /**
+     * @param array<string, mixed> $query
+     * @param string $defaultControlScheme used when the query does not pick one, normally from the viewer's profile
+     */
+    public function parse(array $query, string $defaultControlScheme = NeutralStatsFilters::CONTROL_SCHEME_CLASSIC): NeutralStatsFilters
     {
         $characterId = $this->uuid($query['character'] ?? null, 'character');
         if (null === $characterId) {
@@ -43,6 +46,11 @@ final class NeutralStatsFilterParser
             throw new BadRequestHttpException('patch must be all or latest.');
         }
 
+        $controlScheme = $this->string($query['scheme'] ?? null) ?? $defaultControlScheme;
+        if (!in_array($controlScheme, NeutralStatsFilters::CONTROL_SCHEMES, true)) {
+            throw new BadRequestHttpException('scheme must be classic or modern.');
+        }
+
         return new NeutralStatsFilters(
             characterId: $characterId,
             opponentId: $this->uuid($query['opponent'] ?? null, 'opponent'),
@@ -56,6 +64,7 @@ final class NeutralStatsFilterParser
             opponentResources: $this->resources($query['oppRes'] ?? null, 'oppRes'),
             bucketSize: $bucketSize,
             patch: $patch,
+            controlScheme: $controlScheme,
         );
     }
 

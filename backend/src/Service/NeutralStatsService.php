@@ -96,6 +96,7 @@ final class NeutralStatsService
         return [
             'character' => ['id' => (string) $character->getId(), 'name' => $character->getName()],
             'opponent' => null === $opponent ? null : ['id' => (string) $opponent->getId(), 'name' => $opponent->getName()],
+            'controlScheme' => $filters->controlScheme,
             'sample' => [
                 'observationCount' => $charts['observationCount'],
                 'replayCount' => $replayCount,

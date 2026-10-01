@@ -9,7 +9,7 @@ final class ComboNotationTranslator
     private const CONNECTOR_ARROW = '>';
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>, modernAliases?:array<int, string>}> $leafOptions
      * @param array<int, array{id:int, name:string}> $connectionTypes
      *
      * @return array{
@@ -26,7 +26,16 @@ final class ComboNotationTranslator
         $parsedTokens = [];
 
         $leafIndex = $this->buildLeafIndex($leafOptions, $warnings);
-        $leafAliases = $this->buildLeafAliases($leafOptions, $warnings);
+        $allLeafAliases = $this->buildLeafAliases($leafOptions, $warnings);
+        $ambiguousAliases = $this->ambiguousModernAliases($allLeafAliases);
+        $leafAliases = array_values(array_filter(
+            $allLeafAliases,
+            fn (array $alias): bool => !isset($ambiguousAliases[$this->normalizeForAliasComparison($alias['normalizedAlias'])]),
+        ));
+        $ambiguousAliasEntries = array_values(array_filter(
+            $allLeafAliases,
+            fn (array $alias): bool => isset($ambiguousAliases[$this->normalizeForAliasComparison($alias['normalizedAlias'])]),
+        ));
         $leafAliasIndex = $this->buildLeafAliasIndex($leafAliases);
         $connectionIndex = $this->buildConnectionIndex($connectionTypes);
 
@@ -40,6 +49,28 @@ final class ComboNotationTranslator
             $token = $tokens[$cursor];
             $normalizedToken = $this->normalizeNotationToken($token);
             $connector = $this->normalizeConnector($normalizedToken);
+
+            $ambiguous = null === $connector ? $this->matchLongestAliasAtCursor($tokens, $cursor, $ambiguousAliasEntries) : null;
+            if (null !== $ambiguous) {
+                $errors[] = [
+                    'index' => $cursor + 1,
+                    'token' => $ambiguous['rawToken'],
+                    'normalizedToken' => $ambiguous['normalizedToken'],
+                    'code' => 'ambiguous_move',
+                    'message' => sprintf('Token "%s" matches more than one move for this character; write it in Classic notation.', $ambiguous['rawToken']),
+                ];
+                $parsedTokens[] = [
+                    'index' => $cursor + 1,
+                    'token' => $ambiguous['rawToken'],
+                    'normalizedToken' => $ambiguous['normalizedToken'],
+                    'status' => 'invalid',
+                    'child_sequence_id' => null,
+                    'reason' => 'ambiguous_move',
+                ];
+                $pendingConnector = null;
+                $cursor += $ambiguous['tokenCount'];
+                continue;
+            }
 
             if (null === $connector) {
                 $composite = $this->resolveContextualTargetComboComposite(
@@ -235,7 +266,7 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>, modernAliases?:array<int, string>}> $leafOptions
      * @param array<int, array{id:int, name:string}> $connectionTypes
      *
      * @return array{
@@ -289,7 +320,7 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>, modernAliases?:array<int, string>}> $leafOptions
      * @param array<int, string> $warnings
      *
      * @return array<string, array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}>
@@ -337,10 +368,10 @@ final class ComboNotationTranslator
     }
 
     /**
-     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>}> $leafOptions
+     * @param array<int, array{id:int, notation:string, moveType:string|null, cancelTypeCodes?:array<int, string>, aliases?:array<int, string>, modernAliases?:array<int, string>}> $leafOptions
      * @param array<int, string> $warnings
      *
-     * @return array<int, array{normalizedAlias:string, tokenCount:int, rawAlias:string, leaf:array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}}>
+     * @return array<int, array{normalizedAlias:string, tokenCount:int, rawAlias:string, leaf:array{id:int, notation:string, moveType:string|null, cancelTypeCodes:array<int, string>}, modern:bool}>
      */
     private function buildLeafAliases(array $leafOptions, array &$warnings): array
     {
@@ -353,14 +384,19 @@ final class ComboNotationTranslator
                 'cancelTypeCodes' => $this->normalizeCancelTypeCodes($leaf['cancelTypeCodes'] ?? []),
             ];
 
-            $rawAliases = [$leaf['notation']];
+            $rawAliases = [[$leaf['notation'], false]];
             foreach ($leaf['aliases'] ?? [] as $extraAlias) {
                 if (is_string($extraAlias)) {
-                    $rawAliases[] = $extraAlias;
+                    $rawAliases[] = [$extraAlias, false];
+                }
+            }
+            foreach ($leaf['modernAliases'] ?? [] as $modernAlias) {
+                if (is_string($modernAlias)) {
+                    $rawAliases[] = [$modernAlias, true];
                 }
             }
 
-            foreach ($rawAliases as $rawAlias) {
+            foreach ($rawAliases as [$rawAlias, $isModern]) {
                 $normalizedAlias = $this->normalizeNotationToken($rawAlias);
                 if ('' === $normalizedAlias) {
                     continue;
@@ -371,6 +407,7 @@ final class ComboNotationTranslator
                     'tokenCount' => $this->countAliasTokens($rawAlias),
                     'rawAlias' => (string) $rawAlias,
                     'leaf' => $leafMeta,
+                    'modern' => $isModern,
                 ];
             }
         }
@@ -393,6 +430,36 @@ final class ComboNotationTranslator
         );
 
         return $aliases;
+    }
+
+    /**
+     * A Modern input spelled the same as another move's notation cannot be resolved without guessing. Classic
+     * duplicates keep their existing first-match behaviour.
+     *
+     * @param array<int, array{normalizedAlias:string, leaf:array{id:int}, modern:bool}> $leafAliases
+     *
+     * @return array<string, true>
+     */
+    private function ambiguousModernAliases(array $leafAliases): array
+    {
+        $leafIdsByAlias = [];
+        $modernAliases = [];
+        foreach ($leafAliases as $alias) {
+            $key = $this->normalizeForAliasComparison($alias['normalizedAlias']);
+            $leafIdsByAlias[$key][$alias['leaf']['id']] = true;
+            if ($alias['modern']) {
+                $modernAliases[$key] = true;
+            }
+        }
+
+        $ambiguous = [];
+        foreach ($modernAliases as $key => $_) {
+            if (count($leafIdsByAlias[$key]) > 1) {
+                $ambiguous[$key] = true;
+            }
+        }
+
+        return $ambiguous;
     }
 
     /**

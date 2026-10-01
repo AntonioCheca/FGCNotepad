@@ -5,6 +5,8 @@ import {useCharacters} from "@/hooks/useCharacters";
 import useConnections from "@/hooks/useConnections";
 import useComboSpacings from "@/hooks/useComboSpacings";
 import usePersistentState from "@/hooks/usePersistentState";
+import {useProfileComboExecutionMode} from "@/hooks/useProfileComboExecutionMode";
+import {modernDamageModeLabel} from "@/src/types/comboExecution";
 import type {
     CharacterOption,
     ComboRequirementsPayload,
@@ -66,6 +68,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
     const [showAdvancedConditions, setShowAdvancedConditions] = useState<boolean>(false);
 
+    const {mode: executionMode} = useProfileComboExecutionMode();
     const {fetchLeafs, createFullCombo, translateComboNotation, estimateComboDamage, estimateComboResources, fetchRequirementObjects, previewResourceLedger} = useCombos();
     const [resourceLedger, setResourceLedger] = useState<ResourceLedgerEntry[]>([]);
     const [leafs, setLeafs] = useState<LeafSequenceOption[]>([]);
@@ -226,6 +229,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             const estimation = (await estimateComboDamage({
                 characterId,
                 notation: notationInput,
+                executionMode,
                 options: {
                     perfectParry,
                     driveRushMidCombo: false,
@@ -398,6 +402,9 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             requirements: requirementsResult.payload,
             steps,
         });
+        if (payload.metrics) {
+            payload.metrics.damageExecutionMode = executionMode;
+        }
 
         try {
             await createFullCombo(payload);
@@ -526,6 +533,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
 
     return {
         resourceLedger,
+        damageModeLabel: modernDamageModeLabel(executionMode),
         title,
         character,
         damage,

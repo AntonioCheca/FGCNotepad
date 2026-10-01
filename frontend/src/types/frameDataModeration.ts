@@ -21,6 +21,17 @@ export interface MoveResourceEffect {
     observationCount: number;
 }
 
+export interface MoveModernData {
+    availableOnModern: boolean;
+    modernMaxNotation: string | null;
+    modernSimpleNotation: string | null;
+    modernSimpleDamagePercent: number | null;
+}
+
+export type ModernAutoComboStrength = "light" | "medium" | "heavy";
+
+export type ModernAutoCombos = Record<ModernAutoComboStrength, {comboId: number; name: string} | null>;
+
 export interface FrameDataModerationMove {
     moveId: string;
     frameDataId: string;
@@ -32,6 +43,7 @@ export interface FrameDataModerationMove {
         forcesStanding: boolean;
     };
     resourceEffects?: MoveResourceEffect[];
+    modern: MoveModernData;
 }
 
 export interface FrameDataModerationMovesResponse {

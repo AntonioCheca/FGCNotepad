@@ -1,7 +1,14 @@
 import React from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
-import {FrameDataModerationMovesResponse, FrameDataModerationValue, MoveResourceEffect} from "@/src/types/frameDataModeration";
+import {
+    FrameDataModerationMovesResponse,
+    FrameDataModerationValue,
+    ModernAutoComboStrength,
+    ModernAutoCombos,
+    MoveModernData,
+    MoveResourceEffect,
+} from "@/src/types/frameDataModeration";
 
 export function useFrameDataModeration() {
     const {request} = useApi();
@@ -33,5 +40,21 @@ export function useFrameDataModeration() {
         return request(() => api.patch(`/moderation/frame-data/resource-effects/${moveId}`, {effects}));
     }, [request]);
 
-    return {getMovesForCharacter, saveOverride, saveManualMetadata, saveResourceEffects};
+    const saveModernData = React.useCallback(async (moveId: string, modern: MoveModernData): Promise<{moveId: string; modern: MoveModernData}> => {
+        return request(() => api.patch(`/moderation/frame-data/modern/${moveId}`, modern));
+    }, [request]);
+
+    const getModernAutoCombos = React.useCallback(async (characterId: string): Promise<{autoCombos: ModernAutoCombos}> => {
+        return request(() => api.get(`/moderation/frame-data/characters/${characterId}/modern-auto-combos`));
+    }, [request]);
+
+    const saveModernAutoCombo = React.useCallback(async (
+        characterId: string,
+        strength: ModernAutoComboStrength,
+        comboId: number | null
+    ): Promise<{autoCombos: ModernAutoCombos}> => {
+        return request(() => api.put(`/moderation/frame-data/characters/${characterId}/modern-auto-combos/${strength}`, {comboId}));
+    }, [request]);
+
+    return {getMovesForCharacter, saveOverride, saveManualMetadata, saveResourceEffects, saveModernData, getModernAutoCombos, saveModernAutoCombo};
 }

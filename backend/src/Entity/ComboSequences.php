@@ -13,6 +13,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: ComboSequencesRepository::class)]
 #[ORM\Table(name: "combo_sequence", schema: "sf6")]
 #[ORM\Index(name: "idx_combo_sequence_is_essential", columns: ["is_essential"])]
+#[ORM\Index(name: "idx_combo_sequence_modern_legal", columns: ["modern_legal"])]
 class ComboSequences
 {
     #[ORM\Id]
@@ -74,6 +75,9 @@ class ComboSequences
 
     #[ORM\Column(name: 'is_essential', type: Types::BOOLEAN, options: ['default' => false])]
     private bool $isEssential = false;
+
+    #[ORM\Column(name: 'modern_legal', type: Types::BOOLEAN, options: ['default' => false])]
+    private bool $modernLegal = false;
 
     #[ORM\Column(name: 'moderation_state', type: Types::STRING, length: 32)]
     private string $moderationState = ModerationState::APPROVED->value;
@@ -302,6 +306,18 @@ class ComboSequences
     public function setIsEssential(bool $isEssential): static
     {
         $this->isEssential = $isEssential;
+
+        return $this;
+    }
+
+    public function isModernLegal(): bool
+    {
+        return $this->modernLegal;
+    }
+
+    public function setModernLegal(bool $modernLegal): static
+    {
+        $this->modernLegal = $modernLegal;
 
         return $this;
     }

@@ -702,8 +702,8 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
     /** @return iterable<string, array{0: string, 1: list<int>}> */
     public static function blockedDriveImpactStunEstimates(): iterable
     {
-        yield 'every hit at 80%' => ['Bl-DI-St: cr. mp, cr. hk', [480, 720]];
-        yield 'with a punish counter starter' => ['Bl-DI-St+PC cr. mp, cr. hk', [576, 720]];
+        yield 'scaling starts at 80% and drops 10% per hit' => ['Bl-DI-St: cr. mp, cr. hk', [480, 630]];
+        yield 'with a punish counter starter' => ['Bl-DI-St+PC cr. mp, cr. hk', [576, 630]];
     }
 
     public function testEstimateDamagePerfectParryOptionImpliesPunishCounterStarter(): void

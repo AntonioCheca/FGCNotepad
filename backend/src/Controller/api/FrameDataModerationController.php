@@ -13,6 +13,12 @@ use App\Service\CharacterResourceService;
 use App\Service\MoveManualMetadataService;
 use App\Service\MoveResourceEffectService;
 use App\Repository\MoveResourceEffectRepository;
+use App\Repository\CharacterRepository;
+use App\Repository\ComboSequencesRepository;
+use App\Entity\Character;
+use App\Entity\ComboSequences;
+use App\Service\Modern\ModernGameDataService;
+use App\Util\Enum\ModernAutoComboStrength;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -39,6 +45,9 @@ class FrameDataModerationController extends AbstractController
         private readonly CharacterResourceService $characterResourceService,
         private readonly EntityManagerInterface $entityManager,
         private readonly Security $security,
+        private readonly ModernGameDataService $modernGameDataService,
+        private readonly CharacterRepository $characterRepository,
+        private readonly ComboSequencesRepository $comboSequencesRepository,
     ) {
     }
 
@@ -183,6 +192,88 @@ class FrameDataModerationController extends AbstractController
         ], Response::HTTP_OK);
     }
 
+    #[Route('/modern/{moveId}', name: 'save_modern', methods: ['PATCH'])]
+    public function saveModern(string $moveId, Request $request): JsonResponse
+    {
+        try {
+            $this->requireModeratorActor();
+            $payload = $this->decodePayload($request);
+            $move = $this->moveRepository->find($moveId);
+            if (!$move instanceof Move) {
+                throw new NotFoundHttpException('Move not found.');
+            }
+
+            $modern = $this->modernGameDataService->updateMove($move, $payload);
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
+        } catch (BadRequestHttpException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_BAD_REQUEST);
+        } catch (NotFoundHttpException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
+        }
+
+        return new JsonResponse(['moveId' => $moveId, 'modern' => $modern], Response::HTTP_OK);
+    }
+
+    #[Route('/characters/{characterId}/modern-auto-combos', name: 'modern_auto_combos', methods: ['GET'])]
+    public function modernAutoCombos(string $characterId): JsonResponse
+    {
+        try {
+            $this->requireModeratorActor();
+            $autoCombos = $this->modernGameDataService->autoCombos($this->requireCharacter($characterId));
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
+        } catch (NotFoundHttpException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
+        }
+
+        return new JsonResponse(['autoCombos' => $autoCombos], Response::HTTP_OK);
+    }
+
+    #[Route('/characters/{characterId}/modern-auto-combos/{strength}', name: 'save_modern_auto_combo', methods: ['PUT'])]
+    public function saveModernAutoCombo(string $characterId, string $strength, Request $request): JsonResponse
+    {
+        try {
+            $this->requireModeratorActor();
+            $character = $this->requireCharacter($characterId);
+            $autoComboStrength = ModernAutoComboStrength::tryFrom($strength) ?? throw new NotFoundHttpException('Unknown auto combo strength.');
+            $comboId = $this->decodePayload($request)['comboId'] ?? null;
+            if (null !== $comboId && !is_int($comboId)) {
+                throw new BadRequestHttpException('comboId must be an integer or null.');
+            }
+            $combo = null === $comboId ? null : $this->comboSequencesRepository->find($comboId);
+            if (null !== $comboId && !$combo instanceof ComboSequences) {
+                throw new NotFoundHttpException('Combo not found.');
+            }
+
+            $autoCombos = $this->modernGameDataService->setAutoCombo($character, $autoComboStrength, $combo);
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], Response::HTTP_FORBIDDEN);
+        } catch (BadRequestHttpException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_BAD_REQUEST);
+        } catch (NotFoundHttpException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
+        }
+
+        return new JsonResponse(['autoCombos' => $autoCombos], Response::HTTP_OK);
+    }
+
+    private function requireCharacter(string $characterId): Character
+    {
+        $character = $this->characterRepository->find($characterId);
+        if (!$character instanceof Character) {
+            throw new NotFoundHttpException('Character not found.');
+        }
+
+        return $character;
+    }
+
     private function requireModeratorActor(): User
     {
         $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
@@ -258,6 +349,7 @@ class FrameDataModerationController extends AbstractController
                 'whiffOnCrouch' => $metadata?->whiffsOnCrouch() ?? false,
                 'forcesStanding' => $metadata?->forcesStanding() ?? false,
             ],
+            'modern' => $this->modernGameDataService->toApi($move),
         ];
     }
 

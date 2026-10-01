@@ -46,7 +46,8 @@ class ComboRecommendationService
         $candidateRows = $this->comboSequencesRepository->findEssentialCandidateRowsByCharacterAndDifficulty(
             $characterId,
             $difficultyCap,
-            $knownComboIds
+            $knownComboIds,
+            true === $user->getScenarioPreference()?->getComboExecutionMode()->isModern(),
         );
 
         if ([] === $candidateRows) {

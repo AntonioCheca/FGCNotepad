@@ -24,6 +24,19 @@ class Move extends Component
     #[ORM\OneToOne(inversedBy: 'move', cascade: ['persist', 'remove'])]
     private ?FrameData $frameData = null;
 
+    #[ORM\Column(name: 'available_on_modern', type: Types::BOOLEAN, options: ['default' => true])]
+    private bool $availableOnModern = true;
+
+    #[ORM\Column(name: 'modern_max_notation', type: Types::TEXT, nullable: true)]
+    private ?string $modernMaxNotation = null;
+
+    #[ORM\Column(name: 'modern_simple_notation', type: Types::TEXT, nullable: true)]
+    private ?string $modernSimpleNotation = null;
+
+    /** Share of the move's damage dealt when performed with its simple Modern input; null means no penalty. */
+    #[ORM\Column(name: 'modern_simple_damage_percent', type: Types::SMALLINT, nullable: true)]
+    private ?int $modernSimpleDamagePercent = null;
+
     #[ORM\OneToOne(mappedBy: 'move', cascade: ['persist', 'remove'])]
     private ?ComboSequences $comboSequence = null;
 
@@ -58,6 +71,54 @@ class Move extends Component
     public function setFrameData(?FrameData $frameData): static
     {
         $this->frameData = $frameData;
+
+        return $this;
+    }
+
+    public function isAvailableOnModern(): bool
+    {
+        return $this->availableOnModern;
+    }
+
+    public function setAvailableOnModern(bool $availableOnModern): static
+    {
+        $this->availableOnModern = $availableOnModern;
+
+        return $this;
+    }
+
+    public function getModernMaxNotation(): ?string
+    {
+        return $this->modernMaxNotation;
+    }
+
+    public function setModernMaxNotation(?string $modernMaxNotation): static
+    {
+        $this->modernMaxNotation = $modernMaxNotation;
+
+        return $this;
+    }
+
+    public function getModernSimpleNotation(): ?string
+    {
+        return $this->modernSimpleNotation;
+    }
+
+    public function setModernSimpleNotation(?string $modernSimpleNotation): static
+    {
+        $this->modernSimpleNotation = $modernSimpleNotation;
+
+        return $this;
+    }
+
+    public function getModernSimpleDamagePercent(): ?int
+    {
+        return $this->modernSimpleDamagePercent;
+    }
+
+    public function setModernSimpleDamagePercent(?int $modernSimpleDamagePercent): static
+    {
+        $this->modernSimpleDamagePercent = $modernSimpleDamagePercent;
 
         return $this;
     }

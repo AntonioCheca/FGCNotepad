@@ -5,6 +5,8 @@ namespace App\Service;
 final class Sf6ComboDamageEstimatorService
 {
     private const COMBO_HITS_DEFAULT_EXTRA_STEP_PENALTY = 1;
+    /** Drive Rush mid-combo (cancelled or raw) scales every later hit once; further Drive Rushes do not stack. */
+    private const DRIVE_RUSH_MULTIPLIER = 0.85;
 
     /**
      * @param list<array{
@@ -18,7 +20,8 @@ final class Sf6ComboDamageEstimatorService
      *   scalingComboExtraPercent?:int|null,
      *   scalingMultiplierPercent?:int|null,
      *   damageParts?:list<int>,
-     *   connectionTypeName?:string|null
+     *   connectionTypeName?:string|null,
+     *   executionDamagePercent?:int|null
      * }> $moves
      * @param array{perfectParry?:bool,driveRushMidCombo?:bool,driveImpactState?:string,specialCancelIntoSa3?:bool,superArtLevels?:array<int,int>,starterHitState?:string|null} $options
      *
@@ -37,8 +40,10 @@ final class Sf6ComboDamageEstimatorService
         $superArtLevels = is_array($options['superArtLevels'] ?? null) ? $options['superArtLevels'] : [];
         $starterHitState = is_string($options['starterHitState'] ?? null) ? mb_strtolower(trim((string) $options['starterHitState'])) : null;
 
-        $isLightStarter = $this->isLightOr2MkStarter($moves[0]['notation']);
-        $baseScales = $this->buildBaseScales(count($moves) + 10, $isLightStarter, $this->readOptionalPercent($moves[0], 'scalingStartPercent'));
+        $starterIndex = $this->firstDamagingIndex($moves);
+        $starter = $moves[$starterIndex ?? 0];
+        $isLightStarter = $this->isLightOr2MkStarter($starter['notation']);
+        $baseScales = $this->buildBaseScales(count($moves) + 10, $isLightStarter, $this->readOptionalPercent($starter, 'scalingStartPercent'));
 
         $warnings = [];
         if ('none' !== $driveImpactState && !in_array($driveImpactState, ['none', 'blocked_wallsplat', 'hit_crumple'], true)) {
@@ -55,19 +60,34 @@ final class Sf6ComboDamageEstimatorService
 
         foreach ($moves as $index => $move) {
             if ($this->isDriveRushCancel($move['connectionTypeName'] ?? null)) {
-                $driveRushCancelMultiplier *= 0.85;
+                $driveRushCancelMultiplier = self::DRIVE_RUSH_MULTIPLIER;
+            }
+
+            if (!$this->dealsDamage($move)) {
+                if (null !== $starterIndex && $index > $starterIndex && $this->isDriveRush($move['notation'])) {
+                    $driveRushCancelMultiplier = self::DRIVE_RUSH_MULTIPLIER;
+                }
+                $stepDamages[] = 0;
+                continue;
             }
 
             $moveType = mb_strtolower(trim($move['moveType']));
             $isSuper = str_contains($moveType, 'super');
+            $executionPercent = $this->readOptionalPercent($move, 'executionDamagePercent');
+            $baseDamage = $this->applyExecutionPercent((int) $move['damage'], $executionPercent);
             $damageParts = $this->readDamageParts($move);
-            $damageValues = [] === $damageParts ? [(int) $move['damage']] : $damageParts;
+            $damageValues = array_map(
+                fn (int $damage): int => $this->applyExecutionPercent($damage, $executionPercent),
+                [] === $damageParts ? [(int) $move['damage']] : $damageParts,
+            );
             $scaledDamage = 0;
 
             foreach ($damageValues as $partIndex => $damageValue) {
                 $scale = (float) ($baseScales[$hitCursor + $partIndex] ?? 10);
 
-                if ('blocked_wallsplat' === $driveImpactState || 'hit_crumple' === $driveImpactState) {
+                if ('blocked_wallsplat' === $driveImpactState) {
+                    $scale = max(10.0, 80.0 - 10.0 * ($hitCursor + $partIndex));
+                } elseif ('hit_crumple' === $driveImpactState) {
                     $scale *= 0.8;
                 }
 
@@ -87,7 +107,7 @@ final class Sf6ComboDamageEstimatorService
                     $scale = floor($scale);
                 }
 
-                if ($index > 0 && $this->isThrowMove($move['moveType'], $move['notation'])) {
+                if ($index !== $starterIndex && $this->isThrowMove($move['moveType'], $move['notation'])) {
                     $scale *= 0.8;
                 }
 
@@ -97,7 +117,7 @@ final class Sf6ComboDamageEstimatorService
 
                 $immediatePercent = $this->readOptionalPercent($move, 'scalingImmediatePercent');
                 if (null !== $immediatePercent) {
-                    $scale = min($scale, (float) max(0, min(100, $immediatePercent)));
+                    $scale -= max(0, min(100, $immediatePercent));
                 }
 
                 $multiplierPercent = $this->readOptionalPercent($move, 'scalingMultiplierPercent');
@@ -118,7 +138,7 @@ final class Sf6ComboDamageEstimatorService
                     $scale = 10.0;
                 }
 
-                if (0 === $index && in_array($starterHitState, ['counter_hit', 'punish_counter'], true)) {
+                if ($index === $starterIndex && in_array($starterHitState, ['counter_hit', 'punish_counter'], true)) {
                     $damageValue = (int) floor($damageValue * 1.2);
                 }
 
@@ -127,7 +147,7 @@ final class Sf6ComboDamageEstimatorService
 
             $minimumPercent = $this->readOptionalPercent($move, 'scalingMinimumPercent');
             if (null !== $minimumPercent) {
-                $minimumDamage = (int) floor(((int) $move['damage']) * ($minimumPercent / 100.0));
+                $minimumDamage = (int) floor($baseDamage * ($minimumPercent / 100.0));
                 $scaledDamage = max($scaledDamage, $minimumDamage);
             }
 
@@ -137,7 +157,7 @@ final class Sf6ComboDamageEstimatorService
                     $warnings[] = sprintf('Super level could not be inferred for step %d; minimum floor was not applied.', $index + 1);
                 } else {
                     $minimumPercent = $level === 1 ? 30 : ($level === 2 ? 40 : 50);
-                    $minimumDamage = (int) floor(((int) $move['damage']) * ($minimumPercent / 100.0));
+                    $minimumDamage = (int) floor($baseDamage * ($minimumPercent / 100.0));
                     $scaledDamage = max($scaledDamage, $minimumDamage);
                 }
             }
@@ -156,7 +176,7 @@ final class Sf6ComboDamageEstimatorService
                 }
             }
 
-            if (0 === $index) {
+            if ($index === $starterIndex) {
                 $hitCursor += [] === $damageParts ? 1 : count($damageParts);
             } else {
                 $hitCursor += count($damageValues) + max(0, ($comboHits ?? 0) - self::COMBO_HITS_DEFAULT_EXTRA_STEP_PENALTY);
@@ -171,6 +191,28 @@ final class Sf6ComboDamageEstimatorService
             'stepDamages' => $stepDamages,
             'warnings' => array_values(array_unique($warnings)),
         ];
+    }
+
+    /**
+     * Moves without damage (Drive Rush, dashes, jumps, stances) are not hits: the first damaging move is the starter.
+     *
+     * @param list<array<string, mixed>> $moves
+     */
+    private function firstDamagingIndex(array $moves): ?int
+    {
+        foreach ($moves as $index => $move) {
+            if ($this->dealsDamage($move)) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $move */
+    private function dealsDamage(array $move): bool
+    {
+        return (int) $move['damage'] > 0 || array_sum($this->readDamageParts($move)) > 0;
     }
 
     /**
@@ -199,12 +241,25 @@ final class Sf6ComboDamageEstimatorService
     private function isLightOr2MkStarter(string $notation): bool
     {
         $normalized = mb_strtoupper(trim($notation));
+        if ($this->isJumpingAttack($normalized)) {
+            return false;
+        }
 
         if (str_ends_with($normalized, 'LP') || str_ends_with($normalized, 'LK')) {
             return true;
         }
 
         return str_ends_with($normalized, '2MK');
+    }
+
+    private function isJumpingAttack(string $normalizedNotation): bool
+    {
+        return 1 === preg_match('/^(J\.|[789])/', $normalizedNotation);
+    }
+
+    private function isDriveRush(string $notation): bool
+    {
+        return 'DR' === mb_strtoupper(trim($notation));
     }
 
     private function isThrowMove(string $moveType, string $notation): bool
@@ -251,6 +306,16 @@ final class Sf6ComboDamageEstimatorService
         }
 
         return null;
+    }
+
+    /** Modern simple inputs deal a share of the move's damage before combo scaling applies. */
+    private function applyExecutionPercent(int $damage, ?int $executionPercent): int
+    {
+        if (null === $executionPercent) {
+            return $damage;
+        }
+
+        return (int) floor($damage * max(0, min(100, $executionPercent)) / 100);
     }
 
     private function readOptionalPercent(array $move, string $key): ?int

@@ -3,12 +3,15 @@
 namespace App\Entity;
 
 use App\Repository\ComboMetricsRepository;
+use App\Util\Enum\ComboExecutionMode;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ComboMetricsRepository::class)]
 #[ORM\Table(name: "combo_metrics", schema: "sf6")]
 #[ORM\Index(name: "idx_combo_metrics_damage", columns: ["damage"])]
+#[ORM\Index(name: "idx_combo_metrics_modern_max_damage", columns: ["modern_max_damage"])]
+#[ORM\Index(name: "idx_combo_metrics_modern_simple_damage", columns: ["modern_simple_damage"])]
 #[ORM\Index(name: "idx_combo_metrics_difficulty_level", columns: ["difficulty_level"])]
 #[ORM\Index(name: "idx_combo_metrics_resource_adjusted_damage", columns: ["resource_adjusted_damage"])]
 #[ORM\Index(name: "idx_combo_metrics_drive_cost", columns: ["drive_cost"])]
@@ -32,6 +35,12 @@ class ComboMetrics
     #[ORM\Column]
     #[Groups(['combo:read'])]
     private ?int $damage = null;
+
+    #[ORM\Column(name: 'modern_max_damage', nullable: true)]
+    private ?int $modernMaxDamage = null;
+
+    #[ORM\Column(name: 'modern_simple_damage', nullable: true)]
+    private ?int $modernSimpleDamage = null;
 
     #[ORM\Column(name: 'difficulty_level', nullable: true)]
     #[Groups(['combo:read'])]
@@ -92,6 +101,39 @@ class ComboMetrics
         $this->damage = $damage;
 
         return $this;
+    }
+
+    public function getModernMaxDamage(): ?int
+    {
+        return $this->modernMaxDamage;
+    }
+
+    public function setModernMaxDamage(?int $modernMaxDamage): static
+    {
+        $this->modernMaxDamage = $modernMaxDamage;
+
+        return $this;
+    }
+
+    public function getModernSimpleDamage(): ?int
+    {
+        return $this->modernSimpleDamage;
+    }
+
+    public function setModernSimpleDamage(?int $modernSimpleDamage): static
+    {
+        $this->modernSimpleDamage = $modernSimpleDamage;
+
+        return $this;
+    }
+
+    public function getDamageFor(ComboExecutionMode $mode): ?int
+    {
+        return match ($mode) {
+            ComboExecutionMode::CLASSIC => $this->damage,
+            ComboExecutionMode::MODERN_MAX => $this->modernMaxDamage,
+            ComboExecutionMode::MODERN_SIMPLE => $this->modernSimpleDamage,
+        };
     }
 
     public function getDifficultyLevel(): ?int

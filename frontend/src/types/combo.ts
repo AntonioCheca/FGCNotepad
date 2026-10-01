@@ -1,3 +1,4 @@
+import type {ComboExecutionMode} from "@/src/types/comboExecution";
 import type {CompatibilityResultPayload} from "@/src/types/situation";
 
 export type ID = number;
@@ -49,6 +50,7 @@ export interface CreateFullComboPayload {
         minimumDriveCostNoBurnout?: number;
         superCost?: number;
         superGain?: number;
+        damageExecutionMode?: ComboExecutionMode;
     };
     requirements?: ComboRequirementsPayload;
     steps: Array<{
@@ -218,6 +220,7 @@ interface ComboMoveSummary {
 
 interface ComboStepSummary {
     child_sequence_name?: string | null;
+    child_sequence_notation?: string | null;
 }
 
 interface ComboSeasonSummary {
@@ -228,6 +231,8 @@ export interface ComboApiSummary {
     id: number;
     name?: string;
     moderationState?: string;
+    executionMode?: ComboExecutionMode;
+    executionNotation?: string | null;
     character?: { name?: string };
     moves?: ComboMoveSummary[];
     steps?: ComboStepSummary[];
@@ -268,11 +273,20 @@ export function deriveComboStarter(moves: string[]): string {
     return moveNotation(first);
 }
 
+/** Combo names embed Classic notation, so Modern views title the combo by its notation in that mode instead. */
+function comboDisplayTitle(combo: {name?: string; executionMode?: ComboExecutionMode; executionNotation?: string | null}): string {
+    if (combo.executionMode !== undefined && combo.executionMode !== "classic" && combo.executionNotation) {
+        return combo.executionNotation;
+    }
+
+    return combo.name ?? "-";
+}
+
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     const moveNamesFromLegacyField = combo.moves?.map((move) => move.name ?? "-") ?? [];
     const moveNamesFromSteps: string[] = [];
     for (const step of combo.steps ?? []) {
-        const name = step.child_sequence_name ?? "";
+        const name = step.child_sequence_notation ?? step.child_sequence_name ?? "";
         if (name.trim() !== "") {
             moveNamesFromSteps.push(name);
         }
@@ -282,7 +296,7 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
 
     return {
         id: combo.id,
-        title: combo.name ?? "-",
+        title: comboDisplayTitle(combo),
         moderationState: combo.moderationState ?? "approved",
         characterName: combo.character?.name ?? "-",
         moves,
@@ -349,6 +363,9 @@ export interface ComboStep {
 export interface ComboDetailApi {
     id: number;
     name?: string;
+    executionMode?: ComboExecutionMode;
+    executionNotation?: string | null;
+    modernLegal?: boolean;
     description?: string | null;
     character?: { id?: string | number; name?: string } | null;
     comboMetrics?: ComboMetricsApi | null;
@@ -362,6 +379,9 @@ export interface ComboDetailApi {
 export interface ComboDetailView {
     id: number;
     title: string;
+    displayTitle: string;
+    executionMode: ComboExecutionMode;
+    modernLegal: boolean;
     description: string;
     characterId: string | null;
     characterName: string;
@@ -384,6 +404,9 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
     return {
         id: combo.id,
         title: combo.name ?? "-",
+        displayTitle: comboDisplayTitle(combo),
+        executionMode: combo.executionMode ?? "classic",
+        modernLegal: combo.modernLegal ?? false,
         description: combo.description ?? "",
         characterId: combo.character?.id !== undefined ? String(combo.character.id) : null,
         characterName: combo.character?.name ?? "-",

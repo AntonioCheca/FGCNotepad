@@ -117,8 +117,8 @@ final class Sf6ComboDamageEstimatorServiceTest extends TestCase
             ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'scalingMinimumPercent' => 40],
         ]);
 
-        self::assertSame([500, 200, 800], $result['stepDamages']);
-        self::assertSame(1500, $result['estimatedDamage']);
+        self::assertSame([500, 800, 800], $result['stepDamages'], 'Immediate scaling takes 20% off the hit: 100% - 20%.');
+        self::assertSame(2100, $result['estimatedDamage']);
     }
 
     public function testEstimateScalesCompositeDamagePartsIndividually(): void
@@ -203,5 +203,97 @@ final class Sf6ComboDamageEstimatorServiceTest extends TestCase
 
         self::assertSame([800, 1380, 800], $result['stepDamages']);
         self::assertSame(2980, $result['estimatedDamage']);
+    }
+
+    public function testExecutionDamagePercentReducesTheMoveBeforeComboScaling(): void
+    {
+        $moves = [
+            ['damage' => 800, 'moveType' => 'normal', 'notation' => '5HP'],
+            ['damage' => 1000, 'moveType' => 'special', 'notation' => '236HP'],
+        ];
+        $simple = $moves;
+        $simple[1]['executionDamagePercent'] = 80;
+
+        self::assertSame([800, 1000], $this->service->estimate($moves)['stepDamages']);
+        self::assertSame([800, 800], $this->service->estimate($simple)['stepDamages']);
+    }
+
+    public function testMovesWithoutDamageAreNotHitsAndTheFirstDamagingMoveIsTheStarter(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 0, 'moveType' => 'drive', 'notation' => 'DR'],
+            ['damage' => 600, 'moveType' => 'normal', 'notation' => '5MP'],
+            ['damage' => 0, 'moveType' => 'drive', 'notation' => 'DR'],
+            ['damage' => 800, 'moveType' => 'normal', 'notation' => '5HP'],
+            ['damage' => 1000, 'moveType' => 'special', 'notation' => '236HP'],
+        ], ['starterHitState' => 'punish_counter']);
+
+        self::assertSame([0, 720, 0, 680, 680], $result['stepDamages'], 'Scaled as 5MP > 5HP > 236HP on Punish Counter; the mid-combo Drive Rush adds x0.85.');
+        self::assertSame(2080, $result['estimatedDamage']);
+    }
+
+    public function testALightAttackAfterADriveRushStillUsesTheLightStarterTable(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 0, 'moveType' => 'drive', 'notation' => 'DR'],
+            ['damage' => 300, 'moveType' => 'normal', 'notation' => '5LP'],
+            ['damage' => 600, 'moveType' => 'normal', 'notation' => '5MP'],
+        ]);
+
+        self::assertSame([0, 300, 480], $result['stepDamages']);
+    }
+
+    public function testASecondDriveRushCancelDoesNotStackTheDriveRushPenalty(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'connectionTypeName' => 'Initial Move'],
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'connectionTypeName' => 'DR Cancel'],
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'connectionTypeName' => 'DR Cancel'],
+        ]);
+
+        self::assertSame([1000, 850, 680], $result['stepDamages'], 'Both later hits take x0.85 once: 100% and 80%.');
+    }
+
+    public function testARawDriveRushMidComboAppliesTheDriveRushPenaltyOnce(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP'],
+            ['damage' => 0, 'moveType' => 'drive', 'notation' => 'DR'],
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP', 'connectionTypeName' => 'DR Cancel'],
+            ['damage' => 1000, 'moveType' => 'normal', 'notation' => '5MP'],
+        ]);
+
+        self::assertSame([1000, 0, 850, 680], $result['stepDamages']);
+    }
+
+    public function testJumpingLightAttacksAreNotLightStarters(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 300, 'moveType' => 'normal', 'notation' => '8LK'],
+            ['damage' => 600, 'moveType' => 'normal', 'notation' => '2MP'],
+            ['damage' => 1000, 'moveType' => 'special', 'notation' => '236MP'],
+        ]);
+
+        self::assertSame([300, 600, 800], $result['stepDamages']);
+    }
+
+    public function testImmediateScalingOnASuperIsAnExtraPenaltyAboveItsMinimum(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 800, 'moveType' => 'special', 'notation' => '22P'],
+            ['damage' => 4000, 'moveType' => 'super', 'notation' => '236236K', 'scalingMinimumPercent' => 50, 'scalingImmediatePercent' => 10],
+        ], ['superArtLevels' => [1 => 3]]);
+
+        self::assertSame([800, 3600], $result['stepDamages'], 'Second hit at 100% minus the 10% immediate penalty.');
+    }
+
+    public function testBlockedDriveImpactStunStartsTheScalingTableAt80Percent(): void
+    {
+        $result = $this->service->estimate([
+            ['damage' => 1300, 'moveType' => 'normal', 'notation' => '5HK > HP', 'damageParts' => [800, 500]],
+            ['damage' => 500, 'moveType' => 'normal', 'notation' => '4MP', 'connectionTypeName' => 'DR Cancel'],
+        ], ['driveImpactState' => 'blocked_wallsplat']);
+
+        self::assertSame([990, 255], $result['stepDamages'], '80% and 70% on the target combo, then 60% x0.85 after the Drive Rush Cancel.');
     }
 }

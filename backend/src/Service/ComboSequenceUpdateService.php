@@ -7,6 +7,7 @@ use App\Entity\ComboRequirement;
 use App\Entity\ComboSequences;
 use App\Entity\CharacterObjectState;
 use App\Entity\Step;
+use App\Service\Modern\ComboExecutionProfileService;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -21,6 +22,7 @@ final class ComboSequenceUpdateService
         private readonly ComboMetricsResourceRecalculationService $comboMetricsResourceRecalculationService,
         private readonly ComboSpacingResolver $comboSpacingResolver,
         private readonly ComboResourceLedgerService $comboResourceLedgerService,
+        private readonly ComboExecutionProfileService $comboExecutionProfileService,
     ) {
     }
 
@@ -71,6 +73,7 @@ final class ComboSequenceUpdateService
 
         $this->recalculateMetricsFromSteps($sequence);
         $this->comboResourceLedgerService->syncUsage($sequence);
+        $this->comboExecutionProfileService->apply($sequence, $this->comboExecutionProfileService->knownDamageMode($payload));
 
         return $sequence;
     }

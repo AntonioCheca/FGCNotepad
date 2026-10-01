@@ -12,6 +12,9 @@ final class NeutralStatsFilters
     public const DEFAULT_BUCKET_SIZE = '0.25';
     public const PATCH_ALL = 'all';
     public const PATCH_LATEST = 'latest';
+    public const CONTROL_SCHEME_CLASSIC = 'classic';
+    public const CONTROL_SCHEME_MODERN = 'modern';
+    public const CONTROL_SCHEMES = [self::CONTROL_SCHEME_CLASSIC, self::CONTROL_SCHEME_MODERN];
 
     /**
      * @param list<string> $regions
@@ -32,6 +35,7 @@ final class NeutralStatsFilters
         public readonly array $opponentResources = [],
         public readonly string $bucketSize = self::DEFAULT_BUCKET_SIZE,
         public readonly string $patch = self::PATCH_ALL,
+        public readonly string $controlScheme = self::CONTROL_SCHEME_CLASSIC,
     ) {
     }
 
@@ -51,6 +55,7 @@ final class NeutralStatsFilters
             'opponentResources' => null === $this->opponentId ? [] : $this->opponentResources,
             'bucketSize' => $this->bucketSize,
             'patch' => $this->patch,
+            'controlScheme' => $this->controlScheme,
         ];
     }
 

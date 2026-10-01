@@ -2,7 +2,7 @@ import React from "react";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppDivider} from "@/src/components/ui/AppDivider";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
-import type {NeutralStatsFilterState, NeutralStatsOptions} from "@/src/types/neutralStats";
+import type {NeutralControlScheme, NeutralStatsFilterState, NeutralStatsOptions} from "@/src/types/neutralStats";
 import {NO_RANK_MIN} from "../neutralStatsQuery";
 import {NeutralCharacterField} from "./NeutralCharacterField";
 import {NeutralMultiSelectField} from "./NeutralMultiSelectField";
@@ -13,6 +13,7 @@ import {NeutralRequestStatus} from "./NeutralRequestStatus";
 
 interface NeutralFiltersPanelProps {
     filters: NeutralStatsFilterState;
+    controlScheme: NeutralControlScheme;
     options: NeutralStatsOptions;
     loading: boolean;
     error: string | null;
@@ -27,9 +28,14 @@ const PATCH_OPTIONS = [
     {value: "latest", label: "Latest patch only"},
 ];
 
+const CONTROL_SCHEME_OPTIONS = [
+    {value: "classic", label: "Classic"},
+    {value: "modern", label: "Modern"},
+];
+
 const rowSx = {display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(4, minmax(0, 1fr))"}, gap: 1, minWidth: 0};
 
-export function NeutralFiltersPanel({filters, options, loading, error, onRetry, onChange, onCharacterChange, onOpponentChange}: NeutralFiltersPanelProps) {
+export function NeutralFiltersPanel({filters, controlScheme, options, loading, error, onRetry, onChange, onCharacterChange, onOpponentChange}: NeutralFiltersPanelProps) {
     const lifeOf = (characterId: string | null): number => options.characters.find((character) => character.id === characterId)?.life ?? 10000;
 
     return (
@@ -57,7 +63,7 @@ export function NeutralFiltersPanel({filters, options, loading, error, onRetry, 
                     onChange={(rankMax) => onChange({rankMax})}
                 />
             </AppBox>
-            <AppBox sx={rowSx}>
+            <AppBox sx={{...rowSx, gridTemplateColumns: {...rowSx.gridTemplateColumns, lg: "repeat(5, minmax(0, 1fr))"}}}>
                 <NeutralMultiSelectField
                     id="neutral-region"
                     label="Region"
@@ -87,6 +93,13 @@ export function NeutralFiltersPanel({filters, options, loading, error, onRetry, 
                     options={PATCH_OPTIONS}
                     value={filters.patch}
                     onChange={(patch) => onChange({patch: patch === "latest" ? "latest" : "all"})}
+                />
+                <NeutralSelectField
+                    id="neutral-controls"
+                    label="Controls"
+                    options={CONTROL_SCHEME_OPTIONS}
+                    value={controlScheme}
+                    onChange={(scheme) => onChange({controlScheme: scheme === "modern" ? "modern" : "classic"})}
                 />
             </AppBox>
             <AppDivider/>

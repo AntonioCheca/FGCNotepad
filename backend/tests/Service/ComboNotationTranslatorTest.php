@@ -84,6 +84,38 @@ class ComboNotationTranslatorTest extends TestCase
         }
     }
 
+    public function testClassicAndModernNotationsResolveToTheSameMoves(): void
+    {
+        $leafOptions = $this->leafOptions;
+        $leafOptions[1]['modernAliases'] = ['L'];
+        $leafOptions[2]['modernAliases'] = ['236M', '6SP'];
+
+        $classic = $this->translator->translate('5LP xx 236MK', $leafOptions, $this->connectionTypes);
+        $modern = $this->translator->translate('L xx 6SP', $leafOptions, $this->connectionTypes);
+        $mixed = $this->translator->translate('5LP xx 236M', $leafOptions, $this->connectionTypes);
+
+        self::assertSame([], $modern['errors']);
+        self::assertSame([102, 103], array_column($classic['steps'], 'child_sequence_id'));
+        self::assertSame([102, 103], array_column($modern['steps'], 'child_sequence_id'));
+        self::assertSame([102, 103], array_column($mixed['steps'], 'child_sequence_id'));
+        self::assertSame(array_column($classic['steps'], 'connection_type_name'), array_column($modern['steps'], 'connection_type_name'));
+    }
+
+    public function testAModernInputSharedByTwoMovesIsRejectedInsteadOfGuessed(): void
+    {
+        $leafOptions = $this->leafOptions;
+        $leafOptions[2]['modernAliases'] = ['6SP'];
+        $leafOptions[6]['modernAliases'] = ['6SP'];
+        $leafOptions[4]['modernAliases'] = ['2LP'];
+
+        $shared = $this->translator->translate('5LP xx 6SP', $leafOptions, $this->connectionTypes);
+        $collidingWithClassic = $this->translator->translate('2LP', $leafOptions, $this->connectionTypes);
+
+        self::assertSame(['ambiguous_move'], array_column($shared['errors'], 'code'));
+        self::assertSame([102], array_column($shared['steps'], 'child_sequence_id'));
+        self::assertSame(['ambiguous_move'], array_column($collidingWithClassic['errors'], 'code'), 'A Modern input spelled like another move\'s Classic notation is ambiguous too.');
+    }
+
     public function testTranslateReturnsPartialErrorsForUnknownMove(): void
     {
         $result = $this->translator->translateNotationToInternalSteps('2LP, 0LP, 236MK', $this->leafOptions, $this->connectionTypes);

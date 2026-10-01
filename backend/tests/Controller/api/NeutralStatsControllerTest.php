@@ -80,6 +80,22 @@ final class NeutralStatsControllerTest extends DatabaseTestCase
         self::assertSame(2.05, $card['maxRange'], 'The active supplemental range (1.6) wins over the FAT range, as in the frame data overlay.');
     }
 
+    public function testClassicAndModernSamplesAreNeverMixed(): void
+    {
+        $this->importNeutralBundle($this->neutralBundle([
+            $this->neutralReplay('CLASSIC', [['notation' => '5LP']], ['players' => [1 => ['control' => 'classic']]]),
+            $this->neutralReplay('UNREPORTED', [['notation' => '5HP']]),
+            $this->neutralReplay('MODERN', [['notation' => '2MK']], ['players' => [1 => ['control' => 'modern']]]),
+        ]));
+
+        self::assertSame(['5HP', '5LP'], $this->labels([]), 'Classic is the default, and an unreported scheme counts as Classic.');
+        self::assertSame(['2MK'], $this->labels(['scheme' => 'modern']));
+        self::assertSame('modern', $this->stats(['scheme' => 'modern'])['controlScheme']);
+
+        $this->client->request('GET', '/api/neutral-stats', ['character' => (string) $this->characters['ryu']->getId(), 'scheme' => 'dynamic']);
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testRankRegionRelativeMrAndPatchFilters(): void
     {
         $this->importNeutralBundle($this->neutralBundle([
