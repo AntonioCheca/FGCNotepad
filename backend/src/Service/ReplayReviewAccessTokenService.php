@@ -10,12 +10,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 final class ReplayReviewAccessTokenService
 {
     public function __construct(
         private readonly ReplayReviewAccessTokenRepository $tokenRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly RateLimiterFactoryInterface $sharedReviewPasswordLimiter,
     ) {
     }
 
@@ -89,8 +92,8 @@ final class ReplayReviewAccessTokenService
         }
 
         $passwordHash = $accessToken->getPasswordHash();
-        if (null !== $passwordHash && !password_verify((string) $password, $passwordHash)) {
-            throw new AccessDeniedHttpException('Shared review password is required.');
+        if (null !== $passwordHash) {
+            $this->assertPasswordMatches($accessToken, $passwordHash, $password);
         }
 
         $accessToken->incrementUsedCount();
@@ -123,6 +126,21 @@ final class ReplayReviewAccessTokenService
         }
 
         return $payload;
+    }
+
+    private function assertPasswordMatches(ReplayReviewAccessToken $accessToken, string $passwordHash, ?string $password): void
+    {
+        $limiter = $this->sharedReviewPasswordLimiter->create(sprintf('share-link-%s', (string) $accessToken->getId()));
+        if (0 === $limiter->consume(0)->getRemainingTokens()) {
+            throw new TooManyRequestsHttpException(null, 'Too many password attempts for this shared review link. Try again later.');
+        }
+
+        if (null !== $password && password_verify($password, $passwordHash)) {
+            return;
+        }
+
+        $limiter->consume();
+        throw new AccessDeniedHttpException('Shared review password is required.');
     }
 
     private function hashToken(string $plainToken): string

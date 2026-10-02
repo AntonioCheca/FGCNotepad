@@ -33,7 +33,7 @@ function frameAdvantageColor(value: number): string {
         return "fgc.accent.success";
     }
     if (value < 0) {
-        return "fgc.feedback.error";
+        return "fgc.feedback.errorText";
     }
 
     return "fgc.feedback.info";

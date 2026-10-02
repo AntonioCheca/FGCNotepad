@@ -7,6 +7,7 @@ import {AppTypography} from "@/src/components/ui/AppTypography";
 import NavigationItem from "./NavigationItem";
 import {NavigationSection as NavigationSectionType} from "@/src/types/navigation";
 import {usePathname} from "next/navigation";
+import type {Theme} from "@/src/components/ui/AppThemeUtils";
 
 interface NavigationSectionProps {
     section: NavigationSectionType;
@@ -25,7 +26,7 @@ export default function NavigationSection({section, showDivider = false, collaps
                     variant="overline"
                     sx={{
                         fontWeight: 700,
-                        color: 'fgc.text.muted',
+                        color: (theme: Theme) => theme.fgc.text.muted,
                         fontSize: '0.66rem',
                         letterSpacing: 1.3,
                     }}
@@ -47,7 +48,7 @@ export default function NavigationSection({section, showDivider = false, collaps
             </AppList>
 
             {showDivider && (
-                <AppDivider sx={{mx: 2.1, mt: 1.2, borderColor: 'fgc.border.subtle'}}/>
+                <AppDivider sx={{mx: 2.1, mt: 1.2, borderColor: (theme: Theme) => theme.fgc.border.subtle}}/>
             )}
         </AppBox>
     );

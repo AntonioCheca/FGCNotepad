@@ -232,7 +232,7 @@ function TreeNodeEditor({node, link, depth, rootIndex, characterId, characters, 
 
 function LinkTimingEditor({link, onChange}: {link: OkiLinkDraft; onChange: (updater: (link: OkiLinkDraft) => OkiLinkDraft) => void}) {
     return (
-        <AppPaper variant="outlined" sx={{px: 0.85, py: 0.65, borderRadius: 1.5, backgroundColor: "fgc.surface.base", display: "grid", gridTemplateColumns: {xs: "1fr", sm: "170px 90px 90px"}, gap: 0.75, width: {xs: "100%", sm: "fit-content"}, maxWidth: "100%"}}>
+        <AppPaper variant="outlined" sx={{px: 0.85, py: 0.65, borderRadius: 1.5, backgroundColor: "fgc.surface.base", display: "grid", gridTemplateColumns: {xs: "minmax(0, 1fr) repeat(2, 76px)", sm: "170px 90px 90px"}, gap: 0.75, width: {xs: "100%", sm: "fit-content"}, maxWidth: "100%"}}>
             <SimpleSelect label="Step" value={link.stepType} options={OKI_STEP_TYPES} onChange={(value) => onChange((current) => ({...current, stepType: value as OkiStepType}))} />
             <AppTextField size="small" label="Min" value={link.minFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange((current) => ({...current, minFrames: event.target.value}))} />
             <AppTextField size="small" label="Max" value={link.maxFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange((current) => ({...current, maxFrames: event.target.value}))} />

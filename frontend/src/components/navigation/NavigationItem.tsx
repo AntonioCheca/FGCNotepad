@@ -5,6 +5,7 @@ import {AppListItemButton} from "@/src/components/ui/AppListItemButton";
 import {AppListItemIcon} from "@/src/components/ui/AppListItemIcon";
 import {AppListItemText} from "@/src/components/ui/AppListItemText";
 import {AppTooltip} from "@/src/components/ui/AppTooltip";
+import type {Theme} from "@/src/components/ui/AppThemeUtils";
 
 interface NavigationItemProps {
     item: NavigationItemType;
@@ -22,15 +23,15 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                 borderRadius: 2,
                 mx: 1,
                 my: 0.25,
-                backgroundColor: isActive ? 'fgc.surface.selected' : 'transparent',
+                backgroundColor: isActive ? ((theme: Theme) => theme.fgc.surface.selected) : 'transparent',
                 border: '1px solid',
-                borderColor: isActive ? 'fgc.accent.selected' : 'transparent',
+                borderColor: isActive ? ((theme: Theme) => theme.fgc.accent.selected) : 'transparent',
                 boxShadow: isActive ? 'inset 3px 0 0 0' : 'none',
-                color: isActive ? 'fgc.icon.primary' : 'text.primary',
+                color: isActive ? ((theme: Theme) => theme.fgc.icon.primary) : 'text.primary',
                 transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
                 '&:hover': {
-                    backgroundColor: 'fgc.surface.subtle',
-                    borderColor: isActive ? 'fgc.accent.selected' : 'fgc.border.subtle',
+                    backgroundColor: (theme: Theme) => theme.fgc.surface.subtle,
+                    borderColor: isActive ? ((theme: Theme) => theme.fgc.accent.selected) : ((theme: Theme) => theme.fgc.border.subtle),
                 },
                 justifyContent: {xs: 'flex-start', md: collapsed ? 'center' : 'flex-start'},
             }}
@@ -40,7 +41,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                 sx={{
                     minWidth: 0,
                     mr: {xs: 1.5, md: collapsed ? 0 : 1.5},
-                    color: isActive ? 'fgc.accent.selected' : 'fgc.icon.muted',
+                    color: isActive ? ((theme: Theme) => theme.fgc.accent.selected) : ((theme: Theme) => theme.fgc.icon.muted),
                     display: 'flex',
                     justifyContent: 'center',
                 }}

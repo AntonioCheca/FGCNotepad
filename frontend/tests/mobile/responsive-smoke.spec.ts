@@ -2,6 +2,7 @@ import {AxeBuilder} from "@axe-core/playwright";
 import {expect, test} from "@playwright/test";
 
 const routes = [
+    "/",
     "/auth/login",
     "/auth/register",
     "/combos",
@@ -59,16 +60,22 @@ test.describe("responsive smoke", () => {
         });
     }
 
-    test("mobile navigation starts closed and can be opened", async ({page}, testInfo) => {
-        test.skip(Number(testInfo.project.name) >= 768, "Persistent navigation is expected at tablet and desktop widths.");
+    test("phones use the bottom navigation and its More sheet", async ({page}, testInfo) => {
+        test.skip(Number(testInfo.project.name) >= 900, "Desktop widths use the sidebar.");
 
         await page.goto("/about/aboutUs");
 
-        await expect(page.getByRole("navigation", {name: "Primary navigation"})).not.toBeInViewport();
-        await page.getByRole("button", {name: "Open navigation"}).click();
-        await expect(page.getByRole("navigation", {name: "Primary navigation"})).toBeInViewport();
-        await page.getByRole("button", {name: "Close navigation"}).click();
-        await expect(page.getByRole("navigation", {name: "Primary navigation"})).not.toBeInViewport();
+        const navigation = page.getByRole("navigation", {name: "Primary navigation"});
+        await expect(navigation).toBeInViewport();
+        await expect(navigation.getByRole("link", {name: "Combos"})).toBeVisible();
+
+        await navigation.getByRole("button", {name: "More"}).click();
+        const sheet = page.getByRole("dialog");
+        await expect(sheet.getByRole("link", {name: "About Us"})).toBeVisible();
+        await expect(sheet.getByRole("link", {name: "Search Combos"})).toHaveCount(0);
+
+        await page.keyboard.press("Escape");
+        await expect(sheet).toBeHidden();
     });
 
     test("login page has no serious accessibility violations", async ({page}) => {

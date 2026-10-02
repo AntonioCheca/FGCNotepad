@@ -1,7 +1,6 @@
 import React from "react";
 import {useTurnsGuide} from "@/hooks/useTurnsGuide";
 import {AppBox} from "@/src/components/ui/AppBox";
-import {AppChip} from "@/src/components/ui/AppChip";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppFormControl} from "@/src/components/ui/AppFormControl";
@@ -20,6 +19,7 @@ import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import type {TurnsGuideHeuristic, TurnsGuideMove, TurnsGuideMoveSection} from "@/src/types/guide";
+import type {Theme} from "@/src/components/ui/AppThemeUtils";
 
 export default function TurnsGuidePage() {
     const {guide, loading, error} = useTurnsGuide();
@@ -90,9 +90,13 @@ function MoveSection({section, characterFilter, emptyText, advantageLabel = "On 
 function MoveList({moves, advantageLabel}: {moves: TurnsGuideMove[]; advantageLabel: string}) {
     return (
         <>
-            <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 0.75}}>
-                {moves.map((move) => <MoveCard key={move.id} move={move} advantageLabel={advantageLabel} />)}
-            </AppBox>
+            <AppPaper variant="outlined" sx={{display: {xs: "grid", md: "none"}, borderRadius: 2, backgroundColor: "fgc.surface.sunken", overflow: "hidden"}}>
+                <AppBox sx={{display: "flex", justifyContent: "space-between", px: 1.25, py: 0.75, borderBottom: "1px solid", borderColor: "divider"}}>
+                    <AppTypography variant="caption" color="text.secondary">Move</AppTypography>
+                    <AppTypography variant="caption" color="text.secondary">{advantageLabel}</AppTypography>
+                </AppBox>
+                {moves.map((move) => <MoveRow key={move.id} move={move} />)}
+            </AppPaper>
             <AppTableContainer sx={{display: {xs: "none", md: "block"}, borderRadius: 2, border: "1px solid", borderColor: "divider", backgroundColor: "fgc.surface.sunken"}}>
                 <AppTable size="small">
                     <AppTableHead>
@@ -117,16 +121,15 @@ function MoveList({moves, advantageLabel}: {moves: TurnsGuideMove[]; advantageLa
     );
 }
 
-function MoveCard({move, advantageLabel}: {move: TurnsGuideMove; advantageLabel: string}) {
+function MoveRow({move}: {move: TurnsGuideMove}) {
     return (
-        <AppPaper variant="outlined" sx={{p: 1, borderRadius: 2, backgroundColor: "fgc.surface.sunken", display: "grid", gap: 0.4}}>
-            <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center"}}>
-                <AppTypography variant="subtitle2" sx={{fontWeight: 800}}>{move.character.name}</AppTypography>
-                <AppChip size="small" color="success" variant="outlined" label={`+${move.advantageOnBlock}`} />
-            </AppBox>
-            <AppTypography variant="body2">{move.numpadNotation}</AppTypography>
-            <AppTypography variant="caption" color="text.secondary">{advantageLabel}</AppTypography>
-        </AppPaper>
+        <AppBox sx={{display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", gap: 1, px: 1.25, py: 0.75, "& + &": {borderTop: "1px solid", borderColor: "divider"}}}>
+            <AppTypography variant="body2" sx={{minWidth: 0}}>
+                <AppBox component="span" sx={{color: "text.secondary"}}>{move.character.name}</AppBox>{" "}
+                <AppBox component="span" sx={{fontWeight: 800}}>{move.numpadNotation}</AppBox>
+            </AppTypography>
+            <AppTypography variant="body2" sx={{fontWeight: 800, color: (theme: Theme) => theme.fgc.feedback.success, fontVariantNumeric: "tabular-nums"}}>+{move.advantageOnBlock}</AppTypography>
+        </AppBox>
     );
 }
 

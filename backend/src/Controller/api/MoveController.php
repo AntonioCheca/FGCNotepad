@@ -5,13 +5,16 @@ namespace App\Controller\api;
 use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
+use App\Service\EndpointAuthorizationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 
@@ -23,6 +26,8 @@ class MoveController extends AbstractController
         private SerializerInterface    $serializer,
         private ValidatorInterface     $validator,
         private MoveRepository         $moveRepository,
+        private EndpointAuthorizationService $authorizationService,
+        private Security $security,
     )
     {
     }
@@ -64,13 +69,20 @@ class MoveController extends AbstractController
     #[Route('', methods: ['POST'], name: 'create')]
     public function create(Request $request, CharacterRepository $characterRepository): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $actor = $this->authorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+        $this->authorizationService->assertCanModerateContent($actor);
 
-        if (!isset($data['characterId']) || !isset($data['numpadNotation'])) {
-            return new JsonResponse(sprintf('Body for request incomplete, expected characterId and numpadNotation and not found, found %s instead', $this->serializer->serialize($data, 'json')), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data) || !isset($data['characterId'], $data['numpadNotation']) || !is_string($data['numpadNotation'])) {
+            return new JsonResponse(['error' => 'characterId and numpadNotation are required.'], JsonResponse::HTTP_BAD_REQUEST);
         }
-        $charactersInBackend = $characterRepository->findBy(['id' => $data['characterId']]);
-        $character = $charactersInBackend[0];
+
+        $characterId = $data['characterId'];
+        $character = is_string($characterId) && Uuid::isValid($characterId) ? $characterRepository->find($characterId) : null;
+        if (null === $character) {
+            return new JsonResponse(['error' => 'Character not found.'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
         $move = new Move();
         $move->setNumpadNotation($data['numpadNotation']);
         $move->setCharacter($character);

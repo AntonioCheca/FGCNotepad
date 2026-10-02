@@ -97,7 +97,7 @@ export function ExpectedValueRangeChart({expectedValue, histogram}: ExpectedValu
                 <div style={{fontSize: 14, fontWeight: 700, color: theme.fgc.text.secondary}}>Expected Value</div>
             </div>
             <div style={{display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8}}>
-                <div style={{fontSize: 30, fontWeight: 700, color: ev >= 0 ? theme.fgc.feedback.success : theme.fgc.feedback.error}}>
+                <div style={{fontSize: 30, fontWeight: 700, color: ev >= 0 ? theme.fgc.feedback.success : theme.fgc.feedback.errorText}}>
                     {ev >= 0 ? "+" : ""}{ev.toFixed(2)}
                 </div>
             </div>

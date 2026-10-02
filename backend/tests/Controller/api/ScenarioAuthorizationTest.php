@@ -155,6 +155,21 @@ class ScenarioAuthorizationTest extends DatabaseTestCase
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testPendingScenarioCannotBeSolvedByOtherUsers(): void
+    {
+        $owner = $this->createUser('owner_user', [UserRole::USER]);
+        $scenario = $this->createScenario($owner);
+        $scenario->setModerationState('pending_review');
+        $this->entityManager->flush();
+        $intruder = $this->createUser('intruder_user', [UserRole::USER]);
+        $headers = $this->loginHeaders($intruder->getUsername(), 'testpassword');
+
+        foreach (['solve-layers', 'solve-linked-ev'] as $action) {
+            $this->client->request('POST', sprintf('/api/scenarios/%s/%s', $scenario->getPublicId()->toRfc4122(), $action), [], [], $headers, json_encode([]));
+            self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode(), $action);
+        }
+    }
+
     public function testModeratorCanTransitionScenarioHiddenBackToApproved(): void
     {
         $owner = $this->createUser('owner_user', [UserRole::USER]);

@@ -13,6 +13,10 @@ parameters:
         -
             identifier: property.onlyWritten
         -
+            # KernelBrowser responses change between requests, but PHPStan treats repeated getStatusCode() calls as the same value.
+            identifier: staticMethod.alreadyNarrowedType
+            path: tests/*
+        -
             identifier: property.onlyRead
             path: src/Entity/NeutralObservation*.php
         -

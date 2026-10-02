@@ -44,6 +44,29 @@ class MixedStrategyGameSolverTest extends TestCase
         self::assertNotEmpty($result['equilibria']);
     }
 
+    public function testRejectsMatrixAboveStrategyLimit(): void
+    {
+        $payoffMatrix = [];
+        for ($i = 0; $i <= MixedStrategyGameSolver::MAX_STRATEGIES_PER_PLAYER; $i++) {
+            $payoffMatrix["A{$i}"] = ['B1' => 1];
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new MixedStrategyGameSolver())->solveMixedStrategyGame($payoffMatrix);
+    }
+
+    public function testRejectsNonNumericPayoffs(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new MixedStrategyGameSolver())->solveMixedStrategyGame(['A1' => ['B1' => 'x']]);
+    }
+
+    public function testRejectsRowsWithDifferentColumns(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new MixedStrategyGameSolver())->solveMixedStrategyGame(['A1' => ['B1' => 1], 'A2' => ['B2' => 1]]);
+    }
+
     public function testDerivedMetricsAreCalculated(): void
     {
         $solver = new MixedStrategyGameSolver();

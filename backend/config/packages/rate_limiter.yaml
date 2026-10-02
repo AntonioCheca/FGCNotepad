@@ -1,0 +1,12 @@
+framework:
+    rate_limiter:
+        registration:
+            policy: sliding_window
+            lock_factory: null
+            limit: 10
+            interval: '1 hour'
+        shared_review_password:
+            policy: sliding_window
+            lock_factory: null
+            limit: 20
+            interval: '15 minutes'

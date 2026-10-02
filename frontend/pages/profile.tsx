@@ -4,10 +4,9 @@ import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
-import {AppTooltip} from "@/src/components/ui/AppTooltip";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppCheckbox} from "@/src/components/ui/AppCheckbox";
-import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
+import {HelpTip} from "@/src/components/ui/tactical/HelpTip";
 import {useExecutionProfile} from "@/hooks/useExecutionProfile";
 import {ComboKnowledgeItem, ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 import AuthContext from "@/services/AuthContext";
@@ -56,15 +55,15 @@ function DefaultScenarioModeSection({executionSelection, savingPreference, onSel
             <AppBox sx={{display: "flex", gap: {xs: 1, md: 2}, alignItems: {xs: "flex-start", md: "center"}, flexDirection: {xs: "column", sm: "row"}, flexWrap: "wrap"}}>
                 <span style={{display: "inline-flex", alignItems: "center", gap: 6}}>
                     <AppTypography variant="body2">My Current Knowledge</AppTypography>
-                    <AppTooltip title="Use only combos you marked as known in Combo Knowledge."><span style={{display: "inline-flex", cursor: "help"}}><HelpOutlineOutlinedIcon fontSize="small"/></span></AppTooltip>
+                    <HelpTip text="Use only combos you marked as known in Combo Knowledge."/>
                 </span>
                 <span style={{display: "inline-flex", alignItems: "center", gap: 6}}>
                     <AppTypography variant="body2">Standard Assumption</AppTypography>
-                    <AppTooltip title="Use a practical default combo pool for quick browsing and guest mode."><span style={{display: "inline-flex", cursor: "help"}}><HelpOutlineOutlinedIcon fontSize="small"/></span></AppTooltip>
+                    <HelpTip text="Use a practical default combo pool for quick browsing and guest mode."/>
                 </span>
                 <span style={{display: "inline-flex", alignItems: "center", gap: 6}}>
                     <AppTypography variant="body2">Difficulty Cap</AppTypography>
-                    <AppTooltip title="Include all combos with difficulty less than or equal to your selected cap."><span style={{display: "inline-flex", cursor: "help"}}><HelpOutlineOutlinedIcon fontSize="small"/></span></AppTooltip>
+                    <HelpTip text="Include all combos with difficulty less than or equal to your selected cap."/>
                 </span>
             </AppBox>
 

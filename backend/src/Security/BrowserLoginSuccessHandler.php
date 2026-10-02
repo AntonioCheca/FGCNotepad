@@ -8,7 +8,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationSuccessHandlerInterface;
 
 class BrowserLoginSuccessHandler implements AuthenticationSuccessHandlerInterface
@@ -17,7 +16,6 @@ class BrowserLoginSuccessHandler implements AuthenticationSuccessHandlerInterfac
 
     public function __construct(
         private readonly AuthenticatedUserPayloadFactory $userPayloadFactory,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager,
     ) {
     }
 
@@ -32,9 +30,9 @@ class BrowserLoginSuccessHandler implements AuthenticationSuccessHandlerInterfac
             $request->getSession()->migrate(true);
         }
 
+        // csrfToken is attached by LoginCsrfTokenResponseListener once session handling has finished.
         return new JsonResponse([
             'user' => $this->userPayloadFactory->create($user),
-            'csrfToken' => $this->csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
         ], Response::HTTP_OK);
     }
 }

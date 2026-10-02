@@ -9,6 +9,7 @@ interface MatrixGridScrollFrameProps {
 export function MatrixGridScrollFrame({borderColor, backgroundColor, children}: MatrixGridScrollFrameProps) {
     return (
         <div
+            data-intentional-scroll="matrix-grid"
             style={{
                 overflow: "auto",
                 maxWidth: "100%",

@@ -1,4 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
+import {canAccessRoute} from "@/src/utils/routeAccess";
 
 const PUBLIC_ROUTE_PREFIXES = ["/auth/login", "/auth/register"];
 
@@ -20,6 +21,17 @@ function loginRedirect(request: NextRequest): NextResponse {
     loginUrl.searchParams.set("redirect", redirectPath);
 
     return NextResponse.redirect(loginUrl);
+}
+
+async function readRoles(response: Response): Promise<string[]> {
+    try {
+        const payload: unknown = await response.json();
+        const roles = (payload as {user?: {roles?: unknown}} | null)?.user?.roles;
+
+        return Array.isArray(roles) ? roles.filter((role): role is string => typeof role === "string") : [];
+    } catch {
+        return [];
+    }
 }
 
 function allowsPlaywrightAuthBypass(request: NextRequest): boolean {
@@ -46,6 +58,11 @@ export async function proxy(request: NextRequest) {
         });
 
         if (response.ok) {
+            const roles = await readRoles(response);
+            if (!canAccessRoute(request.nextUrl.pathname, roles)) {
+                return NextResponse.redirect(new URL("/", request.url));
+            }
+
             return NextResponse.next();
         }
     } catch {

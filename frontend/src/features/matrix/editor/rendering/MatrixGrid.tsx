@@ -16,6 +16,12 @@ import {MatrixGridStructureControls} from "./matrix-grid/MatrixGridStructureCont
 import {MatrixGridTable} from "./matrix-grid/MatrixGridTable";
 import type {MatrixGridProps} from "./matrix-grid/matrixGridTypes";
 import {useMatrixGridRequirements} from "./matrix-grid/useMatrixGridRequirements";
+import {MatrixRowFocus} from "./matrix-grid/MatrixRowFocus";
+import {buildRowFocusRows, pickDefaultRowId} from "./matrix-grid/rowFocusModel";
+import {createRowSummaryKey} from "../../model/keys";
+import styles from "./matrixEditorRendering.module.css";
+import {PhoneLayoutSwitch, type PhoneMatrixLayout} from "./matrix-grid/PhoneLayoutSwitch";
+
 
 export function MatrixGrid({
     state,
@@ -97,67 +103,94 @@ export function MatrixGrid({
         rowId: selectedRowHeaderId,
     };
 
+    const [phoneLayout, setPhoneLayout] = React.useState<PhoneMatrixLayout>(permissions.canEditBodyValues ? "grid" : "rows");
+    const focusRows = React.useMemo(() => buildRowFocusRows({
+        grid: state.grid,
+        displayedBodyValues,
+        displayLabelsByKey,
+        unavailableRowIds,
+        unavailableColumnIds,
+        formatFrequency: summaryValueFormatter,
+    }), [state.grid, displayedBodyValues, displayLabelsByKey, unavailableRowIds, unavailableColumnIds, summaryValueFormatter]);
+    const defaultFocusRowId = React.useMemo(() => pickDefaultRowId(
+        focusRows,
+        Object.fromEntries(state.grid.rows.map((row) => [row.id, state.grid.rowSummaryCells[createRowSummaryKey(row.id)]?.value ?? null])),
+    ), [focusRows, state.grid.rows, state.grid.rowSummaryCells]);
+
     return (
         <>
-            <MatrixGridScrollFrame borderColor={theme.fgc.border.default} backgroundColor={theme.fgc.surface.base}>
-                <MatrixGridTable
-                    state={state}
-                    attackerCharacterName={attackerCharacterName}
-                    defenderCharacterName={defenderCharacterName}
-                    expectedValue={expectedValue}
-                    activeTarget={activeTarget}
-                    activeKey={activeKey}
-                    activeRowId={activeRowId}
-                    activeColumnId={activeColumnId}
-                    editingKey={editingKey}
-                    draft={draft}
-                    draftHasFormatError={draftHasFormatError}
-                    validationByKey={validationByKey}
-                    displayedBodyValues={displayedBodyValues}
-                    displayLabelsByKey={displayLabelsByKey}
-                    moveLabelById={moveLabelById}
-                    unavailableRowIds={unavailableRowIds}
-                    unavailableColumnIds={unavailableColumnIds}
-                    unavailableReasonByRowId={unavailableReasonByRowId}
-                    unavailableReasonByColumnId={unavailableReasonByColumnId}
-                    permissions={permissions}
-                    onRowLabelChange={onRowLabelChange}
-                    onColumnLabelChange={onColumnLabelChange}
-                    onRowLayerChange={onRowLayerChange}
-                    onColumnLayerChange={onColumnLayerChange}
-                    onSelectRowHeader={onSelectRowHeader}
-                    onSelectColumnHeader={onSelectColumnHeader}
-                    onSelectBodyCell={onSelectBodyCell}
-                    onSelectRowSummary={onSelectRowSummary}
-                    onOpenReferenceLink={onOpenReferenceLink}
-                    onOpenDynamicCombo={onOpenDynamicCombo}
-                    onSelectColumnSummary={onSelectColumnSummary}
-                    onSelectExpectedValue={onSelectExpectedValue}
-                    onStartEdit={onStartEdit}
-                    onStartOverwriteEdit={onStartOverwriteEdit}
-                    onDraftChange={onDraftChange}
-                    onCommitEdit={onCommitEdit}
-                    onCancelEdit={onCancelEdit}
-                    viewOptions={viewOptions}
-                    summaryValueFormatter={summaryValueFormatter}
-                    heatmapToneByCellKey={heatmapToneByCellKey}
-                    profile={profile}
-                    onOpenRowRequirements={openRowRequirements}
-                    onOpenColumnRequirements={openColumnRequirements}
-                />
-                <MatrixGridStructureControls
-                    permissions={permissions}
-                    selection={structureSelection}
-                    cellHeight={profile.cellHeight}
-                    labelFontSize={profile.labelFontSize}
-                    borderColor={theme.fgc.border.subtle}
-                    backgroundColor={theme.fgc.surface.subtle}
-                    onAddRow={onAddRow}
-                    onAddColumn={onAddColumn}
-                    onRemoveRow={onRemoveRow}
-                    onRemoveColumn={onRemoveColumn}
-                />
-            </MatrixGridScrollFrame>
+            <div className={styles.phoneOnly}>
+                <PhoneLayoutSwitch value={phoneLayout} onChange={setPhoneLayout}/>
+                {phoneLayout === "rows" ? (
+                    <MatrixRowFocus
+                        rows={focusRows}
+                        defaultRowId={defaultFocusRowId}
+                        rowAxisLabel={attackerCharacterName ?? "P1"}
+                        columnAxisLabel={defenderCharacterName ?? "P2"}
+                    />
+                ) : null}
+            </div>
+            <div className={phoneLayout === "rows" ? styles.hiddenOnPhone : undefined}>
+                <MatrixGridScrollFrame borderColor={theme.fgc.border.default} backgroundColor={theme.fgc.surface.base}>
+                    <MatrixGridTable
+                        state={state}
+                        attackerCharacterName={attackerCharacterName}
+                        defenderCharacterName={defenderCharacterName}
+                        expectedValue={expectedValue}
+                        activeTarget={activeTarget}
+                        activeKey={activeKey}
+                        activeRowId={activeRowId}
+                        activeColumnId={activeColumnId}
+                        editingKey={editingKey}
+                        draft={draft}
+                        draftHasFormatError={draftHasFormatError}
+                        validationByKey={validationByKey}
+                        displayedBodyValues={displayedBodyValues}
+                        displayLabelsByKey={displayLabelsByKey}
+                        moveLabelById={moveLabelById}
+                        unavailableRowIds={unavailableRowIds}
+                        unavailableColumnIds={unavailableColumnIds}
+                        unavailableReasonByRowId={unavailableReasonByRowId}
+                        unavailableReasonByColumnId={unavailableReasonByColumnId}
+                        permissions={permissions}
+                        onRowLabelChange={onRowLabelChange}
+                        onColumnLabelChange={onColumnLabelChange}
+                        onRowLayerChange={onRowLayerChange}
+                        onColumnLayerChange={onColumnLayerChange}
+                        onSelectRowHeader={onSelectRowHeader}
+                        onSelectColumnHeader={onSelectColumnHeader}
+                        onSelectBodyCell={onSelectBodyCell}
+                        onSelectRowSummary={onSelectRowSummary}
+                        onOpenReferenceLink={onOpenReferenceLink}
+                        onOpenDynamicCombo={onOpenDynamicCombo}
+                        onSelectColumnSummary={onSelectColumnSummary}
+                        onSelectExpectedValue={onSelectExpectedValue}
+                        onStartEdit={onStartEdit}
+                        onStartOverwriteEdit={onStartOverwriteEdit}
+                        onDraftChange={onDraftChange}
+                        onCommitEdit={onCommitEdit}
+                        onCancelEdit={onCancelEdit}
+                        viewOptions={viewOptions}
+                        summaryValueFormatter={summaryValueFormatter}
+                        heatmapToneByCellKey={heatmapToneByCellKey}
+                        profile={profile}
+                        onOpenRowRequirements={openRowRequirements}
+                        onOpenColumnRequirements={openColumnRequirements}
+                    />
+                    <MatrixGridStructureControls
+                        permissions={permissions}
+                        selection={structureSelection}
+                        cellHeight={profile.cellHeight}
+                        labelFontSize={profile.labelFontSize}
+                        borderColor={theme.fgc.border.subtle}
+                        backgroundColor={theme.fgc.surface.subtle}
+                        onAddRow={onAddRow}
+                        onAddColumn={onAddColumn}
+                        onRemoveRow={onRemoveRow}
+                        onRemoveColumn={onRemoveColumn}
+                    />
+                </MatrixGridScrollFrame>
+            </div>
 
             <MatrixGridRequirementOverlay
                 target={requirementTarget}

@@ -1,4 +1,5 @@
 import React from "react";
+import AuthContext from "@/services/AuthContext";
 import {useCharacters} from "@/hooks/useCharacters";
 import useOkis from "@/hooks/useOkis";
 import {AppBox} from "@/src/components/ui/AppBox";
@@ -35,6 +36,7 @@ export default function ReversalsPage() {
     const [items, setItems] = React.useState<CharacterReversal[]>([]);
     const [draft, setDraft] = React.useState<ReversalDraft>(emptyDraft);
     const [error, setError] = React.useState<string | null>(null);
+    const canModerate = React.useContext(AuthContext)?.canModerate ?? false;
 
     const load = React.useCallback(() => {
         listReversals().then(setItems).catch(() => setError("Could not load reversals."));
@@ -68,7 +70,7 @@ export default function ReversalsPage() {
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title="Character Reversals" badgeLabel={`${items.length} reversal${items.length === 1 ? "" : "s"}`}>
                 {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
-                <AppPaper variant="outlined" sx={{p: 1.4, borderRadius: 2.5, display: "grid", gap: 1, backgroundColor: "fgc.surface.base"}}>
+                {canModerate ? <AppPaper variant="outlined" sx={{p: 1.4, borderRadius: 2.5, display: "grid", gap: 1, backgroundColor: "fgc.surface.base"}}>
                     <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "220px minmax(260px, 1fr) 110px 180px auto"}, gap: 1, alignItems: "center"}}>
                         <SelectField label="Character" value={draft.characterId} options={["", ...(characters as Array<{id: string; name: string}>).map((character) => character.id)]} getLabel={(value) => (characters as Array<{id: string; name: string}>).find((character) => character.id === value)?.name ?? "Select"} onChange={(value) => setDraft((current) => ({...current, characterId: value, move: null}))} />
                         <OkiMovePicker label="Reversal move" value={draft.move} characterId={draft.characterId || undefined} onChange={(move) => setDraft((current) => ({...current, move}))} />
@@ -79,7 +81,7 @@ export default function ReversalsPage() {
                     <AppBox sx={{display: "flex", flexWrap: "wrap", gap: 0.5}}>
                         {REVERSAL_PROPERTIES.map((property) => <AppChip key={property} label={formatOkiLabel(property)} size="small" variant={draft.properties.includes(property) ? "filled" : "outlined"} color={draft.properties.includes(property) ? "info" : "default"} onClick={() => setDraft((current) => ({...current, properties: toggle(current.properties, property)}))} />)}
                     </AppBox>
-                </AppPaper>
+                </AppPaper> : null}
 
                 <AppBox sx={{display: "grid", gap: 1}}>
                     {items.map((item) => (
@@ -89,10 +91,10 @@ export default function ReversalsPage() {
                                 <AppTypography variant="body2" color="text.secondary">{formatOkiLabel(item.reversalType)} · {item.startup}f startup</AppTypography>
                                 <AppBox sx={{display: "flex", flexWrap: "wrap", gap: 0.4, mt: 0.5}}>{item.properties.map((property) => <AppChip key={property} size="small" variant="outlined" label={formatOkiLabel(property)} />)}</AppBox>
                             </AppBox>
-                            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, auto))"}, gap: 0.5, alignItems: "center"}}>
+                            {canModerate ? <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, auto))"}, gap: 0.5, alignItems: "center"}}>
                                 <AppButton type="button" variant="outlined" color="secondary" onClick={() => setDraft({id: item.id, characterId: item.character.id, move: {id: item.move.id, summary: item.move.name}, startup: String(item.startup), reversalType: item.reversalType, properties: item.properties})}>Edit</AppButton>
                                 <AppButton type="button" variant="text" color="secondary" onClick={() => deleteReversal(item.id).then(load).catch(() => setError("Could not delete reversal."))}>Delete</AppButton>
-                            </AppBox>
+                            </AppBox> : null}
                         </AppPaper>
                     ))}
                 </AppBox>

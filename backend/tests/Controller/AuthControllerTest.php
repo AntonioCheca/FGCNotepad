@@ -224,6 +224,62 @@ class AuthControllerTest extends DatabaseTestCase
         $this->assertSame('User already exists.', $payload['message'] ?? null);
     }
 
+    public function testRegisterRejectsUsernameDifferingOnlyByCase(): void
+    {
+        $username = $this->nextUsername('caseuser');
+        $this->registerUser($username, 'password1');
+        $this->assertResponseStatusCodeSame(201);
+
+        $this->registerUser(strtoupper($username), 'password2');
+
+        $this->assertResponseStatusCodeSame(409);
+    }
+
+    public function testRegisterRejectsShortPassword(): void
+    {
+        $this->registerUser($this->nextUsername('shortpass'), 'short');
+
+        $this->assertResponseStatusCodeSame(400);
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame('Password must be at least 8 characters.', $payload['message'] ?? null);
+    }
+
+    public function testRegisterRejectsUsernameWithUnsupportedCharacters(): void
+    {
+        $this->registerUser('<script>alert(1)</script>', 'password1');
+
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    public function testLoginIsThrottledAfterRepeatedFailures(): void
+    {
+        $this->createPasswordUser(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+        $this->client->disableReboot();
+
+        for ($attempt = 0; $attempt < 5; ++$attempt) {
+            $this->attemptLogin(self::TEST_USER_NAME, 'wrong-password');
+            $this->assertResponseStatusCodeSame(401);
+        }
+
+        $this->attemptLogin(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+
+        $this->assertResponseStatusCodeSame(429);
+    }
+
+    public function testDeactivatedUserLosesExistingSession(): void
+    {
+        $user = $this->createPasswordUser(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+        $this->loginBrowserSession(self::TEST_USER_NAME, self::TEST_USER_PASSWORD);
+
+        $user->setIsActive(false);
+        $this->entityManager->flush();
+        $this->client->request('GET', '/api/me');
+
+        $this->assertResponseStatusCodeSame(401);
+        $this->client->request('GET', '/api/me');
+        $this->assertResponseStatusCodeSame(401);
+    }
+
     public function testRegisterRejectsInvalidPayload(): void
     {
         $username = $this->nextUsername('onlyusername');
@@ -270,6 +326,22 @@ class AuthControllerTest extends DatabaseTestCase
         $this->entityManager->flush();
 
         return $user;
+    }
+
+    private function registerUser(string $username, string $password): void
+    {
+        $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => $username,
+            'password' => $password,
+        ]));
+    }
+
+    private function attemptLogin(string $username, string $password): void
+    {
+        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => $username,
+            'password' => $password,
+        ]));
     }
 
     private function loginBrowserSession(string $username, string $password): string

@@ -10,19 +10,30 @@ abstract class AuthenticatedWebTestCase extends DatabaseTestCase
 {
     private array $headers = [];
 
+    /** @var list<string> */
+    protected array $testUserRoles = [];
+
+    /**
+     * @param list<string> $roles
+     */
+    protected function loginTestUserWithRoles(array $roles): void
+    {
+        $this->testUserRoles = $roles;
+        $this->createAuthenticatedClient();
+    }
+
     protected function createAuthenticatedClient(): KernelBrowser
     {
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['username' => 'testuser']);
         if (!$user) {
             $user = new User();
             $user->setUsername('testuser');
-            $user->setPassword(self::hashTestPassword());
-            $user->setIsActive(true);
             $this->entityManager->persist($user);
-        } else {
-            $user->setPassword(self::hashTestPassword());
-            $user->setIsActive(true);
         }
+
+        $user->setPassword(self::hashTestPassword());
+        $user->setIsActive(true);
+        $user->setRoles($this->testUserRoles);
 
         $this->entityManager->flush();
 

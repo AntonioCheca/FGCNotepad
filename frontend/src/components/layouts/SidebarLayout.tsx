@@ -2,9 +2,8 @@
 
 import {useState} from 'react';
 import { AppBox } from '@/src/components/ui/AppBox';
-import {AppIconButton} from '@/src/components/ui/AppIconButton';
 import Sidebar from '@/src/components/layouts/Sidebar';
-import {MenuIcon} from '@/src/components/ui/AppIcons';
+import MobileBottomNav, {MOBILE_BOTTOM_NAV_HEIGHT} from '@/src/components/navigation/MobileBottomNav';
 
 const COLLAPSED_SIDEBAR_WIDTH = 84;
 const EXPANDED_SIDEBAR_WIDTH = 296;
@@ -15,42 +14,14 @@ export default function SidebarLayout({
     children?: React.ReactNode;
 }) {
     const [desktopCollapsed, setDesktopCollapsed] = useState(true);
-    const [mobileOpen, setMobileOpen] = useState(false);
 
     const sidebarWidth = desktopCollapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH;
 
     return (
         <AppBox sx={{ display: 'flex', minHeight: '100svh' }}>
-            <AppIconButton
-                type="button"
-                onClick={() => setMobileOpen(true)}
-                aria-label="Open navigation"
-                aria-expanded={mobileOpen}
-                aria-controls="primary-navigation"
-                sx={{
-                    display: {xs: mobileOpen ? 'none' : 'inline-flex', md: 'none'},
-                    position: 'fixed',
-                    top: 12,
-                    left: 12,
-                    zIndex: 1198,
-                    width: 44,
-                    height: 44,
-                    border: '1px solid',
-                    borderColor: 'fgc.border.default',
-                    backgroundColor: 'fgc.surface.raised',
-                    color: 'text.primary',
-                    '&:hover': {
-                        backgroundColor: 'fgc.surface.subtle',
-                    },
-                }}
-            >
-                <MenuIcon />
-            </AppIconButton>
             <Sidebar
                 collapsed={desktopCollapsed}
-                mobileOpen={mobileOpen}
                 toggleCollapse={() => setDesktopCollapsed((current) => !current)}
-                closeMobile={() => setMobileOpen(false)}
             />
             <AppBox
                 component="main"
@@ -61,13 +32,19 @@ export default function SidebarLayout({
                     minWidth: 0,
                     minHeight: '100svh',
                     transition: 'margin-left 0.28s',
-                    padding: {xs: '68px 12px 16px', sm: '72px 18px 20px', md: 3},
+                    padding: {xs: '16px 12px', sm: '20px 18px', md: 3},
+                    paddingBottom: {
+                        xs: `calc(${MOBILE_BOTTOM_NAV_HEIGHT + 16}px + env(safe-area-inset-bottom))`,
+                        sm: `calc(${MOBILE_BOTTOM_NAV_HEIGHT + 20}px + env(safe-area-inset-bottom))`,
+                        md: 3,
+                    },
                     backgroundColor: (theme) => theme.fgc.background.workspace,
                     boxSizing: 'border-box',
                 }}
             >
                 {children}
             </AppBox>
+            <MobileBottomNav/>
         </AppBox>
     );
 }

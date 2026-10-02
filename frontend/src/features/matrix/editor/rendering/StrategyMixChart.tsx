@@ -1,5 +1,6 @@
 import React from "react";
 import {useMode} from "@/src/context/ThemeContext";
+import {readableTextOn} from "@/src/components/ui/AppThemeUtils";
 import {buildChartPalette} from "./optionColorTags";
 
 interface StrategyMixChartProps {
@@ -13,7 +14,7 @@ export function StrategyMixChart({title, data}: StrategyMixChartProps) {
     const palette = buildChartPalette(theme, Math.max(segments.length, 5));
 
     return (
-        <div style={{border: `1px solid ${theme.fgc.border.default}`, borderRadius: 10, padding: 10, background: theme.fgc.surface.raised}}>
+        <div data-chart="strategy-mix" style={{border: `1px solid ${theme.fgc.border.default}`, borderRadius: 10, padding: 10, background: theme.fgc.surface.raised}}>
             <div style={{fontSize: 14, fontWeight: 700, color: theme.fgc.text.secondary, marginBottom: 8}}>{title}</div>
             <div style={{height: 62, border: `1px solid ${theme.fgc.border.default}`, borderRadius: 8, overflow: "hidden", display: "flex", background: theme.fgc.surface.sunken}}>
                 {segments.map((segment, index) => {
@@ -34,7 +35,7 @@ export function StrategyMixChart({title, data}: StrategyMixChartProps) {
                             title={`${segment.label} ${(segment.frequency * 100).toFixed(2)}%`}
                         >
                             {widthPercent >= 8 ? (
-                                <span style={{fontSize: 12, color: theme.fgc.text.primary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>
+                                <span style={{fontSize: 12, fontWeight: 600, color: readableTextOn(palette[index], theme.palette.common.white, theme.fgc.app.canvas), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>
                                     {segment.label} {(segment.frequency * 100).toFixed(1)}%
                                 </span>
                             ) : null}

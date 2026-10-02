@@ -29,12 +29,22 @@ import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {formatUtcDateTime} from "@/src/utils/formatDateTime";
 
-type RolePreset = "user" | "moderator" | "admin";
+type RolePreset = "user" | "qaTester" | "moderator" | "moderatorQaTester" | "admin";
 
 const ROLE_PRESET_TO_ROLES: Record<RolePreset, AdminUserRole[]> = {
     user: ["ROLE_USER"],
+    qaTester: ["ROLE_QA_TESTER", "ROLE_USER"],
     moderator: ["ROLE_MODERATOR", "ROLE_USER"],
+    moderatorQaTester: ["ROLE_MODERATOR", "ROLE_QA_TESTER", "ROLE_USER"],
     admin: ["ROLE_ADMIN", "ROLE_USER"],
+};
+
+const ROLE_PRESET_LABELS: Record<RolePreset, string> = {
+    user: "User",
+    qaTester: "QA Tester",
+    moderator: "Moderator",
+    moderatorQaTester: "Moderator + QA Tester",
+    admin: "Admin",
 };
 
 function hasRole(roles: string[], role: AdminUserRole): boolean {
@@ -46,12 +56,17 @@ function rolePresetFromRoles(roles: string[]): RolePreset {
         return "admin";
     }
 
+    const isQaTester = hasRole(roles, "ROLE_QA_TESTER");
     if (hasRole(roles, "ROLE_MODERATOR")) {
-        return "moderator";
+        return isQaTester ? "moderatorQaTester" : "moderator";
     }
 
-    return "user";
+    return isQaTester ? "qaTester" : "user";
 }
+
+const roleMenuItems = (Object.keys(ROLE_PRESET_LABELS) as RolePreset[]).map((preset) => (
+    <AppMenuItem key={preset} value={preset}>{ROLE_PRESET_LABELS[preset]}</AppMenuItem>
+));
 
 function normalizeApiError(error: unknown, fallbackMessage: string): string {
     if (typeof error !== "object" || error === null) {
@@ -237,9 +252,7 @@ function UsersSection({rows, loadingUsers, page, totalPages, roleDraftById, pend
                                                         disabled={pending || !row.isActive}
                                                         onChange={(event) => onRoleDraftChange(row.id, event.target.value as RolePreset)}
                                                     >
-                                                        <AppMenuItem value="user">User</AppMenuItem>
-                                                        <AppMenuItem value="moderator">Moderator</AppMenuItem>
-                                                        <AppMenuItem value="admin">Admin</AppMenuItem>
+                                                        {roleMenuItems}
                                                     </AppSelect>
                                                 </AppFormControl>
 
@@ -293,9 +306,7 @@ function UsersSection({rows, loadingUsers, page, totalPages, roleDraftById, pend
                                             disabled={pending || !row.isActive}
                                             onChange={(event) => onRoleDraftChange(row.id, event.target.value as RolePreset)}
                                         >
-                                            <AppMenuItem value="user">User</AppMenuItem>
-                                            <AppMenuItem value="moderator">Moderator</AppMenuItem>
-                                            <AppMenuItem value="admin">Admin</AppMenuItem>
+                                            {roleMenuItems}
                                         </AppSelect>
                                     </AppFormControl>
 
@@ -531,7 +542,7 @@ export default function AdminUsersPage() {
 
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
-            <PageShell
+            <PageShell desktopOnly
                 title="User Management"
                 badgeLabel={`Total users: ${total}`}
             >

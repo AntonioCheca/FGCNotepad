@@ -6,5 +6,6 @@ enum UserRole: string
 {
     case USER = 'ROLE_USER';
     case MODERATOR = 'ROLE_MODERATOR';
+    case QA_TESTER = 'ROLE_QA_TESTER';
     case ADMIN = 'ROLE_ADMIN';
 }

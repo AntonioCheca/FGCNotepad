@@ -19,12 +19,12 @@ class ComboMetricsDenormalizer implements DenormalizerInterface, DenormalizerAwa
     {
     }
 
-    public function supportsDenormalization($data, string $type, string $format = null, array $context = []): bool
+    public function supportsDenormalization($data, string $type, ?string $format = null, array $context = []): bool
     {
         return $type === ComboMetrics::class;
     }
 
-    public function denormalize($data, string $type, string $format = null, array $context = []): ComboMetrics
+    public function denormalize($data, string $type, ?string $format = null, array $context = []): ComboMetrics
     {
         if (!is_array($data)) {
             throw new NotNormalizableValueException('Data expected to be an array.');

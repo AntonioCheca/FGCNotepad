@@ -1,12 +1,3 @@
-import type {GetServerSideProps} from "next";
+import HomePage from "@/src/features/home/HomePage";
 
-export default function IndexPage() {
-    return null;
-}
-
-export const getServerSideProps: GetServerSideProps = async () => ({
-    redirect: {
-        destination: "/combos",
-        permanent: false,
-    },
-});
+export default HomePage;

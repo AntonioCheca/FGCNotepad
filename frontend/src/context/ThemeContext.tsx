@@ -11,6 +11,7 @@ import {
 } from "@/src/components/ui/AppTheme";
 import {createAppTheme, type PaletteMode, type Theme} from "@/src/components/ui/AppThemeUtils";
 import {getDesignTokens} from "@/styles/theme";
+import {AppGlobalStyles} from "@/src/components/ui/AppGlobalStyles";
 
 const APP_THEME_MODE: PaletteMode = "dark";
 
@@ -35,7 +36,10 @@ export const ThemeModeProvider = ({children}: { children: React.ReactNode }) => 
 
     return (
         <ThemeContext.Provider value={contextValue}>
-            <AppThemeProvider theme={theme}>{children}</AppThemeProvider>
+            <AppThemeProvider theme={theme}>
+                <AppGlobalStyles/>
+                {children}
+            </AppThemeProvider>
         </ThemeContext.Provider>
     );
 };

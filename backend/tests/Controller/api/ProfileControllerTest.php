@@ -17,6 +17,7 @@ use App\Entity\User;
 use App\Entity\UserCombo;
 use App\Entity\Visibility;
 use App\Tests\Controller\AuthenticatedWebTestCase;
+use App\Util\Enum\UserRole;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -157,8 +158,16 @@ class ProfileControllerTest extends AuthenticatedWebTestCase
         self::assertTrue($byId[$comboTwo->getId()]['known']);
     }
 
+    public function testComboRecommendationsAreHiddenFromRegularUsers(): void
+    {
+        $this->client->request('GET', '/api/profile/combo-recommendations', ['characterId' => 'any', 'difficultyCap' => 3], [], $this->getHeaders());
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
     public function testGetComboRecommendationsReturnsTopEssentialUnknownCombosByEvGain(): void
     {
+        $this->loginTestUserWithRoles([UserRole::QA_TESTER->value]);
         $fixture = $this->seedRecommendationFixtures();
 
         $this->client->request(
@@ -187,6 +196,7 @@ class ProfileControllerTest extends AuthenticatedWebTestCase
 
     public function testGetComboRecommendationsReturnsEmptyWhenNoCandidatesRemain(): void
     {
+        $this->loginTestUserWithRoles([UserRole::QA_TESTER->value]);
         $fixture = $this->seedRecommendationFixtures();
 
         $user = $this->em->getRepository(User::class)->findOneBy(['username' => 'testuser']);

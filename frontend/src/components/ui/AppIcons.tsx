@@ -27,3 +27,15 @@ export {default as ChatBubbleOutlineIcon} from "@mui/icons-material/ChatBubbleOu
 export {default as AltRouteIcon} from "@mui/icons-material/AltRoute";
 export {default as TuneIcon} from "@mui/icons-material/Tune";
 export {default as QueryStatsIcon} from "@mui/icons-material/QueryStats";
+export {default as ShieldOutlinedIcon} from "@mui/icons-material/ShieldOutlined";
+export {default as FactCheckOutlinedIcon} from "@mui/icons-material/FactCheckOutlined";
+export {default as TableChartOutlinedIcon} from "@mui/icons-material/TableChartOutlined";
+export {default as Inventory2OutlinedIcon} from "@mui/icons-material/Inventory2Outlined";
+export {default as PlaceOutlinedIcon} from "@mui/icons-material/PlaceOutlined";
+export {default as ManageAccountsOutlinedIcon} from "@mui/icons-material/ManageAccountsOutlined";
+export {default as UploadFileOutlinedIcon} from "@mui/icons-material/UploadFileOutlined";
+export {default as LightbulbOutlinedIcon} from "@mui/icons-material/LightbulbOutlined";
+export {default as LogoutIcon} from "@mui/icons-material/Logout";
+export {default as UnfoldMoreIcon} from "@mui/icons-material/UnfoldMore";
+export {default as HomeOutlinedIcon} from "@mui/icons-material/HomeOutlined";
+export {default as MoreHorizIcon} from "@mui/icons-material/MoreHoriz";

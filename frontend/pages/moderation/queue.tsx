@@ -58,6 +58,8 @@ const SORT_FILTER_OPTIONS: Array<{value: SortFilter; label: string}> = [
     {value: "newest", label: "Newest First"},
 ];
 
+const MOBILE_CARD_PAGE_SIZE = 20;
+
 function toApiFilters(contentType: ContentFilter, state: StateFilter, sort: SortFilter): ModerationQueueFilters {
     return {
         contentType: contentType === "all" ? undefined : [contentType],
@@ -175,6 +177,7 @@ interface QueueSectionProps {
 }
 
 function QueueSection({items, loadingQueue, activeReasonRowKey, activeReasonAction, reasonDraftByRowKey, rowErrorByKey, pendingByKey, onDecision, onOpenReason, onCancelReason, onReasonDraftChange}: QueueSectionProps) {
+    const [visibleCardCount, setVisibleCardCount] = React.useState(MOBILE_CARD_PAGE_SIZE);
     const renderActions = (item: ModerationQueueItem, compact = false) => {
         const key = rowKey(item);
         const isPending = Boolean(pendingByKey[key]);
@@ -185,7 +188,7 @@ function QueueSection({items, loadingQueue, activeReasonRowKey, activeReasonActi
         return (
             <AppBox sx={{display: "grid", gap: 0.8}}>
                 <AppBox sx={compact
-                    ? {display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(3, minmax(0, 1fr))"}, gap: 0.6}
+                    ? {display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 0.6}
                     : {display: "flex", gap: 0.6, flexWrap: "wrap"}
                 }>
                     <AppButton type="button" size="small" disabled={isPending} onClick={() => void onDecision(item, "approve")}>Approve</AppButton>
@@ -259,30 +262,30 @@ function QueueSection({items, loadingQueue, activeReasonRowKey, activeReasonActi
                     </AppTable>
                 </AppTableContainer>
                 <AppBox sx={{display: {xs: "grid", lg: "none"}, gap: 1}}>
-                    {items.map((item) => {
+                    {items.slice(0, visibleCardCount).map((item) => {
                         const key = rowKey(item);
                         return (
-                            <AppBox key={key} sx={{display: "grid", gap: 1, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.25, p: 1.25, backgroundColor: "fgc.surface.subtle"}}>
+                            <AppBox key={key} sx={{display: "grid", gap: 0.85, border: "1px solid", borderColor: "fgc.border.default", borderRadius: 1.25, p: 1.25, backgroundColor: "fgc.surface.subtle"}}>
                                 <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "flex-start"}}>
-                                    <AppBox sx={{display: "grid", gap: 0.4, minWidth: 0}}>
-                                        <AppTypography variant="body2" sx={{fontWeight: 650, overflowWrap: "anywhere"}}>{item.title || "Untitled"}</AppTypography>
-                                        <AppTypography variant="caption" color="text.secondary">{item.author || "UNKNOWN_USER"}</AppTypography>
+                                    <AppBox sx={{display: "grid", gap: 0.25, minWidth: 0}}>
+                                        <Link href={buildContentLink(item)} style={{color: "inherit"}}>
+                                            <AppTypography variant="body2" sx={{fontWeight: 650, overflowWrap: "anywhere", textDecoration: "underline", textUnderlineOffset: "2px"}}>{item.title || "Untitled"}</AppTypography>
+                                        </Link>
+                                        <AppTypography variant="caption" color="text.secondary">
+                                            {item.author || "UNKNOWN_USER"} · {item.state} · {item.flagCount} flags · {formatUtcDateTime(item.updatedAt)}
+                                        </AppTypography>
                                     </AppBox>
                                     <AppChip size="small" label={item.contentType} variant="outlined"/>
                                 </AppBox>
-
-                                <AppBox sx={{display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 0.75}}>
-                                    <AppTypography variant="body2">State: {item.state}</AppTypography>
-                                    <AppTypography variant="body2">Flags: {item.flagCount}</AppTypography>
-                                    <AppTypography variant="caption" color="text.secondary">Created: {formatUtcDateTime(item.createdAt)}</AppTypography>
-                                    <AppTypography variant="caption" color="text.secondary">Updated: {formatUtcDateTime(item.updatedAt)}</AppTypography>
-                                </AppBox>
-
-                                <Link href={buildContentLink(item)} style={{textDecoration: "none"}}><AppButton type="button" size="small" variant="outlined" sx={{width: "100%"}}>Open</AppButton></Link>
                                 {renderActions(item, true)}
                             </AppBox>
                         );
                     })}
+                    {items.length > visibleCardCount ? (
+                        <AppButton type="button" variant="outlined" onClick={() => setVisibleCardCount((count) => count + MOBILE_CARD_PAGE_SIZE)}>
+                            Show more ({items.length - visibleCardCount} left)
+                        </AppButton>
+                    ) : null}
                 </AppBox>
                 </>
             )}

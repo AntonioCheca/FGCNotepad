@@ -24,6 +24,7 @@ abstract class DatabaseTestCase extends WebTestCase
         $this->client = static::createClient();
         $this->client->disableReboot();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        static::getContainer()->get('cache.rate_limiter')->clear();
 
         $this->truncateDatabase();
     }

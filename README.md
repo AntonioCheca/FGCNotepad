@@ -40,7 +40,7 @@ FGCNotepad is a forum-wiki hybrid for fighting game analysis from a game theory 
 
 ### Docker Development
 
-Recommended for Linux contributors and deployment-parity work.
+Default setup (Ubuntu on WSL locally, matching the Ubuntu + Docker production VM).
 
 `docker-compose.yml` is the development Compose file. It starts PostgreSQL, Symfony PHP-FPM, Nginx, and a frontend container with bind-mounted source.
 
@@ -76,9 +76,9 @@ Playwright failure artifacts stay inside the container in Docker development.
 
 ### Local Host Development
 
-Recommended for Windows contributors.
+Secondary option for contributors running tooling directly on a Windows host.
 
-Install PHP `>=8.2`, Composer, Node.js `>=22.13.0`, npm, PostgreSQL 15 or compatible, and Symfony CLI. Put machine-specific database settings in `backend/.env.local` and test settings in `backend/.env.test.local` when needed.
+Install PHP `>=8.4`, Composer, Node.js `>=22.13.0`, npm, PostgreSQL 15 or compatible, and Symfony CLI. Put machine-specific database settings in `backend/.env.local` and test settings in `backend/.env.test.local` when needed.
 
 ```bash
 make local-setup
@@ -125,7 +125,7 @@ make check
 - Run production migrations explicitly with `docker compose -f docker-compose.prod.yml exec backend php bin/console doctrine:migrations:migrate --no-interaction`.
 - PostgreSQL is bound to `127.0.0.1:5432` in production for SSH tunnel access only. Do not open PostgreSQL to the public internet.
 - `NEXT_PUBLIC_API_URL=/api` is the production frontend API setting.
-- `scripts/deploy-prod.sh` and the `prod-db-*` Make targets provide deploy and backup helpers. See `docs/production-postgres-backups.md` for the Lightsail backup and restore runbook.
+- `scripts/deploy-prod.sh` and the `prod-db-*` Make targets provide deploy and backup helpers. Release-specific deploy steps live in `docs/deploy.md`. See `docs/production-postgres-backups.md` for the Lightsail backup and restore runbook.
 
 ## More Documentation
 

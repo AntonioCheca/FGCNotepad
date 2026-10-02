@@ -5,12 +5,38 @@ namespace App\Tests\Controller\api;
 use App\Entity\Character;
 use App\Entity\Move;
 use App\Tests\Controller\AuthenticatedWebTestCase;
+use App\Util\Enum\UserRole;
 use Symfony\Component\HttpFoundation\Response;
 
 class MoveControllerTest extends AuthenticatedWebTestCase
 {
+    public function testCreateMoveIsForbiddenForRegularUsers(): void
+    {
+        $characterForMove = $this->addCharacterInBackend();
+
+        $this->client->request('POST', '/api/moves', [], [], $this->getHeaders(), json_encode([
+            'numpadNotation' => '236P',
+            'characterId' => $characterForMove->getId(),
+        ]));
+
+        $this->assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testCreateMoveRejectsUnknownCharacter(): void
+    {
+        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
+
+        $this->client->request('POST', '/api/moves', [], [], $this->getHeaders(), json_encode([
+            'numpadNotation' => '236P',
+            'characterId' => 'missing-character',
+        ]));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testCreateMove(): void
     {
+        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
         $characterForMove = $this->addCharacterInBackend();
 
         $this->client->request('POST', '/api/moves', [], [], $this->getHeaders(), json_encode([

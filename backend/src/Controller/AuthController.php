@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api')]
@@ -24,6 +25,7 @@ class AuthController extends AbstractController
         private readonly string $environment,
         #[Autowire('%env(default:app.registration_enabled.default:bool:REGISTRATION_ENABLED)%')]
         private readonly bool $registrationEnabled,
+        private readonly RateLimiterFactoryInterface $registrationLimiter,
     ) {
         $this->registrationService = $registrationService;
     }
@@ -31,6 +33,10 @@ class AuthController extends AbstractController
     #[Route('/register', name: 'api_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
+        if (!$this->registrationLimiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {
+            return new JsonResponse(['message' => 'Too many registration attempts. Try again later.'], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         $data = json_decode($request->getContent(), true);
 
         if (!is_array($data) || !isset($data['username'], $data['password']) || !is_string($data['username']) || !is_string($data['password'])) {

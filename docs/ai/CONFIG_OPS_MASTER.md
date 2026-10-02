@@ -14,8 +14,8 @@ This document defines rules for configuration, environments, Docker/local operat
 
 FGCNotepad intentionally supports two local development modes:
 
-1. Windows-first host setup (recommended on Windows contributors).
-2. Linux Docker setup (recommended on Linux contributors and deployment-like parity).
+1. Linux Docker setup (default; Ubuntu on WSL locally, matching the Ubuntu + Docker production VM).
+2. Windows host setup (secondary; requires host PHP 8.4+ and Node 24).
 
 Both setups must remain supported when changing config/ops files.
 
@@ -30,11 +30,11 @@ Both setups must remain supported when changing config/ops files.
 
 Use existing project commands and avoid introducing parallel tooling unless requested.
 
-- Windows workflow (default unless user says otherwise):
+- Linux Docker workflow (default unless user says otherwise):
+  - Prefer Docker Compose flow (`make build`, `make up`, `make stop`, container-based commands).
+- Windows host workflow (secondary):
   - Prefer host-installed PHP/Composer/Node/Postgres.
   - Use `make local-*` commands (`local-setup`, `local-serve`, `local-frontend`, `local-test`, etc.).
-- Linux workflow:
-  - Prefer Docker Compose flow (`make build`, `make up`, `make stop`, container-based commands).
 - Docker-oriented workflow is defined by root `docker-compose.yml` and `Makefile` targets.
 - Local workflow is defined by `make local-*` commands.
 - Prefer extending existing commands over replacing workflow patterns.
@@ -64,7 +64,7 @@ Use existing project commands and avoid introducing parallel tooling unless requ
 - Backend changes should be validated with backend tests.
 - Frontend changes should be validated with type/lint/build commands when relevant.
 - Prefer project-standard commands (`make` and package scripts) over ad hoc command chains.
-- Validation should follow the active setup style (Windows local commands vs Linux Docker commands).
+- Validation should follow the active setup style (Linux Docker commands by default, Windows local commands when that setup is in use).
 
 ## Change-scope policy
 

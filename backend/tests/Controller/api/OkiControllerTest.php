@@ -6,7 +6,9 @@ use App\Entity\Character;
 use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Tests\Controller\AuthenticatedWebTestCase;
+use App\Util\Enum\UserRole;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final class OkiControllerTest extends AuthenticatedWebTestCase
 {
@@ -151,8 +153,25 @@ final class OkiControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(['LOW'], $updated['setups'][0]['nodes'][1]['properties']);
     }
 
+    public function testRegularUserCannotMutateReversals(): void
+    {
+        $character = $this->createCharacter('Akuma');
+        $reversalMove = $this->createMove($character, 'OD Shoryuken');
+        $this->entityManager->flush();
+
+        $this->expectException(AccessDeniedHttpException::class);
+        $this->jsonRequest('POST', '/api/okis/reversals', [
+            'characterId' => (string) $character->getId(),
+            'moveId' => (string) $reversalMove->getId(),
+            'startup' => 6,
+            'reversalType' => 'OD_REVERSAL',
+            'properties' => [],
+        ]);
+    }
+
     public function testCreateAndUpdateReversal(): void
     {
+        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
         $character = $this->createCharacter('Akuma');
         $reversalMove = $this->createMove($character, 'OD Shoryuken');
         $this->entityManager->flush();

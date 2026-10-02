@@ -128,3 +128,38 @@
     box-sizing: border-box;
     overflow-x: hidden;
 }
+
+.insightsDashboard {
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) minmax(360px, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 899.95px) {
+    .insightsDashboard {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Phone-only matrix layouts; desktop always shows the full grid. */
+.phoneOnly {
+    display: none;
+}
+
+@media (max-width: 899.95px) {
+    /* The surrounding page card already frames the matrix on phones. */
+    .matrixEditorShell {
+        border: none;
+        padding: 4px 2px 0;
+        background: transparent;
+    }
+
+    .phoneOnly {
+        display: block;
+    }
+
+    .hiddenOnPhone {
+        display: none;
+    }
+}

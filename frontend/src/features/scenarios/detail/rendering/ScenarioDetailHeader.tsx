@@ -15,10 +15,10 @@ interface ScenarioDetailHeaderProps {
 export function ScenarioDetailHeader({scenarioId, refreshingDynamicCombos, onRefreshDynamicCombos}: ScenarioDetailHeaderProps) {
     return (
         <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) auto"}, alignItems: "center", gap: {xs: 0.8, md: 1.5}, pb: {xs: 1, md: 1.35}, borderBottom: "1px solid", borderColor: "divider", minWidth: 0}}>
-            <AppTypography variant="h4" sx={{fontWeight: 800, fontSize: {xs: "clamp(1.7rem, 9vw, 2.25rem)", md: undefined}, lineHeight: {xs: 1.02, md: undefined}}}>View Scenario</AppTypography>
-            <AppBox sx={{display: "flex", alignItems: "center", gap: {xs: 0.65, md: 1}, flexWrap: "wrap", justifyContent: {xs: "stretch", md: "flex-end"}, "& .MuiButton-root": {flex: {xs: "1 1 100%", sm: "1 1 calc(50% - 6px)", md: "0 0 auto"}}}}>
+            <AppTypography variant="h4" sx={{fontWeight: 800, fontSize: {xs: "clamp(1.5rem, 7vw, 1.875rem)", md: undefined}, lineHeight: {xs: 1.12, md: undefined}}}>View Scenario</AppTypography>
+            <AppBox sx={{display: {xs: "grid", md: "flex"}, flexWrap: "wrap", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", alignItems: "center", gap: {xs: 0.65, md: 1}, justifyContent: {md: "flex-end"}, "& .MuiButton-root": {width: {xs: "100%", md: "auto"}, flex: {md: "0 0 auto"}}}}>
                 <ContentFlagButton targetType="scenario" targetId={scenarioId}/>
-                <AppButton type="button" disabled={refreshingDynamicCombos} onClick={onRefreshDynamicCombos}>
+                <AppButton type="button" disabled={refreshingDynamicCombos} onClick={onRefreshDynamicCombos} sx={{gridColumn: {xs: "1 / -1", md: "auto"}, order: {xs: -1, md: 0}}}>
                     {refreshingDynamicCombos ? "Refreshing..." : "Refresh Dynamic Combos"}
                 </AppButton>
                 <Link href={`/scenarios/${scenarioId}/edit`} style={{textDecoration: "none"}}>

@@ -7,18 +7,51 @@ class MixedStrategyGameSolver
     private const ITERATIONS = 2000;
     private const ETA = 0.05;
     private const PERTURBATION_EPSILON = 1.0E-6;
+    public const MAX_STRATEGIES_PER_PLAYER = 50;
 
     /**
-     * @param array<string, array<string, int|float>> $payoffMatrix
+     * @param array<mixed> $payoffMatrix untrusted request input, validated before solving
      * @return array<string, mixed>
      */
     public function solveMixedStrategyGame(array $payoffMatrix): array
     {
+        $this->assertValidPayoffMatrix($payoffMatrix);
         $result = ['equilibria' => $this->solveEquilibria($payoffMatrix)];
 
         $result['derivedMetrics'] = $this->calculateAllMetrics($result, $payoffMatrix);
 
         return $result;
+    }
+
+    /**
+     * @param array<mixed> $payoffMatrix
+     * @phpstan-assert array<string, array<string, int|float>> $payoffMatrix
+     */
+    private function assertValidPayoffMatrix(array $payoffMatrix): void
+    {
+        if (count($payoffMatrix) > self::MAX_STRATEGIES_PER_PLAYER) {
+            throw new \InvalidArgumentException(sprintf('Payoff matrix can have at most %d rows.', self::MAX_STRATEGIES_PER_PLAYER));
+        }
+
+        $columnLabels = null;
+        foreach ($payoffMatrix as $row) {
+            if (!is_array($row) || count($row) > self::MAX_STRATEGIES_PER_PLAYER) {
+                throw new \InvalidArgumentException(sprintf('Each payoff row must be an object with at most %d columns.', self::MAX_STRATEGIES_PER_PLAYER));
+            }
+
+            foreach ($row as $value) {
+                if (!is_int($value) && !is_float($value)) {
+                    throw new \InvalidArgumentException('Payoff values must be numbers.');
+                }
+            }
+
+            $rowColumnLabels = array_keys($row);
+            sort($rowColumnLabels);
+            if (null !== $columnLabels && $rowColumnLabels !== $columnLabels) {
+                throw new \InvalidArgumentException('Every payoff row must have the same columns.');
+            }
+            $columnLabels = $rowColumnLabels;
+        }
     }
 
     /**

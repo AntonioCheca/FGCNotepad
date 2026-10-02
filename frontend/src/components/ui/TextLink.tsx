@@ -15,10 +15,10 @@ export function TextLink({href, children}: TextLinkProps) {
                 <AppTypography
                     component="span"
                     sx={{
-                        color: (theme) => theme.fgc.action.primary,
+                        color: (theme) => theme.fgc.action.primaryText,
                         fontWeight: 600,
                         textDecoration: "underline",
-                        "&:hover": {color: (theme) => theme.fgc.action.primaryHover},
+                        "&:hover": {color: (theme) => theme.fgc.text.primary},
                     }}
                 >
                     {children}

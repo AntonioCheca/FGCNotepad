@@ -4,9 +4,10 @@ This file is the mandatory entry point for AI-assisted work in this repository.
 
 ## Environment default assumption
 
-- Assume local development is Windows unless the user explicitly says otherwise.
-- On Windows, prefer host-installed tooling and `make local-*` commands.
-- On Linux, prefer Docker-based workflow (`make build`, `make up`, and related Docker commands).
+- Assume local development is Ubuntu on WSL with the Docker workflow unless the user explicitly says otherwise.
+- Prefer Docker-based commands (`make build`, `make up`, `docker compose exec -T backend ...`, `docker compose exec -T frontend ...`) over host-installed tooling.
+- The Windows host setup (`make local-*`) is a secondary option; it needs host PHP 8.4+ and Node 24.
+- Production (Lightsail) is also Ubuntu running Docker, so the Docker workflow is the closest match to production.
 - Do not switch workflow style mid-task unless requested.
 
 Before writing code, the agent must read and follow:
@@ -68,7 +69,13 @@ Do not present long design docs in approval steps; provide concise action bullet
 
 ## React Doctor workflow
 
-When running React Doctor from `frontend/` on Windows, use the non-interactive command with the explicit Node 24 PATH override:
+In the default Docker workflow, run React Doctor inside the frontend container:
+
+```bash
+docker compose exec -T frontend sh -c 'CI=1 npx react-doctor@0.8.1 --no-telemetry --verbose'
+```
+
+When running React Doctor from `frontend/` on a Windows host instead, use the non-interactive command with the explicit Node 24 PATH override:
 
 ```powershell
 $env:CI = "1"; $env:Path = "C:\Users\Pc-com\AppData\Local\Microsoft\WinGet\Packages\OpenJS.NodeJS.LTS_Microsoft.Winget.Source_8wekyb3d8bbwe\node-v24.18.0-win-x64;$env:Path"; npx react-doctor@0.8.1 --no-telemetry --verbose
@@ -105,6 +112,7 @@ $env:CI = "1"; npx react-doctor@0.8.1 --no-telemetry --verbose
 - Preserve touch usability: important interactive controls should remain comfortably tappable on mobile.
 - Mobile QA for frontend changes should include 320px, 360px, 390px, 430px, 768px, 1024px, and desktop widths.
 - React Doctor does not validate responsive layout. Use browser/manual QA or Playwright viewport checks for mobile overflow and navigation behavior.
+- Run `make mobile-audit` (see `docs/mobile-audit.md`) before and after mobile work; follow `docs/mobile-plan.md` and the `mobile-ui` skill for page compositions.
 
 ### Hybrid responsive page architecture
 

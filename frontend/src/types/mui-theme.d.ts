@@ -47,10 +47,12 @@ type FgcTokenGroup = {
         utilityHover: string;
         danger: string;
         dangerHover: string;
+        primaryText: string;
         disabled: string;
     };
     feedback: {
         error: string;
+        errorText: string;
         warning: string;
         success: string;
         info: string;
@@ -77,6 +79,7 @@ type FgcTokenGroup = {
         parser: string;
         primary: string;
         selected: string;
+        selectedText: string;
         warning: string;
         success: string;
         danger: string;
@@ -143,6 +146,15 @@ declare module "@mui/material/styles" {
     }
 
     interface ThemeOptions {
+        fgc?: FgcTokenGroup;
+    }
+
+    // Exposed on the palette so `sx` string colours such as "fgc.surface.raised" resolve.
+    interface Palette {
+        fgc: FgcTokenGroup;
+    }
+
+    interface PaletteOptions {
         fgc?: FgcTokenGroup;
     }
 }

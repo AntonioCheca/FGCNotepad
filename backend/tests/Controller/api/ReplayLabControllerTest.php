@@ -11,12 +11,15 @@ use App\Entity\User;
 use App\Service\ReplayLabCleanupService;
 use App\Service\ReplayStorage\LocalVideoPathResolver;
 use App\Tests\Controller\AuthenticatedWebTestCase;
+use App\Util\Enum\UserRole;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ReplayLabControllerTest extends AuthenticatedWebTestCase
 {
     private string $uploadPath;
+
+    protected array $testUserRoles = [UserRole::QA_TESTER->value];
 
     public function setUp(): void
     {
@@ -50,6 +53,32 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         self::assertNotEmpty($payload['deleteAfter'] ?? null);
     }
 
+    public function testReplayLabIsHiddenFromRegularUsers(): void
+    {
+        $this->loginTestUserWithRoles([]);
+
+        foreach (['/api/replay-videos', '/api/replay-lab/limits', '/api/replay-review-sessions', '/api/practice-tasks', '/api/study/cards/due'] as $uri) {
+            $this->client->request('GET', $uri, [], [], $this->getHeaders());
+            self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode(), $uri);
+        }
+    }
+
+    public function testServerImportFolderIsAdminOnly(): void
+    {
+        $this->client->request('GET', '/api/replay-video-imports', [], [], $this->getHeaders());
+
+        self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testAdminCanUseReplayLab(): void
+    {
+        $this->loginTestUserWithRoles([UserRole::ADMIN->value]);
+
+        $this->client->request('GET', '/api/replay-videos', [], [], $this->getHeaders());
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testReplayLabLimitsCanBeRead(): void
     {
         $this->client->request('GET', '/api/replay-lab/limits', [], [], $this->getHeaders());
@@ -63,6 +92,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
 
     public function testLocalMp4ReplayCanBeImportedWithoutMultipartUpload(): void
     {
+        $this->loginTestUserWithRoles([UserRole::ADMIN->value]);
         $importDirectory = dirname(__DIR__, 3) . '/var/replay-imports';
         if (!is_dir($importDirectory)) {
             mkdir($importDirectory, 0775, true);
@@ -98,6 +128,7 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
 
     public function testLocalMkvReplayIsNotImportable(): void
     {
+        $this->loginTestUserWithRoles([UserRole::ADMIN->value]);
         $importDirectory = dirname(__DIR__, 3) . '/var/replay-imports';
         if (!is_dir($importDirectory)) {
             mkdir($importDirectory, 0775, true);
@@ -370,6 +401,21 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
         $payload = $this->decodeResponsePayload();
         self::assertTrue($payload['access']['requiresPassword'] ?? false);
+    }
+
+    public function testSharedReviewPasswordAttemptsAreRateLimited(): void
+    {
+        $sessionId = $this->createReplaySessionAndReturnId();
+        $token = $this->createShareLinkAndReturnToken($sessionId, ['password' => 'coach-secret']);
+
+        for ($attempt = 0; $attempt < 20; ++$attempt) {
+            $this->client->request('GET', sprintf('/api/shared-review/%s', $token), [], [], ['HTTP_X_SHARED_REVIEW_PASSWORD' => 'wrong']);
+            self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+        }
+
+        $this->client->request('GET', sprintf('/api/shared-review/%s', $token), [], [], ['HTTP_X_SHARED_REVIEW_PASSWORD' => 'coach-secret']);
+
+        self::assertSame(Response::HTTP_TOO_MANY_REQUESTS, $this->client->getResponse()->getStatusCode());
     }
 
     public function testExpiredSharedReviewTokenCannotView(): void
@@ -804,16 +850,13 @@ final class ReplayLabControllerTest extends AuthenticatedWebTestCase
     {
         $user = $this->entityManager?->getRepository(User::class)->findOneBy(['username' => $username]);
         if (!$user instanceof User) {
-            $user = (new User())
-                ->setUsername($username)
-                ->setPassword(self::hashTestPassword())
-                ->setIsActive(true);
+            $user = (new User())->setUsername($username);
             $this->entityManager?->persist($user);
-        } else {
-            $user
-                ->setPassword(self::hashTestPassword())
-                ->setIsActive(true);
         }
+        $user
+            ->setPassword(self::hashTestPassword())
+            ->setIsActive(true)
+            ->setRoles([UserRole::QA_TESTER->value]);
         $this->entityManager?->flush();
 
         $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([

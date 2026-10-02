@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep the dev-only Next.js badge clear of the mobile bottom navigation.
+  devIndicators: {position: "top-right"},
   experimental: {
     optimizePackageImports: [
       "@mui/material",

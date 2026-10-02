@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\User;
+use App\Util\Enum\ModerationState;
 use App\Util\Enum\UserRole;
 
 class AuthorizationPolicyService
@@ -39,6 +40,13 @@ class AuthorizationPolicyService
     public function canModerateContent(?User $actor): bool
     {
         return $this->canEditAnyContent($actor);
+    }
+
+    public function canViewModeratedContent(?User $actor, ?User $owner, string $moderationState): bool
+    {
+        return ModerationState::APPROVED->value === $moderationState
+            || $this->canEditOwnContent($actor, $owner)
+            || $this->canEditAnyContent($actor);
     }
 
     public function canManageUsers(?User $actor): bool

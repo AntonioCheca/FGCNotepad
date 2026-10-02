@@ -21,6 +21,7 @@ import {ScenarioMatrixViewer} from "@/src/features/scenarios/detail/rendering/Sc
 import {ScenarioPersonalizedDefenderControl} from "@/src/features/scenarios/detail/rendering/ScenarioPersonalizedDefenderControl";
 import {ScenarioResourcesPanel} from "@/src/features/scenarios/detail/rendering/ScenarioResourcesPanel";
 import {ScenarioSummaryCard} from "@/src/features/scenarios/detail/rendering/ScenarioSummaryCard";
+import {MobileCollapsible, MobileOrder} from "@/src/components/ui/tactical/MobileLayout";
 
 export default function ScenarioDetailPage() {
     const router = useRouter();
@@ -147,47 +148,55 @@ export default function ScenarioDetailPage() {
                     refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
                     onRefreshDynamicCombos={() => void dynamicResolution.refreshDynamicCombosWithLoading()}
                 />
-                <ScenarioComboEnvironmentCard
-                    scenario={scenario}
-                    includeCornerSpecific={includeCornerSpecific}
-                    onIncludeCornerSpecificChange={setIncludeCornerSpecific}
-                    theme={theme}
-                />
-                <ScenarioExecutionControls
-                    executionSelection={executionSelection}
-                    isAuthenticated={isAuthenticated}
-                    onExecutionSelectionChange={setExecutionSelection}
-                    theme={theme}
-                />
-                <ScenarioSummaryCard scenario={scenario} />
-                <ScenarioResourcesPanel
-                    scenarioResources={scenarioResources}
-                    attackerLifeMax={attackerLifeMax}
-                    defenderLifeMax={defenderLifeMax}
-                    scenario={scenario}
-                    objectDefinitions={comboContextCatalog?.characterStatuses ?? []}
-                    dynamicRefreshQueued={dynamicResolution.dynamicRefreshQueued}
-                    refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
-                    theme={theme}
-                    onScenarioResourcesChange={setScenarioResources}
-                />
-                {scenario.scenarioType === "aggregated_oki" ? (
-                    <ScenarioPersonalizedDefenderControl
-                        personalizedDefenderId={personalizedDefenderId}
-                        characters={characters}
+                <MobileCollapsible title="Calculation settings" order={3}>
+                    <ScenarioComboEnvironmentCard
+                        scenario={scenario}
+                        includeCornerSpecific={includeCornerSpecific}
+                        onIncludeCornerSpecificChange={setIncludeCornerSpecific}
                         theme={theme}
-                        onPersonalizedDefenderIdChange={setPersonalizedDefenderId}
                     />
-                ) : null}
-                <ScenarioMatrixViewer
-                    scenario={scenario}
-                    scenarioId={scenarioId}
-                    columnVisibilityByLabel={columnVisibilityByLabel}
-                    layerSolveSnapshots={dynamicResolution.layerSolveSnapshots}
-                    linkedCellResolutions={dynamicResolution.linkedCellResolutions}
-                    scenarioResources={scenarioResources}
-                    onRefreshDynamicCells={dynamicResolution.refreshDynamicCombos}
-                />
+                    <ScenarioExecutionControls
+                        executionSelection={executionSelection}
+                        isAuthenticated={isAuthenticated}
+                        onExecutionSelectionChange={setExecutionSelection}
+                        theme={theme}
+                    />
+                </MobileCollapsible>
+                <MobileOrder order={1}>
+                    <ScenarioSummaryCard scenario={scenario} />
+                </MobileOrder>
+                <MobileCollapsible title="Resources" order={4}>
+                    <ScenarioResourcesPanel
+                        scenarioResources={scenarioResources}
+                        attackerLifeMax={attackerLifeMax}
+                        defenderLifeMax={defenderLifeMax}
+                        scenario={scenario}
+                        objectDefinitions={comboContextCatalog?.characterStatuses ?? []}
+                        dynamicRefreshQueued={dynamicResolution.dynamicRefreshQueued}
+                        refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
+                        theme={theme}
+                        onScenarioResourcesChange={setScenarioResources}
+                    />
+                    {scenario.scenarioType === "aggregated_oki" ? (
+                        <ScenarioPersonalizedDefenderControl
+                            personalizedDefenderId={personalizedDefenderId}
+                            characters={characters}
+                            theme={theme}
+                            onPersonalizedDefenderIdChange={setPersonalizedDefenderId}
+                        />
+                    ) : null}
+                </MobileCollapsible>
+                <MobileOrder order={2}>
+                    <ScenarioMatrixViewer
+                        scenario={scenario}
+                        scenarioId={scenarioId}
+                        columnVisibilityByLabel={columnVisibilityByLabel}
+                        layerSolveSnapshots={dynamicResolution.layerSolveSnapshots}
+                        linkedCellResolutions={dynamicResolution.linkedCellResolutions}
+                        scenarioResources={scenarioResources}
+                        onRefreshDynamicCells={dynamicResolution.refreshDynamicCombos}
+                    />
+                </MobileOrder>
             </AppBox>
         </AppContainer>
     );

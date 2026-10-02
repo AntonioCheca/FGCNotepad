@@ -13,7 +13,7 @@ type ViewerMode = "offense" | "defense";
 type SelectedElement = {type: "connection"; routeId: string; key: string} | null;
 type MarkerTheme = {
     typography: {fontFamily?: string; button: {fontSize?: string | number; fontWeight?: string | number; letterSpacing?: string | number; textTransform?: string}};
-    fgc: {chip: {errorBg: string; errorText: string; warningBg: string; warningText: string; infoBg: string; infoText: string}; feedback: {error: string; warning: string; success: string; info: string}; focus: {outline: string}; accent: {success: string}};
+    fgc: {chip: {errorBg: string; errorText: string; warningBg: string; warningText: string; infoBg: string; infoText: string}; feedback: {error: string; errorText: string; warning: string; success: string; info: string}; focus: {outline: string}; accent: {success: string}};
     shadows: string[];
 };
 type MarkerPalette = {backgroundColor: (theme: MarkerTheme) => string; borderColor: (theme: MarkerTheme) => string; color: (theme: MarkerTheme) => string};
@@ -70,7 +70,7 @@ function Swimlane({route, mode, selectedElement, defenseByGapKey, adaptationsByG
                     {!route.isMain && (route.branchAnchor.stepOrdinal || route.branchAnchor.connectionId) ? <AppTypography variant="caption" color="text.secondary">Branches at {route.branchAnchor.stepOrdinal ? `move ${route.branchAnchor.stepOrdinal}` : "documented link"}</AppTypography> : null}
                 </AppBox>
 
-                <AppBox sx={{display: "flex", alignItems: "stretch", gap: 0.65, overflowX: "auto", pb: 0.4, scrollSnapType: "x proximity", mx: {xs: -0.25, md: 0}, px: {xs: 0.25, md: 0}}}>
+                <AppBox sx={{display: "flex", flexDirection: {xs: "column", md: "row"}, alignItems: "stretch", gap: 0.65, overflowX: {xs: "visible", md: "auto"}, pb: 0.4, scrollSnapType: {md: "x proximity"}, mx: {xs: -0.25, md: 0}, px: {xs: 0.25, md: 0}}}>
                     {route.steps.map((step, index) => {
                         const connection = connectionsByDestination.get(step.ordinal) ?? null;
                         return (
@@ -96,14 +96,14 @@ function ReasonText({route}: {route: BlockstringRoute}) {
 }
 
 function ModeButton({active, onClick, children}: {active: boolean; onClick: () => void; children: React.ReactNode}) {
-    return <AppButton type="button" size="small" variant="text" color="secondary" onClick={onClick} sx={{minWidth: {xs: 0, sm: 96}, fontWeight: 800, border: "1px solid", borderColor: active ? "fgc.accent.selected" : "transparent", borderRadius: 2, backgroundColor: active ? "fgc.surface.raised" : "transparent", color: active ? "fgc.accent.selected" : "text.secondary", boxShadow: active ? 1 : 0, '&:hover': {backgroundColor: active ? "fgc.surface.raised" : "fgc.selection.hover"}}}>{children}</AppButton>;
+    return <AppButton type="button" size="small" variant="text" color="secondary" onClick={onClick} sx={{minWidth: {xs: 0, sm: 96}, fontWeight: 800, border: "1px solid", borderColor: active ? "fgc.accent.selected" : "transparent", borderRadius: 2, backgroundColor: active ? "fgc.surface.raised" : "transparent", color: active ? "fgc.accent.selectedText" : "text.secondary", boxShadow: active ? 1 : 0, '&:hover': {backgroundColor: active ? "fgc.surface.raised" : "fgc.selection.hover"}}}>{children}</AppButton>;
 }
 
 function MoveCard({step}: {step: BlockstringStep}) {
     return (
-        <AppBox sx={{border: "1px solid", borderColor: "fgc.border.default", borderRadius: 2.25, backgroundColor: "fgc.surface.subtle", color: "text.primary", minWidth: {xs: 126, sm: 144}, maxWidth: 170, p: 1, display: "grid", gridTemplateRows: "20px 34px", gap: 0.55, textAlign: "center", justifyItems: "center", scrollSnapAlign: "start"}}>
+        <AppBox sx={{border: "1px solid", borderColor: "fgc.border.default", borderRadius: 2.25, backgroundColor: "fgc.surface.subtle", color: "text.primary", minWidth: {xs: 0, md: 144}, maxWidth: {xs: "none", md: 170}, p: 1, display: "grid", gridTemplateRows: {xs: "auto", md: "20px 34px"}, gridTemplateColumns: {xs: "32px minmax(0, 1fr)", md: "none"}, alignItems: "center", gap: 0.55, textAlign: {xs: "left", md: "center"}, justifyItems: {xs: "start", md: "center"}, scrollSnapAlign: "start"}}>
             <AppTypography variant="caption" color="text.secondary">#{step.ordinal}</AppTypography>
-            <AppTypography variant="subtitle1" sx={{fontWeight: 900, letterSpacing: "0.02em", lineHeight: 1.1, textAlign: "center"}}>{step.move?.numpadNotation ?? "Unknown"}</AppTypography>
+            <AppTypography variant="subtitle1" sx={{fontWeight: 900, letterSpacing: "0.02em", lineHeight: 1.1, textAlign: {xs: "left", md: "center"}}}>{step.move?.numpadNotation ?? "Unknown"}</AppTypography>
         </AppBox>
     );
 }
@@ -114,7 +114,7 @@ function ConnectionSegment({connection, mode, selected, defenseByGapKey, adaptat
     const adaptationCount = gap ? (adaptationsByGapKey.get(gapKey(gap)) ?? []).length : 0;
     const interactive = Boolean(gap) || connection.type === "hit_confirm" || connection.type === "not_confirmable";
     return (
-        <AppBox sx={{minWidth: 118, display: "grid", placeItems: "center", alignContent: "center", gap: 0.45}}>
+        <AppBox sx={{minWidth: {xs: 0, md: 118}, display: "grid", placeItems: "center", alignContent: "center", gap: 0.45, py: {xs: 0.25, md: 0}}}>
             {gap?.timing === "before_step" ? <FrameAdvantageText value={gap.frameAdvantage ?? 0} /> : null}
             <ConnectionMarker connection={connection} mode={mode} selected={selected} hasDefense={hasDefense} adaptationCount={adaptationCount} interactive={interactive} onClick={onSelect} />
         </AppBox>
@@ -122,7 +122,7 @@ function ConnectionSegment({connection, mode, selected, defenseByGapKey, adaptat
 }
 
 function ConnectionFallback() {
-    return <AppBox sx={{minWidth: 72, display: "grid", placeItems: "center", color: "text.secondary"}}><AppTypography variant="caption" sx={{fontWeight: 800}}>true</AppTypography></AppBox>;
+    return <AppBox sx={{minWidth: {xs: 0, md: 72}, display: "grid", placeItems: "center", color: "text.secondary"}}><AppTypography variant="caption" sx={{fontWeight: 800}}>true</AppTypography></AppBox>;
 }
 
 function FrameAdvantageText({value}: {value: number}) {
@@ -335,7 +335,7 @@ function frameAdvantageColor(value: number, theme: MarkerTheme): string {
         return theme.fgc.accent.success;
     }
     if (value < 0) {
-        return theme.fgc.feedback.error;
+        return theme.fgc.feedback.errorText;
     }
     return theme.fgc.feedback.info;
 }

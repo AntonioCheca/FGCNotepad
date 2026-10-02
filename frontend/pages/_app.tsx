@@ -21,6 +21,7 @@ export default function App({Component, pageProps}: AppProps) {
         <>
             <Head>
                 <title>FG Theory</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
                 <link rel="icon" href="/logos/favicon-color-pos.svg"/>
                 <meta name="theme-color" content={BROWSER_THEME_COLOR}/>
                 <script dangerouslySetInnerHTML={{__html: THEME_MODE_PRELOAD_SCRIPT}} />

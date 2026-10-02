@@ -5,6 +5,7 @@ namespace App\Tests\Controller\api;
 use App\Controller\api\MixedStrategyGameController;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Response;
 
 class MixedStrategyGameControllerTest extends AuthenticatedWebTestCase
 {
@@ -32,5 +33,19 @@ class MixedStrategyGameControllerTest extends AuthenticatedWebTestCase
 
         $this->assertArrayHasKey('equilibria', $data);
         $this->assertNotEmpty($data['equilibria']);
+    }
+
+    public function testSolveGameRejectsInvalidMatrixWithClientError(): void
+    {
+        $this->client->request(
+            'POST',
+            '/api/solve_game',
+            [],
+            [],
+            array_merge($this->getHeaders(), ['CONTENT_TYPE' => 'application/json']),
+            json_encode(['game' => ['A1' => ['B1' => 'not-a-number']]])
+        );
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 }

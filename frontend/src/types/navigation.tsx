@@ -13,3 +13,10 @@ export interface NavigationSection {
     title: string;
     items: NavigationItem[];
 }
+
+export interface MobileTab {
+    label: string;
+    href: string;
+    icon: JSX.Element;
+    activePrefixes: string[];
+}

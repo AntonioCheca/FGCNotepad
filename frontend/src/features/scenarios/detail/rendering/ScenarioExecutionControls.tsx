@@ -6,9 +6,8 @@ import {AppFormControl} from "@/src/components/ui/AppFormControl";
 import {AppInputLabel} from "@/src/components/ui/AppInputLabel";
 import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
 import {AppSelect} from "@/src/components/ui/AppSelect";
-import {AppTooltip} from "@/src/components/ui/AppTooltip";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import {HelpOutlineOutlinedIcon} from "@/src/components/ui/AppIcons";
+import {HelpTip} from "@/src/components/ui/tactical/HelpTip";
 import type {Theme} from "@/src/components/ui/AppThemeUtils";
 import type {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
 import {getExecutionModeBadgeLabel} from "../scenarioDetailUtils";
@@ -25,11 +24,7 @@ export function ScenarioExecutionControls({executionSelection, isAuthenticated, 
         <AppBox sx={{display: "flex", alignItems: "center", gap: {xs: 0.75, md: 1.2}, flexWrap: "wrap", p: {xs: 1, md: 1.2}, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.5, backgroundColor: theme.fgc.surface.base, minWidth: 0}}>
             <AppBox sx={{display: "flex", alignItems: "center", gap: 0.5, minWidth: {xs: "100%", sm: "auto"}}}>
                 <AppTypography variant="body2">Execution Mode</AppTypography>
-                <AppTooltip title="Switch how dynamic combo values are calculated for this scenario view.">
-                    <AppBox component="span" sx={{display: "inline-flex", cursor: "help"}}>
-                        <HelpOutlineOutlinedIcon fontSize="small"/>
-                    </AppBox>
-                </AppTooltip>
+                <HelpTip text="Switch how dynamic combo values are calculated for this scenario view."/>
             </AppBox>
             <AppFormControl size="small" sx={{minWidth: {xs: "100%", sm: 190}}}>
                 <AppInputLabel id="scenario-execution-mode-label">Mode</AppInputLabel>

@@ -1,9 +1,11 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {useRouter} from "next/router";
+import Link from "next/link";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppBox} from "@/src/components/ui/AppBox";
+import {AppButton} from "@/src/components/ui/AppButton";
 import {AppChip} from "@/src/components/ui/AppChip";
 import ComboFilters, {ComboSearchFilters} from "@/src/components/combos/ComboFilters";
 import ComboTable from "@/src/components/combos/ComboTable";
@@ -97,8 +99,11 @@ export default function SearchCombosPage() {
                 badgeLabel={`${combos.length} result${combos.length === 1 ? "" : "s"}`}
             >
                 {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}
-                <AppBox sx={{display: "flex", justifyContent: {xs: "stretch", sm: "flex-end"}}}>
+                <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: {xs: "stretch", sm: "flex-end"}, alignItems: {sm: "center"}, gap: 1}}>
                     <ComboExecutionModeSelect value={executionMode} onChange={setChosenExecutionMode} disabled={profileExecutionModeLoading} />
+                    <Link href="/combos/new" style={{textDecoration: "none"}}>
+                        <AppButton type="button" variant="contained" color="primary" sx={{width: {xs: "100%", sm: "auto"}}}>Create combo</AppButton>
+                    </Link>
                 </AppBox>
                 <ComboFilters initialFilters={initialFilters} onChange={handleFiltersChange} />
 

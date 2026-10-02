@@ -8,6 +8,7 @@ use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
 use App\Repository\ScenarioRepository;
 use App\Service\AggregatedDefenseCatalogService;
+use App\Service\AuthorizationPolicyService;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
 use App\Service\ScenarioMatrixMapper;
@@ -31,7 +32,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Uid\Uuid;
-use App\Util\Enum\ModerationState;
 
 #[Route('/api/scenarios', name: 'api_scenarios_')]
 class ScenarioController extends AbstractController
@@ -55,6 +55,7 @@ class ScenarioController extends AbstractController
         private readonly CharacterResourceService $requirementSpecificCharacterCatalog,
         private readonly EndpointAuthorizationService $endpointAuthorizationService,
         private readonly ModerationTransitionService $moderationTransitionService,
+        private readonly AuthorizationPolicyService $authorizationPolicyService,
     ) {
     }
 
@@ -124,20 +125,7 @@ class ScenarioController extends AbstractController
     #[Route('/{id}', name: 'read', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['GET'])]
     public function read(string $id): JsonResponse
     {
-        $scenario = $this->findByPublicId($id);
-
-        if ($scenario->getModerationState() !== ModerationState::APPROVED->value) {
-            $actor = $this->extractCurrentUser();
-            if (null === $actor) {
-                throw new NotFoundHttpException(sprintf('Scenario with ID %s not found', $id));
-            }
-
-            try {
-                $this->endpointAuthorizationService->assertCanMutateOwnedContent($actor, $scenario->getAuthor(), 'Scenario not found.');
-            } catch (AccessDeniedHttpException) {
-                throw new NotFoundHttpException(sprintf('Scenario with ID %s not found', $id));
-            }
-        }
+        $scenario = $this->findViewableByPublicId($id);
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
     }
@@ -277,7 +265,7 @@ class ScenarioController extends AbstractController
     #[Route('/{id}/solve-layers', name: 'solve_layers', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
     public function solveLayers(string $id, Request $request): JsonResponse
     {
-        $scenario = $this->findByPublicId($id);
+        $scenario = $this->findViewableByPublicId($id);
         $execution = $this->parseExecutionModePayload($request);
 
         if ('my_knowledge' === $execution['mode']) {
@@ -306,7 +294,7 @@ class ScenarioController extends AbstractController
     #[Route('/{id}/solve-linked-ev', name: 'solve_linked_ev', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['POST'])]
     public function solveLinkedExpectedValue(string $id, Request $request): JsonResponse
     {
-        $scenario = $this->findByPublicId($id);
+        $scenario = $this->findViewableByPublicId($id);
         $execution = $this->parseExecutionModePayload($request);
         $requestPayload = $this->decodeOptionalRequestBody($request);
         $resourceContext = $this->scenarioResourceContextService->parseOptional($requestPayload);
@@ -388,7 +376,7 @@ class ScenarioController extends AbstractController
         $resourceContext = $this->scenarioResourceContextService->parseOptional($data);
         $comboContext = null;
         if (isset($data['scenarioId']) && is_string($data['scenarioId']) && '' !== trim($data['scenarioId'])) {
-            $comboContext = $this->scenarioComboContextService->buildEffectiveContext($this->findByPublicId(trim($data['scenarioId'])), $data);
+            $comboContext = $this->scenarioComboContextService->buildEffectiveContext($this->findViewableByPublicId(trim($data['scenarioId'])), $data);
         }
         $resourceOwner = true === ($data['isComboInitiatorAttacker'] ?? true) ? 'attacker' : 'defender';
 
@@ -558,6 +546,16 @@ class ScenarioController extends AbstractController
 
         $scenario = $this->scenarioRepository->findOneByPublicId($id);
         if (null === $scenario) {
+            throw new NotFoundHttpException(sprintf('Scenario with ID %s not found', $id));
+        }
+
+        return $scenario;
+    }
+
+    private function findViewableByPublicId(string $id): Scenario
+    {
+        $scenario = $this->findByPublicId($id);
+        if (!$this->authorizationPolicyService->canViewModeratedContent($this->extractCurrentUser(), $scenario->getAuthor(), $scenario->getModerationState())) {
             throw new NotFoundHttpException(sprintf('Scenario with ID %s not found', $id));
         }
 

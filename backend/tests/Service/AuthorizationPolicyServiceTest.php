@@ -39,6 +39,19 @@ class AuthorizationPolicyServiceTest extends TestCase
         self::assertFalse($this->policy->canEditOwnContent($owner, null));
     }
 
+    public function testCanViewModeratedContentHidesUnapprovedContentFromStrangers(): void
+    {
+        $owner = $this->newUser('owner', [UserRole::USER]);
+        $stranger = $this->newUser('stranger', [UserRole::USER]);
+        $moderator = $this->newUser('moderator', [UserRole::MODERATOR]);
+
+        self::assertTrue($this->policy->canViewModeratedContent(null, $owner, 'approved'));
+        self::assertFalse($this->policy->canViewModeratedContent(null, $owner, 'pending_review'));
+        self::assertFalse($this->policy->canViewModeratedContent($stranger, $owner, 'pending_review'));
+        self::assertTrue($this->policy->canViewModeratedContent($owner, $owner, 'pending_review'));
+        self::assertTrue($this->policy->canViewModeratedContent($moderator, $owner, 'hidden'));
+    }
+
     public function testCanEditAnyContentRoleMatrix(): void
     {
         $user = $this->newUser('user', [UserRole::USER]);

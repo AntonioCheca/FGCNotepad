@@ -1,18 +1,30 @@
-import {NavigationSection} from "@/src/types/navigation";
+import {MobileTab, NavigationSection} from "@/src/types/navigation";
+import type {UserRole} from "@/src/types/auth";
 import {
     AccountCircleOutlinedIcon,
+    AltRouteIcon,
     ArticleOutlinedIcon,
+    BoltIcon,
+    FactCheckOutlinedIcon,
     HelpOutlineOutlinedIcon,
+    HomeOutlinedIcon,
+    Inventory2OutlinedIcon,
+    LightbulbOutlinedIcon,
+    ManageAccountsOutlinedIcon,
     PendingActionsIcon,
+    PlaceOutlinedIcon,
     QueryStatsIcon,
-    SearchOutlinedIcon,
-    SettingsOutlinedIcon,
     ScheduleIcon,
+    ShieldOutlinedIcon,
     SportsKabaddiOutlinedIcon,
     SportsMartialArtsOutlinedIcon,
     SportsMmaIcon,
+    TableChartOutlinedIcon,
     TimelineIcon,
+    UploadFileOutlinedIcon,
 } from "@/src/components/ui/AppIcons";
+
+const QA_ROLES: UserRole[] = ["ROLE_QA_TESTER", "ROLE_ADMIN"];
 
 export const navigationSections: NavigationSection[] = [
     {
@@ -21,12 +33,14 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Search Combos",
                 href: "/combos",
-                icon: <SportsMmaIcon/> // related but distinct sports icon
+                icon: <SportsMmaIcon/>
             },
             {
-                label: "Create Combo",
-                href: "/combos/new",
-                icon: <SportsMartialArtsOutlinedIcon/> // main combos icon
+                label: "Recommend a Combo",
+                href: "/profile/recommend-combo",
+                icon: <LightbulbOutlinedIcon/>,
+                requiresAuth: true,
+                allowedRoles: QA_ROLES,
             }
         ]
     },
@@ -36,17 +50,12 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Search Okis",
                 href: "/okis",
-                icon: <SearchOutlinedIcon/>
-            },
-            {
-                label: "Create Oki",
-                href: "/okis/new",
                 icon: <SportsKabaddiOutlinedIcon/>
             },
             {
                 label: "Reversals",
                 href: "/okis/reversals",
-                icon: <PendingActionsIcon/>
+                icon: <BoltIcon/>
             }
         ]
     },
@@ -61,13 +70,7 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Defense",
                 href: "/blockstrings/defense",
-                icon: <SportsKabaddiOutlinedIcon/>
-            },
-            {
-                label: "Create Blockstring",
-                href: "/blockstrings/new",
-                icon: <SportsMmaIcon/>,
-                requiresAuth: true,
+                icon: <ShieldOutlinedIcon/>
             }
         ]
     },
@@ -77,12 +80,7 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Search Scenarios",
                 href: "/scenarios",
-                icon: <SearchOutlinedIcon/>
-            },
-            {
-                label: "Create Scenario",
-                href: "/scenarios/new",
-                icon: <SportsKabaddiOutlinedIcon/>
+                icon: <AltRouteIcon/>
             }
         ]
     },
@@ -114,34 +112,34 @@ export const navigationSections: NavigationSection[] = [
                 href: "/replay-lab",
                 icon: <TimelineIcon/>,
                 requiresAuth: true,
+                allowedRoles: QA_ROLES,
             },
             {
                 label: "Practice Tasks",
                 href: "/replay-lab/practice-tasks",
                 icon: <PendingActionsIcon/>,
                 requiresAuth: true,
+                allowedRoles: QA_ROLES,
             },
             {
                 label: "Study Deck",
                 href: "/replay-lab/study-deck",
                 icon: <ScheduleIcon/>,
                 requiresAuth: true,
+                allowedRoles: QA_ROLES,
             }
         ]
-    },
+    }
+];
+
+export const accountNavigationSections: NavigationSection[] = [
     {
         title: "Account",
         items: [
             {
                 label: "Profile",
                 href: "/profile",
-                icon: <AccountCircleOutlinedIcon/>, // user icon for profile
-                requiresAuth: true,
-            },
-            {
-                label: "Recommend me a new combo",
-                href: "/profile/recommend-combo",
-                icon: <SportsMartialArtsOutlinedIcon/>,
+                icon: <AccountCircleOutlinedIcon/>,
                 requiresAuth: true,
             }
         ]
@@ -152,28 +150,28 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Moderation Queue",
                 href: "/moderation/queue",
-                icon: <PendingActionsIcon/>,
+                icon: <FactCheckOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
             },
             {
                 label: "Frame Data",
                 href: "/moderation/frame-data",
-                icon: <ArticleOutlinedIcon/>,
+                icon: <TableChartOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
             },
             {
                 label: "Resources",
                 href: "/moderation/resources",
-                icon: <ArticleOutlinedIcon/>,
+                icon: <Inventory2OutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
             },
             {
                 label: "Situations",
                 href: "/admin/situations",
-                icon: <SearchOutlinedIcon/>,
+                icon: <PlaceOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_MODERATOR", "ROLE_ADMIN"],
             }
@@ -185,14 +183,14 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "User Management",
                 href: "/admin/users",
-                icon: <SettingsOutlinedIcon/>,
+                icon: <ManageAccountsOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_ADMIN"],
             },
             {
                 label: "Replay Import",
                 href: "/admin/replay-combo-imports",
-                icon: <TimelineIcon/>,
+                icon: <UploadFileOutlinedIcon/>,
                 requiresAuth: true,
                 allowedRoles: ["ROLE_ADMIN"],
             }
@@ -204,8 +202,16 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "About Us",
                 href: "/about/aboutUs",
-                icon: <HelpOutlineOutlinedIcon/> // help icon for info/about
+                icon: <HelpOutlineOutlinedIcon/>
             }
         ]
     }
+];
+
+// Phone/tablet bottom bar. Everything else is reachable from its "More" sheet.
+export const mobileTabs: MobileTab[] = [
+    {label: "Home", href: "/", icon: <HomeOutlinedIcon/>, activePrefixes: []},
+    {label: "Combos", href: "/combos", icon: <SportsMmaIcon/>, activePrefixes: ["/combos", "/profile/recommend-combo"]},
+    {label: "Okis", href: "/okis", icon: <SportsKabaddiOutlinedIcon/>, activePrefixes: ["/okis"]},
+    {label: "Scenarios", href: "/scenarios", icon: <AltRouteIcon/>, activePrefixes: ["/scenarios"]},
 ];

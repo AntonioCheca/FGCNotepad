@@ -57,7 +57,7 @@ final class FgTheorySupplementalCsvImportService
             throw new \RuntimeException(sprintf('Unable to open CSV file "%s".', $path));
         }
 
-        $headers = fgetcsv($handle);
+        $headers = fgetcsv($handle, null, ',', '"', '\\');
         if (!is_array($headers)) {
             fclose($handle);
             throw new \InvalidArgumentException('CSV file must contain a header row.');
@@ -81,7 +81,7 @@ final class FgTheorySupplementalCsvImportService
         }
 
         $lineNumber = 1;
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, null, ',', '"', '\\')) !== false) {
             ++$lineNumber;
             $data = $this->combineRow($headers, $row);
             if ($this->isEmptyRow($data)) {

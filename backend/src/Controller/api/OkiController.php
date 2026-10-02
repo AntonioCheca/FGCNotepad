@@ -98,7 +98,7 @@ final class OkiController extends AbstractController
     #[Route('/reversals', name: 'reversal_create', methods: ['POST'])]
     public function createReversal(Request $request): JsonResponse
     {
-        $this->requireAuthenticated();
+        $this->authorizationService->assertCanModerateContent($this->requireAuthenticated());
         $payload = $this->decodePayload($request);
         $reversal = new CharacterReversal();
 
@@ -116,7 +116,7 @@ final class OkiController extends AbstractController
     #[Route('/reversals/{id}', name: 'reversal_update', requirements: ['id' => '\\d+'], methods: ['PATCH'])]
     public function updateReversal(int $id, Request $request): JsonResponse
     {
-        $this->requireAuthenticated();
+        $this->authorizationService->assertCanModerateContent($this->requireAuthenticated());
         $reversal = $this->characterReversalRepository->find($id);
         if (!$reversal instanceof CharacterReversal) {
             throw new NotFoundHttpException(sprintf('Reversal %d not found.', $id));
@@ -135,7 +135,7 @@ final class OkiController extends AbstractController
     #[Route('/reversals/{id}', name: 'reversal_delete', requirements: ['id' => '\\d+'], methods: ['DELETE'])]
     public function deleteReversal(int $id): JsonResponse
     {
-        $this->requireAuthenticated();
+        $this->authorizationService->assertCanModerateContent($this->requireAuthenticated());
         $reversal = $this->characterReversalRepository->find($id);
         if (!$reversal instanceof CharacterReversal) {
             throw new NotFoundHttpException(sprintf('Reversal %d not found.', $id));

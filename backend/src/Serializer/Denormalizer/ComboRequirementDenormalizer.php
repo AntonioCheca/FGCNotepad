@@ -15,12 +15,12 @@ class ComboRequirementDenormalizer implements DenormalizerInterface
         private ComboSequencesRepository $sequencesRepository,
     ) {}
 
-    public function supportsDenormalization(mixed $data, string $type, string $format = null, array $context = []): bool
+    public function supportsDenormalization(mixed $data, string $type, ?string $format = null, array $context = []): bool
     {
         return $type === ComboRequirement::class;
     }
 
-    public function denormalize(mixed $data, string $type, string $format = null, array $context = []): ComboRequirement
+    public function denormalize(mixed $data, string $type, ?string $format = null, array $context = []): ComboRequirement
     {
         if (!is_array($data)) {
             throw new NotNormalizableValueException('Data must be an array.');

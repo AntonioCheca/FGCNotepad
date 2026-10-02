@@ -47,10 +47,12 @@ type FgcTokenSet = {
         utilityHover: string;
         danger: string;
         dangerHover: string;
+        primaryText: string;
         disabled: string;
     };
     feedback: {
         error: string;
+        errorText: string;
         warning: string;
         success: string;
         info: string;
@@ -77,6 +79,7 @@ type FgcTokenSet = {
         parser: string;
         primary: string;
         selected: string;
+        selectedText: string;
         warning: string;
         success: string;
         danger: string;
@@ -193,10 +196,12 @@ const lightTokens: FgcTokenSet = {
         utilityHover: "#da6b00",
         danger: "#b91c1c",
         dangerHover: "#991b1b",
+        primaryText: "#d72829",
         disabled: "#94a3b8",
     },
     feedback: {
         error: "#d72829",
+        errorText: "#b91c1c",
         warning: "#f78002",
         success: "#2f855a",
         info: "#246f89",
@@ -223,6 +228,7 @@ const lightTokens: FgcTokenSet = {
         parser: "#f78002",
         primary: "#d72829",
         selected: "#246f89",
+        selectedText: "#246f89",
         warning: "#fcbf49",
         success: "#2f855a",
         danger: "#b91c1c",
@@ -334,10 +340,14 @@ const darkTokens: FgcTokenSet = {
         utilityHover: "#e5a835",
         danger: "#d72829",
         dangerHover: "#b91c1c",
+        // Derived shade: brand red as text/outline on navy surfaces is ~3.2:1; #ff6b6b keeps >= 4.5:1 on canvas, paper and raised surfaces.
+        primaryText: "#ff6b6b",
         disabled: "#2a4b5b",
     },
     feedback: {
         error: "#d72829",
+        // Same derived shade as action.primaryText; fills keep `error`, text and outlines use `errorText`.
+        errorText: "#ff6b6b",
         warning: "#fcbf49",
         success: "#a2ccdb",
         info: "#4d9eba",
@@ -364,6 +374,8 @@ const darkTokens: FgcTokenSet = {
         parser: "#f78002",
         primary: "#d72829",
         selected: "#4d9eba",
+        // Teal Light: Teal Mid as text on raised surfaces is 4.3:1.
+        selectedText: "#a2ccdb",
         warning: "#fcbf49",
         success: "#7ccfa6",
         danger: "#d72829",
@@ -431,6 +443,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
     return {
         palette: {
             mode,
+            fgc: tokens,
             ...(mode === "light"
                 ? {
                     primary: {
@@ -502,7 +515,8 @@ export const getDesignTokens = (mode: PaletteMode) => {
                         contrastText: "#f0f7fa",
                     },
                     error: {
-                        main: tokens.feedback.error,
+                        // Text-safe shade; filled error buttons are pinned back to the brand red in MuiButton.containedError.
+                        main: tokens.feedback.errorText,
                         light: "#e25354",
                         dark: "#8f191a",
                         contrastText: "#ffffff",
@@ -695,12 +709,31 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             color: theme.fgc.text.disabled,
                         },
                     }),
+                    containedError: ({theme}: {theme: Theme}) => ({
+                        backgroundColor: theme.fgc.action.danger,
+                        color: "#ffffff",
+                        ":hover": {
+                            backgroundColor: theme.fgc.action.dangerHover,
+                        },
+                    }),
+                    textError: ({theme}: {theme: Theme}) => ({
+                        color: theme.fgc.feedback.errorText,
+                    }),
                     outlinedError: ({theme}: {theme: Theme}) => ({
-                        borderColor: theme.fgc.feedback.error,
-                        color: theme.fgc.feedback.error,
+                        borderColor: theme.fgc.feedback.errorText,
+                        color: theme.fgc.feedback.errorText,
                         ":hover": {
                             borderColor: theme.fgc.action.dangerHover,
                             backgroundColor: theme.fgc.surface.sunken,
+                        },
+                    }),
+                },
+            },
+            MuiTab: {
+                styleOverrides: {
+                    textColorPrimary: ({theme}: {theme: Theme}) => ({
+                        "&.Mui-selected": {
+                            color: theme.fgc.action.primaryText,
                         },
                     }),
                 },
@@ -731,7 +764,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             boxShadow: `0 0 0 2px ${theme.fgc.selection.hover}`,
                         },
                         "&.Mui-error .MuiOutlinedInput-notchedOutline": {
-                            borderColor: theme.fgc.feedback.error,
+                            borderColor: theme.fgc.feedback.errorText,
                         },
                         "&.Mui-disabled": {
                             backgroundColor: theme.fgc.surface.sunken,
@@ -750,7 +783,7 @@ export const getDesignTokens = (mode: PaletteMode) => {
                             color: theme.fgc.text.primary,
                         },
                         "&.Mui-error": {
-                            color: theme.fgc.feedback.error,
+                            color: theme.fgc.feedback.errorText,
                         },
                         "&.Mui-disabled": {
                             color: theme.fgc.text.disabled,

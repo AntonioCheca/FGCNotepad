@@ -38,6 +38,24 @@ playwright-install:
 playwright-test-mobile:
 	docker compose exec -T frontend npm run test:mobile
 
+# Mobile layout scorecard against the running dev stack (see docs/mobile-audit.md)
+MOBILE_AUDIT_USERNAME ?= mobile-audit
+mobile-audit:
+	@test -n "$(MOBILE_AUDIT_PASSWORD)" || (echo "Set MOBILE_AUDIT_PASSWORD (see docs/mobile-audit.md)" && exit 1)
+	docker run --rm --network host \
+		-e AUDIT_APP_URL=http://localhost:3000 -e AUDIT_API_URL=http://localhost:8000/api \
+		-e AUDIT_USERNAME="$(MOBILE_AUDIT_USERNAME)" -e AUDIT_PASSWORD="$(MOBILE_AUDIT_PASSWORD)" \
+		-e AUDIT_OUTPUT_DIR=/out -e AUDIT_SCREENSHOTS="$(SCREENSHOTS)" -e AUDIT_ONLY="$(ONLY)" \
+		-v $(CURDIR)/frontend/node_modules:/w/node_modules:ro \
+		-v $(CURDIR)/frontend/scripts/mobile-audit:/w/scripts:ro \
+		-v $(CURDIR)/frontend/mobile-audit-results:/out \
+		-w /w mcr.microsoft.com/playwright:v$$(node -p "require('./frontend/node_modules/playwright/package.json').version" 2>/dev/null || docker compose exec -T frontend node -p "require('playwright/package.json').version")-noble \
+		node scripts/audit.mjs
+
+mobile-audit-seed:
+	@test -n "$(MOBILE_AUDIT_PASSWORD)" || (echo "Set MOBILE_AUDIT_PASSWORD (see docs/mobile-audit.md)" && exit 1)
+	docker compose exec -T -e AUDIT_API_URL=http://nginx:80/api -e AUDIT_USERNAME="$(MOBILE_AUDIT_USERNAME)" -e AUDIT_PASSWORD="$(MOBILE_AUDIT_PASSWORD)" frontend node scripts/mobile-audit/seed.mjs
+
 # Install all dependencies
 install: composer-install npm-install
 
@@ -196,4 +214,4 @@ help:
 	@echo ""
 	@echo "Run 'make help' to see this message"
 
-.PHONY: build up stop logs migrate migrate-test create-test-database composer-install npm-install playwright-install playwright-test-mobile bash frontend-bash psql prod-db-backup prod-db-backup-list prod-db-restore local-setup local-composer-install local-npm-install local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit verify-frontend-upgrade help
+.PHONY: mobile-audit mobile-audit-seed build up stop logs migrate migrate-test create-test-database composer-install npm-install playwright-install playwright-test-mobile bash frontend-bash psql prod-db-backup prod-db-backup-list prod-db-restore local-setup local-composer-install local-npm-install local-migrate local-migrate-test local-create-database local-create-test-database local-serve local-serve-detached local-frontend local-stop local-psql local-test check-frontend check-backend check audit-frontend audit-backend audit verify-frontend-upgrade help

@@ -159,7 +159,7 @@ export function ParserVerificationSection({
                                                 right: 2,
                                                 width: 18,
                                                 height: 18,
-                                                color: "fgc.action.danger",
+                                                color: "fgc.feedback.errorText",
                                                 "&:hover": {backgroundColor: "fgc.parser.nodeWarningBg"},
                                             }}
                                         >
@@ -299,7 +299,7 @@ export function ParserVerificationSection({
                                             event.stopPropagation();
                                             onRemoveStep(mappedStepIndex);
                                         }}
-                                        sx={{width: 34, height: 34, color: "fgc.action.danger"}}
+                                        sx={{width: 34, height: 34, color: "fgc.feedback.errorText"}}
                                     >
                                         <DeleteIcon sx={{fontSize: 17}} />
                                     </AppIconButton>

@@ -40,7 +40,7 @@ export default function ReplayImportsPage() {
 
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
-            <PageShell title="Replay Import">
+            <PageShell desktopOnly title="Replay Import">
                 <ReplayImportSection
                     title="Combo Export"
                     singleFormat="combo_export_v1"

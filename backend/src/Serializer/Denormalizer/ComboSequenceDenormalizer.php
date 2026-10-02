@@ -13,12 +13,12 @@ class ComboSequenceDenormalizer implements DenormalizerInterface, DenormalizerAw
 {
     use DenormalizerAwareTrait;
 
-    public function supportsDenormalization($data, string $type, string $format = null, array $context = []): bool
+    public function supportsDenormalization($data, string $type, ?string $format = null, array $context = []): bool
     {
         return $type === ComboSequences::class;
     }
 
-    public function denormalize($data, string $type, string $format = null, array $context = []): ComboSequences
+    public function denormalize($data, string $type, ?string $format = null, array $context = []): ComboSequences
     {
         if (!is_array($data)) {
             throw new NotNormalizableValueException('Data expected to be an array.');

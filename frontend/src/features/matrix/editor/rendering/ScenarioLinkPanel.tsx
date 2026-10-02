@@ -116,7 +116,7 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
 
                 <AppBox sx={(theme) => ({border: `1px solid ${theme.fgc.border.default}`, borderRadius: 1, overflowY: "auto", overflowX: "hidden", maxHeight: isInline ? "44vh" : "50vh", backgroundColor: theme.fgc.surface.base, minWidth: 0})}>
                     {loading ? <AppBox sx={{p: 1.5}}>Loading scenarios...</AppBox> : null}
-                    {!loading && error ? <AppBox sx={(theme) => ({p: 1.5, color: theme.fgc.feedback.error})}>{error}</AppBox> : null}
+                    {!loading && error ? <AppBox sx={(theme) => ({p: 1.5, color: theme.fgc.feedback.errorText})}>{error}</AppBox> : null}
                     {!loading && !error && items.length === 0 ? <AppBox sx={{p: 1.5}}>No scenarios found.</AppBox> : null}
                     {!loading && !error && items.length > 0 ? (
                         <AppBox>

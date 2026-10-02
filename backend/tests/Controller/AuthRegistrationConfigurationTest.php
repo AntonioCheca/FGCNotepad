@@ -10,6 +10,8 @@ use App\Service\RegistrationService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
+use Symfony\Component\RateLimiter\Storage\InMemoryStorage;
 
 final class AuthRegistrationConfigurationTest extends TestCase
 {
@@ -20,6 +22,7 @@ final class AuthRegistrationConfigurationTest extends TestCase
             $this->createMock(RegistrationInviteCodeService::class),
             'prod',
             false,
+            $this->registrationLimiter(),
         );
 
         $response = $controller->register(new Request(content: json_encode([
@@ -58,6 +61,7 @@ final class AuthRegistrationConfigurationTest extends TestCase
             $inviteCodeService,
             'prod',
             false,
+            $this->registrationLimiter(),
         );
 
         $response = $controller->register(new Request(content: json_encode([
@@ -68,5 +72,30 @@ final class AuthRegistrationConfigurationTest extends TestCase
 
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
         self::assertSame('User registered successfully.', json_decode((string) $response->getContent(), true)['message'] ?? null);
+    }
+
+    public function testRegistrationIsRateLimitedPerClient(): void
+    {
+        $controller = new AuthController(
+            $this->createMock(RegistrationService::class),
+            $this->createMock(RegistrationInviteCodeService::class),
+            'prod',
+            false,
+            $this->registrationLimiter(1),
+        );
+        $request = new Request(content: json_encode(['username' => 'blocked_user', 'password' => 'testpassword']));
+
+        $controller->register($request);
+        $response = $controller->register($request);
+
+        self::assertSame(Response::HTTP_TOO_MANY_REQUESTS, $response->getStatusCode());
+    }
+
+    private function registrationLimiter(int $limit = 5): RateLimiterFactory
+    {
+        return new RateLimiterFactory(
+            ['id' => 'registration', 'policy' => 'sliding_window', 'limit' => $limit, 'interval' => '1 hour'],
+            new InMemoryStorage(),
+        );
     }
 }

@@ -2,6 +2,7 @@ import React from "react";
 import dynamic from "next/dynamic";
 import {MatrixInsights} from "../services/matrixInsightService";
 import {StrategyMixChart} from "./StrategyMixChart";
+import styles from "./matrixEditorRendering.module.css";
 
 const ExpectedValueRangeChart = dynamic(
     () => import("./ExpectedValueRangeChart").then((module) => module.ExpectedValueRangeChart),
@@ -14,14 +15,7 @@ interface MatrixInsightsDashboardProps {
 
 export function MatrixInsightsDashboard({insights}: MatrixInsightsDashboardProps) {
     return (
-        <div
-            style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(300px, 1fr) minmax(360px, 1fr)",
-                gap: 10,
-                marginBottom: 10,
-            }}
-        >
+        <div className={styles.insightsDashboard}>
             <div style={{display: "grid", gridTemplateRows: "1fr 1fr", gap: 10, minWidth: 0}}>
                 <StrategyMixChart
                     title="Attacker Mix"

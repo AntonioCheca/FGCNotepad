@@ -161,7 +161,7 @@ function RecoveryWarnings({setup}: {setup: OkiSetup}) {
     return (
         <AppPaper variant="outlined" sx={{p: 1, borderRadius: 2, backgroundColor: "fgc.highlight.surface", borderColor: "fgc.feedback.error", display: "grid", gap: 0.35}}>
             {warnings.map((warning) => (
-                <AppTypography key={warning} variant="body2" sx={{fontWeight: 900, color: "fgc.feedback.error", textTransform: "uppercase", letterSpacing: 0.25}}>{warning}</AppTypography>
+                <AppTypography key={warning} variant="body2" sx={{fontWeight: 900, color: "fgc.feedback.errorText", textTransform: "uppercase", letterSpacing: 0.25}}>{warning}</AppTypography>
             ))}
         </AppPaper>
     );
@@ -217,7 +217,7 @@ function FactRail({facts, compact = false}: {facts: FactItem[]; compact?: boolea
             {facts.map((fact) => (
                 <AppBox key={`${fact.label}-${fact.value}`} sx={{display: "grid", gap: 0.1, minWidth: 0}}>
                     <AppTypography variant="body2" sx={{fontWeight: 850, color: "text.secondary", letterSpacing: 0.25, textTransform: "uppercase", lineHeight: 1.15}}>{fact.label}</AppTypography>
-                    <AppTypography variant="body2" sx={{fontWeight: 760, color: fact.danger ? "fgc.feedback.error" : "text.primary", lineHeight: 1.25}}>{fact.value}</AppTypography>
+                    <AppTypography variant="body2" sx={{fontWeight: 760, color: fact.danger ? "fgc.feedback.errorText" : "text.primary", lineHeight: 1.25}}>{fact.value}</AppTypography>
                 </AppBox>
             ))}
         </AppBox>
@@ -246,7 +246,7 @@ function RouteStep({node, index}: {node: OkiNode; index: number}) {
         >
             <AppTypography variant="body2" sx={{fontWeight: 850, color: "text.secondary", letterSpacing: 0.25}}>STEP {index + 1}</AppTypography>
             <AppTypography variant="h6" sx={{fontWeight: 880, lineHeight: 1.12}}>{node.move.numpadNotation}</AppTypography>
-            {node.optionType ? <AppTypography variant="body2" sx={{fontWeight: 780, color: "fgc.accent.selected", lineHeight: 1.15}}>{formatOkiLabel(node.optionType)}</AppTypography> : null}
+            {node.optionType ? <AppTypography variant="body2" sx={{fontWeight: 780, color: "fgc.accent.selectedText", lineHeight: 1.15}}>{formatOkiLabel(node.optionType)}</AppTypography> : null}
         </AppBox>
     );
 }
@@ -278,7 +278,7 @@ function InteractionList({title, items, danger}: {title: string; items: OkiNode[
 
     return (
         <AppBox sx={{display: "grid", alignContent: "start", gap: 0.35}}>
-            <AppTypography variant="body2" sx={{fontWeight: 820, color: danger ? "fgc.feedback.error" : "text.secondary"}}>{title}</AppTypography>
+            <AppTypography variant="body2" sx={{fontWeight: 820, color: danger ? "fgc.feedback.errorText" : "text.secondary"}}>{title}</AppTypography>
             {items.map((item) => <AppTypography key={item.id} variant="body2">{item.character ? `${item.character.name}: ` : ""}{item.defensiveMove.numpadNotation}</AppTypography>)}
         </AppBox>
     );
