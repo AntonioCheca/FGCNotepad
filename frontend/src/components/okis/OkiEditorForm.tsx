@@ -20,8 +20,12 @@ import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {formatOkiLabel, OKI_INTERACTION_RESULTS, OKI_NODE_PROPERTIES, OKI_OPTION_TYPES, OKI_STEP_TYPES} from "@/src/types/oki";
 import type {OkiInteractionResult, OkiNodeProperty, OkiOptionType, OkiProfileDetail, OkiStepType} from "@/src/types/oki";
 import {OkiMovePicker, type OkiMoveOption} from "./OkiMovePicker";
-import type {OkiInteractionDraft, OkiLinkDraft, OkiNodeDraft, OkiProfileDraft, OkiSetupDraft, OkiTreeChildDraft, OkiTreeNodeDraft} from "./okiEditorTypes";
-import {buildOkiPayload, createEmptyNode, createEmptySetup, mapDetailToDraft, setupToTree} from "./okiEditorTypes";
+import {PressureGraphEditor} from "@/src/features/pressure-graph/PressureGraphEditor";
+import {PressureEdgeFields, PressureNodeActions, PressureNodeFields} from "@/src/features/pressure-graph/PressureGraphInspectorFields";
+import {connectTargets, draftToGraphData, hasEdge, nextClientId, removeNodeAndEdges} from "@/src/features/pressure-graph/pressureGraphDraft";
+import type {PressureSelection} from "@/src/features/pressure-graph/pressureGraphDraft";
+import type {OkiInteractionDraft, OkiLinkDraft, OkiNodeDraft, OkiProfileDraft, OkiSetupDraft} from "./okiEditorTypes";
+import {buildOkiPayload, createEmptyLink, createEmptyNode, createEmptySetup, mapDetailToDraft, OKI_ENDER_NODE_ID, withEnderRoot} from "./okiEditorTypes";
 
 interface OkiEditorFormProps {
     mode: "create" | "edit";
@@ -35,7 +39,7 @@ export function OkiEditorForm({mode, initialProfile}: OkiEditorFormProps) {
     const {createOki, updateOki} = useOkis();
     const {getSpecificMove} = useMoves();
     const {characters} = useCharacters();
-    const [draft, setDraft] = React.useState<OkiProfileDraft>(() => initialProfile ? mapDetailToDraft(initialProfile) : {move: null, frameAdvantage: null, setups: [createEmptySetup(1)]});
+    const [draft, setDraft] = React.useState<OkiProfileDraft>(() => initialProfile ? mapDetailToDraft(initialProfile) : {move: null, frameAdvantage: null, setups: [createEmptySetup()]});
     const [saving, setSaving] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
 
@@ -75,7 +79,7 @@ export function OkiEditorForm({mode, initialProfile}: OkiEditorFormProps) {
     };
 
     const handleEnderChange = (move: OkiMoveOption | null) => {
-        setDraft((current) => ({...current, move, frameAdvantage: null, setups: current.setups.map((_, index) => createEmptySetup(index + 1))}));
+        setDraft((current) => ({...current, move, frameAdvantage: null, setups: current.setups.map(() => createEmptySetup())}));
     };
 
     const save = async () => {
@@ -113,6 +117,7 @@ export function OkiEditorForm({mode, initialProfile}: OkiEditorFormProps) {
                     key={setupIndex}
                     setup={setup}
                     setupIndex={setupIndex}
+                    ender={draft.move}
                     characterId={enderCharacterId}
                     characters={characters as Array<{id: string; name: string}>}
                     onChange={(nextSetup) => updateSetup(setupIndex, () => nextSetup)}
@@ -121,33 +126,91 @@ export function OkiEditorForm({mode, initialProfile}: OkiEditorFormProps) {
             ))}
 
             <AppStack direction={{xs: "column", sm: "row"}} spacing={1} justifyContent="space-between">
-                <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={() => setDraft((current) => ({...current, setups: [...current.setups, createEmptySetup(current.setups.length + 1)]}))}>Add setup</AppButton>
+                <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={() => setDraft((current) => ({...current, setups: [...current.setups, createEmptySetup()]}))}>Add setup</AppButton>
                 <AppButton type="button" variant="contained" color="primary" disabled={saving} onClick={save}>{saving ? "Saving..." : mode === "edit" ? "Save oki" : "Create oki"}</AppButton>
             </AppStack>
         </AppBox>
     );
 }
 
-function SetupEditor({setup, setupIndex, characterId, characters, onChange, onRemove}: {setup: OkiSetupDraft; setupIndex: number; characterId?: string; characters: Array<{id: string; name: string}>; onChange: (setup: OkiSetupDraft) => void; onRemove: () => void}) {
+function SetupEditor({setup, setupIndex, ender, characterId, characters, onChange, onRemove}: {setup: OkiSetupDraft; setupIndex: number; ender: OkiMoveOption | null; characterId?: string; characters: Array<{id: string; name: string}>; onChange: (setup: OkiSetupDraft) => void; onRemove: () => void}) {
+    const [selection, setSelection] = React.useState<PressureSelection>(null);
     const patch = (partial: Partial<OkiSetupDraft>) => onChange({...setup, ...partial});
-    const tree = setupToTree(setup);
+    const graph = React.useMemo(
+        () => withEnderRoot(draftToGraphData(setup.nodes, setup.links), {notation: ender?.numpadNotation ?? ender?.summary ?? "Ender", name: ender?.moveName ?? null}),
+        [ender, setup.links, setup.nodes],
+    );
+    const notationOf = (clientId: string) => graph.nodes.find((node) => node.id === clientId)?.notation ?? "?";
 
-    const updateNode = (clientId: string, updater: (node: OkiNodeDraft) => OkiNodeDraft) => patch({nodes: setup.nodes.map((node) => node.clientId === clientId ? updater(node) : node)});
-    const updateLinkToChild = (childClientId: string, updater: (link: OkiLinkDraft) => OkiLinkDraft) => patch({links: setup.links.map((link) => link.toClientId === childClientId ? updater(link) : link)});
-    const addChild = (parentClientId: string) => {
-        const childId = `setup${setupIndex + 1}-node${setup.nodes.length + 1}-${Date.now()}`;
-        patch({
-            nodes: [...setup.nodes, createEmptyNode(childId)],
-            links: [...setup.links, {fromClientId: parentClientId, toClientId: childId, stepType: "IMMEDIATE", minFrames: "", maxFrames: ""}],
-        });
+    const patchNode = (clientId: string, partial: Partial<OkiNodeDraft>) => patch({nodes: setup.nodes.map((node) => node.clientId === clientId ? {...node, ...partial} : node)});
+    const patchLink = (clientId: string, partial: Partial<OkiLinkDraft>) => patch({links: setup.links.map((link) => link.clientId === clientId ? {...link, ...partial} : link)});
+    const addNextMove = (from: string) => {
+        const nodeId = nextClientId("n", setup.nodes.map((node) => node.clientId));
+        // Moves added from the ender become roots; the ender link itself is implicit.
+        const links = from === OKI_ENDER_NODE_ID ? setup.links : [...setup.links, createEmptyLink(nextClientId("l", setup.links.map((link) => link.clientId)), from, nodeId)];
+        patch({nodes: [...setup.nodes, createEmptyNode(nodeId)], links});
+        setSelection({type: "node", id: nodeId});
     };
-    const removeNode = (clientId: string) => {
-        const idsToRemove = collectSubtreeIds(clientId, setup.links);
-        patch({
-            nodes: setup.nodes.filter((node) => !idsToRemove.has(node.clientId)),
-            links: setup.links.filter((link) => !idsToRemove.has(link.fromClientId) && !idsToRemove.has(link.toClientId)),
-        });
+    const connect = (from: string, to: string) => {
+        if (from === OKI_ENDER_NODE_ID || to === OKI_ENDER_NODE_ID || hasEdge(setup.links, from, to)) {
+            return;
+        }
+        const linkId = nextClientId("l", setup.links.map((link) => link.clientId));
+        patch({links: [...setup.links, createEmptyLink(linkId, from, to)]});
+        setSelection({type: "edge", id: linkId});
     };
+    const select = (next: PressureSelection) => setSelection(next?.type === "edge" && next.id.startsWith(`${OKI_ENDER_NODE_ID}-`) ? null : next);
+
+    const selectedNode = selection?.type === "node" ? setup.nodes.find((node) => node.clientId === selection.id) ?? null : null;
+    const selectedLink = selection?.type === "edge" ? setup.links.find((link) => link.clientId === selection.id) ?? null : null;
+    let inspectorTitle = "";
+    let inspector: React.ReactNode = null;
+    if (selection?.type === "node" && selection.id === OKI_ENDER_NODE_ID) {
+        inspectorTitle = notationOf(OKI_ENDER_NODE_ID);
+        inspector = <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{justifySelf: "start"}} onClick={() => addNextMove(OKI_ENDER_NODE_ID)}>Add next move</AppButton>;
+    } else if (selectedNode) {
+        const updateInteraction = (interactionIndex: number, updater: (interaction: OkiInteractionDraft) => OkiInteractionDraft) => patchNode(selectedNode.clientId, {interactions: selectedNode.interactions.map((interaction, index) => index === interactionIndex ? updater(interaction) : interaction)});
+        inspectorTitle = notationOf(selectedNode.clientId);
+        inspector = (
+            <>
+                <PressureNodeFields node={selectedNode} characterId={characterId} onChange={(partial) => patchNode(selectedNode.clientId, partial)} />
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "200px minmax(0, 420px)"}, gap: 1}}>
+                    <SimpleSelect label="Option type" value={selectedNode.optionType} options={["", ...OKI_OPTION_TYPES]} onChange={(value) => patchNode(selectedNode.clientId, {optionType: value as OkiOptionType | ""})} />
+                    <AppTextField size="small" margin="none" label="Route explanation" value={selectedNode.routeExplanation} onChange={(event) => patchNode(selectedNode.clientId, {routeExplanation: event.target.value})} />
+                </AppBox>
+                <AppFormControlLabel control={<AppCheckbox checked={selectedNode.isDefaultRoute} onChange={(event) => patchNode(selectedNode.clientId, {isDefaultRoute: event.target.checked})} />} label="Default route" />
+                <PropertyChecklist selected={selectedNode.properties} onChange={(properties) => patchNode(selectedNode.clientId, {properties})} />
+                {selectedNode.optionType ? <InteractionsEditor node={selectedNode} characters={characters} characterId={characterId} onUpdateInteraction={updateInteraction} onPatchNode={(partial) => patchNode(selectedNode.clientId, partial)} /> : null}
+                <PressureNodeActions
+                    nodeId={selectedNode.clientId}
+                    connectTargets={connectTargets(graph, setup.links, selectedNode.clientId, [OKI_ENDER_NODE_ID])}
+                    canRemove={setup.nodes.length > 1}
+                    onAddNext={() => addNextMove(selectedNode.clientId)}
+                    onConnect={(target) => connect(selectedNode.clientId, target)}
+                    onRemove={() => {
+                        const next = removeNodeAndEdges(setup.nodes, setup.links, selectedNode.clientId);
+                        patch({nodes: next.nodes, links: next.edges});
+                        setSelection(null);
+                    }}
+                />
+            </>
+        );
+    } else if (selectedLink) {
+        inspectorTitle = `${notationOf(selectedLink.from)} → ${notationOf(selectedLink.to)}`;
+        inspector = (
+            <>
+                <LinkTimingEditor link={selectedLink} onChange={(partial) => patchLink(selectedLink.clientId, partial)} />
+                <PressureEdgeFields
+                    edge={selectedLink}
+                    onChange={(partial) => patchLink(selectedLink.clientId, partial)}
+                    onRemove={() => {
+                        patch({links: setup.links.filter((link) => link.clientId !== selectedLink.clientId)});
+                        setSelection(null);
+                    }}
+                />
+            </>
+        );
+    }
 
     return (
         <SectionCard title={`Setup ${setupIndex + 1}`} tone="raised" variant="review">
@@ -165,82 +228,32 @@ function SetupEditor({setup, setupIndex, characterId, characters, onChange, onRe
                 onToggle={(key) => patch({[key]: !setup[key as keyof OkiSetupDraft]} as Partial<OkiSetupDraft>)}
             />
 
-            <AppBox sx={{display: "grid", gap: 1}}>
-                <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center", flexWrap: "wrap"}}>
-                    <AppTypography variant="subtitle1" sx={{fontWeight: 820}}>Offensive tree</AppTypography>
-                    {setup.nodes.length === 0 ? <AppButton type="button" variant="outlined" color="secondary" size="small" onClick={() => patch({nodes: [createEmptyNode(`setup${setupIndex + 1}-node1`, true)]})}>Add root</AppButton> : null}
-                </AppBox>
-                {tree.map((root, rootIndex) => (
-                    <TreeNodeEditor
-                        key={root.clientId}
-                        node={root}
-                        rootIndex={rootIndex}
-                        depth={0}
-                        characterId={characterId}
-                        characters={characters}
-                        link={null}
-                        canRemove={setup.nodes.length > 1}
-                        onNodeChange={updateNode}
-                        onLinkChange={updateLinkToChild}
-                        onAddChild={addChild}
-                        onRemoveNode={removeNode}
-                    />
-                ))}
-            </AppBox>
+            <PressureGraphEditor
+                graph={graph}
+                ariaLabel={`Setup ${setupIndex + 1} graph editor`}
+                selection={selection}
+                inspectorTitle={inspectorTitle}
+                inspector={inspector}
+                onSelect={select}
+                onConnect={connect}
+            />
 
             <AppButton type="button" variant="text" color="secondary" size="small" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={onRemove}>Remove setup</AppButton>
         </SectionCard>
     );
 }
 
-function TreeNodeEditor({node, link, depth, rootIndex, characterId, characters, canRemove, onNodeChange, onLinkChange, onAddChild, onRemoveNode}: {node: OkiTreeNodeDraft; link: OkiLinkDraft | null; depth: number; rootIndex: number; characterId?: string; characters: Array<{id: string; name: string}>; canRemove: boolean; onNodeChange: (clientId: string, updater: (node: OkiNodeDraft) => OkiNodeDraft) => void; onLinkChange: (childClientId: string, updater: (link: OkiLinkDraft) => OkiLinkDraft) => void; onAddChild: (parentClientId: string) => void; onRemoveNode: (clientId: string) => void}) {
-    const patchNode = (partial: Partial<OkiNodeDraft>) => onNodeChange(node.clientId, (current) => ({...current, ...partial}));
-    const updateInteraction = (interactionIndex: number, updater: (interaction: OkiInteractionDraft) => OkiInteractionDraft) => patchNode({interactions: node.interactions.map((interaction, index) => index === interactionIndex ? updater(interaction) : interaction)});
-
+function LinkTimingEditor({link, onChange}: {link: OkiLinkDraft; onChange: (patch: Partial<OkiLinkDraft>) => void}) {
     return (
-        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "22px minmax(0, 760px)"}, columnGap: 0.75, ml: {xs: Math.min(depth, 2) * 0.65, md: Math.min(depth, 4) * 2.2}}}>
-            <AppBox sx={{position: "relative", display: {xs: depth === 0 ? "none" : "block", md: "block"}}}>
-                <AppBox sx={{position: "absolute", top: 0, bottom: node.children.length > 0 ? -12 : "50%", left: 10, borderLeft: depth === 0 ? 0 : "1px solid", borderColor: "fgc.border.strong"}} />
-                {depth > 0 ? <AppBox sx={{position: "absolute", top: 24, left: 10, width: 18, borderTop: "1px solid", borderColor: "fgc.border.strong"}} /> : null}
-            </AppBox>
-            <AppBox sx={{display: "grid", gap: 0.75, mb: 0.85}}>
-                {link ? <LinkTimingEditor link={link} onChange={(updater) => onLinkChange(node.clientId, updater)} /> : null}
-                <AppPaper variant="outlined" sx={{p: {xs: 1, md: 1.15}, borderRadius: 2, display: "grid", gap: 1, backgroundColor: depth === 0 ? "fgc.surface.base" : "fgc.surface.sunken", borderColor: node.optionType ? "fgc.accent.selected" : "fgc.border.default"}}>
-                    <AppBox sx={{display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center", flexWrap: "wrap"}}>
-                        <AppTypography variant="subtitle2" sx={{fontWeight: 850}}>{depth === 0 ? `Root ${rootIndex + 1}` : `Child depth ${depth}`}</AppTypography>
-                        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, auto))", md: "repeat(4, auto)"}, gap: 0.5}}>
-                            <AppButton type="button" variant="outlined" color="secondary" size="small" onClick={() => onAddChild(node.clientId)}>Add child</AppButton>
-                            {canRemove ? <AppButton type="button" variant="text" color="secondary" size="small" onClick={() => onRemoveNode(node.clientId)}>Remove</AppButton> : null}
-                        </AppBox>
-                    </AppBox>
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(260px, 1fr) 180px"}, gap: 1}}>
-                        <OkiMovePicker label="Move" value={node.move} characterId={characterId} disabled={!characterId} onChange={(move) => patchNode({move})} />
-                        <SimpleSelect label="Option type" value={node.optionType} options={["", ...OKI_OPTION_TYPES]} onChange={(value) => patchNode({optionType: value as OkiOptionType | ""})} />
-                    </AppBox>
-                    <AppTextField size="small" label="Route explanation" value={node.routeExplanation} onChange={(event) => patchNode({routeExplanation: event.target.value})} />
-                    <AppFormControlLabel control={<AppCheckbox checked={node.isDefaultRoute} onChange={(event) => patchNode({isDefaultRoute: event.target.checked})} />} label="Default route node" />
-                    <PropertyChecklist selected={node.properties} onChange={(properties) => patchNode({properties})} />
-                    {node.optionType ? <InteractionsEditor node={node} characters={characters} characterId={characterId} onUpdateInteraction={updateInteraction} onPatchNode={patchNode} /> : null}
-                </AppPaper>
-                {node.children.map((child: OkiTreeChildDraft) => (
-                    <TreeNodeEditor key={child.node.clientId} node={child.node} link={child.link} depth={depth + 1} rootIndex={rootIndex} characterId={characterId} characters={characters} canRemove onNodeChange={onNodeChange} onLinkChange={onLinkChange} onAddChild={onAddChild} onRemoveNode={onRemoveNode} />
-                ))}
-            </AppBox>
+        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "minmax(0, 1fr) repeat(2, 76px)", sm: "170px 90px 90px"}, gap: 1}}>
+            <SimpleSelect label="Step" value={link.stepType} options={OKI_STEP_TYPES} onChange={(value) => onChange({stepType: value as OkiStepType})} />
+            <AppTextField size="small" margin="none" label="Min" value={link.minFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange({minFrames: event.target.value})} />
+            <AppTextField size="small" margin="none" label="Max" value={link.maxFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange({maxFrames: event.target.value})} />
         </AppBox>
     );
 }
 
-function LinkTimingEditor({link, onChange}: {link: OkiLinkDraft; onChange: (updater: (link: OkiLinkDraft) => OkiLinkDraft) => void}) {
-    return (
-        <AppPaper variant="outlined" sx={{px: 0.85, py: 0.65, borderRadius: 1.5, backgroundColor: "fgc.surface.base", display: "grid", gridTemplateColumns: {xs: "minmax(0, 1fr) repeat(2, 76px)", sm: "170px 90px 90px"}, gap: 0.75, width: {xs: "100%", sm: "fit-content"}, maxWidth: "100%"}}>
-            <SimpleSelect label="Step" value={link.stepType} options={OKI_STEP_TYPES} onChange={(value) => onChange((current) => ({...current, stepType: value as OkiStepType}))} />
-            <AppTextField size="small" label="Min" value={link.minFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange((current) => ({...current, minFrames: event.target.value}))} />
-            <AppTextField size="small" label="Max" value={link.maxFrames} disabled={link.stepType === "IMMEDIATE"} onChange={(event) => onChange((current) => ({...current, maxFrames: event.target.value}))} />
-        </AppPaper>
-    );
-}
-
-function InteractionsEditor({node, characters, characterId, onUpdateInteraction, onPatchNode}: {node: OkiTreeNodeDraft; characters: Array<{id: string; name: string}>; characterId?: string; onUpdateInteraction: (interactionIndex: number, updater: (interaction: OkiInteractionDraft) => OkiInteractionDraft) => void; onPatchNode: (partial: Partial<OkiNodeDraft>) => void}) {
+function InteractionsEditor({node, characters, characterId, onUpdateInteraction, onPatchNode}: {node: OkiNodeDraft; characters: Array<{id: string; name: string}>; characterId?: string; onUpdateInteraction: (interactionIndex: number, updater: (interaction: OkiInteractionDraft) => OkiInteractionDraft) => void; onPatchNode: (partial: Partial<OkiNodeDraft>) => void}) {
     return (
         <AppBox sx={{display: "grid", gap: 0.75, pt: 0.25}}>
             <AppTypography variant="subtitle2" sx={{fontWeight: 820}}>Interactions</AppTypography>
@@ -288,22 +301,6 @@ function SimpleSelect({label, value, options, getLabel, onChange}: {label: strin
             </AppSelect>
         </AppFormControl>
     );
-}
-
-function collectSubtreeIds(rootId: string, links: OkiLinkDraft[]): Set<string> {
-    const ids = new Set<string>([rootId]);
-    let changed = true;
-    while (changed) {
-        changed = false;
-        for (const link of links) {
-            if (ids.has(link.fromClientId) && !ids.has(link.toClientId)) {
-                ids.add(link.toClientId);
-                changed = true;
-            }
-        }
-    }
-
-    return ids;
 }
 
 function toggleValue<T>(values: T[], value: T): T[] {

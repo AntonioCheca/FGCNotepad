@@ -34,6 +34,15 @@ class OkiNodeLink
     #[ORM\Column(name: 'max_frames', type: Types::SMALLINT, nullable: true)]
     private ?int $maxFrames = null;
 
+    #[ORM\Column(length: 16, options: ['default' => 'normal'])]
+    private string $kind = 'normal';
+
+    #[ORM\Column(name: 'read_label', length: 48, nullable: true)]
+    private ?string $readLabel = null;
+
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 1])]
+    private int $layer = 1;
+
     public function getId(): ?int { return $this->id; }
     public function getFromNode(): OkiNode { return $this->fromNode; }
     public function setFromNode(OkiNode $fromNode): self { $this->fromNode = $fromNode; return $this; }
@@ -45,4 +54,10 @@ class OkiNodeLink
     public function setMinFrames(?int $minFrames): self { $this->minFrames = $minFrames; return $this; }
     public function getMaxFrames(): ?int { return $this->maxFrames; }
     public function setMaxFrames(?int $maxFrames): self { $this->maxFrames = $maxFrames; return $this; }
+    public function getKind(): string { return $this->kind; }
+    public function setKind(string $kind): self { $this->kind = $kind; return $this; }
+    public function getReadLabel(): ?string { return $this->readLabel; }
+    public function setReadLabel(?string $readLabel): self { $this->readLabel = $readLabel; return $this; }
+    public function getLayer(): int { return $this->layer; }
+    public function setLayer(int $layer): self { $this->layer = $layer; return $this; }
 }

@@ -153,6 +153,61 @@ final class OkiControllerTest extends AuthenticatedWebTestCase
         $this->assertSame(['LOW'], $updated['setups'][0]['nodes'][1]['properties']);
     }
 
+    public function testOkiGraphFieldsRoundTrip(): void
+    {
+        $character = $this->createCharacter('Ken');
+        $ender = $this->createMove($character, 'Heavy Tatsu', 30);
+        $dash = $this->createMove($character, 'Dash');
+        $meaty = $this->createMove($character, '2MK');
+        $throw = $this->createMove($character, 'Throw');
+        $this->entityManager->flush();
+
+        $this->jsonRequest('POST', '/api/okis', [
+            'moveId' => (string) $ender->getId(),
+            'setups' => [[
+                'nodes' => [
+                    ['clientId' => 'dash', 'moveId' => (string) $dash->getId()],
+                    ['clientId' => 'meaty', 'moveId' => (string) $meaty->getId(), 'damageDealt' => 1800],
+                    ['clientId' => 'throw', 'moveId' => (string) $throw->getId(), 'layer' => 2, 'damageReceived' => 2500],
+                ],
+                'links' => [
+                    ['fromClientId' => 'dash', 'toClientId' => 'meaty', 'stepType' => 'IMMEDIATE', 'kind' => 'confirm', 'readLabel' => 'ignored'],
+                    ['fromClientId' => 'dash', 'toClientId' => 'throw', 'stepType' => 'IMMEDIATE', 'kind' => 'read', 'readLabel' => 'expects block', 'layer' => 2],
+                ],
+            ]],
+        ]);
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $setup = $created['setups'][0];
+        $nodesByMove = array_column(array_map(static fn (array $node): array => [$node['move']['numpadNotation'], $node], $setup['nodes']), 1, 0);
+        $this->assertSame(1800, $nodesByMove['2MK']['damageDealt']);
+        $this->assertSame(2, $nodesByMove['Throw']['layer']);
+        $this->assertSame(2500, $nodesByMove['Throw']['damageReceived']);
+        $linksByKind = array_column($setup['links'], null, 'kind');
+        $this->assertNull($linksByKind['confirm']['readLabel']);
+        $this->assertSame('expects block', $linksByKind['read']['readLabel']);
+        $this->assertSame(2, $linksByKind['read']['layer']);
+    }
+
+    public function testOkiRejectsUnknownLinkKind(): void
+    {
+        $character = $this->createCharacter('Ken');
+        $ender = $this->createMove($character, 'Heavy Tatsu', 30);
+        $dash = $this->createMove($character, 'Dash');
+        $this->entityManager->flush();
+
+        $this->jsonRequest('POST', '/api/okis', [
+            'moveId' => (string) $ender->getId(),
+            'setups' => [[
+                'nodes' => [['clientId' => 'dash', 'moveId' => (string) $dash->getId()], ['clientId' => 'again', 'moveId' => (string) $dash->getId()]],
+                'links' => [['fromClientId' => 'dash', 'toClientId' => 'again', 'stepType' => 'IMMEDIATE', 'kind' => 'tight']],
+            ]],
+        ]);
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testRegularUserCannotMutateReversals(): void
     {
         $character = $this->createCharacter('Akuma');

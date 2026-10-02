@@ -40,6 +40,15 @@ class OkiNode
     #[ORM\Column(name: 'option_type', length: 40, nullable: true)]
     private ?string $optionType = null;
 
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 1])]
+    private int $layer = 1;
+
+    #[ORM\Column(name: 'damage_dealt', nullable: true)]
+    private ?int $damageDealt = null;
+
+    #[ORM\Column(name: 'damage_received', nullable: true)]
+    private ?int $damageReceived = null;
+
     /** @var Collection<int, OkiNodeProperty> */
     #[ORM\OneToMany(targetEntity: OkiNodeProperty::class, mappedBy: 'node', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $properties;
@@ -88,4 +97,10 @@ class OkiNode
     public function addProperty(OkiNodeProperty $property): self { if (!$this->properties->contains($property)) { $this->properties->add($property); $property->setNode($this); } return $this; }
     public function addInteraction(OkiOptionInteraction $interaction): self { if (!$this->interactions->contains($interaction)) { $this->interactions->add($interaction); $interaction->setNode($this); } return $this; }
     public function addOutgoingLink(OkiNodeLink $link): self { if (!$this->outgoingLinks->contains($link)) { $this->outgoingLinks->add($link); $link->setFromNode($this); } return $this; }
+    public function getLayer(): int { return $this->layer; }
+    public function setLayer(int $layer): self { $this->layer = $layer; return $this; }
+    public function getDamageDealt(): ?int { return $this->damageDealt; }
+    public function setDamageDealt(?int $damageDealt): self { $this->damageDealt = $damageDealt; return $this; }
+    public function getDamageReceived(): ?int { return $this->damageReceived; }
+    public function setDamageReceived(?int $damageReceived): self { $this->damageReceived = $damageReceived; return $this; }
 }

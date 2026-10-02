@@ -112,7 +112,12 @@ $env:CI = "1"; npx react-doctor@0.8.1 --no-telemetry --verbose
 - Preserve touch usability: important interactive controls should remain comfortably tappable on mobile.
 - Mobile QA for frontend changes should include 320px, 360px, 390px, 430px, 768px, 1024px, and desktop widths.
 - React Doctor does not validate responsive layout. Use browser/manual QA or Playwright viewport checks for mobile overflow and navigation behavior.
-- Run `make mobile-audit` (see `docs/mobile-audit.md`) before and after mobile work; follow `docs/mobile-plan.md` and the `mobile-ui` skill for page compositions.
+- Every task that touches frontend pages or components must run the mobile audit before finishing (see `docs/mobile-audit.md`):
+  - `make mobile-audit ONLY='<regex of touched routes>'`, or the full `make mobile-audit` when shared components, theme or layout change. It logs in through a dev-only one-time login link; no credentials are needed.
+  - Touched routes must keep strict pass (✓) at 360px and 390px and must not drop more than 5 points against the latest snapshot in `docs/mobile-audit/`.
+  - New routes must be added to `resolveRoutes` in `frontend/scripts/mobile-audit/audit.mjs`; desktop-only routes are flagged there and stay limited to the Admin section.
+  - Report the before/after scores in the task summary; if the audit cannot run, say so explicitly.
+- Follow `docs/mobile-plan.md` and the `mobile-ui` skill for page compositions.
 
 ### Hybrid responsive page architecture
 
@@ -245,6 +250,8 @@ This project uses a tactical editorial visual system anchored to two separate ar
   - text and controls meet WCAG AA contrast targets
   - focus indicators visible
   - inputs have accessible labels
+- Mobile:
+  - `make mobile-audit` run for the touched routes, strict pass kept, no score drop above 5 points
 - Regression:
   - existing functionality still works
   - no API behavior changes

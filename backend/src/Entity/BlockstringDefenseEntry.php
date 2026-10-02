@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 #[ORM\Table(name: 'blockstring_defense_entry', schema: 'sf6')]
 #[ORM\Index(name: 'idx_blockstring_defense_entry_sequence', columns: ['sequence_id'])]
+#[ORM\Index(name: 'idx_blockstring_defense_entry_edge', columns: ['edge_id'])]
 class BlockstringDefenseEntry
 {
     #[ORM\Id]
@@ -19,9 +20,10 @@ class BlockstringDefenseEntry
     #[ORM\JoinColumn(name: 'sequence_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?BlockstringSequence $sequence = null;
 
+    /** The transition the defender can challenge. */
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(name: 'gap_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
-    private ?BlockstringGap $gap = null;
+    #[ORM\JoinColumn(name: 'edge_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
+    private ?BlockstringEdge $edge = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $instruction = null;
@@ -49,8 +51,8 @@ class BlockstringDefenseEntry
     public function getId(): ?int { return $this->id; }
     public function getSequence(): ?BlockstringSequence { return $this->sequence; }
     public function setSequence(?BlockstringSequence $sequence): self { $this->sequence = $sequence; return $this; }
-    public function getGap(): ?BlockstringGap { return $this->gap; }
-    public function setGap(?BlockstringGap $gap): self { $this->gap = $gap; return $this; }
+    public function getEdge(): ?BlockstringEdge { return $this->edge; }
+    public function setEdge(?BlockstringEdge $edge): self { $this->edge = $edge; return $this; }
     public function getInstruction(): ?string { return $this->instruction; }
     public function setInstruction(?string $instruction): self { $this->instruction = $instruction; return $this; }
     public function getExceptionNotes(): ?string { return $this->exceptionNotes; }

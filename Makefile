@@ -38,23 +38,22 @@ playwright-install:
 playwright-test-mobile:
 	docker compose exec -T frontend npm run test:mobile
 
-# Mobile layout scorecard against the running dev stack (see docs/mobile-audit.md)
-MOBILE_AUDIT_USERNAME ?= mobile-audit
+# Mobile layout scorecard against the running dev stack (see docs/mobile-audit.md).
+# Logs in with a dev-only one-time login link; no passwords are stored.
+MOBILE_AUDIT_LOGIN_LINK = docker compose exec -T backend php bin/console app:dev:login-link mobile-audit --create --role=ROLE_ADMIN --role=ROLE_QA_TESTER | tr -d '\r'
+
 mobile-audit:
-	@test -n "$(MOBILE_AUDIT_PASSWORD)" || (echo "Set MOBILE_AUDIT_PASSWORD (see docs/mobile-audit.md)" && exit 1)
-	docker run --rm --network host \
-		-e AUDIT_APP_URL=http://localhost:3000 -e AUDIT_API_URL=http://localhost:8000/api \
-		-e AUDIT_USERNAME="$(MOBILE_AUDIT_USERNAME)" -e AUDIT_PASSWORD="$(MOBILE_AUDIT_PASSWORD)" \
+	@LOGIN_URL="$$($(MOBILE_AUDIT_LOGIN_LINK))" && docker run --rm --network host \
+		-e AUDIT_APP_URL=http://localhost:3000 -e AUDIT_API_URL=http://localhost:8000/api -e AUDIT_LOGIN_URL="$$LOGIN_URL" \
 		-e AUDIT_OUTPUT_DIR=/out -e AUDIT_SCREENSHOTS="$(SCREENSHOTS)" -e AUDIT_ONLY="$(ONLY)" \
 		-v $(CURDIR)/frontend/node_modules:/w/node_modules:ro \
 		-v $(CURDIR)/frontend/scripts/mobile-audit:/w/scripts:ro \
 		-v $(CURDIR)/frontend/mobile-audit-results:/out \
-		-w /w mcr.microsoft.com/playwright:v$$(node -p "require('./frontend/node_modules/playwright/package.json').version" 2>/dev/null || docker compose exec -T frontend node -p "require('playwright/package.json').version")-noble \
+		-w /w mcr.microsoft.com/playwright:v$$(docker compose exec -T frontend node -p "require('playwright/package.json').version" | tr -d '\r')-noble \
 		node scripts/audit.mjs
 
 mobile-audit-seed:
-	@test -n "$(MOBILE_AUDIT_PASSWORD)" || (echo "Set MOBILE_AUDIT_PASSWORD (see docs/mobile-audit.md)" && exit 1)
-	docker compose exec -T -e AUDIT_API_URL=http://nginx:80/api -e AUDIT_USERNAME="$(MOBILE_AUDIT_USERNAME)" -e AUDIT_PASSWORD="$(MOBILE_AUDIT_PASSWORD)" frontend node scripts/mobile-audit/seed.mjs
+	@LOGIN_URL="$$($(MOBILE_AUDIT_LOGIN_LINK))" && docker compose exec -T -e AUDIT_API_URL=http://nginx:80/api -e AUDIT_LOGIN_URL="$$LOGIN_URL" frontend node scripts/mobile-audit/seed.mjs
 
 # Install all dependencies
 install: composer-install npm-install

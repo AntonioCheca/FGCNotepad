@@ -20,7 +20,7 @@ export const VIEWPORTS = [
     {name: "390", width: 390, height: 844},
 ];
 
-const api = await createApiSession(API_URL, requireEnv("AUDIT_USERNAME"), requireEnv("AUDIT_PASSWORD"));
+const api = await createApiSession(API_URL, requireEnv("AUDIT_LOGIN_URL"));
 const routes = await resolveRoutes(api);
 
 const browser = await chromium.launch();

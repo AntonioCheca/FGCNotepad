@@ -12,7 +12,9 @@ import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {formatOkiLabel} from "@/src/types/oki";
-import type {OkiNode, OkiNodeLink, OkiProfileDetail, OkiSetup} from "@/src/types/oki";
+import type {OkiMoveRef, OkiNode, OkiProfileDetail, OkiSetup} from "@/src/types/oki";
+import {okiSetupToGraph} from "@/src/components/okis/okiEditorTypes";
+import {PressureGraphView} from "@/src/features/pressure-graph/PressureGraphView";
 
 export default function OkiDetailPage() {
     const router = useRouter();
@@ -66,7 +68,7 @@ export default function OkiDetailPage() {
 
                 <SummaryStrip profile={profile} />
 
-                {profile.setups.map((setup, index) => <SetupCard key={setup.id} setup={setup} index={index} />)}
+                {profile.setups.map((setup, index) => <SetupCard key={setup.id} setup={setup} index={index} ender={profile.move} />)}
             </PageShell>
         </AppContainer>
     );
@@ -102,17 +104,9 @@ function SummaryStrip({profile}: {profile: OkiProfileDetail}) {
     );
 }
 
-function SetupCard({setup, index}: {setup: OkiSetup; index: number}) {
-    const nodeById = new Map(setup.nodes.map((node) => [node.id, node]));
-    const roots = setup.nodes.filter((node) => !setup.links.some((link) => link.toNodeId === node.id));
+function SetupCard({setup, index, ender}: {setup: OkiSetup; index: number; ender: OkiMoveRef}) {
     const finalNodes = setup.nodes.filter((node) => node.optionType);
-    const defaultRoute = buildRoute(roots[0] ?? setup.nodes[0], setup.links, nodeById, true);
-    const adaptationNodes = [];
-    for (const node of setup.nodes) {
-        if (node.routeExplanation && !node.isDefaultRoute) {
-            adaptationNodes.push(node);
-        }
-    }
+    const graph = React.useMemo(() => okiSetupToGraph(setup, ender), [ender, setup]);
 
     return (
         <SectionCard title={`Setup ${index + 1}`} tone="raised" variant={setup.fakeNoBackroll || setup.fakeBackroll ? "finalize" : "review"}>
@@ -130,18 +124,14 @@ function SetupCard({setup, index}: {setup: OkiSetup; index: number}) {
 
             <RecoveryWarnings setup={setup} />
 
-            <RouteBlock title="Primary sequence" route={defaultRoute} />
+            <PressureGraphView graph={graph} ariaLabel={`Setup ${index + 1} graph`} />
 
-            <AppBox sx={{display: "grid", gap: 1}}>
-                <AppTypography variant="subtitle2" sx={{fontWeight: 800}}>Options available</AppTypography>
-                {finalNodes.map((node) => <OptionPanel key={node.id} node={node} />)}
-            </AppBox>
-
-            <AppBox sx={{display: "grid", gap: 1}}>
-                {adaptationNodes.map((node) => (
-                    <RouteBlock key={node.id} title={`Adaptation: ${node.routeExplanation}`} route={buildRoute(node, setup.links, nodeById, false)} />
-                ))}
-            </AppBox>
+            {finalNodes.length > 0 ? (
+                <AppBox sx={{display: "grid", gap: 1}}>
+                    <AppTypography variant="subtitle2" sx={{fontWeight: 800}}>Options available</AppTypography>
+                    {finalNodes.map((node) => <OptionPanel key={node.id} node={node} />)}
+                </AppBox>
+            ) : null}
         </SectionCard>
     );
 }
@@ -163,25 +153,6 @@ function RecoveryWarnings({setup}: {setup: OkiSetup}) {
             {warnings.map((warning) => (
                 <AppTypography key={warning} variant="body2" sx={{fontWeight: 900, color: "fgc.feedback.errorText", textTransform: "uppercase", letterSpacing: 0.25}}>{warning}</AppTypography>
             ))}
-        </AppPaper>
-    );
-}
-
-function RouteBlock({title, route}: {title: string; route: Array<{node: OkiNode; link?: OkiNodeLink}>}) {
-    if (route.length === 0) {
-        return null;
-    }
-    return (
-        <AppPaper variant="outlined" sx={{p: {xs: 1, md: 1.15}, borderRadius: 2, backgroundColor: "fgc.surface.sunken", borderColor: "fgc.border.default", display: "grid", gap: 0.9}}>
-            <AppTypography variant="subtitle2" sx={{fontWeight: 850}}>{title}</AppTypography>
-            <AppBox sx={{display: {xs: "grid", md: "flex"}, alignItems: {md: "stretch"}, gap: {xs: 0.65, md: 0}, overflowX: {md: "auto"}, pb: {md: 0.25}}}>
-                {route.map(({node, link}, index) => (
-                    <React.Fragment key={node.id}>
-                        {index > 0 ? <RouteConnector link={link} /> : null}
-                        <RouteStep node={node} index={index} />
-                    </React.Fragment>
-                ))}
-            </AppBox>
         </AppPaper>
     );
 }
@@ -224,45 +195,6 @@ function FactRail({facts, compact = false}: {facts: FactItem[]; compact?: boolea
     );
 }
 
-function RouteStep({node, index}: {node: OkiNode; index: number}) {
-    const isFinal = Boolean(node.optionType);
-
-    return (
-        <AppBox
-            component="span"
-            sx={{
-                display: "grid",
-                alignContent: "center",
-                gap: 0.2,
-                minWidth: {xs: "100%", md: isFinal ? 150 : 126},
-                px: 1,
-                py: 0.8,
-                borderRadius: 1.5,
-                border: "1px solid",
-                borderColor: isFinal ? "fgc.accent.selected" : "fgc.border.default",
-                backgroundColor: isFinal ? "fgc.surface.raised" : "fgc.surface.base",
-                boxShadow: isFinal ? "0 0 0 1px rgba(0,0,0,0.02)" : "none",
-            }}
-        >
-            <AppTypography variant="body2" sx={{fontWeight: 850, color: "text.secondary", letterSpacing: 0.25}}>STEP {index + 1}</AppTypography>
-            <AppTypography variant="h6" sx={{fontWeight: 880, lineHeight: 1.12}}>{node.move.numpadNotation}</AppTypography>
-            {node.optionType ? <AppTypography variant="body2" sx={{fontWeight: 780, color: "fgc.accent.selectedText", lineHeight: 1.15}}>{formatOkiLabel(node.optionType)}</AppTypography> : null}
-        </AppBox>
-    );
-}
-
-function RouteConnector({link}: {link?: OkiNodeLink}) {
-    const hasTiming = Boolean(link && link.stepType !== "IMMEDIATE");
-    const label = hasTiming && link ? `${formatOkiLabel(link.stepType)} ${link.minFrames}-${link.maxFrames}f` : "then";
-
-    return (
-        <AppBox sx={{display: "grid", alignItems: "center", justifyItems: "center", px: {xs: 0, md: 0.65}, minWidth: {md: hasTiming ? 112 : 44}}}>
-            <AppTypography variant="body2" sx={{fontWeight: hasTiming ? 820 : 700, color: hasTiming ? "text.primary" : "text.secondary", lineHeight: 1.05, textAlign: "center"}}>{label}</AppTypography>
-            <AppBox sx={{display: {xs: "none", md: "block"}, width: "100%", borderTop: "1px solid", borderColor: "fgc.border.strong", mt: 0.35}} />
-        </AppBox>
-    );
-}
-
 function PropertyLine({properties}: {properties: string[]}) {
     return (
         <AppTypography variant="body2" sx={{color: "text.secondary", fontWeight: 650}}>
@@ -282,30 +214,4 @@ function InteractionList({title, items, danger}: {title: string; items: OkiNode[
             {items.map((item) => <AppTypography key={item.id} variant="body2">{item.character ? `${item.character.name}: ` : ""}{item.defensiveMove.numpadNotation}</AppTypography>)}
         </AppBox>
     );
-}
-
-function buildRoute(start: OkiNode | undefined, links: OkiNodeLink[], nodeById: Map<number, OkiNode>, preferDefault: boolean): Array<{node: OkiNode; link?: OkiNodeLink}> {
-    if (!start) {
-        return [];
-    }
-    const route: Array<{node: OkiNode; link?: OkiNodeLink}> = [{node: start}];
-    let current = start;
-    const visited = new Set<number>([start.id]);
-    while (true) {
-        const outgoing = links.filter((link) => link.fromNodeId === current.id);
-        const nextLink = preferDefault
-            ? outgoing.find((link) => nodeById.get(link.toNodeId)?.isDefaultRoute) ?? outgoing[0]
-            : outgoing[0];
-        if (!nextLink) {
-            break;
-        }
-        const nextNode = nodeById.get(nextLink.toNodeId);
-        if (!nextNode || visited.has(nextNode.id)) {
-            break;
-        }
-        route.push({node: nextNode, link: nextLink});
-        visited.add(nextNode.id);
-        current = nextNode;
-    }
-    return route;
 }

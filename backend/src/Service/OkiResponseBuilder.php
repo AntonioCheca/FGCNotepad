@@ -125,6 +125,9 @@ final class OkiResponseBuilder
             'isDefaultRoute' => $node->isDefaultRoute(),
             'routeExplanation' => $node->getRouteExplanation(),
             'optionType' => $node->getOptionType(),
+            'layer' => $node->getLayer(),
+            'damageDealt' => $node->getDamageDealt(),
+            'damageReceived' => $node->getDamageReceived(),
             'properties' => array_values(array_map(static fn ($property): string => $property->getProperty(), $node->getProperties()->toArray())),
             'interactions' => array_values(array_map(fn ($interaction): array => [
                 'id' => $interaction->getId(),
@@ -144,6 +147,7 @@ final class OkiResponseBuilder
             'id' => (string) $move->getId(),
             'numpadNotation' => $move->getNumpadNotation(),
             'name' => $move->getName(),
+            'moveName' => $move->getFrameData()?->getMoveName(),
             'character' => [
                 'id' => (string) $move->getCharacter()->getId(),
                 'name' => $move->getCharacter()->getName(),
@@ -163,6 +167,9 @@ final class OkiResponseBuilder
                     'stepType' => $link->getStepType(),
                     'minFrames' => $link->getMinFrames(),
                     'maxFrames' => $link->getMaxFrames(),
+                    'kind' => $link->getKind(),
+                    'readLabel' => $link->getReadLabel(),
+                    'layer' => $link->getLayer(),
                 ];
             }
         }

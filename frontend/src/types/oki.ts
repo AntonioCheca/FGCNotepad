@@ -1,3 +1,5 @@
+import type {PressureEdgeKind} from "@/src/features/pressure-graph/pressureGraphTypes";
+
 export type OkiStepType = "IMMEDIATE" | "WALK_FORWARD" | "WALK_BACKWARD" | "WAIT";
 export type OkiOptionType = "STRIKE" | "MEATY_STRIKE" | "MEATY_THROW" | "SHIMMY" | "DELAY_STRIKE" | "DELAY_THROW";
 export type OkiNodeProperty = "OVERHEAD" | "LOW" | "LEFT_RIGHT" | "SAFE_JUMP" | "FAKE_SAFE_JUMP" | "REVERSAL_BAIT" | "ANTI_DRIVE_REVERSAL" | "CHARACTER_SPECIFIC";
@@ -14,6 +16,7 @@ export interface OkiMoveRef {
     id: string;
     numpadNotation: string;
     name: string;
+    moveName: string | null;
     character: OkiCharacterRef;
 }
 
@@ -54,6 +57,9 @@ export interface OkiNode {
     optionType: OkiOptionType | null;
     properties: OkiNodeProperty[];
     interactions: OkiOptionInteraction[];
+    layer: number;
+    damageDealt: number | null;
+    damageReceived: number | null;
 }
 
 export interface OkiNodeLink {
@@ -63,6 +69,9 @@ export interface OkiNodeLink {
     stepType: OkiStepType;
     minFrames: number | null;
     maxFrames: number | null;
+    kind: PressureEdgeKind;
+    readLabel: string | null;
+    layer: number;
 }
 
 export type OkiModerationState = "pending_review" | "approved" | "rejected" | "hidden";
@@ -117,6 +126,9 @@ export interface OkiNodePayload {
     optionType?: OkiOptionType | null;
     properties?: OkiNodeProperty[];
     interactions?: OkiInteractionPayload[];
+    layer?: number;
+    damageDealt?: number | null;
+    damageReceived?: number | null;
 }
 
 export interface OkiNodeLinkPayload {
@@ -125,6 +137,9 @@ export interface OkiNodeLinkPayload {
     stepType: OkiStepType;
     minFrames?: number | null;
     maxFrames?: number | null;
+    kind?: PressureEdgeKind;
+    readLabel?: string | null;
+    layer?: number;
 }
 
 export interface OkiSetupPayload {

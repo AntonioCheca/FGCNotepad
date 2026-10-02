@@ -59,39 +59,27 @@ class BlockstringSequence
     #[ORM\OrderBy(['ordinal' => 'ASC', 'id' => 'ASC'])]
     private Collection $steps;
 
-    /** @var Collection<int, BlockstringRoute> */
-    #[ORM\OneToMany(targetEntity: BlockstringRoute::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['displayOrder' => 'ASC', 'id' => 'ASC'])]
-    private Collection $routes;
+    /** @var Collection<int, BlockstringEdge> */
+    #[ORM\OneToMany(targetEntity: BlockstringEdge::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['id' => 'ASC'])]
+    private Collection $edges;
 
     /** @var Collection<int, BlockstringDefenseEntry> */
     #[ORM\OneToMany(targetEntity: BlockstringDefenseEntry::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $defenseEntries;
 
-    /** @var Collection<int, BlockstringGap> */
-    #[ORM\OneToMany(targetEntity: BlockstringGap::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['id' => 'ASC'])]
-    private Collection $gaps;
-
     /** @var Collection<int, BlockstringCondition> */
     #[ORM\OneToMany(targetEntity: BlockstringCondition::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $conditions;
 
-    /** @var Collection<int, BlockstringAdaptation> */
-    #[ORM\OneToMany(targetEntity: BlockstringAdaptation::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['sortOrder' => 'ASC', 'id' => 'ASC'])]
-    private Collection $adaptations;
-
     public function __construct()
     {
         $this->steps = new ArrayCollection();
-        $this->routes = new ArrayCollection();
+        $this->edges = new ArrayCollection();
         $this->defenseEntries = new ArrayCollection();
-        $this->gaps = new ArrayCollection();
         $this->conditions = new ArrayCollection();
-        $this->adaptations = new ArrayCollection();
     }
 
     public function getId(): ?int { return $this->id; }
@@ -117,14 +105,10 @@ class BlockstringSequence
     public function setAuthor(?User $author): self { $this->author = $author; return $this; }
     /** @return Collection<int, BlockstringSequenceStep> */ public function getSteps(): Collection { return $this->steps; }
     public function addStep(BlockstringSequenceStep $step): self { if (!$this->steps->contains($step)) { $this->steps->add($step); $step->setSequence($this); } return $this; }
-    /** @return Collection<int, BlockstringRoute> */ public function getRoutes(): Collection { return $this->routes; }
-    public function addRoute(BlockstringRoute $route): self { if (!$this->routes->contains($route)) { $this->routes->add($route); $route->setSequence($this); } return $this; }
+    /** @return Collection<int, BlockstringEdge> */ public function getEdges(): Collection { return $this->edges; }
+    public function addEdge(BlockstringEdge $edge): self { if (!$this->edges->contains($edge)) { $this->edges->add($edge); $edge->setSequence($this); } return $this; }
     /** @return Collection<int, BlockstringDefenseEntry> */ public function getDefenseEntries(): Collection { return $this->defenseEntries; }
     public function addDefenseEntry(BlockstringDefenseEntry $entry): self { if (!$this->defenseEntries->contains($entry)) { $this->defenseEntries->add($entry); $entry->setSequence($this); } return $this; }
-    /** @return Collection<int, BlockstringGap> */ public function getGaps(): Collection { return $this->gaps; }
-    public function addGap(BlockstringGap $gap): self { if (!$this->gaps->contains($gap)) { $this->gaps->add($gap); $gap->setSequence($this); } return $this; }
     /** @return Collection<int, BlockstringCondition> */ public function getConditions(): Collection { return $this->conditions; }
     public function addCondition(BlockstringCondition $condition): self { if (!$this->conditions->contains($condition)) { $this->conditions->add($condition); $condition->setSequence($this); } return $this; }
-    /** @return Collection<int, BlockstringAdaptation> */ public function getAdaptations(): Collection { return $this->adaptations; }
-    public function addAdaptation(BlockstringAdaptation $adaptation): self { if (!$this->adaptations->contains($adaptation)) { $this->adaptations->add($adaptation); $adaptation->setSequence($this); } return $this; }
 }

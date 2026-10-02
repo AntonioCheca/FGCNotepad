@@ -2,11 +2,12 @@
 
 namespace App\Entity;
 
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * A node of the blockstring pressure graph: one move, shown from a learning layer, optionally with an outcome.
+ */
 #[ORM\Entity]
 #[ORM\Table(name: 'blockstring_sequence_step', schema: 'sf6')]
 #[ORM\Index(name: 'idx_blockstring_sequence_step_sequence', columns: ['sequence_id', 'ordinal'])]
@@ -22,45 +23,34 @@ class BlockstringSequenceStep
     #[ORM\JoinColumn(name: 'sequence_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?BlockstringSequence $sequence = null;
 
-    #[ORM\ManyToOne(inversedBy: 'steps')]
-    #[ORM\JoinColumn(name: 'route_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
-    private ?BlockstringRoute $route = null;
-
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'move_id', referencedColumnName: 'id', nullable: false)]
     private ?Move $move = null;
 
+    /** Authoring order; the first node is where the pressure starts. */
     #[ORM\Column]
     private int $ordinal = 1;
 
-    #[ORM\Column(name: 'can_confirm_on_hit', options: ['default' => false])]
-    private bool $canConfirmOnHit = false;
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 1])]
+    private int $layer = 1;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $note = null;
+    #[ORM\Column(name: 'damage_dealt', nullable: true)]
+    private ?int $damageDealt = null;
 
-    /** @var Collection<int, BlockstringGap> */
-    #[ORM\OneToMany(targetEntity: BlockstringGap::class, mappedBy: 'step', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $gaps;
-
-    public function __construct()
-    {
-        $this->gaps = new ArrayCollection();
-    }
+    #[ORM\Column(name: 'damage_received', nullable: true)]
+    private ?int $damageReceived = null;
 
     public function getId(): ?int { return $this->id; }
     public function getSequence(): ?BlockstringSequence { return $this->sequence; }
     public function setSequence(?BlockstringSequence $sequence): self { $this->sequence = $sequence; return $this; }
-    public function getRoute(): ?BlockstringRoute { return $this->route; }
-    public function setRoute(?BlockstringRoute $route): self { $this->route = $route; return $this; }
     public function getMove(): ?Move { return $this->move; }
     public function setMove(?Move $move): self { $this->move = $move; return $this; }
     public function getOrdinal(): int { return $this->ordinal; }
     public function setOrdinal(int $ordinal): self { $this->ordinal = $ordinal; return $this; }
-    public function canConfirmOnHit(): bool { return $this->canConfirmOnHit; }
-    public function setCanConfirmOnHit(bool $canConfirmOnHit): self { $this->canConfirmOnHit = $canConfirmOnHit; return $this; }
-    public function getNote(): ?string { return $this->note; }
-    public function setNote(?string $note): self { $this->note = $note; return $this; }
-    /** @return Collection<int, BlockstringGap> */ public function getGaps(): Collection { return $this->gaps; }
-    public function addGap(BlockstringGap $gap): self { if (!$this->gaps->contains($gap)) { $this->gaps->add($gap); $gap->setStep($this); } return $this; }
+    public function getLayer(): int { return $this->layer; }
+    public function setLayer(int $layer): self { $this->layer = $layer; return $this; }
+    public function getDamageDealt(): ?int { return $this->damageDealt; }
+    public function setDamageDealt(?int $damageDealt): self { $this->damageDealt = $damageDealt; return $this; }
+    public function getDamageReceived(): ?int { return $this->damageReceived; }
+    public function setDamageReceived(?int $damageReceived): self { $this->damageReceived = $damageReceived; return $this; }
 }

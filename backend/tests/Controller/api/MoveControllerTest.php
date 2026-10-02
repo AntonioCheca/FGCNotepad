@@ -81,6 +81,8 @@ class MoveControllerTest extends AuthenticatedWebTestCase
         $this->assertCount(1, $payload);
         $this->assertSame((string) $ryu->getId(), $payload[0]['character']['id']);
         $this->assertSame('Ryu Dash', $payload[0]['summary']);
+        $this->assertSame('Dash', $payload[0]['numpadNotation']);
+        $this->assertArrayHasKey('moveName', $payload[0]);
     }
 
     private function addCharacterInBackend(string $name = 'Test Character'): Character

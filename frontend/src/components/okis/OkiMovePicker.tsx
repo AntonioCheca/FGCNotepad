@@ -7,6 +7,8 @@ export interface OkiMoveOption {
     id: string;
     summary: string;
     characterId?: string;
+    numpadNotation?: string;
+    moveName?: string | null;
 }
 
 interface OkiMovePickerProps {
@@ -45,8 +47,8 @@ export function OkiMovePicker({label, value, characterId, disabled = false, onCh
                     }
                     const nextOptions = Array.isArray(result)
                         ? result
-                            .filter((item): item is {id: string | number; summary: string; character?: {id?: string}} => typeof item === "object" && item !== null && "id" in item && "summary" in item)
-                            .map((item) => ({id: String(item.id), summary: item.summary, characterId: item.character?.id}))
+                            .filter((item): item is {id: string | number; summary: string; numpadNotation?: string; moveName?: string | null; character?: {id?: string}} => typeof item === "object" && item !== null && "id" in item && "summary" in item)
+                            .map((item) => ({id: String(item.id), summary: item.summary, characterId: item.character?.id, numpadNotation: item.numpadNotation, moveName: item.moveName ?? null}))
                         : [];
                     setOptions(value ? [value, ...nextOptions.filter((option) => option.id !== value.id)] : nextOptions);
                 })

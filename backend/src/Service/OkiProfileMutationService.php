@@ -15,6 +15,7 @@ use App\Entity\ReversalProperty;
 use App\Entity\User;
 use App\Repository\CharacterRepository;
 use App\Repository\MoveRepository;
+use App\Service\PressureGraph\PressureGraphFieldParser;
 use App\Util\Enum\OkiInteractionResult;
 use App\Util\Enum\OkiNodePropertyType;
 use App\Util\Enum\OkiOptionType;
@@ -31,6 +32,7 @@ final class OkiProfileMutationService
         private readonly CharacterRepository $characterRepository,
         private readonly OkiSetupAccessService $accessService,
         private readonly ModerationTransitionService $moderationTransitionService,
+        private readonly PressureGraphFieldParser $graphFields,
     ) {
     }
 
@@ -201,7 +203,10 @@ final class OkiProfileMutationService
             ->setSortOrder($this->intOrDefault($payload['sortOrder'] ?? null, $index))
             ->setDefaultRoute($this->bool($payload['isDefaultRoute'] ?? false))
             ->setRouteExplanation($this->nullableString($payload['routeExplanation'] ?? null))
-            ->setOptionType($optionType);
+            ->setOptionType($optionType)
+            ->setLayer($this->graphFields->layer($payload['layer'] ?? null))
+            ->setDamageDealt($this->graphFields->damage($payload['damageDealt'] ?? null, 'damageDealt'))
+            ->setDamageReceived($this->graphFields->damage($payload['damageReceived'] ?? null, 'damageReceived'));
 
         $properties = $payload['properties'] ?? [];
         if (!is_array($properties)) {
@@ -248,11 +253,16 @@ final class OkiProfileMutationService
             throw new BadRequestHttpException('Timed links require a valid minFrames/maxFrames window.');
         }
 
+        $kind = $this->graphFields->edgeKind($payload['kind'] ?? null);
+
         return (new OkiNodeLink())
             ->setToNode($toNode)
             ->setStepType($stepType)
             ->setMinFrames($minFrames)
-            ->setMaxFrames($maxFrames);
+            ->setMaxFrames($maxFrames)
+            ->setKind($kind->value)
+            ->setReadLabel($this->graphFields->readLabel($payload['readLabel'] ?? null, $kind))
+            ->setLayer($this->graphFields->layer($payload['layer'] ?? null));
     }
 
     /** @param array<string, mixed> $payload */

@@ -59,6 +59,8 @@ class MoveController extends AbstractController
         return $this->json(array_map(fn($move) => [
             'id' => $move->getId(),
             'summary' => $move->getCharacter()->getName() . ' ' . $move->getNumpadNotation(),
+            'numpadNotation' => $move->getNumpadNotation(),
+            'moveName' => $move->getFrameData()?->getMoveName(),
             'character' => [
                 'id' => (string) $move->getCharacter()->getId(),
                 'name' => $move->getCharacter()->getName(),

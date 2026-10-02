@@ -4,24 +4,20 @@ A repeatable scorecard for how every route behaves on phones. Run it before and 
 
 ## Running it
 
-Requirements: the Docker dev stack is up, the frontend dev server is running (`make frontend-dev`), and a local account with admin + QA roles exists.
+Requirements: the Docker dev stack is up and the frontend dev server is running (`make frontend-dev`).
 
 ```bash
-# One-time: create the local audit account, then grant roles in the local DB.
-curl -s -X POST http://localhost:8000/api/register -H 'Content-Type: application/json' \
-  -d '{"username":"mobile-audit","password":"<choose-one>"}'
-docker compose exec -T postgres psql -U fgc_user -d fgc_db \
-  -c "UPDATE forum.\"user\" SET roles='[\"ROLE_USER\",\"ROLE_ADMIN\",\"ROLE_QA_TESTER\"]'::json WHERE username='mobile-audit'"
-
 # Seed one oki, blockstring and scenario so detail pages have content (safe to re-run).
-make mobile-audit-seed MOBILE_AUDIT_PASSWORD='<password>'
+make mobile-audit-seed
 
 # Full audit. Output: frontend/mobile-audit-results/mobile-audit-<date>.{json,md}
-make mobile-audit MOBILE_AUDIT_PASSWORD='<password>'
+make mobile-audit
 
 # Options: SCREENSHOTS=1 saves full-page screenshots, ONLY='^/okis' limits routes (regex).
-make mobile-audit MOBILE_AUDIT_PASSWORD='<password>' SCREENSHOTS=1 ONLY='^/scenarios'
+make mobile-audit SCREENSHOTS=1 ONLY='^/scenarios'
 ```
+
+No password is involved. Each run asks the backend for a **dev-only one-time login link** (`php bin/console app:dev:login-link mobile-audit --create --role=ROLE_ADMIN --role=ROLE_QA_TESTER`), which creates the local `mobile-audit` user on first use. The command, its route (`/api/dev/login-check`) and the login-link authenticator exist only in the `dev` and `test` environments; production has none of them. Links are signed with `APP_SECRET`, expire after 5 minutes and work once.
 
 The audit runs in the official Playwright image at phone widths **360×780** (small Android) and **390×844** (iPhone 14/15), with touch emulation. Code lives in `frontend/scripts/mobile-audit/`.
 

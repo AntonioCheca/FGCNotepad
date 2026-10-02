@@ -3,244 +3,177 @@
 namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
-use App\Entity\ComboSpacing;
 use App\Entity\Move;
 use App\Tests\Controller\AuthenticatedWebTestCase;
+use App\Util\Enum\UserRole;
 use Symfony\Component\HttpFoundation\Response;
 
 class BlockstringControllerTest extends AuthenticatedWebTestCase
 {
-    public function testCreateReadAndSearchBlockstring(): void
-    {
-        $this->addContentTypeJsonToHeaders();
-        $character = (new Character())->setName('Akuma');
-        $move = (new Move())->setCharacter($character)->setNumpadNotation('st.MP');
-        $jab = (new Move())->setCharacter($character)->setNumpadNotation('LP');
-        $kick = (new Move())->setCharacter($character)->setNumpadNotation('5HK');
-        $spacing = (new ComboSpacing())->setCode('tip')->setName('Tip')->setDescription('At tip range')->setSortOrder(1);
-        $this->entityManager->persist($character);
-        $this->entityManager->persist($move);
-        $this->entityManager->persist($jab);
-        $this->entityManager->persist($kick);
-        $this->entityManager->persist($spacing);
-        $this->entityManager->flush();
+    /** @var array<string, Move> */
+    private array $moves = [];
+    private Character $character;
 
-        $payload = [
-            'title' => 'Akuma st.MP pressure',
-            'summary' => 'Default pressure with a documented gap.',
-            'attackerCharacterId' => (string) $character->getId(),
-            'classification' => 'fake',
-            'steps' => [
-                ['moveId' => (string) $move->getId(), 'ordinal' => 1, 'canConfirmOnHit' => true],
-                ['moveId' => (string) $jab->getId(), 'ordinal' => 2],
-                ['moveId' => (string) $kick->getId(), 'ordinal' => 3],
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->addContentTypeJsonToHeaders();
+        $this->character = (new Character())->setName('Akuma');
+        $this->entityManager->persist($this->character);
+        foreach (['5MP', '5LP', '2MK', '236HK', '6HP'] as $notation) {
+            $move = (new Move())->setCharacter($this->character)->setNumpadNotation($notation);
+            $this->entityManager->persist($move);
+            $this->moves[$notation] = $move;
+        }
+        $this->entityManager->flush();
+    }
+
+    public function testCreateReadAndSearchBlockstringGraph(): void
+    {
+        $created = $this->createBlockstring($this->graphPayload());
+
+        $this->assertSame('st.MP pressure', $created['title']);
+        $this->assertSame('5MP -> 5LP -> 2MK', $created['notation']);
+        $this->assertSame('pending_review', $created['moderationState']);
+        $this->assertCount(5, $created['nodes']);
+        $this->assertCount(6, $created['edges']);
+
+        $nodeIdsByMove = array_column(array_map(static fn (array $node): array => [$node['move']['numpadNotation'], $node['id']], $created['nodes']), 1, 0);
+        $edgesByKind = [];
+        foreach ($created['edges'] as $edge) {
+            $edgesByKind[$edge['kind']][] = $edge;
+        }
+        $this->assertSame('expects mash', $edgesByKind['read'][0]['readLabel']);
+        $this->assertSame(2, $edgesByKind['read'][0]['layer']);
+        $this->assertSame($nodeIdsByMove['6HP'], $edgesByKind['read'][0]['to']);
+        $this->assertSame($nodeIdsByMove['5MP'], $edgesByKind['normal'][2]['to'], 'loop back to the start is kept');
+        $this->assertSame(3, $edgesByKind['fake'][0]['gapFrames']);
+        $this->assertSame(-1, $edgesByKind['fake'][0]['frameAdvantage']);
+        $this->assertSame(2400, $created['nodes'][3]['damageDealt']);
+        $this->assertSame($edgesByKind['fake'][0]['id'], $created['defenseEntries'][0]['edgeId']);
+
+        $this->client->request('GET', '/api/blockstrings?moveId=' . $this->moves['6HP']->getId(), [], [], $this->getHeaders());
+        $search = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame([$created['id']], array_column($search, 'id'));
+        $this->assertSame([['from' => '2MK', 'to' => '236HK', 'gapFrames' => 3, 'frameAdvantage' => -1, 'kind' => 'fake']], $search[0]['gaps']);
+        $this->assertArrayNotHasKey('edges', $search[0]);
+    }
+
+    public function testReadLabelIsDroppedForNonReadEdges(): void
+    {
+        $payload = $this->graphPayload();
+        $payload['edges'][0]['readLabel'] = 'should vanish';
+
+        $created = $this->createBlockstring($payload);
+
+        $this->assertNull($created['edges'][0]['readLabel']);
+    }
+
+    /** @return iterable<string, array{0: callable(array<string, mixed>): array<string, mixed>}> */
+    public static function invalidGraphs(): iterable
+    {
+        yield 'edge to unknown node' => [static function (array $payload): array { $payload['edges'][0]['to'] = 'missing'; return $payload; }];
+        yield 'unknown edge kind' => [static function (array $payload): array { $payload['edges'][0]['kind'] = 'tight'; return $payload; }];
+        yield 'layer out of range' => [static function (array $payload): array { $payload['nodes'][0]['layer'] = 4; return $payload; }];
+        yield 'negative damage' => [static function (array $payload): array { $payload['nodes'][0]['damageDealt'] = -5; return $payload; }];
+        yield 'defense entry without edge' => [static function (array $payload): array { $payload['defenseEntries'][0]['edgeClientId'] = 'nope'; return $payload; }];
+        yield 'no nodes' => [static function (array $payload): array { $payload['nodes'] = []; $payload['edges'] = []; $payload['defenseEntries'] = []; return $payload; }];
+        yield 'duplicate node id' => [static function (array $payload): array { $payload['nodes'][1]['clientId'] = 'a'; return $payload; }];
+    }
+
+    /**
+     * @dataProvider invalidGraphs
+     *
+     * @param callable(array<string, mixed>): array<string, mixed> $mutate
+     */
+    public function testInvalidGraphsAreRejected(callable $mutate): void
+    {
+        $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($mutate($this->graphPayload()), JSON_THROW_ON_ERROR));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testNodesMustUseTheAttackersMoves(): void
+    {
+        $other = (new Character())->setName('Ryu');
+        $foreign = (new Move())->setCharacter($other)->setNumpadNotation('2LP');
+        $this->entityManager->persist($other);
+        $this->entityManager->persist($foreign);
+        $this->entityManager->flush();
+        $payload = $this->graphPayload();
+        $payload['nodes'][0]['moveId'] = (string) $foreign->getId();
+
+        $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testModeratorUpdateReplacesTheGraph(): void
+    {
+        $created = $this->createBlockstring($this->graphPayload());
+        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
+        $this->addContentTypeJsonToHeaders();
+        $payload = $this->graphPayload();
+        $payload['nodes'] = [['clientId' => 'x', 'moveId' => (string) $this->moves['2MK']->getId()]];
+        $payload['edges'] = [['from' => 'x', 'to' => 'x', 'kind' => 'normal']];
+        $payload['defenseEntries'] = [];
+
+        $this->client->request('PATCH', '/api/blockstrings/' . $created['id'], [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
+        $updated = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $this->assertCount(1, $updated['nodes']);
+        $this->assertCount(1, $updated['edges']);
+        $this->assertSame($updated['edges'][0]['from'], $updated['edges'][0]['to']);
+        $this->assertSame('2MK', $updated['notation']);
+    }
+
+    /**
+     * 5MP -> 5LP -> 2MK loops back to 5MP; 5LP confirms into 236HK; a hard read swaps 2MK for 6HP; 2MK is fake.
+     *
+     * @return array<string, mixed>
+     */
+    private function graphPayload(): array
+    {
+        $id = fn (string $notation): string => (string) $this->moves[$notation]->getId();
+
+        return [
+            'title' => 'st.MP pressure',
+            'attackerCharacterId' => (string) $this->character->getId(),
+            'classification' => 'frametrap',
+            'nodes' => [
+                ['clientId' => 'a', 'moveId' => $id('5MP')],
+                ['clientId' => 'b', 'moveId' => $id('5LP')],
+                ['clientId' => 'c', 'moveId' => $id('2MK')],
+                ['clientId' => 'd', 'moveId' => $id('236HK'), 'damageDealt' => 2400],
+                ['clientId' => 'e', 'moveId' => $id('6HP'), 'layer' => 2, 'damageReceived' => 3000],
             ],
-            'gaps' => [
-                ['clientId' => 'gap-a', 'stepOrdinal' => 2, 'timing' => 'before_step', 'frames' => 0, 'frameAdvantage' => 2],
-                ['clientId' => 'gap-b', 'stepOrdinal' => 2, 'timing' => 'during_step', 'frames' => 4, 'classification' => 'safe', 'frameAdvantage' => '-1', 'note' => 'Ignored legacy gap note'],
-                ['clientId' => 'gap-c', 'stepOrdinal' => 3, 'timing' => 'before_step', 'frames' => 3],
+            'edges' => [
+                ['clientId' => 'ab', 'from' => 'a', 'to' => 'b', 'kind' => 'normal'],
+                ['clientId' => 'bc', 'from' => 'b', 'to' => 'c', 'kind' => 'normal'],
+                ['clientId' => 'ca', 'from' => 'c', 'to' => 'a', 'kind' => 'normal', 'layer' => 1],
+                ['clientId' => 'bd', 'from' => 'b', 'to' => 'd', 'kind' => 'confirm'],
+                ['clientId' => 'be', 'from' => 'b', 'to' => 'e', 'kind' => 'read', 'readLabel' => '  expects mash ', 'layer' => 2],
+                ['clientId' => 'cfake', 'from' => 'c', 'to' => 'd', 'kind' => 'fake', 'gapFrames' => 3, 'frameAdvantage' => -1],
             ],
             'defenseEntries' => [
-                [
-                    'gapClientId' => 'gap-c',
-                    'instruction' => 'Trade before 5HK.',
-                    'responseType' => 'button',
-                    'outcome' => 'trade',
-                ],
-                [
-                    'gapClientId' => 'gap-a',
-                    'instruction' => 'Interrupt before LP connects.',
-                    'responseType' => 'reversal',
-                    'outcome' => 'counter_hit',
-                    'conversion' => 'Invincible reversal punish',
-                ],
+                ['edgeClientId' => 'cfake', 'instruction' => 'Mash 4f before 236HK.', 'responseType' => 'button', 'outcome' => 'counter_hit'],
             ],
-            'adaptations' => [[
-                'clientId' => 'adaptation-a',
-                'gapClientId' => 'gap-c',
-                'explanation' => 'Hard-read mash with cr.MP.',
-                'steps' => [
-                    ['moveId' => (string) $move->getId(), 'ordinal' => 1],
-                ],
-                'comboSearch' => [
-                    'firstMoveId' => (string) $move->getId(),
-                    'spacingCode' => 'tip',
-                    'counterHitRequired' => true,
-                    'minDamage' => 3500,
-                ],
-            ]],
         ];
+    }
 
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * @return array<string, mixed>
+     */
+    private function createBlockstring(array $payload): array
+    {
         $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
         $response = $this->client->getResponse();
-        $created = json_decode((string) $response->getContent(), true);
-
         $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-        $this->assertSame('Akuma st.MP pressure', $created['title']);
-        $this->assertSame('st.MP -> LP -> 5HK', $created['notation']);
-        $this->assertCount(3, $created['gaps']);
-        $this->assertSame(2, $created['gaps'][0]['stepOrdinal']);
-        $this->assertSame('before_step', $created['gaps'][0]['timing']);
-        $this->assertSame(0, $created['gaps'][0]['frames']);
-        $this->assertSame('safe', $created['gaps'][0]['classification']);
-        $this->assertSame(2, $created['gaps'][0]['frameAdvantage']);
-        $this->assertSame('during_step', $created['gaps'][1]['timing']);
-        $this->assertSame(4, $created['gaps'][1]['frames']);
-        $this->assertSame(0, $created['gaps'][1]['frameAdvantage']);
-        $this->assertSame('safe', $created['gaps'][1]['classification']);
-        $this->assertArrayNotHasKey('note', $created['gaps'][1]);
-        $this->assertSame('trades', $created['gaps'][2]['classification']);
-        $this->assertSame(0, $created['gaps'][2]['frameAdvantage']);
-        $this->assertSame($created['gaps'][0]['id'], $created['defenseEntries'][0]['gapId']);
-        $this->assertSame(2, $created['defenseEntries'][0]['gapStepOrdinal']);
-        $this->assertSame('reversal', $created['defenseEntries'][0]['responseType']);
-        $this->assertSame($created['gaps'][2]['id'], $created['defenseEntries'][1]['gapId']);
-        $this->assertSame(1, $created['gaps'][2]['adaptationCount']);
-        $this->assertCount(1, $created['adaptations']);
-        $this->assertSame($created['gaps'][2]['id'], $created['adaptations'][0]['gapId']);
-        $this->assertSame('Hard-read mash with cr.MP.', $created['adaptations'][0]['explanation']);
-        $this->assertSame('st.MP', $created['adaptations'][0]['steps'][0]['move']['numpadNotation']);
-        $this->assertTrue($created['adaptations'][0]['comboSearch']['filters']['counterHitRequired']);
-        $this->assertSame(['tip'], $created['adaptations'][0]['comboSearch']['filters']['spacingCodes']);
-        $this->assertSame('Tip', $created['adaptations'][0]['comboSearch']['spacing']['name']);
-        $this->assertStringContainsString('spacingCodes=tip', $created['adaptations'][0]['comboSearch']['url']);
-        $this->assertSame(3500, $created['adaptations'][0]['comboSearch']['filters']['minDamage']);
-        $this->assertSame('pending_review', $created['moderationState']);
 
-        $this->client->request('GET', '/api/blockstrings?q=akuma', [], [], $this->getHeaders());
-        $response = $this->client->getResponse();
-        $searchPayload = json_decode((string) $response->getContent(), true);
-
-        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertCount(1, $searchPayload);
-        $this->assertSame($created['id'], $searchPayload[0]['id']);
-    }
-
-    public function testDefenseEntryMustTargetGap(): void
-    {
-        $this->addContentTypeJsonToHeaders();
-        $character = (new Character())->setName('Akuma');
-        $move = (new Move())->setCharacter($character)->setNumpadNotation('st.MP');
-        $jab = (new Move())->setCharacter($character)->setNumpadNotation('LP');
-        $this->entityManager->persist($character);
-        $this->entityManager->persist($move);
-        $this->entityManager->persist($jab);
-        $this->entityManager->flush();
-
-        $payload = [
-            'title' => 'Invalid defense target',
-            'attackerCharacterId' => (string) $character->getId(),
-            'classification' => 'fake',
-            'steps' => [
-                ['moveId' => (string) $move->getId(), 'ordinal' => 1],
-                ['moveId' => (string) $jab->getId(), 'ordinal' => 2],
-            ],
-            'defenseEntries' => [[
-                'gapClientId' => 'missing-gap',
-                'instruction' => 'This gap does not exist.',
-            ]],
-        ];
-
-        $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
-
-        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
-    }
-
-    public function testCreateBlockstringWithLayeredRoutesAndHitConfirmConnection(): void
-    {
-        $this->addContentTypeJsonToHeaders();
-        $character = (new Character())->setName('Kimberly');
-        $fiveMk = (new Move())->setCharacter($character)->setNumpadNotation('5MK TC');
-        $twoLp = (new Move())->setCharacter($character)->setNumpadNotation('2LP');
-        $twoMk = (new Move())->setCharacter($character)->setNumpadNotation('2MK');
-        $run = (new Move())->setCharacter($character)->setNumpadNotation('214M');
-        $this->entityManager->persist($character);
-        $this->entityManager->persist($fiveMk);
-        $this->entityManager->persist($twoLp);
-        $this->entityManager->persist($twoMk);
-        $this->entityManager->persist($run);
-        $this->entityManager->flush();
-
-        $payload = [
-            'title' => 'Layered TC pressure',
-            'attackerCharacterId' => (string) $character->getId(),
-            'classification' => 'frametrap',
-            'routes' => [
-                [
-                    'clientId' => 'main',
-                    'name' => 'Main route',
-                    'isMain' => true,
-                    'displayOrder' => 1,
-                    'steps' => [
-                        ['clientId' => 'main-a', 'moveId' => (string) $fiveMk->getId()],
-                        ['clientId' => 'main-b', 'moveId' => (string) $twoLp->getId()],
-                    ],
-                    'connections' => [[
-                        'clientId' => 'main-link',
-                        'sourceStepClientId' => 'main-a',
-                        'destinationStepClientId' => 'main-b',
-                        'type' => 'guaranteed',
-                    ]],
-                ],
-                [
-                    'clientId' => 'mash-callout',
-                    'name' => 'Mash callout',
-                    'isMain' => false,
-                    'displayOrder' => 2,
-                    'tacticalReasonText' => 'Use this route when the opponent challenges after 2LP.',
-                    'branchAnchor' => ['connectionClientId' => 'main-link'],
-                    'steps' => [
-                        ['clientId' => 'mash-a', 'moveId' => (string) $fiveMk->getId()],
-                        ['clientId' => 'mash-b', 'moveId' => (string) $twoLp->getId()],
-                        ['clientId' => 'mash-c', 'moveId' => (string) $twoMk->getId()],
-                        ['clientId' => 'mash-d', 'moveId' => (string) $run->getId()],
-                    ],
-                    'connections' => [
-                        ['clientId' => 'mash-link-a', 'sourceStepClientId' => 'mash-a', 'destinationStepClientId' => 'mash-b', 'type' => 'guaranteed'],
-                        ['clientId' => 'mash-gap', 'sourceStepClientId' => 'mash-b', 'destinationStepClientId' => 'mash-c', 'type' => 'gap', 'gapFrames' => 3, 'frameAdvantage' => -1, 'classification' => 'trades'],
-                        ['clientId' => 'mash-confirm', 'sourceStepClientId' => 'mash-c', 'destinationStepClientId' => 'mash-d', 'type' => 'hit_confirm'],
-                    ],
-                ],
-            ],
-        ];
-
-        $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
-        $response = $this->client->getResponse();
-        $created = json_decode((string) $response->getContent(), true);
-
-        $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-        $this->assertSame('5MK TC -> 2LP', $created['notation']);
-        $this->assertCount(2, $created['routes']);
-        $this->assertTrue($created['routes'][0]['isMain']);
-        $this->assertSame('Mash callout', $created['routes'][1]['name']);
-        $this->assertSame('Use this route when the opponent challenges after 2LP.', $created['routes'][1]['tacticalReasonText']);
-        $this->assertSame($created['routes'][0]['connections'][0]['id'], $created['routes'][1]['branchAnchor']['connectionId']);
-        $this->assertSame('gap', $created['routes'][1]['connections'][1]['type']);
-        $this->assertSame(3, $created['routes'][1]['connections'][1]['gap']['frames']);
-        $this->assertSame('hit_confirm', $created['routes'][1]['connections'][2]['type']);
-    }
-
-    public function testAlternativeRouteRequiresTacticalReason(): void
-    {
-        $this->addContentTypeJsonToHeaders();
-        $character = (new Character())->setName('Ryu');
-        $move = (new Move())->setCharacter($character)->setNumpadNotation('2LP');
-        $this->entityManager->persist($character);
-        $this->entityManager->persist($move);
-        $this->entityManager->flush();
-
-        $payload = [
-            'title' => 'Invalid route reason',
-            'attackerCharacterId' => (string) $character->getId(),
-            'classification' => 'fake',
-            'routes' => [
-                ['clientId' => 'main', 'isMain' => true, 'steps' => [['clientId' => 'main-a', 'moveId' => (string) $move->getId()]]],
-                ['clientId' => 'alt', 'isMain' => false, 'steps' => [['clientId' => 'alt-a', 'moveId' => (string) $move->getId()]]],
-            ],
-        ];
-
-        $this->client->request('POST', '/api/blockstrings', [], [], $this->getHeaders(), json_encode($payload, JSON_THROW_ON_ERROR));
-
-        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        return json_decode((string) $response->getContent(), true);
     }
 }

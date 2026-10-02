@@ -1,22 +1,22 @@
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import type {BlockstringGap} from "@/src/types/blockstring";
+import type {BlockstringGapSummary} from "@/src/types/blockstring";
 
 interface BlockstringGapAdvantageStripProps {
-    gaps: BlockstringGap[];
+    gaps: BlockstringGapSummary[];
 }
 
 export function BlockstringGapAdvantageStrip({gaps}: BlockstringGapAdvantageStripProps) {
-    const betweenMoveGaps = gaps.filter((gap) => gap.timing === "before_step");
+    const withAdvantage = gaps.filter((gap) => gap.frameAdvantage !== null);
 
-    if (betweenMoveGaps.length === 0) {
+    if (withAdvantage.length === 0) {
         return null;
     }
 
     return (
         <AppBox sx={{display: "flex", gap: 0.65, flexWrap: "wrap", alignItems: "center"}}>
-            {betweenMoveGaps.map((gap) => (
-                <AppTypography key={gap.id ?? `${gap.stepOrdinal}-${gap.timing}-${gap.frames}`} variant="caption" sx={{fontWeight: 900, lineHeight: 1, color: frameAdvantageColor(gap.frameAdvantage ?? 0)}}>
+            {withAdvantage.map((gap) => (
+                <AppTypography key={`${gap.from}-${gap.to}-${gap.gapFrames}`} variant="caption" sx={{fontWeight: 900, lineHeight: 1, color: frameAdvantageColor(gap.frameAdvantage ?? 0)}}>
                     {formatFrameAdvantage(gap.frameAdvantage ?? 0)}
                 </AppTypography>
             ))}

@@ -105,5 +105,5 @@ function formatGapSummary(item: BlockstringSummary): string {
         return "No gaps documented.";
     }
 
-    return item.gaps.map((gap) => `${gap.frames}f ${gap.timing === "before_step" ? "before" : "during"} Move ${gap.stepOrdinal ?? "?"}`).join(" · ");
+    return item.gaps.map((gap) => `${gap.gapFrames}f gap ${gap.from ?? "?"} → ${gap.to ?? "?"}`).join(" · ");
 }

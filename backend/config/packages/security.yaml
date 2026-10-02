@@ -64,10 +64,36 @@ security:
         - { path: ^/api, roles: ROLE_USER }
 
 # ========================
+# Dev-only passwordless login (used by `make mobile-audit`). Never configured in prod.
+# Links come from `php bin/console app:dev:login-link`, are signed with APP_SECRET,
+# expire after 5 minutes and work once.
+# ========================
+when@dev:
+    security:
+        firewalls:
+            api:
+                login_link:
+                    check_route: api_dev_login_check
+                    signature_properties: ['id']
+                    lifetime: 300
+                    max_uses: 1
+                    success_handler: App\Security\BrowserLoginSuccessHandler
+                    failure_handler: App\Security\BrowserLoginFailureHandler
+
+# ========================
 # Test environment override
 # ========================
 when@test:
     security:
+        firewalls:
+            api:
+                login_link:
+                    check_route: api_dev_login_check
+                    signature_properties: ['id']
+                    lifetime: 300
+                    max_uses: 1
+                    success_handler: App\Security\BrowserLoginSuccessHandler
+                    failure_handler: App\Security\BrowserLoginFailureHandler
         password_hashers:
             Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
                 algorithm: auto

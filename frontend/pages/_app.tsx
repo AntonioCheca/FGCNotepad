@@ -1,3 +1,4 @@
+import '@xyflow/react/dist/style.css';
 import type {AppProps} from 'next/app';
 import Head from 'next/head';
 import {useRouter} from 'next/router';

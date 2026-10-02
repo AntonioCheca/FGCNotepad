@@ -1,0 +1,8 @@
+# Dev/test-only check route for the login link authenticator (see security.yaml). Never registered in prod.
+when@dev:
+    api_dev_login_check:
+        path: /api/dev/login-check
+
+when@test:
+    api_dev_login_check:
+        path: /api/dev/login-check

@@ -6,8 +6,9 @@ export function requireEnv(name) {
     return value;
 }
 
-// Logs in against the Symfony API and returns a tiny cookie + CSRF aware JSON client.
-export async function createApiSession(apiUrl, username, password) {
+// Logs in with a dev-only one-time login link (see `php bin/console app:dev:login-link`)
+// and returns a tiny cookie + CSRF aware JSON client.
+export async function createApiSession(apiUrl, loginUrl) {
     const cookies = new Map();
     let csrfToken = "";
 
@@ -39,12 +40,15 @@ export async function createApiSession(apiUrl, username, password) {
         return payload;
     }
 
-    const login = await request("POST", "/login", {username, password});
+    const link = new URL(loginUrl);
+    const login = await request("GET", `${link.pathname.replace(/^\/api/, "")}${link.search}`);
     csrfToken = login.csrfToken;
 
     return {
         get: (path) => request("GET", path),
         post: (path, body) => request("POST", path, body),
+        patch: (path, body) => request("PATCH", path, body),
+        delete: (path) => request("DELETE", path),
         cookies: () => [...cookies].map(([name, value]) => ({name, value})),
     };
 }
