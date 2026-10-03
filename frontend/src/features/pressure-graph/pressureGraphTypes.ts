@@ -21,6 +21,8 @@ export interface PressureGraphNode {
     layer: PressureLayer;
     damageDealt: number | null;
     damageReceived: number | null;
+    // Implicit root drawn for context (the oki ender): it never takes part in drag-to-connect.
+    anchor?: boolean;
 }
 
 export interface PressureGraphEdge {

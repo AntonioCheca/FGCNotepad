@@ -83,7 +83,6 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 canSubmit={controller.canSubmit}
                 showAdvancedConditions={controller.showAdvancedConditions}
                 requirements={controller.requirements}
-                activeRequirementsCount={controller.activeRequirements.length}
                 requirementObjects={controller.characterRequirementObjects}
                 objectStates={controller.objectStates}
                 onTitleChange={controller.setTitle}

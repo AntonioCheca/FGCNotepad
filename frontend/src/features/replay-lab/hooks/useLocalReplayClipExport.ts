@@ -2,6 +2,7 @@ import React from "react";
 import type {FFmpeg, LogEventCallback, ProgressEventCallback} from "@ffmpeg/ffmpeg";
 
 import type {ReplayAnnotation, ReplayAnnotationExportResult, ReplayReviewSession} from "@/src/types/replayLab";
+import {useCrossOriginIsolated} from "./useCrossOriginIsolated";
 import {formatBytes, isMp4File} from "../replayReviewUtils";
 
 export type LocalReplayExportStatus = "idle" | "loading" | "mounted" | "exporting" | "uploading" | "finalizing" | "done" | "failed";
@@ -139,11 +140,7 @@ export function useLocalReplayClipExport({
     const [progress, setProgress] = React.useState(0);
     const [result, setResult] = React.useState<ReplayAnnotationExportResult | null>(null);
     const [error, setError] = React.useState<string | null>(null);
-    const [isIsolated, setIsIsolated] = React.useState(false);
-
-    React.useEffect(() => {
-        setIsIsolated(window.crossOriginIsolated);
-    }, []);
+    const isIsolated = useCrossOriginIsolated();
 
     React.useEffect(() => () => {
         const ffmpeg = ffmpegRef.current;

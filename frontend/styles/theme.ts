@@ -122,6 +122,13 @@ type FgcTokenSet = {
         helper: string;
         metadata: string;
     };
+    comboRequirement: {
+        counterHit: string;
+        punishCounter: string;
+        perfectParry: string;
+        wallsplat: string;
+        corner: string;
+    };
     pressureGraph: {
         normal: string;
         confirm: string;
@@ -280,6 +287,15 @@ const lightTokens: FgcTokenSet = {
         helper: "#5f728a",
         metadata: "#556a81",
     },
+    // Combo requirement badges: yellow Counter Hit, orange Punish Counter, sky Perfect Parry, red wallsplat. Light shades
+    // are deepened so icon and tag text keep >= 4.5:1 on white surfaces.
+    comboRequirement: {
+        counterHit: "#a16207",
+        punishCounter: "#c2410c",
+        perfectParry: "#0369a1",
+        wallsplat: "#b91c1c",
+        corner: "#246f89",
+    },
     // Oki/blockstring graph edges follow the spec's functional hues (green autopilot, yellow confirm, blue read,
     // red fake); light shades are deepened from the chart families so each edge keeps >= 3:1 on white surfaces.
     pressureGraph: {
@@ -437,6 +453,13 @@ const darkTokens: FgcTokenSet = {
         body: "#d3e7ef",
         helper: "#9fbfcb",
         metadata: "#86a9b7",
+    },
+    comboRequirement: {
+        counterHit: "#fcbf49",
+        punishCounter: "#f78002",
+        perfectParry: "#7dd3fc",
+        wallsplat: "#ff6b6b",
+        corner: "#a2ccdb",
     },
     pressureGraph: {
         normal: "#7ccfa6",

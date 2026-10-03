@@ -419,7 +419,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const notationTokens = parseNotationTokens(notationInput);
     const completedSteps = getCompletedStepsCount(steps);
     const hasParseResult = parseTokens.length > 0 || steps.length > 0 || translateErrors.length > 0 || translateWarnings.length > 0;
-    const activeRequirements = requirementToggles.filter(({key}) => Boolean(requirements[key]));
     const canSubmit = title.trim().length > 0 && steps.length > 0 && completedSteps === steps.length;
     const errorByIndex = useMemo(
         () => new Map<number, TranslateErrorToken>(translateErrors.map((error) => [error.index, error])),
@@ -571,7 +570,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         selectedObjectIsBoolean,
         selectedObjectIsInteger,
         hasParseResult,
-        activeRequirements,
         canSubmit,
         errorByIndex,
         leafNameById,

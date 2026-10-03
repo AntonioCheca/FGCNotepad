@@ -2,12 +2,17 @@
 
 namespace App\Serializer\Normalizer;
 
+use App\Entity\CharacterObjectState;
 use App\Entity\ComboRequirement;
+use App\Repository\CharacterObjectRepository;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 class ComboRequirementNormalizer implements NormalizerInterface
 {
-    public function __construct()
+    /** @var array<string, string|null> Kinds by object key; lists normalize many combos sharing the same objects. */
+    private array $kindsByKey = [];
+
+    public function __construct(private readonly CharacterObjectRepository $characterObjectRepository)
     {
     }
 
@@ -16,11 +21,12 @@ class ComboRequirementNormalizer implements NormalizerInterface
         /** @var ComboRequirement $object */
         $objectStates = $object->getCharacterObjectStates()->toArray();
         $firstObjectState = $objectStates[0] ?? null;
-        $normalizedObjectStates = array_map(static fn ($objectState): array => [
+        $normalizedObjectStates = array_map(fn (CharacterObjectState $objectState): array => [
             'id' => $objectState->getId(),
             'object_key' => $objectState->getObjectKey(),
             'character_name' => $objectState->getCharacterName(),
             'object_name' => $objectState->getObjectName(),
+            'kind' => $this->resolveKind($objectState),
             'status_required' => $objectState->getStatusRequired(),
             'consumed' => $objectState->isConsumed(),
             'added_relative' => $objectState->getAddedRelative(),
@@ -52,6 +58,26 @@ class ComboRequirementNormalizer implements NormalizerInterface
                 'added_absolute' => $firstObjectState->getAddedAbsolute(),
             ] : null,
         ];
+    }
+
+    /**
+     * Stored states usually carry only the object key, so the catalog object is looked up to tell stock, scaler and state apart.
+     */
+    private function resolveKind(CharacterObjectState $objectState): ?string
+    {
+        $object = $objectState->getCharacterObject();
+        if (null !== $object) {
+            return $object->getKind();
+        }
+        $key = $objectState->getObjectKey();
+        if (null === $key) {
+            return null;
+        }
+        if (!array_key_exists($key, $this->kindsByKey)) {
+            $this->kindsByKey[$key] = $this->characterObjectRepository->findOneByKey($key)?->getKind();
+        }
+
+        return $this->kindsByKey[$key];
     }
 
     public function supportsNormalization($data, $format = null, array $context = []): bool

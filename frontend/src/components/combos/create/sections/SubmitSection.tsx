@@ -1,6 +1,5 @@
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
-import {AppChip} from "@/src/components/ui/AppChip";
 import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
@@ -8,6 +7,8 @@ import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
 import {ToggleRow} from "@/src/components/ui/tactical/ToggleRow";
 import {CheckCircleOutlineIcon} from "@/src/components/ui/AppIcons";
+import {buildRequirementBadges, objectStatesFromDrafts, requirementBadgeKind} from "@/src/components/combos/requirements/comboRequirementBadges";
+import {ComboRequirementIcons, RequirementKindIcon} from "@/src/components/combos/requirements/ComboRequirementIcons";
 import type {
     ComboRequirementsPayload,
     ComboObjectStateDraft,
@@ -38,7 +39,6 @@ interface SubmitSectionProps {
     canSubmit: boolean;
     showAdvancedConditions: boolean;
     requirements: ComboRequirementsPayload;
-    activeRequirementsCount: number;
     requirementObjects: RequirementObjectOption[];
     objectStates: ComboObjectStateDraft[];
     readOnly?: boolean;
@@ -77,7 +77,6 @@ export function SubmitSection({
     canSubmit,
     showAdvancedConditions,
     requirements,
-    activeRequirementsCount,
     requirementObjects,
     objectStates,
     readOnly = false,
@@ -263,19 +262,21 @@ export function SubmitSection({
                         />
                     </AppBox>
                     <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "1fr 1fr"}, gap: 1}}>
-                        {requirementToggles.map(({key, label}) => (
-                            <ToggleRow
-                                key={key}
-                                label={label}
-                                checked={Boolean(requirements[key])}
-                                disabled={readOnly || isRequirementToggleLocked(requirements, key)}
-                                onChange={(checked) => onRequirementToggle(key, checked)}
-                            />
-                        ))}
+                        {requirementToggles.map(({key, label}) => {
+                            const kind = requirementBadgeKind(key);
+                            return (
+                                <ToggleRow
+                                    key={key}
+                                    label={label}
+                                    icon={kind && kind !== "object" ? <RequirementKindIcon kind={kind} /> : undefined}
+                                    checked={Boolean(requirements[key])}
+                                    disabled={readOnly || isRequirementToggleLocked(requirements, key)}
+                                    onChange={(checked) => onRequirementToggle(key, checked)}
+                                />
+                            );
+                        })}
                     </AppBox>
-                    <AppBox sx={{display: "flex", gap: 0.5, flexWrap: "wrap"}}>
-                        <AppChip size="small" variant="outlined" color="info" label={`${activeRequirementsCount} active conditions`} />
-                    </AppBox>
+                    <ComboRequirementIcons badges={buildRequirementBadges({...requirements, combo_object_states: objectStatesFromDrafts(objectStates, requirementObjects)})} />
                     <AppBox sx={{display: "grid", gap: 0.75}}>
                         <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "minmax(180px, 320px) auto"}, gap: 0.75, alignItems: "center"}}>
                             <AppTextField

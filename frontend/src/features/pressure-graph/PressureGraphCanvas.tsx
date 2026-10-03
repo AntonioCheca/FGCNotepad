@@ -62,7 +62,7 @@ function PressureGraphFlow({graph, showRisk, ariaLabel, selection = null, onSele
             height: size.height,
             selected: isSelected,
             ariaLabel: node.name ? `${node.notation}, ${node.name}` : node.notation,
-            data: {node, showRisk, direction, connectable, selected: isSelected},
+            data: {node, showRisk, direction, connectable: connectable && !node.anchor, selected: isSelected},
         };
     });
     const edges: PressureFlowEdge[] = graph.edges.map((edge) => {
@@ -82,7 +82,7 @@ function PressureGraphFlow({graph, showRisk, ariaLabel, selection = null, onSele
     const handleEdgesChange = (changes: EdgeChange<PressureFlowEdge>[]) => forwardSelection(changes, "edge", onSelect);
 
     return (
-        <AppBox ref={containerRef} role="group" aria-label={ariaLabel} data-chart sx={{width: "100%", minWidth: 0, height, "& .react-flow__pane": {cursor: editable ? "default" : "auto"}}}>
+        <AppBox ref={containerRef} role="group" aria-label={ariaLabel} data-chart sx={{width: "100%", minWidth: 0, height, "& .react-flow__pane": {cursor: editable ? "default" : "auto"}, "& .react-flow__node": {cursor: editable ? "pointer" : "default"}}}>
             {containerWidth > 0 ? (
                 <ReactFlow<PressureFlowNode, PressureFlowEdge>
                     nodes={nodes}

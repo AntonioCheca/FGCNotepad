@@ -67,7 +67,8 @@ export function MoveResourceEffectsSection({moves, resources, pendingMoveId, onS
         });
         onSave(move, effects);
         setDrafts((current) => {
-            const {[key]: _removed, ...rest} = current;
+            const rest = {...current};
+            delete rest[key];
             return rest;
         });
     };

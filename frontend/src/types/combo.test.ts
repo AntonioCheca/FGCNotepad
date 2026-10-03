@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {deriveComboStarter, mapComboToRow} from "./combo";
+import {deriveComboStarter, mapComboToRow, wholeDamage} from "./combo";
 
 test("normal starter is the first move", () => {
     assert.equal(deriveComboStarter(["5HK", "236P"]), "5HK");
@@ -28,4 +28,10 @@ test("mapComboToRow keeps the underlying move sequence", () => {
     assert.equal(row.starter, "DR > 5HK");
     assert.equal(mapComboToRow({id: 3, moves: [{name: "Ryu - 5HK"}, {name: "Ryu - 236P"}]}).ender, "236P");
     assert.equal(mapComboToRow({id: 2, moves: [{name: "5HK"}]}).starter, "5HK");
+});
+
+test("resource-adjusted damage is shown in whole points", () => {
+    assert.equal(mapComboToRow({id: 4, comboMetrics: {resourceAdjustedDamage: 2013.6000000000004}}).resourceAdjustedDamage, 2014);
+    assert.equal(wholeDamage("819.8000000000002"), 820);
+    assert.equal(wholeDamage("-"), "-");
 });

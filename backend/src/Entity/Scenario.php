@@ -462,19 +462,11 @@ class Scenario
     #[ORM\PrePersist]
     public function onPrePersist(): void
     {
-        if (!isset($this->publicId)) {
-            $this->publicId = Uuid::v7();
-        }
-
         if (null === $this->name) {
             $this->name = '';
         }
 
         $this->searchLabel = mb_strtolower(trim($this->name));
-
-        $now = new \DateTimeImmutable();
-        $this->createdAt = $this->createdAt ?? $now;
-        $this->updatedAt = $this->updatedAt ?? $now;
     }
 
     #[ORM\PreUpdate]

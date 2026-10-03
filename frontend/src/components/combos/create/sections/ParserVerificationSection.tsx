@@ -33,6 +33,9 @@ import {StartingRequirements} from "@/src/components/combos/resources/StartingRe
 import {StepResourceBadges} from "@/src/components/combos/resources/StepResourceBadges";
 import type {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 
+const NO_LEDGER: ResourceLedgerEntry[] = [];
+const NO_STARTING_REQUIREMENTS: string[] = [];
+
 interface ParserVerificationSectionProps {
     hasParseResult: boolean;
     verificationTokens: TranslateParsedToken[];
@@ -70,8 +73,8 @@ export function ParserVerificationSection({
     connectionsLoading,
     translateWarnings,
     translateErrors,
-    resourceLedger = [],
-    startingRequirements = [],
+    resourceLedger = NO_LEDGER,
+    startingRequirements = NO_STARTING_REQUIREMENTS,
     readOnly = false,
     onSelectStep,
     onChangeStep,

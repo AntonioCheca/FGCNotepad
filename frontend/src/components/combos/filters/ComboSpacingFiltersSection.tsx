@@ -11,11 +11,13 @@ interface ComboSpacingFiltersSectionProps {
 }
 
 export function ComboSpacingFiltersSection({spacingOptions, selectedCodes, onToggleSpacingCode}: ComboSpacingFiltersSectionProps) {
+    const selectedSet = new Set(selectedCodes);
+
     return (
         <SectionCard title="Spacing" tone="sunken" variant="default">
             <AppBox sx={{display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center"}}>
                 {spacingOptions.map((option) => {
-                    const selected = selectedCodes.includes(option.code);
+                    const selected = selectedSet.has(option.code);
 
                     return (
                         <AppButton

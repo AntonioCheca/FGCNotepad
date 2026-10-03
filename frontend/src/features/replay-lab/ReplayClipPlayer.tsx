@@ -22,15 +22,15 @@ function getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : "Clip playback failed.";
 }
 
-export function ReplayClipPlayer({clip, title}: ReplayClipPlayerProps) {
+// Keyed by clip so loading/error state starts fresh for every clip.
+export function ReplayClipPlayer(props: ReplayClipPlayerProps) {
+    return <ClipPlayer key={props.clip?.id ?? "none"} {...props} />;
+}
+
+function ClipPlayer({clip, title}: ReplayClipPlayerProps) {
     const playbackUrl = clip ? buildApiUrl(`/replay-clips/${clip.id}/playback`) : null;
     const [loading, setLoading] = React.useState(Boolean(clip));
     const [error, setError] = React.useState<string | null>(null);
-
-    React.useEffect(() => {
-        setError(null);
-        setLoading(Boolean(clip));
-    }, [clip]);
 
     return (
         <AppBox

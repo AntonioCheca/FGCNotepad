@@ -318,9 +318,10 @@ export function buildRequirementsPayload(params: {
         return {payload: undefined};
     }
 
+    const optionsByKey = new Map(requirementObjects.map((candidate) => [candidate.object_key, candidate]));
     const comboObjectStates = [];
     for (const objectState of objectStates) {
-        const option = requirementObjects.find((candidate) => candidate.object_key === objectState.object_key) ?? null;
+        const option = optionsByKey.get(objectState.object_key) ?? null;
         if (!option) {
             return {error: "Invalid combo object selected."};
         }

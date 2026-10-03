@@ -198,7 +198,7 @@ export function buildOkiPayload(draft: OkiProfileDraft): OkiProfilePayload {
 export function withEnderRoot(graph: PressureGraphData, ender: {notation: string; name: string | null}): PressureGraphData {
     const targets = new Set(graph.edges.map((edge) => edge.to));
     const roots = graph.nodes.filter((node) => !targets.has(node.id));
-    const enderNode: PressureGraphNode = {id: OKI_ENDER_NODE_ID, notation: ender.notation, name: ender.name, layer: 1, damageDealt: null, damageReceived: null};
+    const enderNode: PressureGraphNode = {id: OKI_ENDER_NODE_ID, notation: ender.notation, name: ender.name, layer: 1, damageDealt: null, damageReceived: null, anchor: true};
 
     return {
         nodes: [enderNode, ...graph.nodes],

@@ -25,6 +25,7 @@ test("viewer graph roots the setup on the ender", () => {
 
     assert.equal(graph.nodes[0].id, OKI_ENDER_NODE_ID);
     assert.equal(graph.nodes[0].notation, "2HK");
+    assert.equal(graph.nodes[0].anchor, true);
     assert.deepEqual(graph.edges.filter((edge) => edge.from === OKI_ENDER_NODE_ID).map((edge) => edge.to), ["1"]);
     assert.equal(graph.edges.find((edge) => edge.id === "11")?.readLabel, "expects block");
 });

@@ -73,13 +73,17 @@ export interface RequirementSpecificCharacterPayload {
     consumed?: boolean;
     added_relative?: string | number | boolean | null;
     added_absolute?: string | number | boolean | null;
+    kind?: CharacterObjectKind | null;
 }
+
+export type CharacterObjectKind = "stock" | "scaler" | "state";
 
 export interface RequirementObjectOption {
     object_key: string;
     name: string;
     character_name: string;
     display_name: string;
+    kind?: CharacterObjectKind;
     status_type: "integer" | "boolean";
     max_status: number | null;
     can_be_consumed: boolean;
@@ -212,6 +216,7 @@ export interface ComboRow {
     isFullyAudited: boolean;
     needsTechnicalReview: boolean;
     compatibility: CompatibilityResultPayload | null;
+    requirements: ComboRequirement | null;
 }
 
 interface ComboMoveSummary {
@@ -243,6 +248,7 @@ export interface ComboApiSummary {
     is_fully_audited?: boolean;
     needs_technical_review?: boolean;
     compatibility?: CompatibilityResultPayload | null;
+    comboRequirement?: ComboRequirement | null;
 }
 
 const RAW_DRIVE_RUSH_NOTATIONS = new Set(["dr", "drive rush", "raw drive rush"]);
@@ -282,6 +288,13 @@ function comboDisplayTitle(combo: {name?: string; executionMode?: ComboExecution
     return combo.name ?? "-";
 }
 
+// Resource-adjusted damage is stored as a float (2013.6000000000004); damage is shown in whole points.
+export function wholeDamage(value: number | string): number | string {
+    const numeric = typeof value === "number" ? value : Number(value);
+
+    return value !== "" && Number.isFinite(numeric) ? Math.round(numeric) : value;
+}
+
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     const moveNamesFromLegacyField = combo.moves?.map((move) => move.name ?? "-") ?? [];
     const moveNamesFromSteps: string[] = [];
@@ -303,7 +316,7 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         starter: deriveComboStarter(moves),
         ender: moves.length > 0 ? moveNotation(moves[moves.length - 1]) : "-",
         damage: combo.comboMetrics?.damage ?? "-",
-        resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",
+        resourceAdjustedDamage: wholeDamage(combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-"),
         driveCost: combo.comboMetrics?.driveCost ?? "-",
         minimumDriveCost: combo.comboMetrics?.minimumDriveCost ?? "-",
         minimumDriveCostNoBurnout: combo.comboMetrics?.minimumDriveCostNoBurnout ?? "-",
@@ -319,6 +332,7 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         isFullyAudited: combo.is_fully_audited ?? true,
         needsTechnicalReview: combo.needs_technical_review ?? false,
         compatibility: combo.compatibility ?? null,
+        requirements: combo.comboRequirement ?? null,
     };
 }
 
@@ -411,7 +425,7 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
         characterId: combo.character?.id !== undefined ? String(combo.character.id) : null,
         characterName: combo.character?.name ?? "-",
         damage: combo.comboMetrics?.damage ?? "-",
-        resourceAdjustedDamage: combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-",
+        resourceAdjustedDamage: wholeDamage(combo.comboMetrics?.resourceAdjustedDamage ?? combo.comboMetrics?.damage ?? "-"),
         driveCost: combo.comboMetrics?.driveCost ?? "-",
         minimumDriveCost: combo.comboMetrics?.minimumDriveCost ?? "-",
         minimumDriveCostNoBurnout: combo.comboMetrics?.minimumDriveCostNoBurnout ?? "-",

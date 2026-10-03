@@ -42,7 +42,6 @@ export function PressureGraphNodeView({data}: NodeProps<PressureFlowNode>) {
                 borderColor: (theme: Theme) => selected ? theme.fgc.accent.selected : theme.fgc.border.strong,
                 boxShadow: (theme: Theme) => selected ? `0 0 0 2px ${theme.fgc.accent.selected}` : "none",
                 backgroundColor: (theme: Theme) => theme.fgc.surface.base,
-                cursor: connectable ? "pointer" : "default",
             }}
         >
             <Handle type="target" position={horizontal ? Position.Left : Position.Top} isConnectableStart={false} isConnectableEnd={connectable} style={connectable ? DROP_TARGET_STYLE : {...handleStyle, opacity: 0}} />

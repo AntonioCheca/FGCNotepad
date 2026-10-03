@@ -30,7 +30,6 @@ import {
     buildCreateFullComboPayload,
     buildRequirementsPayload,
     emptyRequirements,
-    requirementToggles,
     updateDraftStep,
     validateSteps,
     type RequirementToggleKey,
@@ -178,8 +177,6 @@ export default function ComboDetailPage() {
     const [spacingCode, setSpacingCode] = React.useState("");
     const [showAdvancedConditions, setShowAdvancedConditions] = React.useState(true);
     const [requirements, setRequirements] = React.useState<ComboRequirementsPayload>(emptyRequirements);
-    const [specificRequirementObject, setSpecificRequirementObject] = React.useState("");
-    const [specificRequirementStatus, setSpecificRequirementStatus] = React.useState("");
     const [objectStates, setObjectStates] = React.useState<ComboObjectStateDraft[]>([]);
     const [steps, setSteps] = React.useState<StepDraft[]>([]);
     const [selectedStepIndex, setSelectedStepIndex] = React.useState<number | null>(0);
@@ -205,8 +202,6 @@ export default function ComboDetailPage() {
         setNotes("");
         setSpacingCode(nextCombo.spacing?.code ?? "");
         setRequirements(getInitialRequirements(nextCombo));
-        setSpecificRequirementObject(getSpecificRequirementObjectName(nextCombo));
-        setSpecificRequirementStatus(getSpecificRequirementStatus(nextCombo));
         setObjectStates(getObjectStates(nextCombo));
         const nextSteps = nextCombo.steps.map((step) => mapStepToDraft(step, nextCombo, nextLeafs, nextConnections));
         setSteps(nextSteps);
@@ -263,8 +258,10 @@ export default function ComboDetailPage() {
         };
     }, [comboId, fetchComboSpacings, fetchConnections, fetchLeafs, fetchRequirementObjects, getComboInExecutableMode, getResourceLedger, resetDraftFromCombo]);
 
+    // The legacy single-object fields are never edited here; they always mirror the loaded combo.
+    const specificRequirementObject = getSpecificRequirementObjectName(combo);
+    const specificRequirementStatus = getSpecificRequirementStatus(combo);
     const selectedRequirementObject = requirementObjects.find((option) => option.name === specificRequirementObject) ?? null;
-    const activeRequirementsCount = requirementToggles.filter(({key}) => Boolean(requirements[key])).length + objectStates.length;
     const characterRequirementObjects = React.useMemo(
         () => requirementObjects.filter((option) => option.character_name.toLowerCase() === combo?.characterName.toLowerCase()),
         [combo?.characterName, requirementObjects],
@@ -421,7 +418,6 @@ export default function ComboDetailPage() {
                         canSubmit={canSubmit && !saving}
                         showAdvancedConditions={showAdvancedConditions}
                         requirements={requirements}
-                        activeRequirementsCount={activeRequirementsCount}
                         requirementObjects={characterRequirementObjects}
                         objectStates={objectStates}
                         submitLabel="Save Combo"

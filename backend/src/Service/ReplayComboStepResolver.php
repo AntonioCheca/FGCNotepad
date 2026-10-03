@@ -243,22 +243,15 @@ final class ReplayComboStepResolver
                 if ($translated !== $chain) {
                     $notes[] = sprintf('"%s" read as "%s".', $chain, $translated);
                 }
-                $entry = array_pop($resolved);
-                $entry['leaf'] = $matches[0];
-                $entry['chain'] = $translated; // Later hops compose on the catalogue's spelling of the chain.
-                $entry['pending'] = false;
-                $entry['label'] = $matches[0]->getMove()?->getNumpadNotation() ?? $chain;
-                $resolved[] = $entry;
+                // Later hops compose on the catalogue's spelling of the chain.
+                $resolved[array_key_last($resolved)] = ['leaf' => $matches[0], 'chain' => $translated, 'pending' => false, 'label' => $matches[0]->getMove()?->getNumpadNotation() ?? $chain] + $last;
 
                 return;
             }
         }
 
         // No leaf for this hop alone: a later hop may complete the chain ("5HK > HP" then "5HK > HK").
-        $entry = array_pop($resolved);
-        $entry['chain'] = $chain;
-        $entry['pending'] = true;
-        $resolved[] = $entry;
+        $resolved[array_key_last($resolved)] = ['chain' => $chain, 'pending' => true] + $last;
     }
 
     /** @param list<array{leaf: ComboSequences, connection: string, delay: int|null, root: string, chain: string|null, label: string, special: bool, pending: bool}> $resolved */

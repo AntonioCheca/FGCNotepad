@@ -15,6 +15,8 @@ import {AppTableRow} from "@/src/components/ui/AppTableRow";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {ArrowDownwardIcon, ArrowUpwardIcon, PendingActionsIcon} from "@/src/components/ui/AppIcons";
+import {buildRequirementBadges} from "@/src/components/combos/requirements/comboRequirementBadges";
+import {ComboRequirementIcons} from "@/src/components/combos/requirements/ComboRequirementIcons";
 import {ComboRow} from "@/src/types/combo";
 
 interface ComboTableProps {
@@ -141,6 +143,7 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                                     {combo.title}
                                                 </AppBox>
                                             </Link>
+                                            <ComboRequirementIcons badges={buildRequirementBadges(combo.requirements)} />
                                             {isPendingReview ? (
                                                 <AppChip
                                                     icon={<PendingActionsIcon fontSize="small" />}
@@ -257,6 +260,7 @@ function ComboMobileCards({combos}: {combos: ComboRow[]}) {
                                 {isPendingReview ? <AppChip icon={<PendingActionsIcon fontSize="small" />} size="small" label="Pending" color="warning" variant="outlined" /> : null}
                             </AppBox>
                             <AppTypography variant="body2" color="text.secondary">{combo.characterName ?? "-"}</AppTypography>
+                            <ComboRequirementIcons badges={buildRequirementBadges(combo.requirements)} />
                         </AppBox>
 
                         <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.65}}>

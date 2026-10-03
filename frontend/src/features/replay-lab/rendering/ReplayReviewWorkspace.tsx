@@ -177,7 +177,7 @@ export function ReplayReviewWorkspace({
                                 </AppStack>
                                 <AppBox sx={(theme) => ({maxHeight: {xs: 160, md: 220}, overflow: "auto", p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.sunken, minWidth: 0})}>
                                     {exportLogs.length === 0 ? <AppTypography variant="body2" color="text.secondary">Export progress will appear here.</AppTypography> : null}
-                                    {exportLogs.map((log, index) => <AppTypography key={`${index}-${log}`} variant="caption" component="pre" sx={{whiteSpace: "pre-wrap", overflowWrap: "anywhere", m: 0}}>{log}</AppTypography>)}
+                                    {exportLogs.length > 0 ? <AppTypography variant="caption" component="pre" sx={{whiteSpace: "pre-wrap", overflowWrap: "anywhere", m: 0}}>{exportLogs.join("\n")}</AppTypography> : null}
                                 </AppBox>
                             </AppStack>
                         </SectionCard>

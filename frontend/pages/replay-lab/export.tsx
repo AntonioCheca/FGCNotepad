@@ -10,6 +10,7 @@ import {AppStack} from "@/src/components/ui/AppStack";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
+import {useCrossOriginIsolated} from "@/src/features/replay-lab/hooks/useCrossOriginIsolated";
 import type {ReplayAnnotation, ReplayAnnotationExportResult, ReplayReviewSession} from "@/src/types/replayLab";
 
 type ExportStatus = "idle" | "loading" | "mounted" | "exporting" | "uploading" | "finalizing" | "done" | "failed";
@@ -86,7 +87,7 @@ export default function ReplayLabExportRoute() {
     const [progress, setProgress] = React.useState(0);
     const [result, setResult] = React.useState<ReplayAnnotationExportResult | null>(null);
     const [error, setError] = React.useState<string | null>(null);
-    const [isIsolated, setIsIsolated] = React.useState(false);
+    const isIsolated = useCrossOriginIsolated();
 
     React.useEffect(() => () => {
         const ffmpeg = ffmpegRef.current;
@@ -98,10 +99,6 @@ export default function ReplayLabExportRoute() {
         ffmpeg.terminate();
         ffmpegRef.current = null;
         ffmpegEventCleanupRef.current = null;
-    }, []);
-
-    React.useEffect(() => {
-        setIsIsolated(window.crossOriginIsolated);
     }, []);
 
     React.useEffect(() => {

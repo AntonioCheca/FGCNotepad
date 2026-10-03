@@ -675,7 +675,7 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
     }
 
     /**
-     * @param list<array<string, string|null>> $sequence
+     * @param list<array<string, string|int|null>> $sequence
      * @param list<string> $blockers
      *
      * @return array<string, mixed>
