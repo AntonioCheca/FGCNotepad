@@ -16,6 +16,9 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class ComboSequencesRepository extends ServiceEntityRepository
 {
+    private const NOTATION_SEARCH_SEPARATORS = ['XX', 'DRC', 'WALK', 'BACK'];
+    private const MAX_NOTATION_SEARCH_TOKENS = 10;
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, ComboSequences::class);
@@ -167,11 +170,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('approvedState', ModerationState::APPROVED->value);
         }
 
-        $query = isset($filters['q']) && is_string($filters['q']) ? trim($filters['q']) : '';
-        if ('' !== $query) {
-            $qb->andWhere('LOWER(combo.name) LIKE :query')
-                ->setParameter('query', '%' . mb_strtolower($query) . '%');
-        }
+        $query = isset($filters['q']) && is_string($filters['q']) ? $filters['q'] : '';
+        $this->applyNotationSequenceFilter($qb, $this->notationSearchTokens($query));
 
         $characterId = isset($filters['characterId']) && is_string($filters['characterId']) ? trim($filters['characterId']) : '';
         $firstMoveId = isset($filters['firstMoveId']) && is_string($filters['firstMoveId']) ? trim($filters['firstMoveId']) : '';
@@ -392,6 +392,43 @@ class ComboSequencesRepository extends ServiceEntityRepository
      * @param array<string, mixed> $filters
      * @param list<array{0:string, 1:string, 2:string}> $rangeFilters
      */
+    /** @return list<string> */
+    private function notationSearchTokens(string $query): array
+    {
+        $parts = preg_split('/[\s,>\[\]~]+/', mb_strtoupper($query), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $tokens = array_values(array_filter($parts, static fn (string $part): bool => !in_array($part, self::NOTATION_SEARCH_SEPARATORS, true)));
+
+        return array_slice($tokens, 0, self::MAX_NOTATION_SEARCH_TOKENS);
+    }
+
+    /**
+     * Each token must match a step's move notation, in combo order; the last one may be partially typed.
+     *
+     * @param list<string> $tokens
+     */
+    private function applyNotationSequenceFilter(\Doctrine\ORM\QueryBuilder $qb, array $tokens): void
+    {
+        $lastIndex = count($tokens) - 1;
+        foreach ($tokens as $index => $token) {
+            $qb->innerJoin('combo.steps', "notationStep{$index}")
+                ->innerJoin("notationStep{$index}.child_sequence", "notationSequence{$index}")
+                ->innerJoin("notationSequence{$index}.move", "notationMove{$index}");
+
+            if ($index === $lastIndex) {
+                $qb->andWhere("UPPER(notationMove{$index}.numpadNotation) LIKE :notationToken{$index}")
+                    ->setParameter("notationToken{$index}", addcslashes($token, '%_\\') . '%');
+            } else {
+                $qb->andWhere("UPPER(notationMove{$index}.numpadNotation) = :notationToken{$index}")
+                    ->setParameter("notationToken{$index}", $token);
+            }
+
+            if ($index > 0) {
+                $previous = $index - 1;
+                $qb->andWhere("notationStep{$index}.ordinal_in_combo > notationStep{$previous}.ordinal_in_combo");
+            }
+        }
+    }
+
     private function applyMetricRangeFilters(\Doctrine\ORM\QueryBuilder $qb, array $filters, array $rangeFilters): void
     {
         foreach ($rangeFilters as [$minKey, $maxKey, $column]) {

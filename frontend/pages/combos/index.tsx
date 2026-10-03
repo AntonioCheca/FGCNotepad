@@ -169,7 +169,7 @@ function buildFiltersFromQuery(query: Record<string, string | string[] | undefin
             filters[key] = value;
         }
     }
-    for (const key of ["situationId", "minDamage", "maxDamage", "minDriveCost", "maxDriveCost"] as const) {
+    for (const key of ["minDamage", "maxDamage", "minDriveCost", "maxDriveCost"] as const) {
         const value = numberValue(key);
         if (value !== undefined) {
             filters[key] = value;

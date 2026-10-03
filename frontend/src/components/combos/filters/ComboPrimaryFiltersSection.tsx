@@ -3,13 +3,11 @@ import {AppChip} from "@/src/components/ui/AppChip";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
-import type {ComboCharacterOption, ComboMoveSearchOption, ComboSituationOption} from "./comboFilterTypes";
+import type {ComboCharacterOption, ComboMoveSearchOption} from "./comboFilterTypes";
 
 interface ComboPrimaryFiltersSectionProps {
     characterOptions: ComboCharacterOption[];
     selectedCharacter: ComboCharacterOption | null;
-    situationOptions: ComboSituationOption[];
-    selectedSituation: ComboSituationOption | null;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
     firstMoveAfterDriveRush: boolean;
@@ -22,7 +20,6 @@ interface ComboPrimaryFiltersSectionProps {
     query: string;
     compactFieldSx: object;
     onCharacterChange: (value: ComboCharacterOption | null) => void;
-    onSituationChange: (value: ComboSituationOption | null) => void;
     onFirstMoveChange: (value: ComboMoveSearchOption | null) => void;
     onFirstMoveQueryChange: (value: string) => void;
     onFirstMoveAfterDriveRushChange: (value: boolean) => void;
@@ -34,8 +31,6 @@ interface ComboPrimaryFiltersSectionProps {
 export function ComboPrimaryFiltersSection({
     characterOptions,
     selectedCharacter,
-    situationOptions,
-    selectedSituation,
     firstMove,
     firstMoveQuery,
     firstMoveAfterDriveRush,
@@ -48,7 +43,6 @@ export function ComboPrimaryFiltersSection({
     query,
     compactFieldSx,
     onCharacterChange,
-    onSituationChange,
     onFirstMoveChange,
     onFirstMoveQueryChange,
     onFirstMoveAfterDriveRushChange,
@@ -58,7 +52,7 @@ export function ComboPrimaryFiltersSection({
 }: ComboPrimaryFiltersSectionProps) {
     return (
         <SectionCard title="Primary Filters" tone="raised" variant="input">
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(170px, 0.75fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(160px, 0.75fr)"}, gap: 1}}>
+            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(170px, 0.75fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1.25fr)"}, gap: 1}}>
                 <AppAutocomplete<ComboCharacterOption, false, false, false>
                     options={characterOptions}
                     value={selectedCharacter}
@@ -66,15 +60,6 @@ export function ComboPrimaryFiltersSection({
                     getOptionLabel={(option) => option.name}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     renderInput={(params) => <AppTextField {...params} label="Character" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
-                />
-
-                <AppAutocomplete<ComboSituationOption, false, false, false>
-                    options={situationOptions}
-                    value={selectedSituation}
-                    onChange={(_, value) => onSituationChange(value)}
-                    getOptionLabel={(option) => `${option.typeName}: ${option.name}`}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                    renderInput={(params) => <AppTextField {...params} label="Situation" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
                 />
 
                 <AppAutocomplete<ComboMoveSearchOption, false, false, false>
@@ -136,7 +121,7 @@ export function ComboPrimaryFiltersSection({
                     renderInput={(params) => <AppTextField {...params} label="Ender move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
                 />
 
-                <AppTextField label="Search title" value={query} onChange={(event) => onQueryChange(event.target.value)} size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />
+                <AppTextField label="Search sequence" placeholder="2MP xx 236HP" value={query} onChange={(event) => onQueryChange(event.target.value)} size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />
             </AppBox>
         </SectionCard>
     );

@@ -78,7 +78,7 @@ final class ModernComboSupportTest extends DatabaseTestCase
         self::assertSame([$legal->getId()], array_column($simple, 'id'));
         self::assertSame(1260, $simple[0]['comboMetrics']['damage']);
         self::assertSame('modern_simple', $simple[0]['executionMode']);
-        self::assertSame('M > 6SP', $simple[0]['executionNotation']);
+        self::assertSame('M, 6SP', $simple[0]['executionNotation']);
         self::assertSame(['M', '6SP'], array_column($simple[0]['steps'], 'child_sequence_notation'));
         self::assertArrayNotHasKey('modernSimpleDamage', $simple[0]['comboMetrics'], 'Only the active mode damage is exposed.');
         self::assertSame([], $filtered, 'The damage filter compares the Modern simple damage (1260), not Classic (1500).');
@@ -172,7 +172,7 @@ final class ModernComboSupportTest extends DatabaseTestCase
         $payload = $this->json();
         self::assertSame([], $payload['errors']);
         self::assertSame([$this->leafs['5MP']->getId(), $this->leafs['236HP']->getId()], array_column($payload['steps'], 'child_sequence_id'));
-        self::assertSame('M > 6SP', $payload['executionNotation']);
+        self::assertSame('M, 6SP', $payload['executionNotation']);
     }
 
     /** @param list<string> $notations */

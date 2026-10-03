@@ -1,6 +1,5 @@
 import type {RequirementObjectOption} from "@/src/types/combo";
-import type {ComboBooleanFilterValue, ComboCharacterOption, ComboDriveWindowFilter, ComboFilterState, ComboMoveSearchOption, ComboSearchFilters, ComboSituationOption} from "./comboFilterTypes";
-import type {SituationSummary} from "@/src/types/situation";
+import type {ComboBooleanFilterValue, ComboCharacterOption, ComboDriveWindowFilter, ComboFilterState, ComboMoveSearchOption, ComboSearchFilters} from "./comboFilterTypes";
 
 export function parseOptionalNumber(value: string): number | undefined {
     const normalized = value.trim();
@@ -94,15 +93,6 @@ export function filterComboMovesForCharacter(options: ComboMoveSearchOption[], c
     return options.filter((entry) => entry.summary.toLowerCase().startsWith(characterNamePrefix));
 }
 
-export function normalizeSituationOptions(value: SituationSummary[]): ComboSituationOption[] {
-    return value.map((situation) => ({
-        id: situation.id,
-        name: situation.name,
-        typeName: situation.type.name,
-        typeCode: situation.type.code,
-    })).sort((left, right) => `${left.typeName} ${left.name}`.localeCompare(`${right.typeName} ${right.name}`));
-}
-
 export function normalizeRequirementObjectOptions(value: unknown): RequirementObjectOption[] {
     if (!Array.isArray(value)) {
         return [];
@@ -153,7 +143,6 @@ export function buildComboSearchFilters(state: ComboFilterState): ComboSearchFil
     return {
         q: state.query.trim() || undefined,
         characterId: state.characterId || undefined,
-        situationId: state.situation?.id,
         firstMoveId: state.firstMove?.id ?? undefined,
         firstMoveAfterDriveRush: state.firstMove && state.firstMoveAfterDriveRush ? true : undefined,
         enderMoveId: state.enderMove?.id ?? undefined,

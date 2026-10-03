@@ -99,12 +99,11 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                 <AppTable stickyHeader>
                     <AppTableHead>
                         <AppTableRow>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Title</AppTableCell>
+                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Combo</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Character</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Starter</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Ender</AppTableCell>
                             <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Spacing</AppTableCell>
-                            <AppTableCell sx={{fontWeight: 700, backgroundColor: "fgc.surface.sunken"}}>Situation</AppTableCell>
                             {sortableHeaders.map(renderSortableHeader)}
                         </AppTableRow>
                     </AppTableHead>
@@ -114,8 +113,6 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                 ? combo.season
                                 : "-";
                             const isPendingReview = combo.moderationState === "pending_review";
-                            const compatibility = combo.compatibility;
-                            const compatibilityColor = compatibility?.status === "compatible" ? "success" : compatibility?.status === "uncertain" ? "warning" : "default";
 
                             return (
                                 <AppTableRow
@@ -127,7 +124,7 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                         },
                                     }}
                                 >
-                                    <AppTableCell>
+                                    <AppTableCell sx={{minWidth: 240, maxWidth: 420}}>
                                         <AppBox sx={{display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap"}}>
                                             <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
                                                 <AppBox
@@ -140,7 +137,7 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                                         '&:hover': {textDecorationColor: "currentColor"},
                                                     }}
                                                 >
-                                                    {combo.title}
+                                                    {combo.notation}
                                                 </AppBox>
                                             </Link>
                                             <ComboRequirementIcons badges={buildRequirementBadges(combo.requirements)} />
@@ -160,16 +157,6 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                     <AppTableCell>{combo.starter ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.ender ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.spacing}</AppTableCell>
-                                    <AppTableCell>
-                                        {compatibility ? (
-                                            <AppBox sx={{display: "grid", gap: 0.35, minWidth: 180}}>
-                                                <AppChip size="small" color={compatibilityColor} variant="outlined" label={compatibility.status} sx={{width: "fit-content", fontWeight: 700}} />
-                                                <AppTypography variant="caption" color="text.secondary">
-                                                    {[...(compatibility.reasons ?? []), ...(compatibility.warnings ?? [])][0] ?? "Evaluated for selected situation."}
-                                                </AppTypography>
-                                            </AppBox>
-                                        ) : "-"}
-                                    </AppTableCell>
                                     <AppTableCell>{combo.damage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.resourceAdjustedDamage ?? "-"}</AppTableCell>
                                     <AppTableCell>{combo.driveCost ?? "-"}</AppTableCell>
@@ -247,15 +234,13 @@ function ComboMobileCards({combos}: {combos: ComboRow[]}) {
             <AppBox sx={{display: {xs: "grid", lg: "none"}, gap: 0.85}}>
             {combos.map((combo) => {
                 const isPendingReview = combo.moderationState === "pending_review";
-                const compatibility = combo.compatibility;
-                const compatibilityColor = compatibility?.status === "compatible" ? "success" : compatibility?.status === "uncertain" ? "warning" : "default";
 
                 return (
                     <AppPaper key={combo.id} variant="outlined" sx={{p: 1, borderRadius: 2, display: "grid", gap: 0.75, backgroundColor: "fgc.surface.base", borderColor: "fgc.border.default", minWidth: 0}}>
                         <AppBox sx={{display: "grid", gap: 0.35, minWidth: 0}}>
                             <AppBox sx={{display: "flex", gap: 0.65, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", minWidth: 0}}>
                                 <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
-                                    <AppTypography variant="subtitle1" sx={{fontWeight: 750, textDecoration: "underline", textUnderlineOffset: "2px", overflowWrap: "anywhere"}}>{combo.title}</AppTypography>
+                                    <AppTypography variant="subtitle1" sx={{fontWeight: 750, textDecoration: "underline", textUnderlineOffset: "2px", overflowWrap: "anywhere"}}>{combo.notation}</AppTypography>
                                 </Link>
                                 {isPendingReview ? <AppChip icon={<PendingActionsIcon fontSize="small" />} size="small" label="Pending" color="warning" variant="outlined" /> : null}
                             </AppBox>
@@ -275,15 +260,6 @@ function ComboMobileCards({combos}: {combos: ComboRow[]}) {
                             <AppChip size="small" variant="outlined" label={`Super ${combo.superCost ?? "-"}`} />
                             <AppChip size="small" variant="outlined" label={`Season ${combo.season ?? "-"}`} />
                         </AppBox>
-
-                        {compatibility ? (
-                            <AppBox sx={{display: "grid", gap: 0.35, p: 0.8, borderRadius: 1.25, backgroundColor: "fgc.surface.sunken"}}>
-                                <AppChip size="small" color={compatibilityColor} variant="outlined" label={compatibility.status} sx={{width: "fit-content", fontWeight: 700}} />
-                                <AppTypography variant="caption" color="text.secondary">
-                                    {[...(compatibility.reasons ?? []), ...(compatibility.warnings ?? [])][0] ?? "Evaluated for selected situation."}
-                                </AppTypography>
-                            </AppBox>
-                        ) : null}
                     </AppPaper>
                 );
             })}

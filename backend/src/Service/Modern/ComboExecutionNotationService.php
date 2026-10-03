@@ -11,6 +11,8 @@ use App\Util\Enum\ComboExecutionMode;
 final class ComboExecutionNotationService
 {
     private const DRIVE_RUSH_CANCEL_CONNECTIONS = ['dr cancel', 'drive rush cancel', 'drc'];
+    private const CANCEL_CONNECTIONS = ['special', 'super cancel'];
+    private const WALK_CONNECTIONS = ['walk forward' => 'walk', 'walk back' => 'walk back'];
 
     public function __construct(private readonly ModernMoveExecutionResolver $executionResolver)
     {
@@ -40,14 +42,24 @@ final class ComboExecutionNotationService
     /** @param list<array{move: Move, connectionTypeName: string|null}> $moves */
     public function sequenceNotation(array $moves, ComboExecutionMode $mode): ?string
     {
-        $parts = [];
+        $notation = '';
         foreach ($moves as ['move' => $move, 'connectionTypeName' => $connectionTypeName]) {
-            if (in_array(mb_strtolower(trim((string) $connectionTypeName)), self::DRIVE_RUSH_CANCEL_CONNECTIONS, true)) {
-                $parts[] = '[DRC]';
-            }
-            $parts[] = $this->stepNotation($move, $mode);
+            $stepNotation = $this->stepNotation($move, $mode);
+            $notation .= '' === $notation ? $stepNotation : $this->separator($connectionTypeName) . $stepNotation;
         }
 
-        return [] === $parts ? null : implode(' > ', $parts);
+        return '' === $notation ? null : $notation;
+    }
+
+    private function separator(?string $connectionTypeName): string
+    {
+        $connection = mb_strtolower(trim((string) $connectionTypeName));
+
+        return match (true) {
+            in_array($connection, self::DRIVE_RUSH_CANCEL_CONNECTIONS, true) => ' DRC ',
+            in_array($connection, self::CANCEL_CONNECTIONS, true) => ' xx ',
+            isset(self::WALK_CONNECTIONS[$connection]) => ', ' . self::WALK_CONNECTIONS[$connection] . ', ',
+            default => ', ',
+        };
     }
 }

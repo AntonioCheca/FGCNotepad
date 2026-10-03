@@ -123,7 +123,7 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->client->request(
             'GET',
             sprintf(
-                '/api/combo-sequences?q=punish&characterId=%s&firstMoveId=%s&minDamage=2000&maxDifficulty=7&counterHitRequired=true&sideSwitchesRequired=true&isEssential=true&moveTypes[]=drive&spacingCodes[]=punish_tip',
+                '/api/combo-sequences?q=2mk%%20drive&characterId=%s&firstMoveId=%s&minDamage=2000&maxDifficulty=7&counterHitRequired=true&sideSwitchesRequired=true&isEssential=true&moveTypes[]=drive&spacingCodes[]=punish_tip',
                 urlencode((string) $character->getId()),
                 urlencode((string) $firstMove->getMove()?->getId())
             ),

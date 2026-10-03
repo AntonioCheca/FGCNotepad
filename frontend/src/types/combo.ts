@@ -1,5 +1,4 @@
 import type {ComboExecutionMode} from "@/src/types/comboExecution";
-import type {CompatibilityResultPayload} from "@/src/types/situation";
 
 export type ID = number;
 
@@ -195,7 +194,7 @@ export interface EstimateComboResourcesResponse extends TranslateComboNotationRe
 
 export interface ComboRow {
     id: number;
-    title: string;
+    notation: string;
     moderationState: string;
     characterName: string;
     moves: string[];
@@ -215,7 +214,6 @@ export interface ComboRow {
     isUsable: boolean;
     isFullyAudited: boolean;
     needsTechnicalReview: boolean;
-    compatibility: CompatibilityResultPayload | null;
     requirements: ComboRequirement | null;
 }
 
@@ -247,7 +245,6 @@ export interface ComboApiSummary {
     is_usable?: boolean;
     is_fully_audited?: boolean;
     needs_technical_review?: boolean;
-    compatibility?: CompatibilityResultPayload | null;
     comboRequirement?: ComboRequirement | null;
 }
 
@@ -309,7 +306,7 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
 
     return {
         id: combo.id,
-        title: comboDisplayTitle(combo),
+        notation: combo.executionNotation ?? comboDisplayTitle(combo),
         moderationState: combo.moderationState ?? "approved",
         characterName: combo.character?.name ?? "-",
         moves,
@@ -331,7 +328,6 @@ export function mapComboToRow(combo: ComboApiSummary): ComboRow {
         isUsable: combo.is_usable ?? true,
         isFullyAudited: combo.is_fully_audited ?? true,
         needsTechnicalReview: combo.needs_technical_review ?? false,
-        compatibility: combo.compatibility ?? null,
         requirements: combo.comboRequirement ?? null,
     };
 }
