@@ -1,3 +1,5 @@
+import SvgIcon, {type SvgIconProps} from "@mui/material/SvgIcon";
+
 export {default as HelpOutlineOutlinedIcon} from "@mui/icons-material/HelpOutlineOutlined";
 export {default as ArticleOutlinedIcon} from "@mui/icons-material/ArticleOutlined";
 export {default as SearchOutlinedIcon} from "@mui/icons-material/SearchOutlined";
@@ -49,3 +51,19 @@ export {default as TokenOutlinedIcon} from "@mui/icons-material/TokenOutlined";
 export {default as SignalCellularAltOutlinedIcon} from "@mui/icons-material/SignalCellularAltOutlined";
 export {default as AutoAwesomeOutlinedIcon} from "@mui/icons-material/AutoAwesomeOutlined";
 export {default as CategoryOutlinedIcon} from "@mui/icons-material/CategoryOutlined";
+
+// Martial artist kicking a figure (Boy tilted 30°) off its feet, built from the MUI icon paths.
+// Two figures side by side read small in a square icon, so it is drawn 30% larger; a transform keeps its layout slot unchanged.
+export function OkiKnockdownIcon({sx, ...props}: SvgIconProps) {
+    return (
+        <SvgIcon {...props} sx={[{transform: "scale(1.3)"}, ...(Array.isArray(sx) ? sx : [sx])]}>
+            <g transform="translate(-1.66 6.16) scale(0.72)">
+                <path d="m19.8 2-8.2 6.7-1.21-1.04 3.6-2.08L9.41 1 8 2.41l2.74 2.74L5 8.46l-1.19 4.29L6.27 17 8 16l-2.03-3.52.35-1.3L9.5 13l.5 9h2l.5-10L21 3.4z"/>
+                <circle cx="5" cy="5" r="2"/>
+            </g>
+            <g transform="translate(6.44 0.44) scale(0.88) rotate(30 12 12)">
+                <path d="M12 7.5c.97 0 1.75-.78 1.75-1.75S12.97 4 12 4s-1.75.78-1.75 1.75S11.03 7.5 12 7.5M14 20v-5h1v-4.5c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2V15h1v5z"/>
+            </g>
+        </SvgIcon>
+    );
+}

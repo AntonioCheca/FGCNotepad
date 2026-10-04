@@ -145,7 +145,7 @@ final class NeutralStatsControllerTest extends DatabaseTestCase
     public function testNeutralDistributionNormalizesToBusiestBucketAndGroupsRareMoves(): void
     {
         $observations = [];
-        foreach ([['5LP', 0.1, 40], ['5HP', 0.1, 20], ['5HP', 0.6, 30], ['236PP', 0.6, 5], ['236LP', 0.6, 4], ['HPHK', 0.6, 1]] as [$notation, $spacing, $count]) {
+        foreach ([['5LP', 0.1, 40], ['5HP', 0.1, 20], ['5HP', 0.6, 30], ['236PP', 0.6, 5], ['236LP', 0.6, 4], ['2MK', 0.6, 2], ['HPHK', 0.6, 1]] as [$notation, $spacing, $count]) {
             for ($index = 0; $index < $count; ++$index) {
                 $observations[] = ['notation' => $notation, 'spacing' => $spacing];
             }
@@ -157,18 +157,18 @@ final class NeutralStatsControllerTest extends DatabaseTestCase
         $this->importNeutralBundle($this->neutralBundle([$this->neutralReplay('R1', $observations)]));
 
         $payload = $this->stats(['bucket' => '0.5']);
-        self::assertSame(104, $payload['sample']['observationCount']);
+        self::assertSame(106, $payload['sample']['observationCount']);
         self::assertFalse($payload['sample']['lowSample']);
 
         $series = $payload['distribution']['series'];
-        self::assertSame(['5LP', '5HP', 'DR > 2MK', '236PP', '236LP', 'Other'], array_column($series, 'label'));
-        self::assertSame(['light', 'heavy', 'drive_rush', 'special', 'special', 'other'], array_column($series, 'family'));
-        self::assertSame([false, false, false, true, false, false], array_column($series, 'isOd'));
-        self::assertEquals([38.5, 48.1, 2.9, 4.8, 3.8, 1.9], array_column($series, 'share'), 'Each series is a share of all filtered observations.');
-        self::assertEqualsWithDelta([100.0, 73.333], array_map(static fn (int $bucket): float => array_sum(array_column(array_column($series, 'values'), $bucket)), [0, 1]), 0.01);
+        self::assertSame(['5LP', '2MK', '5HP', 'DR > 2MK', '236PP', '236LP', 'Other'], array_column($series, 'label'));
+        self::assertSame(['light', 'medium', 'heavy', 'drive_rush', 'special', 'special', 'other'], array_column($series, 'family'));
+        self::assertSame([false, false, false, false, true, false, false], array_column($series, 'isOd'));
+        self::assertEquals([37.7, 1.9, 47.2, 2.8, 4.7, 3.8, 1.9], array_column($series, 'share'), 'Each series is a share of all filtered observations.');
+        self::assertEqualsWithDelta([100.0, 76.667], array_map(static fn (int $bucket): float => array_sum(array_column(array_column($series, 'values'), $bucket)), [0, 1]), 0.01);
         self::assertEquals([66.667, 0.0], $series[0]['values']);
-        self::assertSame(2, $series[5]['total'], '6MP and Drive Impact are each under 2% of all observations.');
-        self::assertCount(7, $payload['moveProfiles']['cards'], 'Move Profiles keep rare moves.');
+        self::assertSame(2, $series[6]['total'], '6MP and Drive Impact are each under 1% of all observations; raw 2MK at 1.9% keeps its own series.');
+        self::assertCount(8, $payload['moveProfiles']['cards'], 'Move Profiles keep rare moves.');
     }
 
     public function testCachedResponsesAreRetiredByANewImport(): void

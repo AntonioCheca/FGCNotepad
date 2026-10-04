@@ -2,7 +2,10 @@ import {JSX} from "react";
 import type {UserRole} from "@/src/types/auth";
 import {
     AltRouteIcon,
+    ArticleOutlinedIcon,
     QueryStatsIcon,
+    ShieldOutlinedIcon,
+    OkiKnockdownIcon,
     SportsKabaddiOutlinedIcon,
     SportsMartialArtsOutlinedIcon,
     SportsMmaIcon,
@@ -25,12 +28,12 @@ export const homeFeatures: HomeFeature[] = [
     {
         label: "Okis",
         href: "/okis",
-        icon: <SportsKabaddiOutlinedIcon/>,
+        icon: <OkiKnockdownIcon/>,
     },
     {
         label: "Blockstrings",
-        href: "/blockstrings/offense",
-        icon: <SportsMartialArtsOutlinedIcon/>,
+        href: "/blockstrings",
+        icon: <SportsKabaddiOutlinedIcon/>,
     },
     {
         label: "Scenarios",
@@ -47,5 +50,26 @@ export const homeFeatures: HomeFeature[] = [
         href: "/replay-lab",
         icon: <TimelineIcon/>,
         allowedRoles: ["ROLE_QA_TESTER", "ROLE_ADMIN"],
+    },
+];
+
+export const blockstringFeatures: HomeFeature[] = [
+    {
+        label: "Offense",
+        href: "/blockstrings/offense",
+        icon: <SportsMartialArtsOutlinedIcon/>,
+    },
+    {
+        label: "Defense",
+        href: "/blockstrings/defense",
+        icon: <ShieldOutlinedIcon/>,
+    },
+];
+
+export const beginnersGuideFeatures: HomeFeature[] = [
+    {
+        label: "Turns Guide",
+        href: "/guides/turns",
+        icon: <ArticleOutlinedIcon/>,
     },
 ];

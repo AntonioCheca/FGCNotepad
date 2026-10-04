@@ -69,10 +69,12 @@ export function NeutralDistributionChart({stats}: {stats: NeutralStatsResponse})
                                 unit="%"
                                 label={{value: "Relative neutral activity (%)", angle: -90, position: "insideLeft", offset: 12, dy: 80, fill: theme.fgc.chart.axis, fontSize: 11, fontFamily: theme.typography.fontFamily}}
                             />
-                            {series.filter((entry) => !hidden.has(entry.key)).map((entry) => (
+                            {/* Hidden bars stay mounted with `hide`: re-mounting one would append it to the top of the stack. */}
+                            {series.map((entry) => (
                                 <recharts.Bar
                                     key={entry.key}
                                     dataKey={entry.key}
+                                    hide={hidden.has(entry.key)}
                                     name={entry.label}
                                     stackId="neutral"
                                     fill={colors[entry.key]}

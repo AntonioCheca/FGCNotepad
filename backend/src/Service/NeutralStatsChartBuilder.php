@@ -10,13 +10,13 @@ use App\Entity\NeutralObservation;
  * Move Profiles: one card per move + route, raw counts for every bucket (zeros included), a shared Y max and cards
  * sorted by usage. Raw-route cards carry the move's effective reach (max range plus the average opponent hurtbox extension); Drive
  * Rush changes the reach, so theirs is null. Neutral Distribution: the busiest bucket is 100% and every bucket's stack is scaled against it;
- * within a bucket the height splits by move, and moves under 2% of all observations are grouped as Other. Series run
+ * within a bucket the height splits by move, and moves under 1% of all observations are grouped as Other. Series run
  * in the fixed family order and by usage within a family; share is each series' percentage of all observations.
  */
 final class NeutralStatsChartBuilder
 {
     public const TOP_CARD_LIMIT = 24;
-    public const OTHER_SHARE_THRESHOLD = 0.02;
+    public const OTHER_SHARE_THRESHOLD = 0.01;
     /**
      * FAT range is measured to the opponent's body, but neutral buttons land on limbs sticking out ahead of it. This
      * average extended-hurtbox allowance moves the marker to where moves really connect (2MP: 1.25 -> ~1.70).

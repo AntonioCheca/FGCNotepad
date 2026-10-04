@@ -16,6 +16,13 @@ test("replay lab and combo recommendations need QA tester or admin", () => {
     assert.equal(canAccessRoute("/profile/recommend-combo", ["ROLE_USER", "ROLE_ADMIN"]), true);
 });
 
+test("character reversals are admin-only while the rest of okis stays open", () => {
+    assert.equal(canAccessRoute("/okis/reversals", ["ROLE_USER"]), false);
+    assert.equal(canAccessRoute("/okis/reversals", ["ROLE_USER", "ROLE_MODERATOR", "ROLE_QA_TESTER"]), false);
+    assert.equal(canAccessRoute("/okis/reversals", ["ROLE_USER", "ROLE_ADMIN"]), true);
+    assert.equal(canAccessRoute("/okis", ["ROLE_USER"]), true);
+});
+
 test("shared replay review links stay reachable without QA access", () => {
     assert.equal(canAccessRoute("/replay-lab/shared/abc123", ["ROLE_USER"]), true);
 });

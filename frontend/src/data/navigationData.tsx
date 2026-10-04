@@ -15,9 +15,8 @@ import {
     PlaceOutlinedIcon,
     QueryStatsIcon,
     ScheduleIcon,
-    ShieldOutlinedIcon,
+    OkiKnockdownIcon,
     SportsKabaddiOutlinedIcon,
-    SportsMartialArtsOutlinedIcon,
     SportsMmaIcon,
     TableChartOutlinedIcon,
     TimelineIcon,
@@ -50,27 +49,14 @@ export const navigationSections: NavigationSection[] = [
             {
                 label: "Search Okis",
                 href: "/okis",
-                icon: <SportsKabaddiOutlinedIcon/>
+                icon: <OkiKnockdownIcon/>
             },
             {
                 label: "Reversals",
                 href: "/okis/reversals",
-                icon: <BoltIcon/>
-            }
-        ]
-    },
-    {
-        title: "Blockstrings",
-        items: [
-            {
-                label: "Offense",
-                href: "/blockstrings/offense",
-                icon: <SportsMartialArtsOutlinedIcon/>
-            },
-            {
-                label: "Defense",
-                href: "/blockstrings/defense",
-                icon: <ShieldOutlinedIcon/>
+                icon: <BoltIcon/>,
+                requiresAuth: true,
+                allowedRoles: ["ROLE_ADMIN"],
             }
         ]
     },
@@ -91,16 +77,6 @@ export const navigationSections: NavigationSection[] = [
                 label: "Neutral Stats",
                 href: "/neutral-stats",
                 icon: <QueryStatsIcon/>
-            }
-        ]
-    },
-    {
-        title: "Guides",
-        items: [
-            {
-                label: "Turns Guide",
-                href: "/guides/turns",
-                icon: <ArticleOutlinedIcon/>
             }
         ]
     },
@@ -127,6 +103,26 @@ export const navigationSections: NavigationSection[] = [
                 icon: <ScheduleIcon/>,
                 requiresAuth: true,
                 allowedRoles: QA_ROLES,
+            }
+        ]
+    },
+    {
+        title: "Blockstrings",
+        items: [
+            {
+                label: "Blockstrings",
+                href: "/blockstrings",
+                icon: <SportsKabaddiOutlinedIcon/>
+            }
+        ]
+    },
+    {
+        title: "Guides",
+        items: [
+            {
+                label: "Beginners Guides",
+                href: "/guides",
+                icon: <ArticleOutlinedIcon/>
             }
         ]
     }
@@ -212,6 +208,6 @@ export const accountNavigationSections: NavigationSection[] = [
 export const mobileTabs: MobileTab[] = [
     {label: "Home", href: "/", icon: <HomeOutlinedIcon/>, activePrefixes: []},
     {label: "Combos", href: "/combos", icon: <SportsMmaIcon/>, activePrefixes: ["/combos", "/profile/recommend-combo"]},
-    {label: "Okis", href: "/okis", icon: <SportsKabaddiOutlinedIcon/>, activePrefixes: ["/okis"]},
+    {label: "Okis", href: "/okis", icon: <OkiKnockdownIcon/>, activePrefixes: ["/okis"]},
     {label: "Scenarios", href: "/scenarios", icon: <AltRouteIcon/>, activePrefixes: ["/scenarios"]},
 ];

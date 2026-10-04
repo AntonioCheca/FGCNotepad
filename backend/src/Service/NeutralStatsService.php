@@ -17,8 +17,8 @@ use Symfony\Contracts\Cache\CacheInterface;
 final class NeutralStatsService
 {
     public const LOW_SAMPLE_THRESHOLD = 50;
-    /** Bump when the response shape changes so entries cached under the old shape are never served. */
-    private const RESPONSE_VERSION = 4;
+    /** Bump when the response shape or grouping changes so entries cached under the old one are never served. */
+    private const RESPONSE_VERSION = 5;
 
     public function __construct(
         private readonly NeutralObservationRepository $observationRepository,
