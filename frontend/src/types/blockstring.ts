@@ -8,6 +8,7 @@ export interface BlockstringCharacter {
 export interface BlockstringMove {
     id: string;
     numpadNotation: string;
+    commonName: string | null;
     moveName: string | null;
     character?: BlockstringCharacter | null;
 }
@@ -15,9 +16,7 @@ export interface BlockstringMove {
 export interface BlockstringNode {
     id: string;
     move: BlockstringMove | null;
-    layer: number;
-    damageDealt: number | null;
-    damageReceived: number | null;
+    frameAdvantage: number | null;
 }
 
 export interface BlockstringEdge {
@@ -26,109 +25,42 @@ export interface BlockstringEdge {
     to: string;
     kind: PressureEdgeKind;
     readLabel: string | null;
-    layer: number;
-    frameAdvantage: number | null;
+    trueBlockstring: boolean;
     gapFrames: number | null;
 }
 
-export interface BlockstringGapSummary {
-    from: string | null;
-    to: string | null;
-    gapFrames: number;
-    frameAdvantage: number | null;
-    kind: PressureEdgeKind;
-}
-
-export type BlockstringResponseType = "button" | "reversal" | "jump" | "backdash" | "block" | "movement";
-export type BlockstringDefenseOutcome = "counter_hit" | "punish_counter" | "trade" | "escape" | "reset_to_neutral" | "block";
-
-export interface BlockstringDefenseEntry {
-    id?: number;
-    edgeId: string;
-    instruction: string | null;
-    exceptionNotes: string | null;
-    defenderCharacter: BlockstringCharacter | null;
-    move: BlockstringMove | null;
-    responseType: BlockstringResponseType;
-    outcome: BlockstringDefenseOutcome;
-    conversion: string | null;
-}
-
-export interface BlockstringCondition {
-    id?: number;
-    kind: string;
-    value: string;
-    note: string | null;
+export interface BlockstringBlock {
+    id: number;
+    description: string | null;
+    nodes: BlockstringNode[];
+    edges: BlockstringEdge[];
 }
 
 export interface BlockstringSummary {
     id: number;
     title: string;
-    summary: string | null;
-    classification: "true" | "frametrap" | "reset" | "fake" | "knowledge_check";
     moderationState: string;
     attackerCharacter: BlockstringCharacter | null;
-    notation: string;
-    nodeCount: number;
-    defenseEntryCount: number;
-    gaps: BlockstringGapSummary[];
+    startingMove: BlockstringMove | null;
 }
 
 export interface BlockstringDetail extends BlockstringSummary {
-    nodes: BlockstringNode[];
-    edges: BlockstringEdge[];
-    conditions: BlockstringCondition[];
-    defenseEntries: BlockstringDefenseEntry[];
+    blocks: BlockstringBlock[];
 }
 
 export interface BlockstringSearchFilters {
     q?: string;
     attackerCharacterId?: string;
-    defenderCharacterId?: string;
-    moveId?: string;
-    classification?: string;
-    size?: number;
-}
-
-export interface BlockstringDefenseEntryPayload {
-    edgeClientId: string;
-    instruction?: string | null;
-    exceptionNotes?: string | null;
-    defenderCharacterId?: string | null;
-    moveId?: string | null;
-    responseType?: BlockstringResponseType;
-    outcome?: BlockstringDefenseOutcome;
-    conversion?: string | null;
+    startingMoveId?: string;
 }
 
 export interface BlockstringPayload {
     title: string;
-    summary?: string | null;
     attackerCharacterId: string;
-    classification: string;
-    nodes: Array<{
-        clientId: string;
-        moveId: string;
-        layer: number;
-        damageDealt: number | null;
-        damageReceived: number | null;
+    startingMoveId: string;
+    blocks: Array<{
+        description: string | null;
+        nodes: Array<{clientId: string; moveId: string; frameAdvantage: number | null}>;
+        edges: Array<{from: string; to: string; kind: PressureEdgeKind; readLabel: string | null; trueBlockstring: boolean; gapFrames: number | null}>;
     }>;
-    edges: Array<{
-        clientId: string;
-        from: string;
-        to: string;
-        kind: PressureEdgeKind;
-        readLabel: string | null;
-        layer: number;
-        frameAdvantage: number | null;
-        gapFrames: number | null;
-    }>;
-    conditions?: Array<{kind: string; value: string; note?: string | null}>;
-    defenseEntries?: BlockstringDefenseEntryPayload[];
-}
-
-export const BLOCKSTRING_CLASSIFICATIONS = ["true", "frametrap", "reset", "fake", "knowledge_check"] as const;
-
-export function formatBlockstringLabel(value: string): string {
-    return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

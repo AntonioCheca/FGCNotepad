@@ -45,6 +45,9 @@ services:
     App\Command\ImportFrameDataVariantsCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
+    App\Command\ImportMoveCommonNamesCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
     App\Service\ScenarioLayerSolveService:
         arguments:
             $cachePool: '@cache.app'

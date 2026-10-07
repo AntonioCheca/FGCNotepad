@@ -4,7 +4,6 @@ import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 import {
     ComboKnowledgeResponse,
-    ComboRecommendationResponse,
     NotationPreference,
     ScenarioExecutionPreference,
     ScenarioExecutionSelection,
@@ -52,20 +51,6 @@ export function useExecutionProfile() {
         [request]
     );
 
-    const getComboRecommendations = React.useCallback(
-        async (characterId: string, difficultyCap: number): Promise<ComboRecommendationResponse> => {
-            return request(() =>
-                api.get("/profile/combo-recommendations", {
-                    params: {
-                        characterId,
-                        difficultyCap,
-                    },
-                })
-            );
-        },
-        [request]
-    );
-
     const getNotationPreference = React.useCallback(async (): Promise<NotationPreference> => {
         return request(() => api.get("/profile/notation-preference"));
     }, [request]);
@@ -99,7 +84,6 @@ export function useExecutionProfile() {
         updateExecutionPreference,
         getComboKnowledge,
         updateComboKnowledge,
-        getComboRecommendations,
         getNotationPreference,
         updateNotationPreference,
     };

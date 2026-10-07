@@ -1,11 +1,9 @@
 import type {PressureEdgeKind} from "@/src/features/pressure-graph/pressureGraphTypes";
 
-export type OkiStepType = "IMMEDIATE" | "WALK_FORWARD" | "WALK_BACKWARD" | "WAIT";
-export type OkiOptionType = "STRIKE" | "MEATY_STRIKE" | "MEATY_THROW" | "SHIMMY" | "DELAY_STRIKE" | "DELAY_THROW";
-export type OkiNodeProperty = "OVERHEAD" | "LOW" | "LEFT_RIGHT" | "SAFE_JUMP" | "FAKE_SAFE_JUMP" | "REVERSAL_BAIT" | "ANTI_DRIVE_REVERSAL" | "CHARACTER_SPECIFIC";
-export type OkiInteractionResult = "WINS" | "LOSES" | "NEUTRAL" | "TRADES";
-export type ReversalType = "OD_REVERSAL" | "SUPER" | "COMMAND_REVERSAL" | "OTHER";
-export type ReversalProperty = "STRIKE_INVULNERABLE" | "THROW_INVULNERABLE" | "HITS_CROUCHING" | "WHIFFS_AGAINST_CROUCHING" | "AIR_INVULNERABLE";
+export type OkiAction = "BLOCK" | "SHIMMY" | "WALK_FORWARD" | "WALK_BACKWARD" | "NEUTRAL_JUMP" | "FORWARD_JUMP" | "BACK_JUMP" | "BACKDASH";
+export type OkiStepType = "IMMEDIATE" | "DELAY";
+export type OkiHitLevel = "LOW" | "OVERHEAD";
+export type OkiRecovery = "BACKROLL" | "RISE_IN_PLACE";
 
 export interface OkiCharacterRef {
     id: string;
@@ -16,62 +14,37 @@ export interface OkiMoveRef {
     id: string;
     numpadNotation: string;
     name: string;
+    commonName: string | null;
     moveName: string | null;
+    moveType: string | null;
     character: OkiCharacterRef;
-}
-
-export interface OkiSummaryFlags {
-    meterless: boolean;
-    driveRush: boolean;
-    autoTimed: boolean;
-    manual: boolean;
-    cornerOnly: boolean;
-    worksNoBackroll: boolean;
-    worksBackroll: boolean;
-    hasFakeSetups: boolean;
-    optionTypes: OkiOptionType[];
-    properties: OkiNodeProperty[];
 }
 
 export interface OkiProfileSummary {
     id: number;
     move: OkiMoveRef;
-    frameAdvantage: number | null;
     setupCount: number;
-    summary: OkiSummaryFlags;
-}
-
-export interface OkiOptionInteraction {
-    id: number;
-    defensiveMove: OkiMoveRef;
-    result: OkiInteractionResult;
-    character: OkiCharacterRef | null;
 }
 
 export interface OkiNode {
     id: number;
-    move: OkiMoveRef;
+    move: OkiMoveRef | null;
+    action: OkiAction | null;
     sortOrder: number;
-    isDefaultRoute: boolean;
-    routeExplanation: string | null;
-    optionType: OkiOptionType | null;
-    properties: OkiNodeProperty[];
-    interactions: OkiOptionInteraction[];
-    layer: number;
-    damageDealt: number | null;
-    damageReceived: number | null;
+    hitLevel: OkiHitLevel | null;
+    sideSwitch: boolean;
 }
 
+// A null fromNodeId is a step taken straight from the ender.
 export interface OkiNodeLink {
     id: number;
-    fromNodeId: number;
+    fromNodeId: number | null;
     toNodeId: number;
     stepType: OkiStepType;
-    minFrames: number | null;
-    maxFrames: number | null;
     kind: PressureEdgeKind;
     readLabel: string | null;
-    layer: number;
+    safeJump: boolean;
+    recovery: OkiRecovery | null;
 }
 
 export type OkiModerationState = "pending_review" | "approved" | "rejected" | "hidden";
@@ -82,13 +55,9 @@ export interface OkiSetup {
     moderationReason: string | null;
     author: string | null;
     canEdit: boolean;
-    usesDriveRush: boolean;
-    autoTimed: boolean;
+    name: string;
     cornerOnly: boolean;
-    worksNoBackroll: boolean;
-    worksBackroll: boolean;
-    fakeNoBackroll: boolean;
-    fakeBackroll: boolean;
+    backrollDependent: boolean;
     nodes: OkiNode[];
     links: OkiNodeLink[];
 }
@@ -98,59 +67,34 @@ export interface OkiProfileDetail extends OkiProfileSummary {
 }
 
 export interface OkiSearchFilters {
-    q?: string;
     characterId?: string;
     moveId?: string;
-    usesDriveRush?: boolean;
-    autoTimed?: boolean;
-    cornerOnly?: boolean;
-    worksNoBackroll?: boolean;
-    worksBackroll?: boolean;
-    hasFakeSetups?: boolean;
-    optionType?: OkiOptionType;
-    property?: OkiNodeProperty;
-}
-
-export interface OkiInteractionPayload {
-    defensiveMoveId: string;
-    result: OkiInteractionResult;
-    characterId?: string | null;
 }
 
 export interface OkiNodePayload {
     clientId: string;
-    moveId: string;
+    moveId?: string | null;
+    action?: OkiAction | null;
     sortOrder?: number;
-    isDefaultRoute?: boolean;
-    routeExplanation?: string | null;
-    optionType?: OkiOptionType | null;
-    properties?: OkiNodeProperty[];
-    interactions?: OkiInteractionPayload[];
-    layer?: number;
-    damageDealt?: number | null;
-    damageReceived?: number | null;
+    hitLevel?: OkiHitLevel | null;
+    sideSwitch?: boolean;
 }
 
 export interface OkiNodeLinkPayload {
     fromClientId: string;
     toClientId: string;
     stepType: OkiStepType;
-    minFrames?: number | null;
-    maxFrames?: number | null;
     kind?: PressureEdgeKind;
     readLabel?: string | null;
-    layer?: number;
+    safeJump?: boolean;
+    recovery?: OkiRecovery | null;
 }
 
 export interface OkiSetupPayload {
     id?: number;
-    usesDriveRush: boolean;
-    autoTimed: boolean;
+    name: string;
     cornerOnly: boolean;
-    worksNoBackroll: boolean;
-    worksBackroll: boolean;
-    fakeNoBackroll: boolean;
-    fakeBackroll: boolean;
+    backrollDependent: boolean;
     nodes: OkiNodePayload[];
     links: OkiNodeLinkPayload[];
 }
@@ -158,32 +102,4 @@ export interface OkiSetupPayload {
 export interface OkiProfilePayload {
     moveId: string;
     setups: OkiSetupPayload[];
-}
-
-export interface CharacterReversalPayload {
-    characterId: string;
-    moveId: string;
-    startup: number;
-    reversalType: ReversalType;
-    properties: ReversalProperty[];
-}
-
-export interface CharacterReversal {
-    id: number;
-    character: OkiCharacterRef;
-    move: OkiMoveRef;
-    startup: number;
-    reversalType: ReversalType;
-    properties: ReversalProperty[];
-}
-
-export const OKI_OPTION_TYPES: OkiOptionType[] = ["STRIKE", "MEATY_STRIKE", "MEATY_THROW", "SHIMMY", "DELAY_STRIKE", "DELAY_THROW"];
-export const OKI_NODE_PROPERTIES: OkiNodeProperty[] = ["OVERHEAD", "LOW", "LEFT_RIGHT", "SAFE_JUMP", "FAKE_SAFE_JUMP", "REVERSAL_BAIT", "ANTI_DRIVE_REVERSAL", "CHARACTER_SPECIFIC"];
-export const OKI_STEP_TYPES: OkiStepType[] = ["IMMEDIATE", "WALK_FORWARD", "WALK_BACKWARD", "WAIT"];
-export const OKI_INTERACTION_RESULTS: OkiInteractionResult[] = ["WINS", "LOSES", "NEUTRAL", "TRADES"];
-export const REVERSAL_TYPES: ReversalType[] = ["OD_REVERSAL", "SUPER", "COMMAND_REVERSAL", "OTHER"];
-export const REVERSAL_PROPERTIES: ReversalProperty[] = ["STRIKE_INVULNERABLE", "THROW_INVULNERABLE", "HITS_CROUCHING", "WHIFFS_AGAINST_CROUCHING", "AIR_INVULNERABLE"];
-
-export function formatOkiLabel(value: string): string {
-    return value.toLowerCase().split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }

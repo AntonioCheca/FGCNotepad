@@ -1,7 +1,7 @@
 import {useCallback} from "react";
 import useApi from "@/hooks/useApi";
 import api from "@/services/api";
-import type {CharacterReversal, CharacterReversalPayload, OkiProfileDetail, OkiProfilePayload, OkiProfileSummary, OkiSearchFilters} from "@/src/types/oki";
+import type {OkiProfileDetail, OkiProfilePayload, OkiProfileSummary, OkiSearchFilters} from "@/src/types/oki";
 
 export default function useOkis() {
     const {request} = useApi();
@@ -26,21 +26,10 @@ export default function useOkis() {
         return request(() => api.delete(`/okis/${id}`)) as Promise<void>;
     }, [request]);
 
-    const listReversals = useCallback((characterId?: string) => {
-        return request(() => api.get<CharacterReversal[]>("/okis/reversals", {params: characterId ? {characterId} : {}})) as Promise<CharacterReversal[]>;
+    // The character's moves that do not have an oki yet, in /moves/search result shape.
+    const searchEnders = useCallback((query: string, characterId?: string) => {
+        return request(() => api.get<unknown[]>("/okis/enders", {params: {query, characterId}})) as Promise<unknown[]>;
     }, [request]);
 
-    const createReversal = useCallback((payload: CharacterReversalPayload) => {
-        return request(() => api.post<CharacterReversal>("/okis/reversals", payload)) as Promise<CharacterReversal>;
-    }, [request]);
-
-    const updateReversal = useCallback((id: number | string, payload: CharacterReversalPayload) => {
-        return request(() => api.patch<CharacterReversal>(`/okis/reversals/${id}`, payload)) as Promise<CharacterReversal>;
-    }, [request]);
-
-    const deleteReversal = useCallback((id: number | string) => {
-        return request(() => api.delete(`/okis/reversals/${id}`)) as Promise<void>;
-    }, [request]);
-
-    return {listOkis, getOki, createOki, updateOki, deleteOki, listReversals, createReversal, updateReversal, deleteReversal};
+    return {listOkis, getOki, createOki, updateOki, deleteOki, searchEnders};
 }

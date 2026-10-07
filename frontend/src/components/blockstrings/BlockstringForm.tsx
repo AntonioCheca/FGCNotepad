@@ -1,60 +1,51 @@
 import React from "react";
-import {useCharacters} from "@/hooks/useCharacters";
+import {CharacterSelect} from "@/src/components/characters/CharacterSelect";
+import {OkiMovePicker} from "@/src/components/okis/OkiMovePicker";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
-import {AppFormControl} from "@/src/components/ui/AppFormControl";
-import {AppInputLabel} from "@/src/components/ui/AppInputLabel";
-import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
-import {AppSelect} from "@/src/components/ui/AppSelect";
+import {AppCheckbox} from "@/src/components/ui/AppCheckbox";
+import {AppFormControlLabel} from "@/src/components/ui/AppFormControlLabel";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {PressureGraphEditor} from "@/src/features/pressure-graph/PressureGraphEditor";
-import {PressureEdgeFields, PressureNodeActions, PressureNodeFields} from "@/src/features/pressure-graph/PressureGraphInspectorFields";
-import {connectTargets, draftToGraphData, hasEdge, nextClientId, removeNodeAndEdges} from "@/src/features/pressure-graph/pressureGraphDraft";
-import type {PressureNodeDraft, PressureSelection} from "@/src/features/pressure-graph/pressureGraphDraft";
+import {PressureAddNodeDialog, PressureEdgeKindFields, PressureInspectorRow, PressureRemoveButton} from "@/src/features/pressure-graph/PressureGraphInspectorFields";
+import {hasEdge, nextClientId, removeNodeAndEdges} from "@/src/features/pressure-graph/pressureGraphDraft";
+import type {PressureSelection} from "@/src/features/pressure-graph/pressureGraphDraft";
+import {PRESSURE_EDGE_KINDS} from "@/src/features/pressure-graph/pressureGraphTypes";
 import type {BlockstringDetail, BlockstringPayload} from "@/src/types/blockstring";
-import {BLOCKSTRING_CLASSIFICATIONS, formatBlockstringLabel} from "@/src/types/blockstring";
-import {blockstringDetailToDraft, buildBlockstringPayload, createBlockstringDraft, createBlockstringEdge, createBlockstringNode, defenseInstructionFor, withDefenseInstruction} from "./blockstringGraphDraft";
-import type {BlockstringDraft, BlockstringEdgeDraft} from "./blockstringGraphDraft";
+import {allNodeIds, blockDraftToGraph, blockstringDetailToDraft, buildBlockstringPayload, createBlock, createBlockstringDraft, createBlockstringEdge, createBlockstringNode} from "./blockstringGraphDraft";
+import type {BlockstringBlockDraft, BlockstringDraft, BlockstringEdgeDraft, BlockstringNodeDraft} from "./blockstringGraphDraft";
+
+const DESCRIPTION_MAX_LENGTH = 500;
 
 interface BlockstringFormProps {
     initialValue?: BlockstringDetail | null;
+    initialCharacterId?: string;
     submitLabel: string;
     saving?: boolean;
     onSubmit: (payload: BlockstringPayload) => Promise<void> | void;
 }
 
-export function BlockstringForm({initialValue = null, submitLabel, saving = false, onSubmit}: BlockstringFormProps) {
-    const {characters} = useCharacters();
-    const [draft, setDraft] = React.useState<BlockstringDraft>(() => initialValue ? blockstringDetailToDraft(initialValue) : createBlockstringDraft());
-    const [selection, setSelection] = React.useState<PressureSelection>(initialValue ? null : {type: "node", id: "n1"});
+export function BlockstringForm({initialValue = null, initialCharacterId = "", submitLabel, saving = false, onSubmit}: BlockstringFormProps) {
+    const [draft, setDraft] = React.useState<BlockstringDraft>(() => initialValue ? blockstringDetailToDraft(initialValue) : createBlockstringDraft(initialCharacterId));
     const [error, setError] = React.useState<string | null>(null);
-    const graph = React.useMemo(() => draftToGraphData(draft.nodes, draft.edges), [draft.edges, draft.nodes]);
-    const characterOptions = characters as Array<{id: string; name: string}>;
 
     const patch = (partial: Partial<BlockstringDraft>) => setDraft((current) => ({...current, ...partial}));
-    const patchNode = (clientId: string, partial: Partial<PressureNodeDraft>) => setDraft((current) => ({...current, nodes: current.nodes.map((node) => node.clientId === clientId ? {...node, ...partial} : node)}));
-    const patchEdge = (clientId: string, partial: Partial<BlockstringEdgeDraft>) => setDraft((current) => ({...current, edges: current.edges.map((edge) => edge.clientId === clientId ? {...edge, ...partial} : edge)}));
-
-    const connect = (from: string, to: string) => {
-        if (hasEdge(draft.edges, from, to)) {
-            return;
-        }
-        const clientId = nextClientId("e", draft.edges.map((edge) => edge.clientId));
-        patch({edges: [...draft.edges, createBlockstringEdge(clientId, from, to)]});
-        setSelection({type: "edge", id: clientId});
+    const patchBlock = (key: string, next: BlockstringBlockDraft) => setDraft((current) => ({...current, blocks: current.blocks.map((block) => block.key === key ? next : block)}));
+    const changeCharacter = (attackerCharacterId: string) => {
+        // Moves belong to the character, so a new character invalidates every picked move.
+        setDraft((current) => ({
+            ...current,
+            attackerCharacterId,
+            startingMove: null,
+            blocks: current.blocks.map((block) => ({...block, nodes: block.nodes.map((node) => ({...node, move: null}))})),
+        }));
     };
-    const addNextMove = (from: string) => {
-        const nodeId = nextClientId("n", draft.nodes.map((node) => node.clientId));
-        const edgeId = nextClientId("e", draft.edges.map((edge) => edge.clientId));
-        patch({nodes: [...draft.nodes, createBlockstringNode(nodeId)], edges: [...draft.edges, createBlockstringEdge(edgeId, from, nodeId)]});
-        setSelection({type: "node", id: nodeId});
-    };
-    const changeAttacker = (attackerCharacterId: string) => {
-        // Moves belong to the attacker, so a new attacker invalidates every picked move.
-        patch({attackerCharacterId, nodes: draft.nodes.map((node) => ({...node, move: null}))});
-    };
+    const addBlock = () => setDraft((current) => ({
+        ...current,
+        blocks: [...current.blocks, createBlock(nextClientId("b", current.blocks.map((block) => block.key)), nextClientId("n", allNodeIds(current)))],
+    }));
 
     const submit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -67,100 +58,157 @@ export function BlockstringForm({initialValue = null, submitLabel, saving = fals
         }
     };
 
-    const selectedNode = selection?.type === "node" ? draft.nodes.find((node) => node.clientId === selection.id) ?? null : null;
-    const selectedEdge = selection?.type === "edge" ? draft.edges.find((edge) => edge.clientId === selection.id) ?? null : null;
-    const notationOf = (clientId: string) => graph.nodes.find((node) => node.id === clientId)?.notation ?? "?";
-
-    let inspectorTitle = "";
-    let inspector: React.ReactNode = null;
-    if (selectedNode) {
-        inspectorTitle = notationOf(selectedNode.clientId);
-        inspector = (
-            <>
-                <PressureNodeFields node={selectedNode} characterId={draft.attackerCharacterId || undefined} onChange={(partial) => patchNode(selectedNode.clientId, partial)} />
-                <PressureNodeActions
-                    nodeId={selectedNode.clientId}
-                    connectTargets={connectTargets(graph, draft.edges, selectedNode.clientId)}
-                    canRemove={draft.nodes.length > 1}
-                    onAddNext={() => addNextMove(selectedNode.clientId)}
-                    onConnect={(target) => connect(selectedNode.clientId, target)}
-                    onRemove={() => {
-                        patch(removeNodeAndEdges(draft.nodes, draft.edges, selectedNode.clientId));
-                        setSelection(null);
-                    }}
-                />
-            </>
-        );
-    } else if (selectedEdge) {
-        inspectorTitle = `${notationOf(selectedEdge.from)} → ${notationOf(selectedEdge.to)}`;
-        inspector = (
-            <>
-                <PressureEdgeFields
-                    edge={selectedEdge}
-                    onChange={(partial) => patchEdge(selectedEdge.clientId, partial)}
-                    onRemove={() => {
-                        patch({edges: draft.edges.filter((edge) => edge.clientId !== selectedEdge.clientId)});
-                        setSelection(null);
-                    }}
-                />
-                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr 1fr", sm: "repeat(3, minmax(0, 140px))"}, gap: 1}}>
-                    <AppTextField size="small" margin="none" label="Frame adv." value={selectedEdge.frameAdvantage} onChange={(event) => patchEdge(selectedEdge.clientId, {frameAdvantage: event.target.value})} />
-                    <AppTextField size="small" margin="none" label="Gap frames" value={selectedEdge.gapFrames} slotProps={{htmlInput: {inputMode: "numeric"}}} onChange={(event) => patchEdge(selectedEdge.clientId, {gapFrames: event.target.value})} />
-                </AppBox>
-                {selectedEdge.kind === "fake" ? (
-                    <AppTextField
-                        size="small"
-                        margin="none"
-                        label="How to beat it"
-                        value={defenseInstructionFor(draft.defenseEntries, selectedEdge.clientId)}
-                        onChange={(event) => patch({defenseEntries: withDefenseInstruction(draft.defenseEntries, selectedEdge.clientId, event.target.value)})}
-                        multiline
-                        minRows={2}
-                    />
-                ) : null}
-            </>
-        );
-    }
+    const characterId = draft.attackerCharacterId || undefined;
 
     return (
         <AppBox component="form" onSubmit={submit} sx={{display: "grid", gap: 1.5}}>
             {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
 
-            <SectionCard title="Details" variant="input">
-                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(0, 360px) minmax(0, 220px) minmax(0, 200px)"}, gap: 1}}>
+            <SectionCard title="Details">
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(0, 360px) minmax(0, 220px) minmax(0, 320px)"}, gap: 1, alignItems: "center"}}>
                     <AppTextField size="small" margin="none" label="Title" value={draft.title} onChange={(event) => patch({title: event.target.value})} required />
-                    <SimpleSelect label="Attacker" value={draft.attackerCharacterId} options={characterOptions.map((character) => ({value: character.id, label: character.name}))} onChange={changeAttacker} />
-                    <SimpleSelect label="Status" value={draft.classification} options={BLOCKSTRING_CLASSIFICATIONS.map((value) => ({value, label: formatBlockstringLabel(value)}))} onChange={(classification) => patch({classification})} />
+                    <CharacterSelect value={draft.attackerCharacterId} required onChange={changeCharacter} />
+                    <OkiMovePicker key={draft.attackerCharacterId} label="Starting move" value={draft.startingMove} characterId={characterId} disabled={!characterId} onChange={(startingMove) => patch({startingMove})} />
                 </AppBox>
-                <AppTextField size="small" margin="none" label="Explanation" value={draft.summary} onChange={(event) => patch({summary: event.target.value})} multiline minRows={2} />
             </SectionCard>
 
-            <SectionCard title="Graph" variant="review">
-                <PressureGraphEditor
-                    graph={graph}
-                    ariaLabel="Blockstring graph editor"
-                    selection={selection}
-                    inspectorTitle={inspectorTitle}
-                    inspector={inspector}
-                    onSelect={setSelection}
-                    onConnect={connect}
+            {draft.blocks.map((block, index) => (
+                <BlockEditor
+                    key={block.key}
+                    block={block}
+                    index={index}
+                    characterId={characterId}
+                    takenNodeIds={allNodeIds(draft)}
+                    onChange={(next) => patchBlock(block.key, next)}
+                    onRemove={draft.blocks.length > 1 ? () => patch({blocks: draft.blocks.filter((candidate) => candidate.key !== block.key)}) : undefined}
                 />
-            </SectionCard>
+            ))}
 
-            <AppButton type="submit" variant="contained" color="primary" disabled={saving} sx={{justifySelf: {xs: "stretch", sm: "end"}}}>{saving ? "Saving..." : submitLabel}</AppButton>
+            <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: "space-between", gap: 1}}>
+                <AppButton type="button" variant="outlined" color="secondary" size="small" sx={{width: {xs: "100%", sm: "fit-content"}}} onClick={addBlock}>Add block</AppButton>
+                <AppButton type="submit" variant="contained" color="primary" disabled={saving}>{saving ? "Saving..." : submitLabel}</AppButton>
+            </AppBox>
         </AppBox>
     );
 }
 
-function SimpleSelect({label, value, options, onChange}: {label: string; value: string; options: Array<{value: string; label: string}>; onChange: (value: string) => void}) {
-    const labelId = React.useId();
+interface BlockEditorProps {
+    block: BlockstringBlockDraft;
+    index: number;
+    characterId?: string;
+    takenNodeIds: string[];
+    onChange: (block: BlockstringBlockDraft) => void;
+    onRemove?: () => void;
+}
+
+function BlockEditor({block, index, characterId, takenNodeIds, onChange, onRemove}: BlockEditorProps) {
+    const firstUnpicked = block.nodes.find((node) => !node.move);
+    const [selection, setSelection] = React.useState<PressureSelection>(firstUnpicked ? {type: "node", id: firstUnpicked.clientId} : null);
+    const [addingFrom, setAddingFrom] = React.useState<string | null>(null);
+    const graph = React.useMemo(() => blockDraftToGraph(block), [block]);
+    const labelOf = (clientId: string) => graph.nodes.find((node) => node.id === clientId)?.label ?? "?";
+    const ariaTitle = block.description.trim() || `Block ${index + 1}`;
+
+    const patch = (partial: Partial<BlockstringBlockDraft>) => onChange({...block, ...partial});
+    const patchNode = (clientId: string, partial: Partial<BlockstringNodeDraft>) => patch({nodes: block.nodes.map((node) => node.clientId === clientId ? {...node, ...partial} : node)});
+    const patchEdge = (clientId: string, partial: Partial<BlockstringEdgeDraft>) => patch({edges: block.edges.map((edge) => edge.clientId === clientId ? {...edge, ...partial} : edge)});
+    const connect = (from: string, to: string) => {
+        if (hasEdge(block.edges, from, to)) {
+            return;
+        }
+        const clientId = nextClientId("e", block.edges.map((edge) => edge.clientId));
+        patch({edges: [...block.edges, createBlockstringEdge(clientId, from, to)]});
+        setSelection({type: "edge", id: clientId});
+    };
+    const addNode = (from: string, move: BlockstringNodeDraft["move"]) => {
+        const nodeId = nextClientId("n", takenNodeIds);
+        const edgeId = nextClientId("e", block.edges.map((edge) => edge.clientId));
+        patch({nodes: [...block.nodes, createBlockstringNode(nodeId, move)], edges: [...block.edges, createBlockstringEdge(edgeId, from, nodeId)]});
+        setAddingFrom(null);
+    };
+
+    const selectedNode = selection?.type === "node" ? block.nodes.find((node) => node.clientId === selection.id) ?? null : null;
+    const selectedEdge = selection?.type === "edge" ? block.edges.find((edge) => edge.clientId === selection.id) ?? null : null;
+    let inspectorTitle = "";
+    let inspector: React.ReactNode = null;
+    if (selectedNode) {
+        inspectorTitle = labelOf(selectedNode.clientId);
+        inspector = (
+            <>
+                <PressureInspectorRow>
+                    <AppBox sx={{width: {xs: "100%", md: 360}}}>
+                        <OkiMovePicker label="Move" value={selectedNode.move} characterId={characterId} disabled={!characterId} onChange={(move) => patchNode(selectedNode.clientId, {move})} />
+                    </AppBox>
+                    <AppTextField size="small" margin="none" label="Frame advantage" placeholder="+2" value={selectedNode.frameAdvantage} sx={{width: 150}} slotProps={{htmlInput: {inputMode: "numeric", maxLength: 3}}} onChange={(event) => patchNode(selectedNode.clientId, {frameAdvantage: event.target.value})} />
+                </PressureInspectorRow>
+                {block.nodes.length > 1 ? (
+                    <PressureRemoveButton
+                        label="Remove move"
+                        onClick={() => {
+                            patch(removeNodeAndEdges(block.nodes, block.edges, selectedNode.clientId));
+                            setSelection(null);
+                        }}
+                    />
+                ) : null}
+            </>
+        );
+    } else if (selectedEdge) {
+        inspectorTitle = `${labelOf(selectedEdge.from)} → ${labelOf(selectedEdge.to)}`;
+        inspector = (
+            <>
+                <PressureEdgeKindFields kinds={PRESSURE_EDGE_KINDS} kind={selectedEdge.kind} readLabel={selectedEdge.readLabel} onChange={(partial) => patchEdge(selectedEdge.clientId, partial)} />
+                <PressureInspectorRow>
+                    <AppFormControlLabel
+                        sx={{mr: 0}}
+                        control={<AppCheckbox checked={selectedEdge.trueBlockstring} onChange={(event) => patchEdge(selectedEdge.clientId, {trueBlockstring: event.target.checked, gapFrames: event.target.checked ? "" : selectedEdge.gapFrames})} />}
+                        label="True blockstring"
+                    />
+                    <AppTextField size="small" margin="none" label="Gap frames" value={selectedEdge.gapFrames} disabled={selectedEdge.trueBlockstring} sx={{width: 130}} slotProps={{htmlInput: {inputMode: "numeric", maxLength: 2}}} onChange={(event) => patchEdge(selectedEdge.clientId, {gapFrames: event.target.value})} />
+                </PressureInspectorRow>
+                <PressureRemoveButton
+                    label="Remove arrow"
+                    onClick={() => {
+                        patch({edges: block.edges.filter((edge) => edge.clientId !== selectedEdge.clientId)});
+                        setSelection(null);
+                    }}
+                />
+            </>
+        );
+    }
 
     return (
-        <AppFormControl size="small" required>
-            <AppInputLabel id={labelId}>{label}</AppInputLabel>
-            <AppSelect<string> labelId={labelId} label={label} value={value} onChange={(event) => onChange(String(event.target.value))}>
-                {options.map((option) => <AppMenuItem key={option.value} value={option.value}>{option.label}</AppMenuItem>)}
-            </AppSelect>
-        </AppFormControl>
+        <SectionCard tone="raised">
+            <AppTextField
+                size="small"
+                margin="none"
+                label="Block title"
+                placeholder="If they start respecting the pressure..."
+                value={block.description}
+                multiline
+                minRows={1}
+                slotProps={{htmlInput: {maxLength: DESCRIPTION_MAX_LENGTH}}}
+                onChange={(event) => patch({description: event.target.value})}
+            />
+            <PressureGraphEditor
+                graph={graph}
+                ariaLabel={`${ariaTitle} graph editor`}
+                frameDetails
+                selection={selection}
+                inspectorTitle={inspectorTitle}
+                inspector={inspector}
+                onSelect={setSelection}
+                onConnect={connect}
+                onAddFrom={setAddingFrom}
+            />
+            {onRemove ? (
+                <AppBox>
+                    <AppButton type="button" variant="text" color="error" size="small" onClick={onRemove}>Remove block</AppButton>
+                </AppBox>
+            ) : null}
+
+            <PressureAddNodeDialog afterLabel={addingFrom ? labelOf(addingFrom) : null} onClose={() => setAddingFrom(null)}>
+                {addingFrom ? <OkiMovePicker label="Move" value={null} characterId={characterId} disabled={!characterId} autoFocus onChange={(move) => move && addNode(addingFrom, move)} /> : null}
+            </PressureAddNodeDialog>
+        </SectionCard>
     );
 }

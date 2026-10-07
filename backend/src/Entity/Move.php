@@ -24,6 +24,10 @@ class Move extends Component
     #[ORM\OneToOne(inversedBy: 'move', cascade: ['persist', 'remove'])]
     private ?FrameData $frameData = null;
 
+    /** The name players use for the move (FAT's cmnName, such as "MK Tatsu"). */
+    #[ORM\Column(name: 'common_name', type: Types::TEXT, nullable: true)]
+    private ?string $commonName = null;
+
     #[ORM\Column(name: 'available_on_modern', type: Types::BOOLEAN, options: ['default' => true])]
     private bool $availableOnModern = true;
 
@@ -59,6 +63,18 @@ class Move extends Component
     public function setCharacter(Character $character): static
     {
         $this->character = $character;
+
+        return $this;
+    }
+
+    public function getCommonName(): ?string
+    {
+        return $this->commonName;
+    }
+
+    public function setCommonName(?string $commonName): static
+    {
+        $this->commonName = null === $commonName || '' === trim($commonName) ? null : trim($commonName);
 
         return $this;
     }

@@ -134,9 +134,6 @@ type FgcTokenSet = {
         confirm: string;
         read: string;
         fake: string;
-        damageDealt: string;
-        damageReceived: string;
-        damageTrack: string;
     };
     chart: {
         line: string;
@@ -298,14 +295,13 @@ const lightTokens: FgcTokenSet = {
     },
     // Oki/blockstring graph edges follow the spec's functional hues (green autopilot, yellow confirm, blue read,
     // red fake); light shades are deepened from the chart families so each edge keeps >= 3:1 on white surfaces.
+    // Oki mix medals: strike is the artist orange deepened to 4.5:1 on white, throw a cyan kept apart from the blue
+    // read edge; shimmy reuses the confirm hue because a shimmy is a hit-confirmed whiff punish.
     pressureGraph: {
         normal: "#2f855a",
         confirm: "#a16207",
         read: "#2563eb",
         fake: "#b91c1c",
-        damageDealt: "#2f855a",
-        damageReceived: "#b91c1c",
-        damageTrack: "#e8eef5",
     },
     // Neutral Stats data encoding. Move families are functional hue families (blue light, gold medium, red heavy,
     // green Drive Rush, violet specials, gray misc) validated for CVD separation on the light chart surface; each
@@ -466,9 +462,6 @@ const darkTokens: FgcTokenSet = {
         confirm: "#fcbf49",
         read: "#60a5fa",
         fake: "#ff6b6b",
-        damageDealt: "#7ccfa6",
-        damageReceived: "#ff6b6b",
-        damageTrack: "#081e2d",
     },
     // Dark-surface counterparts of the Neutral Stats families, re-validated against surface.base.
     chart: {

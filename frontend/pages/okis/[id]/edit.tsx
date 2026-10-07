@@ -7,6 +7,7 @@ import {OkiEditorForm} from "@/src/components/okis/OkiEditorForm";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import type {OkiProfileDetail} from "@/src/types/oki";
+import {okiTitle} from "@/src/components/okis/okiEditorTypes";
 
 export default function EditOkiPage() {
     const router = useRouter();
@@ -51,7 +52,7 @@ export default function EditOkiPage() {
 
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
-            <PageShell title={`Edit Oki: ${profile.move.numpadNotation}`}>
+            <PageShell title={`Edit ${okiTitle(profile.move)}`}>
                 <OkiEditorForm mode="edit" initialProfile={profile} />
             </PageShell>
         </AppContainer>

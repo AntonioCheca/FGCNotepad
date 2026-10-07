@@ -21,7 +21,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Imports the attacker side of oki_export_v1 occurrences as OkiSetups under the ender's OkiProfile.
- * Created setups enter the moderation queue as pending. Defender actions are ignored: OkiOptionInteraction needs a result and defensive move replays do not provide.
+ * Created setups enter the moderation queue as pending. Defender actions, Drive Rush and recovery type are not imported.
  */
 final class ReplayOkiImportService
 {
@@ -201,14 +201,9 @@ final class ReplayOkiImportService
         $enderMove = $this->resolveMove($movesByNotation, $ender['notation'] ?? null, $attacker);
 
         $moveNodes = [];
-        $usesDriveRush = false;
         $enderSkipped = false;
         foreach (is_array($oki['attacker_actions'] ?? null) ? $oki['attacker_actions'] : [] as $action) {
             if (!is_array($action)) {
-                continue;
-            }
-            if ('drive_rush' === ($action['kind'] ?? null)) {
-                $usesDriveRush = true;
                 continue;
             }
             if ('move' !== ($action['kind'] ?? null)) {
@@ -240,21 +235,14 @@ final class ReplayOkiImportService
             $this->entityManager->persist($profile);
         }
 
-        $recovery = is_array($oki['recovery'] ?? null) ? ($oki['recovery']['type'] ?? null) : null;
-        $setup = (new OkiSetup())
-            ->setUsesDriveRush($usesDriveRush)
-            ->setWorksBackroll('backroll' === $recovery)
-            ->setWorksNoBackroll('no_backroll' === $recovery)
-            ->setAuthor($actor);
+        $setup = (new OkiSetup())->setName(sprintf('Replay setup %d', $profile->getSetups()->count() + 1))->setAuthor($actor);
         $this->moderationTransitionService->submitOkiSetupForReview($setup);
 
         $previous = null;
         foreach ($moveNodes as $position => $move) {
-            $node = (new OkiNode())->setMove($move)->setSortOrder($position)->setDefaultRoute(false);
+            $node = (new OkiNode())->setMove($move)->setSortOrder($position);
             $setup->addNode($node);
-            $previous?->addOutgoingLink(
-                (new OkiNodeLink())->setToNode($node)->setStepType(OkiStepType::IMMEDIATE->value)
-            );
+            $node->addIncomingLink((new OkiNodeLink())->setFromNode($previous)->setStepType(OkiStepType::IMMEDIATE->value));
             $previous = $node;
         }
 
@@ -269,7 +257,7 @@ final class ReplayOkiImportService
         $nodes = $setup->getNodes()->toArray();
         usort($nodes, static fn (OkiNode $a, OkiNode $b): int => $a->getSortOrder() <=> $b->getSortOrder());
 
-        return array_map(static fn (OkiNode $node): string => (string) $node->getMove()->getId(), $nodes);
+        return array_map(static fn (OkiNode $node): string => (string) ($node->getMove()?->getId() ?? $node->getAction()), $nodes);
     }
 
     /** @return array<string, list<Move>> */

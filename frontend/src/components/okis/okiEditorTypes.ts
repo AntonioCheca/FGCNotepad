@@ -1,231 +1,219 @@
-import {formatDamage, parseDamage} from "@/src/features/pressure-graph/pressureGraphDraft";
-import type {PressureEdgeDraft, PressureNodeDraft} from "@/src/features/pressure-graph/pressureGraphDraft";
-import {toPressureLayer} from "@/src/features/pressure-graph/pressureGraphTypes";
-import type {PressureGraphData, PressureGraphNode} from "@/src/features/pressure-graph/pressureGraphTypes";
-import type {OkiInteractionResult, OkiMoveRef, OkiNodeProperty, OkiOptionType, OkiProfileDetail, OkiProfilePayload, OkiSetup, OkiStepType} from "@/src/types/oki";
+import {moveLabel, moveSubtitle} from "@/src/features/pressure-graph/pressureGraphTypes";
+import type {PressureEdgeKind, PressureGraphData, PressureGraphEdge, PressureGraphNode} from "@/src/features/pressure-graph/pressureGraphTypes";
+import type {OkiAction, OkiHitLevel, OkiMoveRef, OkiProfileDetail, OkiProfilePayload, OkiRecovery, OkiSetup, OkiStepType} from "@/src/types/oki";
 import type {OkiMoveOption} from "./OkiMovePicker";
+import {isJumpingAttack, OKI_ACTION_LABELS, okiLinkMarkers, okiNodeMarkers, okiStepCaption} from "./okiVocabulary";
 
-export interface OkiInteractionDraft {
-    defensiveMove: OkiMoveOption | null;
-    result: OkiInteractionResult;
-    characterId: string;
+export type OkiNodeChoice = {kind: "move"; move: OkiMoveOption} | {kind: "action"; action: OkiAction};
+
+export interface OkiNodeDraft {
+    clientId: string;
+    choice: OkiNodeChoice;
+    hitLevel: OkiHitLevel | null;
+    sideSwitch: boolean;
 }
 
-export interface OkiNodeDraft extends PressureNodeDraft {
-    isDefaultRoute: boolean;
-    routeExplanation: string;
-    optionType: OkiOptionType | "";
-    properties: OkiNodeProperty[];
-    interactions: OkiInteractionDraft[];
-}
-
-export interface OkiLinkDraft extends PressureEdgeDraft {
+export interface OkiLinkDraft {
+    clientId: string;
+    from: string;
+    to: string;
     stepType: OkiStepType;
-    minFrames: string;
-    maxFrames: string;
+    kind: PressureEdgeKind;
+    readLabel: string;
+    safeJump: boolean;
+    recovery: OkiRecovery | null;
 }
 
 export interface OkiSetupDraft {
     id?: number;
-    usesDriveRush: boolean;
-    autoTimed: boolean;
+    name: string;
     cornerOnly: boolean;
-    worksNoBackroll: boolean;
-    worksBackroll: boolean;
-    fakeNoBackroll: boolean;
-    fakeBackroll: boolean;
+    backrollDependent: boolean;
     nodes: OkiNodeDraft[];
     links: OkiLinkDraft[];
 }
 
 export interface OkiProfileDraft {
+    characterId: string;
     move: OkiMoveOption | null;
-    frameAdvantage: number | null;
     setups: OkiSetupDraft[];
 }
 
-// The ender is drawn as the graph's root but is not a stored node: it is the profile's move itself.
+// The ender is the graph's root but not a stored node: it is the profile's move, and links from it are sent as "ender".
 export const OKI_ENDER_NODE_ID = "ender";
 
-export function createEmptySetup(): OkiSetupDraft {
+export function createEmptySetup(name = ""): OkiSetupDraft {
+    return {name, cornerOnly: false, backrollDependent: false, nodes: [], links: []};
+}
+
+export function createLink(clientId: string, from: string, to: string): OkiLinkDraft {
+    return {clientId, from, to, stepType: "IMMEDIATE", kind: "normal", readLabel: "", safeJump: false, recovery: null};
+}
+
+export function okiTitle(ender: OkiMoveRef): string {
+    return `${ender.character.name} — ${moveLabel(ender)}`;
+}
+
+export function toMoveOption(move: OkiMoveRef): OkiMoveOption {
+    return {id: move.id, summary: move.name, numpadNotation: move.numpadNotation, commonName: move.commonName, moveName: move.moveName, moveType: move.moveType, characterId: move.character.id};
+}
+
+export function allowsSafeJump(choice: OkiNodeChoice | undefined): boolean {
+    return choice?.kind === "move" && isJumpingAttack(choice.move.numpadNotation);
+}
+
+// Medals a link may only carry in context are dropped here, so stale values never render or save after the target or setup changes.
+function effectiveLink(setup: OkiSetupDraft, link: OkiLinkDraft): Pick<OkiLinkDraft, "safeJump" | "recovery"> {
+    const target = setup.nodes.find((node) => node.clientId === link.to);
+
+    return {safeJump: allowsSafeJump(target?.choice) && link.safeJump, recovery: setup.backrollDependent ? link.recovery : null};
+}
+
+export function choiceLabel(choice: OkiNodeChoice): string {
+    return choice.kind === "action" ? OKI_ACTION_LABELS[choice.action] : moveLabel(choice.move);
+}
+
+interface OkiGraphNodeInput {
+    id: string;
+    choice: OkiNodeChoice;
+    hitLevel: OkiHitLevel | null;
+    sideSwitch: boolean;
+}
+
+interface OkiGraphLinkInput {
+    id: string;
+    from: string;
+    to: string;
+    stepType: OkiStepType;
+    kind: PressureEdgeKind;
+    readLabel: string | null;
+    safeJump: boolean;
+    recovery: OkiRecovery | null;
+}
+
+interface OkiEnderText {
+    label: string;
+    subtitle: string | null;
+}
+
+export function enderText(ender: Parameters<typeof moveLabel>[0]): OkiEnderText {
+    return {label: moveLabel(ender), subtitle: moveSubtitle(ender)};
+}
+
+function buildOkiGraph(nodes: OkiGraphNodeInput[], links: OkiGraphLinkInput[], ender: OkiEnderText): PressureGraphData {
+    const enderNode: PressureGraphNode = {id: OKI_ENDER_NODE_ID, ...ender, anchor: true};
+
     return {
-        usesDriveRush: false,
-        autoTimed: true,
-        cornerOnly: false,
-        worksNoBackroll: true,
-        worksBackroll: true,
-        fakeNoBackroll: false,
-        fakeBackroll: false,
-        nodes: [createEmptyNode("n1", true)],
-        links: [],
+        nodes: [
+            enderNode,
+            ...nodes.map((node) => ({
+                id: node.id,
+                label: choiceLabel(node.choice),
+                subtitle: node.choice.kind === "move" ? moveSubtitle(node.choice.move) : null,
+                markers: okiNodeMarkers(node),
+            })),
+        ],
+        edges: links.map((link): PressureGraphEdge => ({
+            id: link.id,
+            from: link.from,
+            to: link.to,
+            kind: link.kind,
+            readLabel: link.kind === "read" ? link.readLabel : null,
+            caption: okiStepCaption(link.stepType),
+            markers: okiLinkMarkers(link),
+        })),
     };
 }
 
-export function createEmptyNode(clientId: string, defaultRoute = false): OkiNodeDraft {
-    return {clientId, move: null, layer: 1, damageDealt: "", damageReceived: "", isDefaultRoute: defaultRoute, routeExplanation: "", optionType: "", properties: [], interactions: []};
+export function okiDraftToGraph(setup: OkiSetupDraft, ender: OkiEnderText): PressureGraphData {
+    return buildOkiGraph(
+        setup.nodes.map((node) => ({...node, id: node.clientId})),
+        setup.links.map((link) => ({...link, ...effectiveLink(setup, link), id: link.clientId, readLabel: link.readLabel.trim() || null})),
+        ender,
+    );
 }
 
-export function createEmptyLink(clientId: string, from: string, to: string): OkiLinkDraft {
-    return {clientId, from, to, kind: "normal", readLabel: "", layer: 1, stepType: "IMMEDIATE", minFrames: "", maxFrames: ""};
+function nodeChoice(node: OkiSetup["nodes"][number]): OkiNodeChoice {
+    if (node.action) {
+        return {kind: "action", action: node.action};
+    }
+    if (!node.move) {
+        throw new Error(`Oki node ${node.id} has neither a move nor an action.`);
+    }
+
+    return {kind: "move", move: toMoveOption(node.move)};
 }
 
-function toMoveOption(move: OkiMoveRef): OkiMoveOption {
-    return {id: move.id, summary: move.name, numpadNotation: move.numpadNotation, moveName: move.moveName, characterId: move.character.id};
+function nodeClientId(nodeId: number | null): string {
+    return nodeId === null ? OKI_ENDER_NODE_ID : String(nodeId);
+}
+
+export function okiSetupToGraph(setup: OkiSetup, ender: OkiMoveRef): PressureGraphData {
+    return buildOkiGraph(
+        setup.nodes.map((node) => ({id: String(node.id), choice: nodeChoice(node), hitLevel: node.hitLevel, sideSwitch: node.sideSwitch})),
+        setup.links.map((link) => ({...link, id: String(link.id), from: nodeClientId(link.fromNodeId), to: String(link.toNodeId)})),
+        enderText(ender),
+    );
 }
 
 export function mapDetailToDraft(detail: OkiProfileDetail): OkiProfileDraft {
     return {
+        characterId: detail.move.character.id,
         move: toMoveOption(detail.move),
-        frameAdvantage: detail.frameAdvantage,
         setups: detail.setups.flatMap((setup) => setup.canEdit ? [mapSetupToDraft(setup)] : []),
     };
 }
 
 function mapSetupToDraft(setup: OkiSetup): OkiSetupDraft {
-    const clientIdByNodeId = new Map<number, string>();
-    const nodes = setup.nodes.map((node, nodeIndex) => {
-        const clientId = `n${nodeIndex + 1}`;
-        clientIdByNodeId.set(node.id, clientId);
-        return {
-            clientId,
-            move: toMoveOption(node.move),
-            layer: toPressureLayer(node.layer),
-            damageDealt: formatDamage(node.damageDealt),
-            damageReceived: formatDamage(node.damageReceived),
-            isDefaultRoute: node.isDefaultRoute,
-            routeExplanation: node.routeExplanation ?? "",
-            optionType: node.optionType ?? "" as OkiOptionType | "",
-            properties: node.properties,
-            interactions: node.interactions.map((interaction) => ({
-                defensiveMove: toMoveOption(interaction.defensiveMove),
-                result: interaction.result,
-                characterId: interaction.character?.id ?? "",
-            })),
-        };
-    });
-
-    const links: OkiLinkDraft[] = [];
-    for (const link of setup.links) {
-        const from = clientIdByNodeId.get(link.fromNodeId);
-        const to = clientIdByNodeId.get(link.toNodeId);
-        if (!from || !to) {
-            continue;
-        }
-        links.push({
-            clientId: `l${links.length + 1}`,
-            from,
-            to,
-            kind: link.kind,
-            readLabel: link.readLabel ?? "",
-            layer: toPressureLayer(link.layer),
-            stepType: link.stepType,
-            minFrames: link.minFrames === null ? "" : String(link.minFrames),
-            maxFrames: link.maxFrames === null ? "" : String(link.maxFrames),
-        });
-    }
-
     return {
         id: setup.id,
-        usesDriveRush: setup.usesDriveRush,
-        autoTimed: setup.autoTimed,
+        name: setup.name,
         cornerOnly: setup.cornerOnly,
-        worksNoBackroll: setup.worksNoBackroll,
-        worksBackroll: setup.worksBackroll,
-        fakeNoBackroll: setup.fakeNoBackroll,
-        fakeBackroll: setup.fakeBackroll,
-        nodes,
-        links,
+        backrollDependent: setup.backrollDependent,
+        nodes: setup.nodes.map((node) => ({clientId: String(node.id), choice: nodeChoice(node), hitLevel: node.hitLevel, sideSwitch: node.sideSwitch})),
+        links: setup.links.map((link) => ({
+            clientId: `l${link.id}`,
+            from: nodeClientId(link.fromNodeId),
+            to: String(link.toNodeId),
+            stepType: link.stepType,
+            kind: link.kind,
+            readLabel: link.readLabel ?? "",
+            safeJump: link.safeJump,
+            recovery: link.recovery,
+        })),
     };
 }
 
 export function buildOkiPayload(draft: OkiProfileDraft): OkiProfilePayload {
     if (!draft.move) {
-        throw new Error("Ender move is required.");
+        throw new Error("Pick the ender.");
     }
+    if (draft.setups.some((setup) => setup.name.trim() === "")) {
+        throw new Error("Every setup needs a name.");
+    }
+
     return {
         moveId: draft.move.id,
         setups: draft.setups.map((setup) => ({
             ...(setup.id === undefined ? {} : {id: setup.id}),
-            usesDriveRush: setup.usesDriveRush,
-            autoTimed: setup.autoTimed,
+            name: setup.name.trim(),
             cornerOnly: setup.cornerOnly,
-            worksNoBackroll: setup.worksNoBackroll,
-            worksBackroll: setup.worksBackroll,
-            fakeNoBackroll: setup.fakeNoBackroll,
-            fakeBackroll: setup.fakeBackroll,
-            nodes: setup.nodes.map((node, index) => {
-                if (!node.move) {
-                    throw new Error("Every node needs a move.");
-                }
-                return {
-                    clientId: node.clientId,
-                    moveId: node.move.id,
-                    sortOrder: index,
-                    isDefaultRoute: node.isDefaultRoute,
-                    routeExplanation: node.routeExplanation.trim() || null,
-                    optionType: node.optionType || null,
-                    properties: node.properties,
-                    layer: node.layer,
-                    damageDealt: parseDamage(node.damageDealt),
-                    damageReceived: parseDamage(node.damageReceived),
-                    interactions: node.interactions.map((interaction) => {
-                        if (!interaction.defensiveMove) {
-                            throw new Error("Every interaction needs a defensive move.");
-                        }
-                        return {
-                            defensiveMoveId: interaction.defensiveMove.id,
-                            result: interaction.result,
-                            characterId: interaction.characterId || null,
-                        };
-                    }),
-                };
-            }),
+            backrollDependent: setup.backrollDependent,
+            nodes: setup.nodes.map((node, index) => ({
+                clientId: node.clientId,
+                ...(node.choice.kind === "move" ? {moveId: node.choice.move.id} : {action: node.choice.action}),
+                sortOrder: index,
+                hitLevel: node.hitLevel,
+                sideSwitch: node.sideSwitch,
+            })),
             links: setup.links.map((link) => ({
                 fromClientId: link.from,
                 toClientId: link.to,
                 stepType: link.stepType,
-                minFrames: link.stepType === "IMMEDIATE" || link.minFrames === "" ? null : Number.parseInt(link.minFrames, 10),
-                maxFrames: link.stepType === "IMMEDIATE" || link.maxFrames === "" ? null : Number.parseInt(link.maxFrames, 10),
                 kind: link.kind,
                 readLabel: link.kind === "read" ? link.readLabel.trim() || null : null,
-                layer: link.layer,
+                ...effectiveLink(setup, link),
             })),
         })),
     };
-}
-
-// Prepends the ender as the root and links it to every node nothing else points at.
-export function withEnderRoot(graph: PressureGraphData, ender: {notation: string; name: string | null}): PressureGraphData {
-    const targets = new Set(graph.edges.map((edge) => edge.to));
-    const roots = graph.nodes.filter((node) => !targets.has(node.id));
-    const enderNode: PressureGraphNode = {id: OKI_ENDER_NODE_ID, notation: ender.notation, name: ender.name, layer: 1, damageDealt: null, damageReceived: null, anchor: true};
-
-    return {
-        nodes: [enderNode, ...graph.nodes],
-        edges: [
-            ...roots.map((root) => ({id: `${OKI_ENDER_NODE_ID}-${root.id}`, from: OKI_ENDER_NODE_ID, to: root.id, kind: "normal" as const, readLabel: null, layer: root.layer})),
-            ...graph.edges,
-        ],
-    };
-}
-
-export function okiSetupToGraph(setup: OkiSetup, ender: OkiMoveRef): PressureGraphData {
-    return withEnderRoot({
-        nodes: setup.nodes.map((node) => ({
-            id: String(node.id),
-            notation: node.move.numpadNotation,
-            name: node.move.moveName,
-            layer: toPressureLayer(node.layer),
-            damageDealt: node.damageDealt,
-            damageReceived: node.damageReceived,
-        })),
-        edges: setup.links.map((link) => ({
-            id: String(link.id),
-            from: String(link.fromNodeId),
-            to: String(link.toNodeId),
-            kind: link.kind,
-            readLabel: link.readLabel,
-            layer: toPressureLayer(link.layer),
-        })),
-    }, {notation: ender.numpadNotation, name: ender.moveName});
 }

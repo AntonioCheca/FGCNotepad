@@ -10,6 +10,7 @@ import type {BlockstringPayload} from "@/src/types/blockstring";
 export default function CreateBlockstringPage() {
     const router = useRouter();
     const {createBlockstring} = useBlockstrings();
+    const characterId = typeof router.query.characterId === "string" ? router.query.characterId : "";
     const [saving, setSaving] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
 
@@ -30,7 +31,8 @@ export default function CreateBlockstringPage() {
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title="Create Blockstring">
                 {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
-                <BlockstringForm submitLabel="Create Blockstring" saving={saving} onSubmit={handleSubmit} />
+                {/* The query only arrives after hydration; remounting then applies the preselected character. */}
+                <BlockstringForm key={characterId} initialCharacterId={characterId} submitLabel="Create blockstring" saving={saving} onSubmit={handleSubmit} />
             </PageShell>
         </AppContainer>
     );

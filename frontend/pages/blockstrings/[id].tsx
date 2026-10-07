@@ -3,18 +3,16 @@ import {useRouter} from "next/router";
 import AuthContext from "@/services/AuthContext";
 import useBlockstrings from "@/hooks/useBlockstrings";
 import {BlockstringForm} from "@/src/components/blockstrings/BlockstringForm";
-import {blockstringDetailToGraph} from "@/src/components/blockstrings/blockstringGraphDraft";
-import {BlockstringStatusChip} from "@/src/components/blockstrings/BlockstringStatusChip";
+import {blockstringTitle, blockToGraph} from "@/src/components/blockstrings/blockstringGraphDraft";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
-import {AppPaper} from "@/src/components/ui/AppPaper";
-import {AppTypography} from "@/src/components/ui/AppTypography";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
+import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {PressureGraphView} from "@/src/features/pressure-graph/PressureGraphView";
-import type {BlockstringDetail, BlockstringPayload} from "@/src/types/blockstring";
+import type {BlockstringBlock, BlockstringDetail, BlockstringPayload} from "@/src/types/blockstring";
 
 export default function BlockstringDetailPage() {
     const router = useRouter();
@@ -72,58 +70,35 @@ export default function BlockstringDetailPage() {
 
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
-            <PageShell title={item.title} badgeLabel={item.attackerCharacter?.name ?? undefined}>
+            <PageShell title={blockstringTitle(item)}>
                 {error && editMode ? <InlineNotice severity="error">{error}</InlineNotice> : null}
-                <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: "space-between", gap: 1}}>
-                    <AppBox sx={{display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center"}}>
-                        <BlockstringStatusChip classification={item.classification} />
+                {authContext.canModerate ? (
+                    <AppBox sx={{display: "flex", justifyContent: "flex-end"}}>
+                        <AppButton type="button" variant="outlined" color="secondary" onClick={() => setEditMode((current) => !current)}>{editMode ? "Cancel edit" : "Edit"}</AppButton>
                     </AppBox>
-                    {authContext.canModerate ? <AppButton type="button" variant="outlined" color="secondary" sx={{width: {xs: "100%", sm: "auto"}}} onClick={() => setEditMode((current) => !current)}>{editMode ? "Cancel Edit" : "Edit"}</AppButton> : null}
-                </AppBox>
+                ) : null}
 
-                {editMode ? <BlockstringForm initialValue={item} submitLabel="Save Blockstring" saving={saving} onSubmit={handleSubmit} /> : <BlockstringReadOnly item={item} />}
+                {editMode ? <BlockstringForm initialValue={item} submitLabel="Save blockstring" saving={saving} onSubmit={handleSubmit} /> : <BlockstringBlocks item={item} />}
             </PageShell>
         </AppContainer>
     );
 }
 
-function BlockstringReadOnly({item}: {item: BlockstringDetail}) {
-    const graph = React.useMemo(() => blockstringDetailToGraph(item), [item]);
-
+function BlockstringBlocks({item}: {item: BlockstringDetail}) {
     return (
-        <AppBox sx={{display: "grid", gap: 1.2}}>
-            {item.summary ? <InlineNotice severity={item.classification === "fake" || item.classification === "knowledge_check" ? "warning" : "info"}>{item.summary}</InlineNotice> : null}
-            <PressureGraphView graph={graph} ariaLabel={`${item.title} graph`} />
-            <DefenseNotes item={item} />
+        <AppBox sx={{display: "grid", gap: 1.5}}>
+            {item.blocks.map((block, index) => <BlockView key={block.id} block={block} index={index} />)}
         </AppBox>
     );
 }
 
-function DefenseNotes({item}: {item: BlockstringDetail}) {
-    const notationById = new Map(item.nodes.map((node) => [node.id, node.move?.numpadNotation ?? "?"]));
-    const edgeById = new Map(item.edges.map((edge) => [edge.id, edge]));
-    const notes = item.defenseEntries.filter((entry) => entry.instruction);
-
-    if (notes.length === 0) {
-        return null;
-    }
+// The description ("If they start mashing...") is the block's title; blocks without one show only their graph.
+function BlockView({block, index}: {block: BlockstringBlock; index: number}) {
+    const graph = React.useMemo(() => blockToGraph(block), [block]);
 
     return (
-        <AppBox sx={{display: "grid", gap: 0.75}}>
-            <AppTypography variant="subtitle1" sx={{fontWeight: 820}}>How to beat it</AppTypography>
-            {notes.map((entry) => {
-                const edge = edgeById.get(entry.edgeId);
-                return (
-                    <AppPaper key={entry.id ?? `${entry.edgeId}-${entry.instruction}`} variant="outlined" sx={{p: 1, borderRadius: 1.5, display: "grid", gap: 0.25, backgroundColor: "fgc.surface.base"}}>
-                        {edge ? (
-                            <AppTypography variant="body2" sx={{fontWeight: 820}}>
-                                {notationById.get(edge.from)} → {notationById.get(edge.to)}{edge.gapFrames !== null ? ` · ${edge.gapFrames}f gap` : ""}
-                            </AppTypography>
-                        ) : null}
-                        <AppTypography variant="body2">{entry.instruction}</AppTypography>
-                    </AppPaper>
-                );
-            })}
-        </AppBox>
+        <SectionCard title={block.description ?? undefined} tone="raised">
+            <PressureGraphView graph={graph} ariaLabel={`${block.description ?? `Block ${index + 1}`} graph`} frameDetails />
+        </SectionCard>
     );
 }

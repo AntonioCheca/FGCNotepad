@@ -134,9 +134,6 @@ type FgcTokenGroup = {
         confirm: string;
         read: string;
         fake: string;
-        damageDealt: string;
-        damageReceived: string;
-        damageTrack: string;
     };
     chart: {
         line: string;

@@ -12,8 +12,6 @@ const MODERATION_ROLES: UserRole[] = ["ROLE_MODERATOR", "ROLE_ADMIN"];
 const ROUTE_ACCESS_RULES: RouteAccessRule[] = [
     {prefix: "/replay-lab/shared", allowedRoles: []},
     {prefix: "/replay-lab", allowedRoles: QA_ROLES},
-    {prefix: "/profile/recommend-combo", allowedRoles: QA_ROLES},
-    {prefix: "/okis/reversals", allowedRoles: ["ROLE_ADMIN"]},
     {prefix: "/admin/situations", allowedRoles: MODERATION_ROLES},
     {prefix: "/admin", allowedRoles: ["ROLE_ADMIN"]},
     {prefix: "/moderation", allowedRoles: MODERATION_ROLES},

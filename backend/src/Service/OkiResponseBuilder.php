@@ -2,7 +2,6 @@
 
 namespace App\Service;
 
-use App\Entity\CharacterReversal;
 use App\Entity\Move;
 use App\Entity\OkiNode;
 use App\Entity\OkiProfile;
@@ -32,36 +31,10 @@ final class OkiResponseBuilder
 
     public function buildSummary(OkiProfile $profile, ?User $viewer): array
     {
-        $setups = $this->visibleSetups($profile, $viewer);
-        $finalNodes = $this->collectFinalNodes($setups);
-        $properties = [];
-        $optionTypes = [];
-        foreach ($finalNodes as $node) {
-            if (null !== $node->getOptionType()) {
-                $optionTypes[$node->getOptionType()] = true;
-            }
-            foreach ($node->getProperties() as $property) {
-                $properties[$property->getProperty()] = true;
-            }
-        }
-
         return [
             'id' => $profile->getId(),
             'move' => $this->buildMove($profile->getMove()),
-            'frameAdvantage' => $profile->getFrameAdvantage(),
-            'setupCount' => count($setups),
-            'summary' => [
-                'meterless' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => !$setup->usesDriveRush()),
-                'driveRush' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => $setup->usesDriveRush()),
-                'autoTimed' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => $setup->isAutoTimed()),
-                'manual' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => !$setup->isAutoTimed()),
-                'cornerOnly' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => $setup->isCornerOnly()),
-                'worksNoBackroll' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => $setup->worksNoBackroll()),
-                'worksBackroll' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => $setup->worksBackroll()),
-                'hasFakeSetups' => $this->hasSetup($setups, static fn (OkiSetup $setup): bool => $setup->isFakeNoBackroll() || $setup->isFakeBackroll()),
-                'optionTypes' => array_keys($optionTypes),
-                'properties' => array_keys($properties),
-            ],
+            'setupCount' => count($this->visibleSetups($profile, $viewer)),
         ];
     }
 
@@ -71,27 +44,6 @@ final class OkiResponseBuilder
         $payload['setups'] = array_map(fn (OkiSetup $setup): array => $this->buildSetup($setup, $viewer), $this->visibleSetups($profile, $viewer));
 
         return $payload;
-    }
-
-    /** @param list<CharacterReversal> $reversals */
-    public function buildReversalList(array $reversals): array
-    {
-        return array_map(fn (CharacterReversal $reversal): array => $this->buildReversal($reversal), $reversals);
-    }
-
-    public function buildReversal(CharacterReversal $reversal): array
-    {
-        return [
-            'id' => $reversal->getId(),
-            'character' => [
-                'id' => (string) $reversal->getCharacter()->getId(),
-                'name' => $reversal->getCharacter()->getName(),
-            ],
-            'move' => $this->buildMove($reversal->getMove()),
-            'startup' => $reversal->getStartup(),
-            'reversalType' => $reversal->getReversalType(),
-            'properties' => array_values(array_map(static fn ($property): string => $property->getProperty(), $reversal->getProperties()->toArray())),
-        ];
     }
 
     private function buildSetup(OkiSetup $setup, ?User $viewer): array
@@ -104,13 +56,9 @@ final class OkiResponseBuilder
             'moderationReason' => $canEdit ? $setup->getModerationReason() : null,
             'author' => $setup->getAuthor()?->getUsername(),
             'canEdit' => $canEdit,
-            'usesDriveRush' => $setup->usesDriveRush(),
-            'autoTimed' => $setup->isAutoTimed(),
+            'name' => $setup->getName(),
             'cornerOnly' => $setup->isCornerOnly(),
-            'worksNoBackroll' => $setup->worksNoBackroll(),
-            'worksBackroll' => $setup->worksBackroll(),
-            'fakeNoBackroll' => $setup->isFakeNoBackroll(),
-            'fakeBackroll' => $setup->isFakeBackroll(),
+            'backrollDependent' => $setup->isBackrollDependent(),
             'nodes' => array_map(fn (OkiNode $node): array => $this->buildNode($node), $setup->getNodes()->toArray()),
             'links' => $this->buildLinks($setup),
         ];
@@ -120,25 +68,25 @@ final class OkiResponseBuilder
     {
         return [
             'id' => $node->getId(),
-            'move' => $this->buildMove($node->getMove()),
+            'move' => null === $node->getMove() ? null : $this->buildMove($node->getMove()),
+            'action' => $node->getAction(),
             'sortOrder' => $node->getSortOrder(),
-            'isDefaultRoute' => $node->isDefaultRoute(),
-            'routeExplanation' => $node->getRouteExplanation(),
-            'optionType' => $node->getOptionType(),
-            'layer' => $node->getLayer(),
-            'damageDealt' => $node->getDamageDealt(),
-            'damageReceived' => $node->getDamageReceived(),
-            'properties' => array_values(array_map(static fn ($property): string => $property->getProperty(), $node->getProperties()->toArray())),
-            'interactions' => array_values(array_map(fn ($interaction): array => [
-                'id' => $interaction->getId(),
-                'defensiveMove' => $this->buildMove($interaction->getDefensiveMove()),
-                'result' => $interaction->getResult(),
-                'character' => null === $interaction->getCharacter() ? null : [
-                    'id' => (string) $interaction->getCharacter()->getId(),
-                    'name' => $interaction->getCharacter()->getName(),
-                ],
-            ], $node->getInteractions()->toArray())),
+            'hitLevel' => $node->getHitLevel(),
+            'sideSwitch' => $node->isSideSwitch(),
         ];
+    }
+
+    /**
+     * Same shape as a /api/moves/search result, so the ender picker can use either source.
+     *
+     * @param list<Move> $moves
+     */
+    public function buildEnderOptions(array $moves): array
+    {
+        return array_map(fn (Move $move): array => $this->buildMove($move) + [
+            'summary' => $move->getCharacter()->getName() . ' ' . $move->getNumpadNotation(),
+            'attackLevel' => $move->getFrameData()?->getAttackLevel(),
+        ], $moves);
     }
 
     private function buildMove(Move $move): array
@@ -147,7 +95,9 @@ final class OkiResponseBuilder
             'id' => (string) $move->getId(),
             'numpadNotation' => $move->getNumpadNotation(),
             'name' => $move->getName(),
+            'commonName' => $move->getCommonName(),
             'moveName' => $move->getFrameData()?->getMoveName(),
+            'moveType' => $move->getFrameData()?->getMoveType(),
             'character' => [
                 'id' => (string) $move->getCharacter()->getId(),
                 'name' => $move->getCharacter()->getName(),
@@ -159,17 +109,16 @@ final class OkiResponseBuilder
     {
         $links = [];
         foreach ($setup->getNodes() as $node) {
-            foreach ($node->getOutgoingLinks() as $link) {
+            foreach ($node->getIncomingLinks() as $link) {
                 $links[] = [
                     'id' => $link->getId(),
-                    'fromNodeId' => $link->getFromNode()->getId(),
-                    'toNodeId' => $link->getToNode()->getId(),
+                    'fromNodeId' => $link->getFromNode()?->getId(),
+                    'toNodeId' => $node->getId(),
                     'stepType' => $link->getStepType(),
-                    'minFrames' => $link->getMinFrames(),
-                    'maxFrames' => $link->getMaxFrames(),
                     'kind' => $link->getKind(),
                     'readLabel' => $link->getReadLabel(),
-                    'layer' => $link->getLayer(),
+                    'safeJump' => $link->isSafeJump(),
+                    'recovery' => $link->getRecovery(),
                 ];
             }
         }
@@ -177,32 +126,5 @@ final class OkiResponseBuilder
         usort($links, static fn (array $left, array $right): int => ($left['id'] ?? 0) <=> ($right['id'] ?? 0));
 
         return $links;
-    }
-
-    /** @param list<OkiSetup> $setups */
-    private function collectFinalNodes(array $setups): array
-    {
-        $nodes = [];
-        foreach ($setups as $setup) {
-            foreach ($setup->getNodes() as $node) {
-                if (null !== $node->getOptionType()) {
-                    $nodes[] = $node;
-                }
-            }
-        }
-
-        return $nodes;
-    }
-
-    /** @param list<OkiSetup> $setups */
-    private function hasSetup(array $setups, callable $predicate): bool
-    {
-        foreach ($setups as $setup) {
-            if ($predicate($setup)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

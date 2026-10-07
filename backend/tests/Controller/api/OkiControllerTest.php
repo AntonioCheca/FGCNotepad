@@ -6,9 +6,7 @@ use App\Entity\Character;
 use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Tests\Controller\AuthenticatedWebTestCase;
-use App\Util\Enum\UserRole;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final class OkiControllerTest extends AuthenticatedWebTestCase
 {
@@ -21,241 +19,203 @@ final class OkiControllerTest extends AuthenticatedWebTestCase
     public function testCreateReadAndSearchOkiProfile(): void
     {
         $character = $this->createCharacter('Ken');
-        $ender = $this->createMove($character, 'Medium Tatsu', 42);
-        $dash = $this->createMove($character, 'Dash');
-        $jab = $this->createMove($character, 'LP');
-        $throw = $this->createMove($character, 'Throw');
-        $dp = $this->createMove($character, 'OD DP');
+        $other = $this->createCharacter('Ryu');
+        $ender = $this->createMove($character, 'Medium Tatsu');
+        $meaty = $this->createMove($character, '2MK');
+        $throw = $this->createMove($character, 'LPLK');
+        $this->createMove($other, 'Sweep');
         $this->entityManager->flush();
 
-        $payload = [
+        $this->jsonRequest('POST', '/api/okis', [
             'moveId' => (string) $ender->getId(),
             'setups' => [[
-                'usesDriveRush' => false,
-                'autoTimed' => true,
-                'cornerOnly' => false,
-                'worksNoBackroll' => true,
-                'worksBackroll' => true,
-                'fakeNoBackroll' => false,
-                'fakeBackroll' => true,
-                'nodes' => [[
-                    'clientId' => 'dash',
-                    'moveId' => (string) $dash->getId(),
-                    'isDefaultRoute' => true,
-                ], [
-                    'clientId' => 'jab',
-                    'moveId' => (string) $jab->getId(),
-                    'isDefaultRoute' => true,
-                ], [
-                    'clientId' => 'throw',
-                    'moveId' => (string) $throw->getId(),
-                    'isDefaultRoute' => true,
-                    'routeExplanation' => 'Use when they block.',
-                    'optionType' => 'MEATY_THROW',
-                    'properties' => ['REVERSAL_BAIT'],
-                    'interactions' => [[
-                        'defensiveMoveId' => (string) $dp->getId(),
-                        'result' => 'LOSES',
-                        'characterId' => null,
-                    ]],
-                ]],
-                'links' => [[
-                    'fromClientId' => 'dash',
-                    'toClientId' => 'jab',
-                    'stepType' => 'IMMEDIATE',
-                ], [
-                    'fromClientId' => 'jab',
-                    'toClientId' => 'throw',
-                    'stepType' => 'WALK_FORWARD',
-                    'minFrames' => 7,
-                    'maxFrames' => 7,
-                ]],
+                'name' => '  Corner meaty ',
+                'cornerOnly' => true,
+                'nodes' => [
+                    ['clientId' => 'walk', 'action' => 'WALK_FORWARD'],
+                    ['clientId' => 'meaty', 'moveId' => (string) $meaty->getId(), 'hitLevel' => 'LOW', 'sideSwitch' => true],
+                    ['clientId' => 'throw', 'moveId' => (string) $throw->getId()],
+                    ['clientId' => 'shimmy', 'action' => 'SHIMMY'],
+                ],
+                'links' => [
+                    ['fromClientId' => 'ender', 'toClientId' => 'walk'],
+                    ['fromClientId' => 'walk', 'toClientId' => 'meaty'],
+                    ['fromClientId' => 'walk', 'toClientId' => 'throw', 'stepType' => 'DELAY', 'kind' => 'read', 'readLabel' => 'expects block'],
+                    ['fromClientId' => 'walk', 'toClientId' => 'shimmy', 'kind' => 'confirm'],
+                ],
             ]],
-        ];
+        ]);
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
 
-        $this->jsonRequest('POST', '/api/okis', $payload);
-        $response = $this->client->getResponse();
-        $created = json_decode((string) $response->getContent(), true);
+        $this->assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $this->assertArrayNotHasKey('frameAdvantage', $created);
+        $this->assertSame(1, $created['setupCount']);
+        $setup = $created['setups'][0];
+        $this->assertSame('Corner meaty', $setup['name']);
+        $this->assertTrue($setup['cornerOnly']);
+        $this->assertFalse($setup['backrollDependent']);
+        [$walkNode, $meatyNode, $throwNode, $shimmyNode] = $setup['nodes'];
+        $this->assertSame('WALK_FORWARD', $walkNode['action']);
+        $this->assertSame('LOW', $meatyNode['hitLevel']);
+        $this->assertTrue($meatyNode['sideSwitch']);
+        $this->assertArrayNotHasKey('layer', $throwNode);
+        $this->assertNull($shimmyNode['move']);
+        $this->assertSame('SHIMMY', $shimmyNode['action']);
+        $this->assertSame(
+            [[null, $walkNode['id'], 'IMMEDIATE'], [$walkNode['id'], $meatyNode['id'], 'IMMEDIATE'], [$walkNode['id'], $throwNode['id'], 'DELAY'], [$walkNode['id'], $shimmyNode['id'], 'IMMEDIATE']],
+            array_map(static fn (array $link): array => [$link['fromNodeId'], $link['toNodeId'], $link['stepType']], $setup['links']),
+        );
+        $this->assertSame('expects block', $setup['links'][2]['readLabel']);
 
-        $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode(), (string) $response->getContent());
-        $this->assertSame('Medium Tatsu', $created['move']['numpadNotation']);
-        $this->assertSame(42, $created['frameAdvantage']);
-        $this->assertTrue($created['summary']['meterless']);
-        $this->assertTrue($created['summary']['hasFakeSetups']);
-        $this->assertSame('MEATY_THROW', $created['setups'][0]['nodes'][2]['optionType']);
-        $this->assertSame('WALK_FORWARD', $created['setups'][0]['links'][1]['stepType']);
+        $this->client->request('GET', sprintf('/api/okis?characterId=%s', $character->getId()), [], [], $this->getHeaders());
+        $byCharacter = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame([$created['id']], array_column($byCharacter, 'id'));
 
-        $this->client->request('GET', '/api/okis?optionType=MEATY_THROW&property=REVERSAL_BAIT&hasFakeSetups=true', [], [], $this->getHeaders());
-        $search = json_decode((string) $this->client->getResponse()->getContent(), true);
-
-        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        $this->assertCount(1, $search);
-        $this->assertSame($created['id'], $search[0]['id']);
+        $this->client->request('GET', sprintf('/api/okis?characterId=%s', $other->getId()), [], [], $this->getHeaders());
+        $otherCharacter = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame([], $otherCharacter);
 
         $this->client->request('GET', sprintf('/api/okis/%d', $created['id']), [], [], $this->getHeaders());
         $detail = json_decode((string) $this->client->getResponse()->getContent(), true);
-
         $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        $this->assertCount(3, $detail['setups'][0]['nodes']);
-        $this->assertSame('OD DP', $detail['setups'][0]['nodes'][2]['interactions'][0]['defensiveMove']['numpadNotation']);
+        $this->assertSame($setup['links'], $detail['setups'][0]['links']);
     }
 
     public function testUpdateProfileReplacesSetupTree(): void
     {
         $character = $this->createCharacter('Ryu');
-        $ender = $this->createMove($character, 'Sweep', 20);
-        $dash = $this->createMove($character, 'Dash');
-        $meaty = $this->createMove($character, '2MP');
+        $ender = $this->createMove($character, 'Sweep');
+        $jumpIn = $this->createMove($character, '8HK');
         $this->entityManager->flush();
 
-        $this->jsonRequest('POST', '/api/okis', [
-            'moveId' => (string) $ender->getId(),
-            'setups' => [],
-        ]);
-        $this->setMoveOnHit($ender, 21);
+        $this->jsonRequest('POST', '/api/okis', ['moveId' => (string) $ender->getId(), 'setups' => []]);
         $created = json_decode((string) $this->client->getResponse()->getContent(), true);
 
         $this->jsonRequest('PATCH', sprintf('/api/okis/%d', $created['id']), [
             'moveId' => (string) $ender->getId(),
             'setups' => [[
-                'usesDriveRush' => true,
-                'autoTimed' => false,
-                'cornerOnly' => true,
-                'worksNoBackroll' => true,
-                'worksBackroll' => false,
-                'fakeNoBackroll' => false,
-                'fakeBackroll' => false,
-                'nodes' => [[
-                    'clientId' => 'dash',
-                    'moveId' => (string) $dash->getId(),
-                ], [
-                    'clientId' => 'meaty',
-                    'moveId' => (string) $meaty->getId(),
-                    'optionType' => 'MEATY_STRIKE',
-                    'properties' => ['LOW'],
-                ]],
-                'links' => [[
-                    'fromClientId' => 'dash',
-                    'toClientId' => 'meaty',
-                    'stepType' => 'WAIT',
-                    'minFrames' => 2,
-                    'maxFrames' => 3,
-                ]],
+                'name' => 'Backroll route',
+                'backrollDependent' => true,
+                'nodes' => [
+                    ['clientId' => 'jump', 'action' => 'FORWARD_JUMP'],
+                    ['clientId' => 'jumpIn', 'moveId' => (string) $jumpIn->getId(), 'hitLevel' => 'OVERHEAD'],
+                ],
+                'links' => [
+                    ['fromClientId' => 'ender', 'toClientId' => 'jump', 'recovery' => 'RISE_IN_PLACE'],
+                    ['fromClientId' => 'jump', 'toClientId' => 'jumpIn', 'safeJump' => true],
+                ],
             ]],
         ]);
         $updated = json_decode((string) $this->client->getResponse()->getContent(), true);
 
-        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        $this->assertSame(21, $updated['frameAdvantage']);
-        $this->assertTrue($updated['summary']['driveRush']);
-        $this->assertTrue($updated['summary']['cornerOnly']);
-        $this->assertSame('WAIT', $updated['setups'][0]['links'][0]['stepType']);
-        $this->assertSame(['LOW'], $updated['setups'][0]['nodes'][1]['properties']);
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $setup = $updated['setups'][0];
+        $this->assertSame('Backroll route', $setup['name']);
+        $this->assertTrue($setup['backrollDependent']);
+        $this->assertSame('FORWARD_JUMP', $setup['nodes'][0]['action']);
+        $this->assertSame('OVERHEAD', $setup['nodes'][1]['hitLevel']);
+        $this->assertSame(['IMMEDIATE', false, 'RISE_IN_PLACE'], [$setup['links'][0]['stepType'], $setup['links'][0]['safeJump'], $setup['links'][0]['recovery']]);
+        $this->assertSame([true, null], [$setup['links'][1]['safeJump'], $setup['links'][1]['recovery']]);
     }
 
-    public function testOkiGraphFieldsRoundTrip(): void
+    public function testSecondOkiForTheSameEnderIsRejected(): void
     {
-        $character = $this->createCharacter('Ken');
-        $ender = $this->createMove($character, 'Heavy Tatsu', 30);
-        $dash = $this->createMove($character, 'Dash');
-        $meaty = $this->createMove($character, '2MK');
-        $throw = $this->createMove($character, 'Throw');
+        $character = $this->createCharacter('Akuma');
+        $ender = $this->createMove($character, '214MK');
         $this->entityManager->flush();
 
-        $this->jsonRequest('POST', '/api/okis', [
-            'moveId' => (string) $ender->getId(),
-            'setups' => [[
-                'nodes' => [
-                    ['clientId' => 'dash', 'moveId' => (string) $dash->getId()],
-                    ['clientId' => 'meaty', 'moveId' => (string) $meaty->getId(), 'damageDealt' => 1800],
-                    ['clientId' => 'throw', 'moveId' => (string) $throw->getId(), 'layer' => 2, 'damageReceived' => 2500],
-                ],
-                'links' => [
-                    ['fromClientId' => 'dash', 'toClientId' => 'meaty', 'stepType' => 'IMMEDIATE', 'kind' => 'confirm', 'readLabel' => 'ignored'],
-                    ['fromClientId' => 'dash', 'toClientId' => 'throw', 'stepType' => 'IMMEDIATE', 'kind' => 'read', 'readLabel' => 'expects block', 'layer' => 2],
-                ],
-            ]],
-        ]);
+        $this->jsonRequest('POST', '/api/okis', ['moveId' => (string) $ender->getId(), 'setups' => []]);
         $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->jsonRequest('POST', '/api/okis', ['moveId' => (string) $ender->getId(), 'setups' => []]);
+        $conflict = json_decode((string) $this->client->getResponse()->getContent(), true);
 
-        $this->assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
-        $setup = $created['setups'][0];
-        $nodesByMove = array_column(array_map(static fn (array $node): array => [$node['move']['numpadNotation'], $node], $setup['nodes']), 1, 0);
-        $this->assertSame(1800, $nodesByMove['2MK']['damageDealt']);
-        $this->assertSame(2, $nodesByMove['Throw']['layer']);
-        $this->assertSame(2500, $nodesByMove['Throw']['damageReceived']);
-        $linksByKind = array_column($setup['links'], null, 'kind');
-        $this->assertNull($linksByKind['confirm']['readLabel']);
-        $this->assertSame('expects block', $linksByKind['read']['readLabel']);
-        $this->assertSame(2, $linksByKind['read']['layer']);
+        $this->assertSame(Response::HTTP_CONFLICT, $this->client->getResponse()->getStatusCode());
+        $this->assertSame($created['id'], $conflict['id']);
     }
 
-    public function testOkiRejectsUnknownLinkKind(): void
+    public function testEnderSearchOnlyOffersTheCharactersMovesWithoutAnOki(): void
+    {
+        $cammy = $this->createCharacter('Cammy');
+        $ken = $this->createCharacter('Ken');
+        $spiralArrow = $this->createMove($cammy, '236LK');
+        $spinKnuckle = $this->createMove($cammy, '236P');
+        $hooligan = $this->createMove($cammy, '236MK');
+        $this->createMove($ken, '236HK');
+        $spinKnuckle->setCommonName('Spin Knuckle');
+        $this->entityManager->flush();
+        $this->jsonRequest('POST', '/api/okis', ['moveId' => (string) $hooligan->getId(), 'setups' => []]);
+
+        $this->client->request('GET', sprintf('/api/okis/enders?characterId=%s&query=236', $cammy->getId()), [], [], $this->getHeaders());
+        $byNotation = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->client->request('GET', sprintf('/api/okis/enders?characterId=%s&query=knuckle', $cammy->getId()), [], [], $this->getHeaders());
+        $byCommonName = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame([(string) $spiralArrow->getId(), (string) $spinKnuckle->getId()], array_column($byNotation, 'id'));
+        $this->assertSame('Cammy 236LK', $byNotation[0]['summary']);
+        $this->assertSame(['Spin Knuckle'], array_column($byCommonName, 'commonName'));
+    }
+
+    /** @return iterable<string, array{0: array<string, mixed>, 1: list<array<string, mixed>>, 2?: string}> */
+    public static function invalidSetups(): iterable
+    {
+        $node = ['clientId' => 'a', 'action' => 'BLOCK'];
+        yield 'unknown link kind' => [$node, [['fromClientId' => 'ender', 'toClientId' => 'a', 'kind' => 'tight']]];
+        yield 'unknown step' => [$node, [['fromClientId' => 'ender', 'toClientId' => 'a', 'stepType' => 'FORWARD_DASH']]];
+        yield 'fake arrow' => [$node, [['fromClientId' => 'ender', 'toClientId' => 'a', 'kind' => 'fake']]];
+        yield 'unknown action' => [['clientId' => 'a', 'action' => 'TELEPORT'], []];
+        yield 'recovery without backroll dependency' => [$node, [['fromClientId' => 'ender', 'toClientId' => 'a', 'recovery' => 'BACKROLL']]];
+        yield 'duplicate link' => [$node, [['fromClientId' => 'ender', 'toClientId' => 'a'], ['fromClientId' => 'ender', 'toClientId' => 'a']]];
+        yield 'link into the ender' => [$node, [['fromClientId' => 'a', 'toClientId' => 'ender']]];
+        yield 'safe jump into a jump action' => [['clientId' => 'a', 'action' => 'FORWARD_JUMP'], [['fromClientId' => 'ender', 'toClientId' => 'a', 'safeJump' => true]]];
+        yield 'unnamed setup' => [$node, [], '  '];
+        yield 'overlong setup name' => [$node, [], str_repeat('x', 81)];
+    }
+
+    /**
+     * @dataProvider invalidSetups
+     * @param array<string, mixed> $node
+     * @param list<array<string, mixed>> $links
+     */
+    public function testOkiRejectsInvalidSetup(array $node, array $links, string $name = 'Main line'): void
     {
         $character = $this->createCharacter('Ken');
         $ender = $this->createMove($character, 'Heavy Tatsu', 30);
-        $dash = $this->createMove($character, 'Dash');
         $this->entityManager->flush();
 
-        $this->jsonRequest('POST', '/api/okis', [
-            'moveId' => (string) $ender->getId(),
-            'setups' => [[
-                'nodes' => [['clientId' => 'dash', 'moveId' => (string) $dash->getId()], ['clientId' => 'again', 'moveId' => (string) $dash->getId()]],
-                'links' => [['fromClientId' => 'dash', 'toClientId' => 'again', 'stepType' => 'IMMEDIATE', 'kind' => 'tight']],
-            ]],
-        ]);
+        $this->jsonRequest('POST', '/api/okis', ['moveId' => (string) $ender->getId(), 'setups' => [['name' => $name, 'nodes' => [$node], 'links' => $links]]]);
 
         $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
-    public function testRegularUserCannotMutateReversals(): void
+    public function testOkiNodeNeedsExactlyOneOfMoveOrAction(): void
     {
-        $character = $this->createCharacter('Akuma');
-        $reversalMove = $this->createMove($character, 'OD Shoryuken');
+        $character = $this->createCharacter('Ken');
+        $ender = $this->createMove($character, 'Heavy Tatsu', 30);
+        $jab = $this->createMove($character, '5LP');
         $this->entityManager->flush();
 
-        $this->expectException(AccessDeniedHttpException::class);
-        $this->jsonRequest('POST', '/api/okis/reversals', [
-            'characterId' => (string) $character->getId(),
-            'moveId' => (string) $reversalMove->getId(),
-            'startup' => 6,
-            'reversalType' => 'OD_REVERSAL',
-            'properties' => [],
-        ]);
+        foreach ([['clientId' => 'a'], ['clientId' => 'a', 'action' => 'BLOCK', 'moveId' => (string) $jab->getId()]] as $node) {
+            $this->jsonRequest('POST', '/api/okis', ['moveId' => (string) $ender->getId(), 'setups' => [['name' => 'Main line', 'nodes' => [$node], 'links' => []]]]);
+            $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        }
     }
 
-    public function testCreateAndUpdateReversal(): void
+    public function testSafeJumpOnlyStepsIntoJumpingAttacks(): void
     {
-        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
-        $character = $this->createCharacter('Akuma');
-        $reversalMove = $this->createMove($character, 'OD Shoryuken');
-        $this->entityManager->flush();
+        $character = $this->createCharacter('Ken');
+        $jab = $this->createMove($character, '5LP');
+        $jumpIn = $this->createMove($character, '9HK');
 
-        $this->jsonRequest('POST', '/api/okis/reversals', [
-            'characterId' => (string) $character->getId(),
-            'moveId' => (string) $reversalMove->getId(),
-            'startup' => 6,
-            'reversalType' => 'OD_REVERSAL',
-            'properties' => ['STRIKE_INVULNERABLE', 'AIR_INVULNERABLE'],
-        ]);
-        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
-
-        $this->assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
-        $this->assertSame('Akuma', $created['character']['name']);
-        $this->assertSame(6, $created['startup']);
-
-        $this->jsonRequest('PATCH', sprintf('/api/okis/reversals/%d', $created['id']), [
-            'characterId' => (string) $character->getId(),
-            'moveId' => (string) $reversalMove->getId(),
-            'startup' => 7,
-            'reversalType' => 'OD_REVERSAL',
-            'properties' => ['STRIKE_INVULNERABLE'],
-        ]);
-        $updated = json_decode((string) $this->client->getResponse()->getContent(), true);
-
-        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        $this->assertSame(7, $updated['startup']);
-        $this->assertSame(['STRIKE_INVULNERABLE'], $updated['properties']);
+        foreach ([[$jab, Response::HTTP_BAD_REQUEST], [$jumpIn, Response::HTTP_CREATED]] as [$target, $status]) {
+            $ender = $this->createMove($character, sprintf('Heavy Tatsu %s', $target->getNumpadNotation()));
+            $this->entityManager->flush();
+            $this->jsonRequest('POST', '/api/okis', ['moveId' => (string) $ender->getId(), 'setups' => [[
+                'name' => 'Safe jump',
+                'nodes' => [['clientId' => 'a', 'moveId' => (string) $target->getId()]],
+                'links' => [['fromClientId' => 'ender', 'toClientId' => 'a', 'safeJump' => true]],
+            ]]]);
+            $this->assertSame($status, $this->client->getResponse()->getStatusCode());
+        }
     }
 
     private function createCharacter(string $name): Character
@@ -282,19 +242,6 @@ final class OkiControllerTest extends AuthenticatedWebTestCase
         $this->entityManager->persist($move);
 
         return $move;
-    }
-
-    private function setMoveOnHit(Move $move, int $onHit): void
-    {
-        $frameData = $move->getFrameData();
-        if (!$frameData instanceof FrameData) {
-            $frameData = new FrameData();
-            $frameData->setMove($move);
-            $move->setFrameData($frameData);
-            $this->entityManager->persist($frameData);
-        }
-        $frameData->setOnHit($onHit);
-        $this->entityManager->flush();
     }
 
     /** @param array<string, mixed> $payload */

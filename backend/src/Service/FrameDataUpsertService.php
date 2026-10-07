@@ -85,6 +85,10 @@ final class FrameDataUpsertService
                 [$move, $frameData, $createdFrameData] = $this->getOrCreateMoveFrameData($character, trim($numCmd), $result, $dryRun);
                 $warnings = [];
                 $changed = $this->recordApplier->applyFatRecord($frameData, $record, $warnings);
+                // Hand-made moves (Forward/Back Dash) keep their name when FAT has none.
+                if (is_string($record['cmnName'] ?? null) && '' !== trim($record['cmnName'])) {
+                    $move->setCommonName($record['cmnName']);
+                }
                 foreach ($warnings as $warning) {
                     $result->addWarning(sprintf('Scaling parse warning [%s - %s]: %s', $characterName, (string) $moveName, $warning));
                 }

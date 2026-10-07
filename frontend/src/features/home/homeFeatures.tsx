@@ -4,10 +4,8 @@ import {
     AltRouteIcon,
     ArticleOutlinedIcon,
     QueryStatsIcon,
-    ShieldOutlinedIcon,
     OkiKnockdownIcon,
     SportsKabaddiOutlinedIcon,
-    SportsMartialArtsOutlinedIcon,
     SportsMmaIcon,
     TimelineIcon,
 } from "@/src/components/ui/AppIcons";
@@ -50,19 +48,6 @@ export const homeFeatures: HomeFeature[] = [
         href: "/replay-lab",
         icon: <TimelineIcon/>,
         allowedRoles: ["ROLE_QA_TESTER", "ROLE_ADMIN"],
-    },
-];
-
-export const blockstringFeatures: HomeFeature[] = [
-    {
-        label: "Offense",
-        href: "/blockstrings/offense",
-        icon: <SportsMartialArtsOutlinedIcon/>,
-    },
-    {
-        label: "Defense",
-        href: "/blockstrings/defense",
-        icon: <ShieldOutlinedIcon/>,
     },
 ];
 

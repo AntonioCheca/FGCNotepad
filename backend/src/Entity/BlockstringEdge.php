@@ -38,12 +38,9 @@ class BlockstringEdge
     #[ORM\Column(name: 'read_label', length: 48, nullable: true)]
     private ?string $readLabel = null;
 
-    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 1])]
-    private int $layer = 1;
-
-    /** Attacker frame advantage when the source move is blocked. */
-    #[ORM\Column(name: 'frame_advantage', type: Types::SMALLINT, nullable: true)]
-    private ?int $frameAdvantage = null;
+    /** No gap at all; distinct from a 0-frame gap, so it never carries gap frames. */
+    #[ORM\Column(name: 'true_blockstring', options: ['default' => false])]
+    private bool $trueBlockstring = false;
 
     /** Frames the defender can act in before the destination move. */
     #[ORM\Column(name: 'gap_frames', type: Types::SMALLINT, nullable: true)]
@@ -60,10 +57,8 @@ class BlockstringEdge
     public function setKind(string $kind): self { $this->kind = $kind; return $this; }
     public function getReadLabel(): ?string { return $this->readLabel; }
     public function setReadLabel(?string $readLabel): self { $this->readLabel = $readLabel; return $this; }
-    public function getLayer(): int { return $this->layer; }
-    public function setLayer(int $layer): self { $this->layer = $layer; return $this; }
-    public function getFrameAdvantage(): ?int { return $this->frameAdvantage; }
-    public function setFrameAdvantage(?int $frameAdvantage): self { $this->frameAdvantage = $frameAdvantage; return $this; }
+    public function isTrueBlockstring(): bool { return $this->trueBlockstring; }
+    public function setTrueBlockstring(bool $trueBlockstring): self { $this->trueBlockstring = $trueBlockstring; return $this; }
     public function getGapFrames(): ?int { return $this->gapFrames; }
     public function setGapFrames(?int $gapFrames): self { $this->gapFrames = $gapFrames; return $this; }
 }

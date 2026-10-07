@@ -5,7 +5,7 @@ import {BoltIcon, CheckCircleOutlineIcon, PendingActionsIcon} from "@/src/compon
 import type {Theme} from "@/src/components/ui/AppThemeUtils";
 
 interface SectionCardProps {
-    title: string;
+    title?: string;
     description?: string;
     tone?: "default" | "raised" | "sunken";
     variant?: "default" | "input" | "review" | "finalize";
@@ -55,13 +55,17 @@ export function SectionCard({title, description, tone = "default", variant = "de
                 boxSizing: "border-box",
             }}
         >
-            <AppBox sx={{display: "grid", gap: 0.2, pb: 0.15, minWidth: 0}}>
-                <AppBox sx={{display: "flex", alignItems: "center", gap: 0.65, minHeight: 26, minWidth: 0}}>
-                    {headerIcon ? <AppBox sx={{display: "inline-flex", color: accentColor}}>{headerIcon}</AppBox> : null}
-                    <AppTypography variant="subtitle1" sx={{fontWeight: 650}}>{title}</AppTypography>
+            {title || description ? (
+                <AppBox sx={{display: "grid", gap: 0.2, pb: 0.15, minWidth: 0}}>
+                    {title ? (
+                        <AppBox sx={{display: "flex", alignItems: "center", gap: 0.65, minHeight: 26, minWidth: 0}}>
+                            {headerIcon ? <AppBox sx={{display: "inline-flex", color: accentColor}}>{headerIcon}</AppBox> : null}
+                            <AppTypography variant="subtitle1" sx={{fontWeight: 650}}>{title}</AppTypography>
+                        </AppBox>
+                    ) : null}
+                    {description ? <AppTypography variant="body2" color="text.secondary">{description}</AppTypography> : null}
                 </AppBox>
-                {description ? <AppTypography variant="body2" color="text.secondary">{description}</AppTypography> : null}
-            </AppBox>
+            ) : null}
             {children}
         </AppBox>
     );

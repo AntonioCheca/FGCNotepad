@@ -65,7 +65,7 @@ final class OkiModerationControllerTest extends DatabaseTestCase
         self::assertSame('Not a real setup', $own['setups'][0]['moderationReason']);
     }
 
-    public function testCreatingForExistingMoveAppendsAndEditingOnlyTouchesOwnSetups(): void
+    public function testOtherUsersAppendToTheExistingOkiAndOnlyEditTheirOwnSetups(): void
     {
         [$ender, $follow] = $this->persistMoves();
         $first = $this->createUser([UserRole::USER]);
@@ -75,7 +75,8 @@ final class OkiModerationControllerTest extends DatabaseTestCase
         $created = $this->request($first, 'POST', '/api/okis', $this->payload($ender, $follow), Response::HTTP_CREATED);
         $this->request($moderator, 'POST', sprintf('/api/moderation/oki/%d/approve', $created['setups'][0]['id']));
 
-        $appended = $this->request($second, 'POST', '/api/okis', $this->payload($ender, $follow), Response::HTTP_CREATED);
+        $this->request($second, 'POST', '/api/okis', $this->payload($ender, $follow), Response::HTTP_CONFLICT);
+        $appended = $this->request($second, 'PATCH', '/api/okis/' . $created['id'], $this->payload($ender, $follow));
         self::assertSame($created['id'], $appended['id']);
         self::assertCount(2, $appended['setups']);
         self::assertCount(1, $this->entityManager->getRepository(OkiProfile::class)->findAll());
@@ -146,13 +147,8 @@ final class OkiModerationControllerTest extends DatabaseTestCase
         return [
             'moveId' => (string) $ender->getId(),
             'setups' => [[
-                'usesDriveRush' => false,
-                'autoTimed' => false,
+                'name' => 'Main line',
                 'cornerOnly' => false,
-                'worksNoBackroll' => true,
-                'worksBackroll' => true,
-                'fakeNoBackroll' => false,
-                'fakeBackroll' => false,
                 'nodes' => [['clientId' => 'a', 'moveId' => (string) $follow->getId()]],
                 'links' => [],
             ]],

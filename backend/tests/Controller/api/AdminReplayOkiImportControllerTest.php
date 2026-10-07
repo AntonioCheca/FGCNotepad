@@ -38,13 +38,11 @@ final class AdminReplayOkiImportControllerTest extends DatabaseTestCase
         self::assertInstanceOf(OkiSetup::class, $setup);
         self::assertSame('pending_review', $setup->getModerationState());
         self::assertNotNull($setup->getAuthor());
-        self::assertTrue($setup->usesDriveRush());
-        self::assertTrue($setup->worksBackroll());
-        self::assertFalse($setup->worksNoBackroll());
         self::assertCount(1, $setup->getNodes());
         $first = $setup->getNodes()->first();
-        self::assertSame('2LK', $first->getMove()->getNumpadNotation());
-        self::assertNull($first->getOptionType());
+        self::assertSame('2LK', $first->getMove()?->getNumpadNotation());
+        self::assertCount(1, $first->getIncomingLinks());
+        self::assertNull($first->getIncomingLinks()->first()->getFromNode());
         self::assertCount(1, $this->entityManager->getRepository(OkiProfile::class)->findAll());
 
         $again = $this->post($headers, $this->document([$this->oki('o5', true, ['214+MP', '2LK', 'DR'])]));

@@ -2,13 +2,17 @@ import React from "react";
 import useMoves from "@/hooks/useMoves";
 import {AppAutocomplete} from "@/src/components/ui/AppAutocomplete";
 import {AppTextField} from "@/src/components/ui/AppTextField";
+import {moveOptionLabel, toMoveSearchOptions} from "./okiMoveSearch";
 
 export interface OkiMoveOption {
     id: string;
     summary: string;
     characterId?: string;
     numpadNotation?: string;
+    commonName?: string | null;
     moveName?: string | null;
+    moveType?: string | null;
+    attackLevel?: string | null;
 }
 
 interface OkiMovePickerProps {
@@ -16,12 +20,16 @@ interface OkiMovePickerProps {
     value: OkiMoveOption | null;
     characterId?: string;
     disabled?: boolean;
+    autoFocus?: boolean;
+    // Replaces the plain move search, e.g. with one that only offers enders without an oki.
+    search?: (query: string, characterId?: string) => Promise<unknown>;
     onChange: (value: OkiMoveOption | null) => void;
 }
 
-export function OkiMovePicker({label, value, characterId, disabled = false, onChange}: OkiMovePickerProps) {
-    const {searchMoves} = useMoves();
-    const [inputValue, setInputValue] = React.useState(value?.summary ?? "");
+export function OkiMovePicker({label, value, characterId, disabled = false, autoFocus = false, search, onChange}: OkiMovePickerProps) {
+    const {searchMoves: searchAllMoves} = useMoves();
+    const searchMoves = search ?? searchAllMoves;
+    const [inputValue, setInputValue] = React.useState(value ? moveOptionLabel(value) : "");
     const [options, setOptions] = React.useState<OkiMoveOption[]>(value ? [value] : []);
     const [loading, setLoading] = React.useState(false);
 
@@ -45,11 +53,7 @@ export function OkiMovePicker({label, value, characterId, disabled = false, onCh
                     if (canceled) {
                         return;
                     }
-                    const nextOptions = Array.isArray(result)
-                        ? result
-                            .filter((item): item is {id: string | number; summary: string; numpadNotation?: string; moveName?: string | null; character?: {id?: string}} => typeof item === "object" && item !== null && "id" in item && "summary" in item)
-                            .map((item) => ({id: String(item.id), summary: item.summary, characterId: item.character?.id, numpadNotation: item.numpadNotation, moveName: item.moveName ?? null}))
-                        : [];
+                    const nextOptions = toMoveSearchOptions(result);
                     setOptions(value ? [value, ...nextOptions.filter((option) => option.id !== value.id)] : nextOptions);
                 })
                 .catch(() => setOptions(value ? [value] : []))
@@ -75,9 +79,9 @@ export function OkiMovePicker({label, value, characterId, disabled = false, onCh
             disabled={disabled}
             onInputChange={(_, nextValue) => setInputValue(nextValue)}
             onChange={(_, nextValue) => onChange(nextValue)}
-            getOptionLabel={(option) => option.summary}
+            getOptionLabel={moveOptionLabel}
             isOptionEqualToValue={(option, selected) => option.id === selected.id}
-            renderInput={(params) => <AppTextField {...params} label={label} size="small" />}
+            renderInput={(params) => <AppTextField {...params} autoFocus={autoFocus} label={label} size="small" margin="none" />}
         />
     );
 }

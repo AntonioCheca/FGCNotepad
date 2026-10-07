@@ -6,11 +6,12 @@ import {useAppTheme, useIsBelowBreakpoint} from "@/src/components/ui/AppThemeHoo
 import {PressureGraphEdgeView} from "./PressureGraphEdgeView";
 import type {PressureFlowEdge} from "./PressureGraphEdgeView";
 import {PressureGraphNodeView} from "./PressureGraphNodeView";
-import {pressureEdgeColor, pressureEdgeLabelSize, pressureNodeSize} from "./pressureGraphGeometry";
+import {pressureEdgeColor, pressureEdgeLabelSize} from "./pressureGraphGeometry";
+import {pressureNodeSize} from "./pressureNodeSize";
 import type {PressureFlowNode} from "./PressureGraphNodeView";
 import {layoutPressureGraph} from "./pressureGraphModel";
 import type {PressureSelection} from "./pressureGraphDraft";
-import type {PressureGraphData} from "./pressureGraphTypes";
+import type {PressureGraphData, PressureGraphNode} from "./pressureGraphTypes";
 
 const NODE_TYPES = {pressure: PressureGraphNodeView};
 const EDGE_TYPES = {pressure: PressureGraphEdgeView};
@@ -18,11 +19,12 @@ const FRAME_PADDING = 24;
 
 interface PressureGraphCanvasProps {
     graph: PressureGraphData;
-    showRisk: boolean;
+    showFrameDetails: boolean;
     ariaLabel: string;
     selection?: PressureSelection;
     onSelect?: (selection: PressureSelection) => void;
     onConnect?: (from: string, to: string) => void;
+    onAddFrom?: (nodeId: string) => void;
 }
 
 export function PressureGraphCanvas(props: PressureGraphCanvasProps) {
@@ -35,7 +37,7 @@ export function PressureGraphCanvas(props: PressureGraphCanvasProps) {
 
 // Always auto-laid-out: phones stack the graph top-to-bottom, wider screens read left-to-right. The canvas is sized
 // to the laid-out graph and never pans or zooms, so it scrolls with the page instead of trapping touch gestures.
-function PressureGraphFlow({graph, showRisk, ariaLabel, selection = null, onSelect, onConnect}: PressureGraphCanvasProps) {
+function PressureGraphFlow({graph, showFrameDetails, ariaLabel, selection = null, onSelect, onConnect, onAddFrom}: PressureGraphCanvasProps) {
     const theme = useAppTheme();
     const compact = useIsBelowBreakpoint("md");
     const direction = compact ? "TB" : "LR";
@@ -43,7 +45,9 @@ function PressureGraphFlow({graph, showRisk, ariaLabel, selection = null, onSele
     const connectable = Boolean(onConnect) && !compact;
     const [containerRef, containerWidth] = useElementWidth<HTMLDivElement>();
 
-    const layout = React.useMemo(() => layoutPressureGraph(graph, (node) => pressureNodeSize(node, showRisk), direction, pressureEdgeLabelSize), [direction, graph, showRisk]);
+    const fontFamily = theme.typography.fontFamily ?? "sans-serif";
+    const sizeOf = React.useCallback((node: PressureGraphNode) => pressureNodeSize(node, fontFamily), [fontFamily]);
+    const layout = React.useMemo(() => layoutPressureGraph(graph, sizeOf, direction, (edge) => pressureEdgeLabelSize(edge, showFrameDetails)), [direction, graph, showFrameDetails, sizeOf]);
     const contentWidth = layout.width;
     const contentHeight = layout.height;
     const zoom = containerWidth > 0 ? Math.min(1, (containerWidth - FRAME_PADDING) / Math.max(contentWidth, 1)) : 1;
@@ -52,7 +56,7 @@ function PressureGraphFlow({graph, showRisk, ariaLabel, selection = null, onSele
     const viewport = {x: Math.max(FRAME_PADDING / 2, (containerWidth - contentWidth * zoom) / 2), y: FRAME_PADDING / 2, zoom};
 
     const nodes: PressureFlowNode[] = graph.nodes.map((node) => {
-        const size = pressureNodeSize(node, showRisk);
+        const size = sizeOf(node);
         const isSelected = selection?.type === "node" && selection.id === node.id;
         return {
             id: node.id,
@@ -61,8 +65,8 @@ function PressureGraphFlow({graph, showRisk, ariaLabel, selection = null, onSele
             width: size.width,
             height: size.height,
             selected: isSelected,
-            ariaLabel: node.name ? `${node.notation}, ${node.name}` : node.notation,
-            data: {node, showRisk, direction, connectable: connectable && !node.anchor, selected: isSelected},
+            ariaLabel: node.subtitle ? `${node.label}, ${node.subtitle}` : node.label,
+            data: {node, showFrameDetails, direction, connectable: connectable && !node.anchor, selected: isSelected, onAdd: onAddFrom ? () => onAddFrom(node.id) : undefined},
         };
     });
     const edges: PressureFlowEdge[] = graph.edges.map((edge) => {
@@ -74,7 +78,7 @@ function PressureGraphFlow({graph, showRisk, ariaLabel, selection = null, onSele
             type: "pressure",
             selected: isSelected,
             markerEnd: {type: MarkerType.ArrowClosed, color: pressureEdgeColor(theme, edge.kind), width: 16, height: 16},
-            data: {edge, direction, selected: isSelected, route: layout.routes.get(edge.id) ?? null},
+            data: {edge, direction, showFrameDetails, selected: isSelected, route: layout.routes.get(edge.id) ?? null},
         };
     });
 

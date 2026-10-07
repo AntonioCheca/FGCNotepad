@@ -24,26 +24,14 @@ class OkiSetup
     #[ORM\JoinColumn(name: 'oki_profile_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private OkiProfile $profile;
 
-    #[ORM\Column(name: 'uses_drive_rush', options: ['default' => false])]
-    private bool $usesDriveRush = false;
-
-    #[ORM\Column(name: 'auto_timed', options: ['default' => false])]
-    private bool $autoTimed = false;
+    #[ORM\Column(length: 80)]
+    private string $name = '';
 
     #[ORM\Column(name: 'corner_only', options: ['default' => false])]
     private bool $cornerOnly = false;
 
-    #[ORM\Column(name: 'works_no_backroll', options: ['default' => true])]
-    private bool $worksNoBackroll = true;
-
-    #[ORM\Column(name: 'works_backroll', options: ['default' => true])]
-    private bool $worksBackroll = true;
-
-    #[ORM\Column(name: 'fake_no_backroll', options: ['default' => false])]
-    private bool $fakeNoBackroll = false;
-
-    #[ORM\Column(name: 'fake_backroll', options: ['default' => false])]
-    private bool $fakeBackroll = false;
+    #[ORM\Column(name: 'backroll_dependent', options: ['default' => false])]
+    private bool $backrollDependent = false;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'author_id', referencedColumnName: 'id', nullable: true)]
@@ -74,20 +62,12 @@ class OkiSetup
     public function getId(): ?int { return $this->id; }
     public function getProfile(): OkiProfile { return $this->profile; }
     public function setProfile(OkiProfile $profile): self { $this->profile = $profile; return $this; }
-    public function usesDriveRush(): bool { return $this->usesDriveRush; }
-    public function setUsesDriveRush(bool $usesDriveRush): self { $this->usesDriveRush = $usesDriveRush; return $this; }
-    public function isAutoTimed(): bool { return $this->autoTimed; }
-    public function setAutoTimed(bool $autoTimed): self { $this->autoTimed = $autoTimed; return $this; }
+    public function getName(): string { return $this->name; }
+    public function setName(string $name): self { $this->name = $name; return $this; }
     public function isCornerOnly(): bool { return $this->cornerOnly; }
     public function setCornerOnly(bool $cornerOnly): self { $this->cornerOnly = $cornerOnly; return $this; }
-    public function worksNoBackroll(): bool { return $this->worksNoBackroll; }
-    public function setWorksNoBackroll(bool $worksNoBackroll): self { $this->worksNoBackroll = $worksNoBackroll; return $this; }
-    public function worksBackroll(): bool { return $this->worksBackroll; }
-    public function setWorksBackroll(bool $worksBackroll): self { $this->worksBackroll = $worksBackroll; return $this; }
-    public function isFakeNoBackroll(): bool { return $this->fakeNoBackroll; }
-    public function setFakeNoBackroll(bool $fakeNoBackroll): self { $this->fakeNoBackroll = $fakeNoBackroll; return $this; }
-    public function isFakeBackroll(): bool { return $this->fakeBackroll; }
-    public function setFakeBackroll(bool $fakeBackroll): self { $this->fakeBackroll = $fakeBackroll; return $this; }
+    public function isBackrollDependent(): bool { return $this->backrollDependent; }
+    public function setBackrollDependent(bool $backrollDependent): self { $this->backrollDependent = $backrollDependent; return $this; }
     public function getAuthor(): ?User { return $this->author; }
     public function setAuthor(?User $author): self { $this->author = $author; return $this; }
     public function getModerationState(): string { return $this->moderationState; }

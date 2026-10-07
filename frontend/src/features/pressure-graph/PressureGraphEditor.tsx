@@ -19,11 +19,14 @@ interface PressureGraphEditorProps {
     inspector: React.ReactNode;
     onSelect: (selection: PressureSelection) => void;
     onConnect: (from: string, to: string) => void;
+    onAddFrom: (nodeId: string) => void;
+    frameDetails?: boolean;
 }
 
-// Graph editing happens on the rendered graph: tap a move or arrow, edit it in the inspector. The inspector sits
-// under the graph on desktop and opens as a bottom sheet on phones so the graph stays visible.
-export function PressureGraphEditor({graph, ariaLabel, selection, inspectorTitle, inspector, onSelect, onConnect}: PressureGraphEditorProps) {
+// Graph editing happens on the rendered graph: "+" adds the next node, dragging a node's dot onto another connects
+// them, and tapping a node or arrow edits it in the inspector. The inspector sits under the graph on desktop and
+// opens as a bottom sheet on phones so the graph stays visible.
+export function PressureGraphEditor({graph, ariaLabel, selection, inspectorTitle, inspector, onSelect, onConnect, onAddFrom, frameDetails}: PressureGraphEditorProps) {
     const compact = useIsBelowBreakpoint("md");
     const header = (
         <AppBox sx={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1}}>
@@ -35,12 +38,8 @@ export function PressureGraphEditor({graph, ariaLabel, selection, inspectorTitle
     return (
         <AppBox sx={{display: "grid", gap: 1, minWidth: 0}}>
             <AppPaper variant="outlined" sx={{p: {xs: 0.75, md: 1}, borderRadius: 2, backgroundColor: (theme: Theme) => theme.fgc.surface.sunken, minWidth: 0}}>
-                <PressureGraphView graph={graph} ariaLabel={ariaLabel} selection={selection} onSelect={onSelect} onConnect={onConnect} />
+                <PressureGraphView graph={graph} ariaLabel={ariaLabel} frameDetails={frameDetails} selection={selection} onSelect={onSelect} onConnect={onConnect} onAddFrom={onAddFrom} />
             </AppPaper>
-
-            {selection === null ? (
-                <AppTypography variant="body2" sx={{color: "text.secondary"}}>Select a move or arrow to edit it{compact ? "" : ", or drag from a move's dot onto another move to connect them"}.</AppTypography>
-            ) : null}
 
             {compact ? (
                 <AppDrawer

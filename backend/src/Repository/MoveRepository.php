@@ -6,7 +6,9 @@ use App\Entity\FrameData;
 use App\Entity\FrameDataOverride;
 use App\Entity\FrameDataSupplementalValue;
 use App\Entity\Move;
+use App\Entity\OkiProfile;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -73,13 +75,7 @@ class MoveRepository extends ServiceEntityRepository
                 ->setParameter('characterId', trim($characterId));
         }
 
-        $arrayOfItemsToQuery = array_values(array_filter(explode(' ', $query), static fn (string $item): bool => '' !== trim($item)));
-        foreach ($arrayOfItemsToQuery as $index => $itemToQuery) {
-            $parameterName = sprintf('term%d', $index);
-            $queryDraft
-                ->andWhere(sprintf('(LOWER(c.name) LIKE :%1$s) OR (LOWER(m.numpadNotation) LIKE :%1$s)', $parameterName))
-                ->setParameter($parameterName, '%' . mb_strtolower($itemToQuery) . '%');
-        }
+        $this->applySearchTerms($queryDraft, $query);
 
         $moves = $queryDraft
             ->orderBy('m.numpadNotation', 'ASC')
@@ -90,6 +86,45 @@ class MoveRepository extends ServiceEntityRepository
         $this->applyOverridesToMoves($moves);
 
         return $moves;
+    }
+
+    /**
+     * The character's moves matching the query that do not have an oki yet: there is one oki per ender.
+     *
+     * @return list<Move>
+     */
+    public function findOkiEnderCandidates(string $characterId, string $query): array
+    {
+        $queryDraft = $this->createQueryBuilder('m')
+            ->innerJoin('m.character', 'c')
+            ->leftJoin('m.frameData', 'frameData')
+            ->leftJoin(OkiProfile::class, 'profile', 'WITH', 'profile.move = m')
+            ->addSelect('c', 'frameData')
+            ->andWhere('c.id = :characterId')
+            ->andWhere('profile.id IS NULL')
+            ->setParameter('characterId', $characterId);
+
+        $this->applySearchTerms($queryDraft, $query);
+
+        $moves = $queryDraft
+            ->orderBy('m.numpadNotation', 'ASC')
+            ->setMaxResults(50)
+            ->getQuery()
+            ->getResult();
+        $this->applyOverridesToMoves($moves);
+
+        return $moves;
+    }
+
+    private function applySearchTerms(QueryBuilder $queryDraft, string $query): void
+    {
+        $arrayOfItemsToQuery = array_values(array_filter(explode(' ', $query), static fn (string $item): bool => '' !== trim($item)));
+        foreach ($arrayOfItemsToQuery as $index => $itemToQuery) {
+            $parameterName = sprintf('term%d', $index);
+            $queryDraft
+                ->andWhere(sprintf('(LOWER(c.name) LIKE :%1$s) OR (LOWER(m.numpadNotation) LIKE :%1$s) OR (LOWER(m.commonName) LIKE :%1$s)', $parameterName))
+                ->setParameter($parameterName, '%' . mb_strtolower($itemToQuery) . '%');
+        }
     }
 
     /**

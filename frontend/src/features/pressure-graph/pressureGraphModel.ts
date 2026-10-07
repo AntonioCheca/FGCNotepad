@@ -1,5 +1,5 @@
 import dagre from "@dagrejs/dagre";
-import type {PressureGraphData, PressureGraphEdge, PressureGraphNode, PressureLayerFilter} from "./pressureGraphTypes";
+import type {PressureGraphData, PressureGraphEdge, PressureGraphNode} from "./pressureGraphTypes";
 
 export type PressureGraphDirection = "LR" | "TB";
 
@@ -28,39 +28,8 @@ export interface PressureGraphLayout {
 
 // Self-loops are not routed by dagre; they arc beside their node and need this much extra room.
 export const SELF_LOOP_ROOM = 64;
-
-export const DAMAGE_SEGMENT = 1000;
-
-// Layers are cumulative: "Layer 2" shows everything up to layer 2.
-export function filterGraphByLayer(graph: PressureGraphData, filter: PressureLayerFilter): PressureGraphData {
-    if (filter === "all") {
-        return graph;
-    }
-
-    const nodes = graph.nodes.filter((node) => node.layer <= filter);
-    const visible = new Set(nodes.map((node) => node.id));
-    const edges = graph.edges.filter((edge) => edge.layer <= filter && visible.has(edge.from) && visible.has(edge.to));
-
-    return {nodes, edges};
-}
-
-export function highestLayer(graph: PressureGraphData): number {
-    return Math.max(1, ...graph.nodes.map((node) => node.layer), ...graph.edges.map((edge) => edge.layer));
-}
-
-export function nodeHasOutcome(node: PressureGraphNode): boolean {
-    return node.damageDealt !== null || node.damageReceived !== null;
-}
-
-// One entry per started 1000-damage segment, keyed by the damage it starts at: 2400 -> fills [1, 1, 0.4].
-export function damageSegments(damage: number): Array<{start: number; fill: number}> {
-    const segments = [];
-    for (let start = 0; start < damage; start += DAMAGE_SEGMENT) {
-        segments.push({start, fill: Math.min(1, (damage - start) / DAMAGE_SEGMENT)});
-    }
-
-    return segments;
-}
+// The node's "+" button overhangs its top-right corner; the right-most node must keep it inside the canvas.
+export const NODE_OVERHANG = 18;
 
 export function layoutPressureGraph(
     graph: PressureGraphData,
@@ -116,9 +85,10 @@ export function layoutPressureGraph(
         }
     }
     if (hasSelfLoop) {
-        width += direction === "TB" ? SELF_LOOP_ROOM : 0;
+        width += direction === "TB" ? SELF_LOOP_ROOM : SELF_LOOP_ROOM / 2;
         height += direction === "LR" ? SELF_LOOP_ROOM : 0;
     }
+    width += NODE_OVERHANG;
 
     return {positions, routes, width, height};
 }

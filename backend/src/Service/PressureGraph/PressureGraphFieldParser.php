@@ -6,39 +6,26 @@ use App\Util\Enum\PressureEdgeKind;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
- * Validates the graph fields oki and blockstring payloads share: layer, edge kind, read label and node outcome.
+ * Validates the graph fields oki and blockstring payloads share: edge kind and read label.
  */
 final class PressureGraphFieldParser
 {
-    public const MIN_LAYER = 1;
-    public const MAX_LAYER = 3;
     public const READ_LABEL_MAX_LENGTH = 48;
-    public const MAX_DAMAGE = 10000;
 
-    public function layer(mixed $value): int
+    /**
+     * Oki has no fake arrows, so callers pass the kinds their graph allows.
+     *
+     * @param list<PressureEdgeKind>|null $allowed
+     */
+    public function edgeKind(mixed $value, ?array $allowed = null): PressureEdgeKind
     {
-        if (null === $value || '' === $value) {
-            return self::MIN_LAYER;
-        }
-        if (!is_int($value) && !(is_string($value) && ctype_digit($value))) {
-            throw new BadRequestHttpException('layer must be an integer.');
-        }
-        $layer = (int) $value;
-        if ($layer < self::MIN_LAYER || $layer > self::MAX_LAYER) {
-            throw new BadRequestHttpException(sprintf('layer must be between %d and %d.', self::MIN_LAYER, self::MAX_LAYER));
-        }
-
-        return $layer;
-    }
-
-    public function edgeKind(mixed $value): PressureEdgeKind
-    {
+        $allowed ??= PressureEdgeKind::cases();
         if (null === $value || '' === $value) {
             return PressureEdgeKind::NORMAL;
         }
         $kind = is_string($value) ? PressureEdgeKind::tryFrom($value) : null;
-        if (null === $kind) {
-            throw new BadRequestHttpException('kind must be one of normal, confirm, read or fake.');
+        if (null === $kind || !in_array($kind, $allowed, true)) {
+            throw new BadRequestHttpException(sprintf('kind must be one of %s.', implode(', ', array_map(static fn (PressureEdgeKind $allowedKind): string => $allowedKind->value, $allowed))));
         }
 
         return $kind;
@@ -61,21 +48,5 @@ final class PressureGraphFieldParser
         }
 
         return '' === $label ? null : $label;
-    }
-
-    public function damage(mixed $value, string $field): ?int
-    {
-        if (null === $value || '' === $value) {
-            return null;
-        }
-        if (!is_int($value) && !(is_string($value) && ctype_digit($value))) {
-            throw new BadRequestHttpException(sprintf('%s must be a whole number.', $field));
-        }
-        $damage = (int) $value;
-        if ($damage < 0 || $damage > self::MAX_DAMAGE) {
-            throw new BadRequestHttpException(sprintf('%s must be between 0 and %d.', $field, self::MAX_DAMAGE));
-        }
-
-        return 0 === $damage ? null : $damage;
     }
 }

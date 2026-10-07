@@ -2,10 +2,9 @@
 
 namespace App\Controller\api;
 
-use App\Entity\CharacterReversal;
 use App\Entity\OkiProfile;
 use App\Entity\User;
-use App\Repository\CharacterReversalRepository;
+use App\Repository\MoveRepository;
 use App\Repository\OkiProfileRepository;
 use App\Service\EndpointAuthorizationService;
 use App\Service\OkiProfileMutationService;
@@ -20,6 +19,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Uid\Uuid;
 
 #[Route('/api/okis', name: 'api_okis_')]
 final class OkiController extends AbstractController
@@ -27,7 +27,7 @@ final class OkiController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly OkiProfileRepository $okiProfileRepository,
-        private readonly CharacterReversalRepository $characterReversalRepository,
+        private readonly MoveRepository $moveRepository,
         private readonly OkiResponseBuilder $responseBuilder,
         private readonly OkiProfileMutationService $mutationService,
         private readonly OkiSetupAccessService $accessService,
@@ -40,17 +40,8 @@ final class OkiController extends AbstractController
     public function list(Request $request): JsonResponse
     {
         $filters = [
-            'q' => $this->normalizeString($request->query->get('q')),
             'characterId' => $this->normalizeString($request->query->get('characterId')),
             'moveId' => $this->normalizeString($request->query->get('moveId')),
-            'usesDriveRush' => $this->normalizeBoolean($request->query->get('usesDriveRush')),
-            'autoTimed' => $this->normalizeBoolean($request->query->get('autoTimed')),
-            'cornerOnly' => $this->normalizeBoolean($request->query->get('cornerOnly')),
-            'worksNoBackroll' => $this->normalizeBoolean($request->query->get('worksNoBackroll')),
-            'worksBackroll' => $this->normalizeBoolean($request->query->get('worksBackroll')),
-            'hasFakeSetups' => $this->normalizeBoolean($request->query->get('hasFakeSetups')),
-            'optionType' => $this->normalizeString($request->query->get('optionType')),
-            'property' => $this->normalizeString($request->query->get('property')),
         ];
 
         $viewer = $this->currentUser();
@@ -65,8 +56,11 @@ final class OkiController extends AbstractController
         $actor = $this->requireAuthenticated();
         $payload = $this->decodePayload($request);
         $moveId = $this->normalizeString($payload['moveId'] ?? null);
-        $profile = null !== $moveId ? $this->okiProfileRepository->findOneBy(['move' => $moveId]) : null;
-        $profile ??= new OkiProfile();
+        $existing = null !== $moveId && Uuid::isValid($moveId) ? $this->okiProfileRepository->findOneBy(['move' => $moveId]) : null;
+        if ($existing instanceof OkiProfile) {
+            return new JsonResponse(['error' => 'This ender already has an oki; add setups to it instead.', 'id' => $existing->getId()], JsonResponse::HTTP_CONFLICT);
+        }
+        $profile = new OkiProfile();
 
         try {
             $this->entityManager->getConnection()->transactional(function () use ($profile, $payload, $actor): void {
@@ -81,70 +75,16 @@ final class OkiController extends AbstractController
         return new JsonResponse($this->responseBuilder->buildDetail($profile, $actor), JsonResponse::HTTP_CREATED);
     }
 
-    #[Route('/reversals', name: 'reversal_list', methods: ['GET'])]
-    public function listReversals(Request $request): JsonResponse
+    #[Route('/enders', name: 'enders', methods: ['GET'])]
+    public function enders(Request $request): JsonResponse
     {
-        $criteria = [];
         $characterId = $this->normalizeString($request->query->get('characterId'));
-        if (null !== $characterId) {
-            $criteria['character'] = $characterId;
+        $query = $this->normalizeString($request->query->get('query'));
+        if (null === $characterId || null === $query || !Uuid::isValid($characterId)) {
+            return new JsonResponse([], JsonResponse::HTTP_OK);
         }
 
-        $reversals = $this->characterReversalRepository->findBy($criteria, ['id' => 'ASC']);
-
-        return new JsonResponse($this->responseBuilder->buildReversalList($reversals), JsonResponse::HTTP_OK);
-    }
-
-    #[Route('/reversals', name: 'reversal_create', methods: ['POST'])]
-    public function createReversal(Request $request): JsonResponse
-    {
-        $this->authorizationService->assertCanModerateContent($this->requireAuthenticated());
-        $payload = $this->decodePayload($request);
-        $reversal = new CharacterReversal();
-
-        try {
-            $this->mutationService->hydrateReversal($reversal, $payload);
-            $this->entityManager->persist($reversal);
-            $this->entityManager->flush();
-        } catch (BadRequestHttpException $exception) {
-            return new JsonResponse(['error' => $exception->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
-        }
-
-        return new JsonResponse($this->responseBuilder->buildReversal($reversal), JsonResponse::HTTP_CREATED);
-    }
-
-    #[Route('/reversals/{id}', name: 'reversal_update', requirements: ['id' => '\\d+'], methods: ['PATCH'])]
-    public function updateReversal(int $id, Request $request): JsonResponse
-    {
-        $this->authorizationService->assertCanModerateContent($this->requireAuthenticated());
-        $reversal = $this->characterReversalRepository->find($id);
-        if (!$reversal instanceof CharacterReversal) {
-            throw new NotFoundHttpException(sprintf('Reversal %d not found.', $id));
-        }
-
-        try {
-            $this->mutationService->hydrateReversal($reversal, $this->decodePayload($request));
-            $this->entityManager->flush();
-        } catch (BadRequestHttpException $exception) {
-            return new JsonResponse(['error' => $exception->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
-        }
-
-        return new JsonResponse($this->responseBuilder->buildReversal($reversal), JsonResponse::HTTP_OK);
-    }
-
-    #[Route('/reversals/{id}', name: 'reversal_delete', requirements: ['id' => '\\d+'], methods: ['DELETE'])]
-    public function deleteReversal(int $id): JsonResponse
-    {
-        $this->authorizationService->assertCanModerateContent($this->requireAuthenticated());
-        $reversal = $this->characterReversalRepository->find($id);
-        if (!$reversal instanceof CharacterReversal) {
-            throw new NotFoundHttpException(sprintf('Reversal %d not found.', $id));
-        }
-
-        $this->entityManager->remove($reversal);
-        $this->entityManager->flush();
-
-        return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+        return new JsonResponse($this->responseBuilder->buildEnderOptions($this->moveRepository->findOkiEnderCandidates($characterId, $query)), JsonResponse::HTTP_OK);
     }
 
     #[Route('/{id}', name: 'read', requirements: ['id' => '\\d+'], methods: ['GET'])]
@@ -230,22 +170,5 @@ final class OkiController extends AbstractController
     private function normalizeString(mixed $value): ?string
     {
         return is_string($value) && '' !== trim($value) ? trim($value) : null;
-    }
-
-    private function normalizeBoolean(mixed $value): ?bool
-    {
-        if (is_bool($value)) {
-            return $value;
-        }
-        if (!is_string($value)) {
-            return null;
-        }
-        $normalized = mb_strtolower(trim($value));
-
-        return match ($normalized) {
-            'true', '1' => true,
-            'false', '0' => false,
-            default => null,
-        };
     }
 }

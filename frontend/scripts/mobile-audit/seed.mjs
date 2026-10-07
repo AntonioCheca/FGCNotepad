@@ -26,29 +26,36 @@ const seeded = {};
 
 const blockstrings = await api.get("/blockstrings");
 const existingBlockstring = blockstrings.find((item) => item.title?.startsWith(SEED_TAG));
-// Covers every edge kind, a layer-2 read and risk/reward outcomes so the graph renders its full vocabulary.
+// Two blocks covering every arrow kind and the frame details, so the graph renders its full vocabulary.
 seeded.blockstringId = existingBlockstring?.id ?? (await api.post("/blockstrings", {
     title: `${SEED_TAG} Ryu st.MP pressure`,
-    summary: "Seeded for mobile layout audits.",
     attackerCharacterId: ryu.id,
-    classification: "fake",
-    nodes: [
-        {clientId: "mp", moveId: await moveId(ryu, "5MP")},
-        {clientId: "lp", moveId: await moveId(ryu, "5LP")},
-        {clientId: "mk", moveId: await moveId(ryu, "2MK")},
-        {clientId: "tatsu", moveId: await moveId(ryu, "236HK"), damageDealt: 2100},
-        {clientId: "hp", moveId: await moveId(ryu, "5HP"), layer: 2, damageDealt: 2800, damageReceived: 3500},
-    ],
-    edges: [
-        {clientId: "mp-lp", from: "mp", to: "lp", kind: "normal", frameAdvantage: 2},
-        {clientId: "lp-mk", from: "lp", to: "mk", kind: "normal"},
-        {clientId: "mk-mp", from: "mk", to: "mp", kind: "normal"},
-        {clientId: "lp-tatsu", from: "lp", to: "tatsu", kind: "confirm"},
-        {clientId: "lp-hp", from: "lp", to: "hp", kind: "read", readLabel: "expects mash", layer: 2},
-        {clientId: "mk-tatsu", from: "mk", to: "tatsu", kind: "fake", gapFrames: 3, frameAdvantage: -1},
-    ],
-    defenseEntries: [
-        {edgeClientId: "mk-tatsu", instruction: "Mash cr.LP before the tatsu.", responseType: "button", outcome: "trade"},
+    startingMoveId: await moveId(ryu, "5MP"),
+    blocks: [
+        {
+            description: "Default pressure while they block.",
+            nodes: [
+                {clientId: "mp", moveId: await moveId(ryu, "5MP"), frameAdvantage: 2},
+                {clientId: "lp", moveId: await moveId(ryu, "5LP")},
+                {clientId: "mk", moveId: await moveId(ryu, "2MK"), frameAdvantage: -1},
+                {clientId: "tatsu", moveId: await moveId(ryu, "236HK")},
+            ],
+            edges: [
+                {from: "mp", to: "lp", kind: "normal", trueBlockstring: true},
+                {from: "lp", to: "mk", kind: "normal", gapFrames: 0},
+                {from: "mk", to: "mp", kind: "normal"},
+                {from: "lp", to: "tatsu", kind: "confirm"},
+                {from: "mk", to: "tatsu", kind: "fake", gapFrames: 3},
+            ],
+        },
+        {
+            description: "If they start mashing on the gap.",
+            nodes: [
+                {clientId: "lp2", moveId: await moveId(ryu, "5LP")},
+                {clientId: "hp", moveId: await moveId(ryu, "5HP")},
+            ],
+            edges: [{from: "lp2", to: "hp", kind: "read", readLabel: "expects mash"}],
+        },
     ],
 })).id;
 
@@ -58,21 +65,26 @@ const existingOki = okis.find((item) => item.move?.id === ryuTatsuId);
 const okiPayload = {
     moveId: ryuTatsuId,
     setups: [{
-        usesDriveRush: false,
-        autoTimed: true,
+        name: "Corner meaty",
         cornerOnly: true,
-        worksNoBackroll: true,
-        worksBackroll: true,
-        fakeNoBackroll: false,
-        fakeBackroll: false,
+        backrollDependent: false,
         nodes: [
-            {clientId: "dash", moveId: await moveId(ryu, "66"), isDefaultRoute: true},
-            {clientId: "meaty", moveId: await moveId(ryu, "2MK"), isDefaultRoute: true, optionType: "MEATY_STRIKE", properties: [], damageDealt: 1600},
-            {clientId: "throw", moveId: await moveId(ryu, "LPLK"), optionType: "MEATY_THROW", layer: 2, damageDealt: 1200, damageReceived: 2000},
+            {clientId: "dash", moveId: await moveId(ryu, "66")},
+            {clientId: "walk", action: "WALK_FORWARD"},
+            {clientId: "meaty", moveId: await moveId(ryu, "2MK"), hitLevel: "LOW"},
+            {clientId: "throw", moveId: await moveId(ryu, "LPLK")},
+            {clientId: "shimmy", action: "SHIMMY"},
+            {clientId: "jump", action: "FORWARD_JUMP"},
+            {clientId: "jumpIn", moveId: await moveId(ryu, "8HK"), hitLevel: "OVERHEAD"},
         ],
         links: [
-            {fromClientId: "dash", toClientId: "meaty", stepType: "IMMEDIATE"},
-            {fromClientId: "dash", toClientId: "throw", stepType: "IMMEDIATE", kind: "read", readLabel: "expects block", layer: 2},
+            {fromClientId: "ender", toClientId: "dash"},
+            {fromClientId: "dash", toClientId: "walk"},
+            {fromClientId: "walk", toClientId: "meaty"},
+            {fromClientId: "walk", toClientId: "throw", stepType: "DELAY", kind: "read", readLabel: "expects block"},
+            {fromClientId: "walk", toClientId: "shimmy", kind: "confirm"},
+            {fromClientId: "ender", toClientId: "jump"},
+            {fromClientId: "jump", toClientId: "jumpIn", safeJump: true},
         ],
     }],
 };

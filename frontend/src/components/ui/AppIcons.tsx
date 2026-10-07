@@ -50,6 +50,12 @@ export {default as SwapHorizOutlinedIcon} from "@mui/icons-material/SwapHorizOut
 export {default as TokenOutlinedIcon} from "@mui/icons-material/TokenOutlined";
 export {default as SignalCellularAltOutlinedIcon} from "@mui/icons-material/SignalCellularAltOutlined";
 export {default as AutoAwesomeOutlinedIcon} from "@mui/icons-material/AutoAwesomeOutlined";
+export {default as KeyboardDoubleArrowDownOutlinedIcon} from "@mui/icons-material/KeyboardDoubleArrowDownOutlined";
+export {default as DirectionsWalkOutlinedIcon} from "@mui/icons-material/DirectionsWalkOutlined";
+export {default as VerifiedUserOutlinedIcon} from "@mui/icons-material/VerifiedUserOutlined";
+export {default as GppBadOutlinedIcon} from "@mui/icons-material/GppBadOutlined";
+export {default as FastRewindOutlinedIcon} from "@mui/icons-material/FastRewindOutlined";
+export {default as ExpandMoreIcon} from "@mui/icons-material/ExpandMore";
 export {default as CategoryOutlinedIcon} from "@mui/icons-material/CategoryOutlined";
 
 // Martial artist kicking a figure (Boy tilted 30°) off its feet, built from the MUI icon paths.

@@ -1,40 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {damageSegments, filterGraphByLayer, highestLayer, layoutPressureGraph} from "./pressureGraphModel";
+import {pressureNodeSize} from "./pressureNodeSize";
+import {layoutPressureGraph} from "./pressureGraphModel";
 import type {PressureGraphData} from "./pressureGraphTypes";
 
-const node = (id: string, layer: 1 | 2 | 3 = 1) => ({id, notation: id, name: null, layer, damageDealt: null, damageReceived: null});
-const edge = (from: string, to: string, layer: 1 | 2 | 3 = 1) => ({id: `${from}-${to}`, from, to, kind: "normal" as const, readLabel: null, layer});
+const node = (id: string) => ({id, label: id});
+const edge = (from: string, to: string) => ({id: `${from}-${to}`, from, to, kind: "normal" as const, readLabel: null});
 
 const graph: PressureGraphData = {
-    nodes: [node("a"), node("b"), node("c", 2), node("d", 3)],
-    edges: [edge("a", "b"), edge("b", "a", 2), edge("b", "c"), edge("c", "d", 3)],
+    nodes: [node("a"), node("b"), node("c"), node("d")],
+    edges: [edge("a", "b"), edge("b", "a"), edge("b", "c"), edge("c", "d")],
 };
-
-test("layer filters are cumulative and drop edges to hidden nodes", () => {
-    const layerOne = filterGraphByLayer(graph, 1);
-    assert.deepEqual(layerOne.nodes.map((item) => item.id), ["a", "b"]);
-    assert.deepEqual(layerOne.edges.map((item) => item.id), ["a-b"]);
-
-    const layerTwo = filterGraphByLayer(graph, 2);
-    assert.deepEqual(layerTwo.nodes.map((item) => item.id), ["a", "b", "c"]);
-    assert.deepEqual(layerTwo.edges.map((item) => item.id), ["a-b", "b-a", "b-c"]);
-
-    assert.equal(filterGraphByLayer(graph, "all"), graph);
-});
-
-test("highest layer considers nodes and edges", () => {
-    assert.equal(highestLayer(graph), 3);
-    assert.equal(highestLayer({nodes: [node("a")], edges: [edge("a", "a", 2)]}), 2);
-    assert.equal(highestLayer({nodes: [], edges: []}), 1);
-});
-
-test("damage is split into 1000-point segments", () => {
-    assert.deepEqual(damageSegments(2400).map((segment) => segment.fill), [1, 1, 0.4]);
-    assert.deepEqual(damageSegments(3000).map((segment) => segment.start), [0, 1000, 2000]);
-    assert.deepEqual(damageSegments(0), []);
-});
 
 test("layout places every node, survives loops and orders ranks left to right", () => {
     const looped: PressureGraphData = {nodes: graph.nodes, edges: [...graph.edges, edge("d", "d")]};
@@ -49,4 +26,13 @@ test("layout places every node, survives loops and orders ranks left to right", 
 
     const vertical = layoutPressureGraph(looped, () => ({width: 100, height: 40}), "TB");
     assert.ok(vertical.positions.get("a")!.y < vertical.positions.get("d")!.y);
+});
+
+test("nodes grow to fit their label and make room for a subtitle", () => {
+    const short = pressureNodeSize({id: "a", label: "5MP"});
+    const long = pressureNodeSize({id: "b", label: "HP Hooligan (hold) > Divekick", subtitle: "236HP (hold) > K"});
+
+    assert.equal(short.width, 136);
+    assert.ok(long.width > 136);
+    assert.ok(long.height > short.height);
 });

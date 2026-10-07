@@ -3,6 +3,7 @@
 namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
+use App\Entity\FrameData;
 use App\Entity\Move;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use App\Util\Enum\UserRole;
@@ -83,6 +84,39 @@ class MoveControllerTest extends AuthenticatedWebTestCase
         $this->assertSame('Ryu Dash', $payload[0]['summary']);
         $this->assertSame('Dash', $payload[0]['numpadNotation']);
         $this->assertArrayHasKey('moveName', $payload[0]);
+        $this->assertNull($payload[0]['moveType']);
+    }
+
+    public function testSearchMovesExposesMoveTypeAndAttackLevel(): void
+    {
+        $zangief = $this->addCharacterInBackend('Zangief');
+        $move = $this->addMoveInBackend($zangief, '360P');
+        $frameData = (new FrameData())->setMoveType('command-grab')->setAttackLevel('T');
+        $frameData->setMove($move);
+        $move->setFrameData($frameData);
+        $entityManager = self::$kernel->getContainer()->get('doctrine')->getManager();
+        $entityManager->persist($frameData);
+        $entityManager->flush();
+
+        $this->client->request('GET', sprintf('/api/moves/search?query=360&characterId=%s', urlencode((string) $zangief->getId())), [], [], $this->getHeaders());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame('command-grab', $payload[0]['moveType']);
+        $this->assertSame('T', $payload[0]['attackLevel']);
+    }
+
+    public function testSearchMovesMatchesAndExposesTheCommonName(): void
+    {
+        $akuma = $this->addCharacterInBackend('Akuma');
+        $this->addMoveInBackend($akuma, '214MK')->setCommonName('MK Tatsu');
+        $this->addMoveInBackend($akuma, '623P');
+        self::$kernel->getContainer()->get('doctrine')->getManager()->flush();
+
+        $this->client->request('GET', sprintf('/api/moves/search?query=tatsu&characterId=%s', urlencode((string) $akuma->getId())), [], [], $this->getHeaders());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(['214MK'], array_column($payload, 'numpadNotation'));
+        $this->assertSame('MK Tatsu', $payload[0]['commonName']);
     }
 
     private function addCharacterInBackend(string $name = 'Test Character'): Character

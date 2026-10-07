@@ -40,9 +40,7 @@ final class BlockstringController extends AbstractController
         $filters = [
             'q' => $this->normalizeString($request->query->get('q')),
             'attackerCharacterId' => $this->normalizeString($request->query->get('attackerCharacterId')),
-            'defenderCharacterId' => $this->normalizeString($request->query->get('defenderCharacterId')),
-            'moveId' => $this->normalizeString($request->query->get('moveId')),
-            'classification' => $this->normalizeString($request->query->get('classification')),
+            'startingMoveId' => $this->normalizeString($request->query->get('startingMoveId')),
         ];
         $sequences = $this->repository->search($filters, $request->query->getInt('size', 100), $actor instanceof User ? $actor : null);
 

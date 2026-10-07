@@ -4,12 +4,10 @@ import {
     AccountCircleOutlinedIcon,
     AltRouteIcon,
     ArticleOutlinedIcon,
-    BoltIcon,
     FactCheckOutlinedIcon,
     HelpOutlineOutlinedIcon,
     HomeOutlinedIcon,
     Inventory2OutlinedIcon,
-    LightbulbOutlinedIcon,
     ManageAccountsOutlinedIcon,
     PendingActionsIcon,
     PlaceOutlinedIcon,
@@ -33,13 +31,6 @@ export const navigationSections: NavigationSection[] = [
                 label: "Search Combos",
                 href: "/combos",
                 icon: <SportsMmaIcon/>
-            },
-            {
-                label: "Recommend a Combo",
-                href: "/profile/recommend-combo",
-                icon: <LightbulbOutlinedIcon/>,
-                requiresAuth: true,
-                allowedRoles: QA_ROLES,
             }
         ]
     },
@@ -50,13 +41,6 @@ export const navigationSections: NavigationSection[] = [
                 label: "Search Okis",
                 href: "/okis",
                 icon: <OkiKnockdownIcon/>
-            },
-            {
-                label: "Reversals",
-                href: "/okis/reversals",
-                icon: <BoltIcon/>,
-                requiresAuth: true,
-                allowedRoles: ["ROLE_ADMIN"],
             }
         ]
     },
@@ -207,7 +191,7 @@ export const accountNavigationSections: NavigationSection[] = [
 // Phone/tablet bottom bar. Everything else is reachable from its "More" sheet.
 export const mobileTabs: MobileTab[] = [
     {label: "Home", href: "/", icon: <HomeOutlinedIcon/>, activePrefixes: []},
-    {label: "Combos", href: "/combos", icon: <SportsMmaIcon/>, activePrefixes: ["/combos", "/profile/recommend-combo"]},
+    {label: "Combos", href: "/combos", icon: <SportsMmaIcon/>, activePrefixes: ["/combos"]},
     {label: "Okis", href: "/okis", icon: <OkiKnockdownIcon/>, activePrefixes: ["/okis"]},
     {label: "Scenarios", href: "/scenarios", icon: <AltRouteIcon/>, activePrefixes: ["/scenarios"]},
 ];

@@ -1,70 +1,72 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {blockstringDetailToDraft, buildBlockstringPayload, createBlockstringEdge, createBlockstringDraft, withDefenseInstruction} from "./blockstringGraphDraft";
+import {blockDraftToGraph, blockstringDetailToDraft, buildBlockstringPayload, createBlockstringDraft, parseFrames} from "./blockstringGraphDraft";
 import type {BlockstringDetail} from "@/src/types/blockstring";
 
-const move = (id: string, numpadNotation: string) => ({id, numpadNotation, moveName: null, character: {id: "akuma", name: "Akuma"}});
+const move = (id: string, numpadNotation: string, commonName: string | null = null) => ({id, numpadNotation, commonName, moveName: null, character: {id: "akuma", name: "Akuma"}});
 
 const detail: BlockstringDetail = {
     id: 7,
-    title: "st.MP pressure",
-    summary: null,
-    classification: "frametrap",
+    title: "Burnout pressure",
     moderationState: "approved",
     attackerCharacter: {id: "akuma", name: "Akuma"},
-    notation: "5MP -> 2MK",
-    nodeCount: 2,
-    defenseEntryCount: 1,
-    gaps: [],
-    nodes: [
-        {id: "10", move: move("m1", "5MP"), layer: 1, damageDealt: null, damageReceived: null},
-        {id: "11", move: move("m2", "2MK"), layer: 2, damageDealt: 1200, damageReceived: null},
+    startingMove: move("m1", "5MP"),
+    blocks: [
+        {
+            id: 1,
+            description: "Do this by default.",
+            nodes: [{id: "10", move: move("m1", "5MP"), frameAdvantage: 1}, {id: "11", move: move("m2", "214MK", "MK Tatsu"), frameAdvantage: -2}],
+            edges: [{id: "20", from: "10", to: "11", kind: "fake", readLabel: null, trueBlockstring: false, gapFrames: 3}],
+        },
+        {
+            id: 2,
+            description: null,
+            nodes: [{id: "12", move: move("m1", "5MP"), frameAdvantage: null}],
+            edges: [{id: "21", from: "12", to: "12", kind: "normal", readLabel: null, trueBlockstring: true, gapFrames: null}],
+        },
     ],
-    edges: [{id: "20", from: "10", to: "11", kind: "fake", readLabel: null, layer: 1, frameAdvantage: -2, gapFrames: 3}],
-    conditions: [],
-    defenseEntries: [{edgeId: "20", instruction: "Mash 4f", exceptionNotes: null, defenderCharacter: null, move: null, responseType: "button", outcome: "counter_hit", conversion: null}],
 };
 
 test("an existing blockstring survives a draft round trip", () => {
     const payload = buildBlockstringPayload(blockstringDetailToDraft(detail));
 
-    assert.deepEqual(payload.nodes, [
-        {clientId: "n10", moveId: "m1", layer: 1, damageDealt: null, damageReceived: null},
-        {clientId: "n11", moveId: "m2", layer: 2, damageDealt: 1200, damageReceived: null},
-    ]);
-    assert.deepEqual(payload.edges, [{clientId: "e20", from: "n10", to: "n11", kind: "fake", readLabel: null, layer: 1, frameAdvantage: -2, gapFrames: 3}]);
-    assert.equal(payload.defenseEntries?.[0].edgeClientId, "e20");
+    assert.equal(payload.startingMoveId, "m1");
+    assert.equal(payload.blocks.length, 2);
+    assert.equal(payload.blocks[0].description, "Do this by default.");
+    assert.equal(payload.blocks[1].description, null);
+    assert.deepEqual(payload.blocks[0].nodes.map((node) => node.frameAdvantage), [1, -2]);
+    assert.deepEqual(payload.blocks[0].edges[0], {from: "n10", to: "n11", kind: "fake", readLabel: null, trueBlockstring: false, gapFrames: 3});
+    assert.deepEqual(payload.blocks[1].edges[0], {from: "n12", to: "n12", kind: "normal", readLabel: null, trueBlockstring: true, gapFrames: null});
 });
 
-test("defense notes on removed or blank arrows are not sent", () => {
-    const draft = {...blockstringDetailToDraft(detail), edges: []};
-    assert.deepEqual(buildBlockstringPayload(draft).defenseEntries, []);
-
-    const blank = blockstringDetailToDraft(detail);
-    blank.defenseEntries = withDefenseInstruction(blank.defenseEntries, "e20", "  ");
-    assert.deepEqual(buildBlockstringPayload(blank).defenseEntries, []);
-});
-
-test("a new defense note creates an entry with defaults", () => {
-    const entries = withDefenseInstruction([], "e1", "Jab the gap");
-
-    assert.deepEqual(entries, [{edgeClientId: "e1", instruction: "Jab the gap", responseType: "button", outcome: "counter_hit"}]);
-});
-
-test("payload requires title, attacker and a move on every node", () => {
-    const draft = createBlockstringDraft();
-    assert.throws(() => buildBlockstringPayload(draft), /Title/);
-    assert.throws(() => buildBlockstringPayload({...draft, title: "x"}), /attacking character/);
-    assert.throws(() => buildBlockstringPayload({...draft, title: "x", attackerCharacterId: "akuma"}), /move picked/);
-});
-
-test("read labels are only sent for read arrows", () => {
+test("a true blockstring never sends gap frames", () => {
     const draft = blockstringDetailToDraft(detail);
-    draft.edges = [{...createBlockstringEdge("e1", "n10", "n11"), readLabel: "expects mash"}, {...createBlockstringEdge("e2", "n11", "n10"), kind: "read", readLabel: " expects mash "}];
+    const [first] = draft.blocks;
+    const edited = {...draft, blocks: [{...first, edges: first.edges.map((edge) => ({...edge, trueBlockstring: true}))}]};
 
-    const payload = buildBlockstringPayload(draft);
+    assert.equal(buildBlockstringPayload(edited).blocks[0].edges[0].gapFrames, null);
+    assert.equal(blockDraftToGraph(edited.blocks[0]).edges[0].gapFrames, null);
+});
 
-    assert.equal(payload.edges[0].readLabel, null);
-    assert.equal(payload.edges[1].readLabel, "expects mash");
+test("graph nodes use common names and carry signed frame advantage", () => {
+    const graph = blockDraftToGraph(blockstringDetailToDraft(detail).blocks[0]);
+
+    assert.deepEqual(graph.nodes.map((node) => [node.label, node.subtitle]), [["5MP", null], ["MK Tatsu", "214MK"]]);
+    assert.deepEqual(graph.nodes.map((node) => node.frameAdvantage), [1, -2]);
+});
+
+test("frame inputs accept explicit signs only as whole numbers", () => {
+    assert.equal(parseFrames("+4"), 4);
+    assert.equal(parseFrames(" -2 "), -2);
+    assert.equal(parseFrames("0"), 0);
+    assert.equal(parseFrames("4.5"), null);
+    assert.equal(parseFrames(""), null);
+});
+
+test("a new blockstring needs its title, character and starting move", () => {
+    const draft = createBlockstringDraft("akuma");
+
+    assert.throws(() => buildBlockstringPayload(draft), /Title/);
+    assert.throws(() => buildBlockstringPayload({...draft, title: "Pressure"}), /starting move/);
 });

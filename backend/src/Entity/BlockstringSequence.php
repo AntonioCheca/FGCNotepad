@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: BlockstringSequenceRepository::class)]
 #[ORM\Table(name: 'blockstring_sequence', schema: 'sf6')]
 #[ORM\Index(name: 'idx_blockstring_sequence_attacker', columns: ['attacker_character_id'])]
-#[ORM\Index(name: 'idx_blockstring_sequence_classification', columns: ['classification'])]
+#[ORM\Index(name: 'idx_blockstring_sequence_starting_move', columns: ['starting_move_id'])]
 #[ORM\Index(name: 'idx_blockstring_sequence_moderation', columns: ['moderation_state'])]
 class BlockstringSequence
 {
@@ -24,15 +24,14 @@ class BlockstringSequence
     #[ORM\Column(type: Types::TEXT)]
     private string $title = '';
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $summary = null;
-
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'attacker_character_id', referencedColumnName: 'id', nullable: false)]
     private ?Character $attackerCharacter = null;
 
-    #[ORM\Column(type: Types::STRING, length: 32)]
-    private string $classification = 'fake';
+    /** Stored rather than inferred from the graph, which may branch or loop back to its first move. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'starting_move_id', referencedColumnName: 'id', nullable: false)]
+    private ?Move $startingMove = null;
 
     #[ORM\Column(name: 'moderation_state', type: Types::STRING, length: 32)]
     private string $moderationState = ModerationState::APPROVED->value;
@@ -54,6 +53,11 @@ class BlockstringSequence
     #[ORM\JoinColumn(name: 'author_id', referencedColumnName: 'id', nullable: true)]
     private ?User $author = null;
 
+    /** @var Collection<int, BlockstringBlock> */
+    #[ORM\OneToMany(targetEntity: BlockstringBlock::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['ordinal' => 'ASC', 'id' => 'ASC'])]
+    private Collection $blocks;
+
     /** @var Collection<int, BlockstringSequenceStep> */
     #[ORM\OneToMany(targetEntity: BlockstringSequenceStep::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['ordinal' => 'ASC', 'id' => 'ASC'])]
@@ -64,33 +68,20 @@ class BlockstringSequence
     #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $edges;
 
-    /** @var Collection<int, BlockstringDefenseEntry> */
-    #[ORM\OneToMany(targetEntity: BlockstringDefenseEntry::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['id' => 'ASC'])]
-    private Collection $defenseEntries;
-
-    /** @var Collection<int, BlockstringCondition> */
-    #[ORM\OneToMany(targetEntity: BlockstringCondition::class, mappedBy: 'sequence', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['id' => 'ASC'])]
-    private Collection $conditions;
-
     public function __construct()
     {
+        $this->blocks = new ArrayCollection();
         $this->steps = new ArrayCollection();
         $this->edges = new ArrayCollection();
-        $this->defenseEntries = new ArrayCollection();
-        $this->conditions = new ArrayCollection();
     }
 
     public function getId(): ?int { return $this->id; }
     public function getTitle(): string { return $this->title; }
     public function setTitle(string $title): self { $this->title = $title; return $this; }
-    public function getSummary(): ?string { return $this->summary; }
-    public function setSummary(?string $summary): self { $this->summary = $summary; return $this; }
     public function getAttackerCharacter(): ?Character { return $this->attackerCharacter; }
     public function setAttackerCharacter(?Character $attackerCharacter): self { $this->attackerCharacter = $attackerCharacter; return $this; }
-    public function getClassification(): string { return $this->classification; }
-    public function setClassification(string $classification): self { $this->classification = $classification; return $this; }
+    public function getStartingMove(): ?Move { return $this->startingMove; }
+    public function setStartingMove(?Move $startingMove): self { $this->startingMove = $startingMove; return $this; }
     public function getModerationState(): string { return $this->moderationState; }
     public function setModerationState(string $moderationState): self { $this->moderationState = $moderationState; return $this; }
     public function getSubmittedForReviewAt(): ?\DateTimeImmutable { return $this->submittedForReviewAt; }
@@ -103,12 +94,10 @@ class BlockstringSequence
     public function setModerationReason(?string $moderationReason): self { $this->moderationReason = $moderationReason; return $this; }
     public function getAuthor(): ?User { return $this->author; }
     public function setAuthor(?User $author): self { $this->author = $author; return $this; }
+    /** @return Collection<int, BlockstringBlock> */ public function getBlocks(): Collection { return $this->blocks; }
+    public function addBlock(BlockstringBlock $block): self { if (!$this->blocks->contains($block)) { $this->blocks->add($block); $block->setSequence($this); } return $this; }
     /** @return Collection<int, BlockstringSequenceStep> */ public function getSteps(): Collection { return $this->steps; }
     public function addStep(BlockstringSequenceStep $step): self { if (!$this->steps->contains($step)) { $this->steps->add($step); $step->setSequence($this); } return $this; }
     /** @return Collection<int, BlockstringEdge> */ public function getEdges(): Collection { return $this->edges; }
     public function addEdge(BlockstringEdge $edge): self { if (!$this->edges->contains($edge)) { $this->edges->add($edge); $edge->setSequence($this); } return $this; }
-    /** @return Collection<int, BlockstringDefenseEntry> */ public function getDefenseEntries(): Collection { return $this->defenseEntries; }
-    public function addDefenseEntry(BlockstringDefenseEntry $entry): self { if (!$this->defenseEntries->contains($entry)) { $this->defenseEntries->add($entry); $entry->setSequence($this); } return $this; }
-    /** @return Collection<int, BlockstringCondition> */ public function getConditions(): Collection { return $this->conditions; }
-    public function addCondition(BlockstringCondition $condition): self { if (!$this->conditions->contains($condition)) { $this->conditions->add($condition); $condition->setSequence($this); } return $this; }
 }
