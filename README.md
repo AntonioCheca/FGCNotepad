@@ -17,7 +17,7 @@ Join our [Discord server](https://discord.gg/SSQwtSjUeD).
 
 ## Stack
 
-- Backend: Symfony 7.2, PHP `>=8.2`, Composer, Doctrine ORM.
+- Backend: Symfony 7.4, PHP `>=8.4`, Composer, Doctrine ORM.
 - Frontend: Next.js 16, React 19, TypeScript, npm `10.8.1`.
 - Node.js: `>=22.13.0` for host development and frontend validation.
 - Database: PostgreSQL 15.

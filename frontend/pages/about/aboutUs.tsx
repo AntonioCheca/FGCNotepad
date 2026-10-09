@@ -49,7 +49,8 @@ export default function AboutPage() {
                         If you want to contribute to the project, check out the
                         <TextLink href="https://github.com/AntonioCheca/FGCNotepad/">
                             GitHub repository
-                        </TextLink> or join our discord server.
+                        </TextLink> or join our
+                        <TextLink href="https://discord.gg/SSQwtSjUeD">Discord server</TextLink>.
                     </NormalParagraph>
 
                     <NormalParagraph>
