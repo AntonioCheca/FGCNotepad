@@ -10,6 +10,11 @@
 
 FGCNotepad is a forum-wiki hybrid for fighting game analysis from a game theory perspective. It helps players study matchups, combos, oki setups, scenarios, and strategic decisions, with the current data focus on Street Fighter 6.
 
+## Community
+
+Questions, feedback, or want to contribute?
+Join our [Discord server](https://discord.gg/SSQwtSjUeD).
+
 ## Stack
 
 - Backend: Symfony 7.2, PHP `>=8.2`, Composer, Doctrine ORM.

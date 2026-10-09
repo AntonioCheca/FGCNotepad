@@ -28,13 +28,17 @@ export default function AboutPage() {
 
                 <SectionCard title="What Is Fighting Game Theory?" tone="raised">
 
-                    <NormalParagraph last>
+                    <NormalParagraph>
                         <strong>Fighting Game Theory </strong> is an open source platform to break down game theory in
                         fighting
                         games. From analysing risk reward in oki and blockstrings, to help players recognise and
                         memorise
                         errors, helping them with replay watching and with a collective Wikipedia-style combo and
                         scenarios that can be searched and filtered quickly for checking things after a game.
+                    </NormalParagraph>
+                    <NormalParagraph last>
+                        Questions, feedback, or want to contribute? Join our
+                        <TextLink href="https://discord.gg/SSQwtSjUeD">Discord server</TextLink>.
                     </NormalParagraph>
                 </SectionCard>
 
