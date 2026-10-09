@@ -32,6 +32,8 @@ final class OkiModerationControllerTest extends DatabaseTestCase
         self::assertCount(1, $this->request($author, 'GET', '/api/okis'));
         self::assertCount(0, $this->request($other, 'GET', '/api/okis'));
         $this->request($other, 'GET', '/api/okis/' . $profileId, null, Response::HTTP_NOT_FOUND);
+        self::assertSame([], $this->anonymousGet('/api/okis'));
+        $this->anonymousGet('/api/okis/' . $profileId, Response::HTTP_NOT_FOUND);
         self::assertCount(1, $this->request($moderator, 'GET', '/api/okis'));
 
         $queue = $this->request($moderator, 'GET', '/api/moderation/queue?contentType=oki');
@@ -45,6 +47,7 @@ final class OkiModerationControllerTest extends DatabaseTestCase
         self::assertCount(1, $this->request($other, 'GET', '/api/okis'));
         $detail = $this->request($other, 'GET', '/api/okis/' . $profileId);
         self::assertFalse($detail['setups'][0]['canEdit']);
+        self::assertCount(1, $this->anonymousGet('/api/okis/' . $profileId)['setups']);
     }
 
     public function testRejectRequiresReasonAndHidesFromOthers(): void
@@ -110,6 +113,17 @@ final class OkiModerationControllerTest extends DatabaseTestCase
      *
      * @return array<string, mixed>
      */
+    /** @return array<mixed> */
+    private function anonymousGet(string $uri, int $expectedStatus = Response::HTTP_OK): array
+    {
+        $this->client->getCookieJar()->clear();
+        $this->loggedInUsername = null;
+        $this->client->request('GET', $uri);
+        self::assertSame($expectedStatus, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+
+        return $expectedStatus >= 400 ? [] : json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+    }
+
     private function request(User $user, string $method, string $uri, ?array $body = null, int $expectedStatus = Response::HTTP_OK): array
     {
         if ($this->loggedInUsername !== $user->getUsername()) {

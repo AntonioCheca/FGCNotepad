@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
-import {canAccessRoute} from "@/src/utils/routeAccess";
+import {canAccessRoute, isAnonymousRoute} from "@/src/utils/routeAccess";
 
 const PUBLIC_ROUTE_PREFIXES = ["/auth/login", "/auth/register"];
 
@@ -44,8 +44,9 @@ export async function proxy(request: NextRequest) {
     }
 
     const cookieHeader = request.headers.get("cookie");
+    const anonymousAllowed = isAnonymousRoute(request.nextUrl.pathname);
     if (!cookieHeader) {
-        return loginRedirect(request);
+        return anonymousAllowed ? NextResponse.next() : loginRedirect(request);
     }
 
     try {
@@ -66,10 +67,10 @@ export async function proxy(request: NextRequest) {
             return NextResponse.next();
         }
     } catch {
-        return loginRedirect(request);
+        return anonymousAllowed ? NextResponse.next() : loginRedirect(request);
     }
 
-    return loginRedirect(request);
+    return anonymousAllowed ? NextResponse.next() : loginRedirect(request);
 }
 
 export const config = {

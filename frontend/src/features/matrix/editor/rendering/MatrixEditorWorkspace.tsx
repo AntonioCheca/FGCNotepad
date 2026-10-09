@@ -37,7 +37,7 @@ interface MatrixEditorWorkspaceProps {
     selectedReferenceLabel: string | null;
     onOpenReferenceLink: (key: string) => void;
     onOpenDynamicCombo: (key: string) => void;
-    onSolve: () => Promise<void>;
+    onSolve?: () => Promise<void>;
     isSolving: boolean;
     showLayerControls: boolean;
     onShowLayerControlsChange: (value: boolean) => void;

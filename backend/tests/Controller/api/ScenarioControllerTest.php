@@ -10,6 +10,7 @@ use App\Entity\ComboSequenceType;
 use App\Entity\ConnectionType;
 use App\Entity\FrameData;
 use App\Entity\Move;
+use App\Entity\ScenarioLayerSolution;
 use App\Entity\CharacterObjectState;
 use App\Entity\Scenario;
 use App\Entity\Step;
@@ -18,6 +19,8 @@ use App\Entity\UserCombo;
 use App\Entity\Visibility;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
 
@@ -594,6 +597,98 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertCount(2, $payload['layers']['2']['columnAxis']);
     }
 
+    public function testSavingScenarioStoresOneSolutionPerLayerAndUpdatesReplaceThem(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Saved Solution Scenario',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildTwoByTwoMatrixPayload([1, 2], [1, 2]),
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $saved = $created['savedSolution'];
+        self::assertSame(2, $saved['maxLayer']);
+        self::assertEquals([1.0, null], $saved['layers']['1']['rowAxis']);
+        self::assertEquals([1.0, null], $saved['layers']['1']['columnAxis']);
+        self::assertEqualsWithDelta(10.0, $saved['layers']['1']['expectedValue'], 0.0001);
+        self::assertEqualsWithDelta(1.0, array_sum($saved['layers']['2']['rowAxis']), 0.0001);
+        self::assertEqualsWithDelta(1.0, array_sum($saved['layers']['2']['columnAxis']), 0.0001);
+        self::assertSame(2, $this->entityManager->getRepository(ScenarioLayerSolution::class)->count([]));
+
+        $this->client->request('PATCH', sprintf('/api/scenarios/%s', $created['id']), [], [], $this->getHeaders(), json_encode([
+            'matrix' => $this->buildTwoByTwoMatrixPayload([1, 1], [1, 1]),
+        ]));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', sprintf('/api/scenarios/%s', $created['id']), [], [], $this->getHeaders());
+        $updated = json_decode((string) $this->client->getResponse()->getContent(), true)['savedSolution'];
+        self::assertSame(1, $updated['maxLayer']);
+        self::assertSame(['1'], array_map('strval', array_keys($updated['layers'])));
+        self::assertEqualsWithDelta(1.0, array_sum($updated['layers']['1']['rowAxis']), 0.0001);
+        self::assertSame(1, $this->entityManager->getRepository(ScenarioLayerSolution::class)->count([]));
+    }
+
+    public function testAnonymousVisitorsReadApprovedScenariosWithTheSavedSolutionButCannotSolve(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Anonymous Scenario',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildTwoByTwoMatrixPayload([1, 2], [1, 2]),
+        ]));
+        $scenarioId = json_decode((string) $this->client->getResponse()->getContent(), true)['id'];
+
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', sprintf('/api/scenarios/%s', $scenarioId));
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $scenario = $this->entityManager->getRepository(Scenario::class)->findOneBy(['publicId' => Uuid::fromString($scenarioId)]);
+        self::assertInstanceOf(Scenario::class, $scenario);
+        $scenario->setModerationState('approved');
+        $this->entityManager->flush();
+
+        $this->client->request('GET', sprintf('/api/scenarios/%s', $scenarioId));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $detail = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(2, $detail['savedSolution']['maxLayer']);
+
+        foreach (['solve-layers', 'solve-linked-ev', 'resolve-dynamic-cells'] as $action) {
+            $this->client->request('POST', sprintf('/api/scenarios/%s/%s', $scenarioId, $action), [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
+            self::assertSame(Response::HTTP_UNAUTHORIZED, $this->client->getResponse()->getStatusCode(), $action);
+        }
+    }
+
+    public function testSaveSolutionsCommandBackfillsScenariosWithoutSavedSolution(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Backfill Scenario',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $this->buildTwoByTwoMatrixPayload([1, 2], [1, 2]),
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $this->entityManager->createQuery('DELETE FROM ' . ScenarioLayerSolution::class . ' solution')->execute();
+        $this->entityManager->clear();
+
+        $tester = new CommandTester((new Application(self::$kernel))->find('app:scenario:save-solutions'));
+        $tester->execute([]);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertSame(2, $this->entityManager->getRepository(ScenarioLayerSolution::class)->count([]));
+    }
+
     public function testSolveLayersRejectsMyKnowledgeMode(): void
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
@@ -1049,6 +1144,31 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
     /**
      * @return array<string, mixed>
      */
+    /**
+     * @param list<int> $rowLayers
+     * @param list<int> $columnLayers
+     *
+     * @return array<string, mixed>
+     */
+    private function buildTwoByTwoMatrixPayload(array $rowLayers, array $columnLayers): array
+    {
+        $summary = ['cellType' => 'summary', 'dataType' => 'number', 'value' => 0.5];
+        $value = static fn (int $number): array => ['cellType' => 'value', 'dataType' => 'number', 'value' => $number];
+
+        return [
+            'kind' => 'matrix-editor',
+            'schemaVersion' => 1,
+            'axes' => ['rows' => ['R1', 'R2'], 'columns' => ['C1', 'C2'], 'rowLayers' => $rowLayers, 'columnLayers' => $columnLayers],
+            'cells' => [[$value(10), $value(2)], [$value(8), $value(6)]],
+            'summary' => [
+                'rowAxis' => [$summary, $summary],
+                'columnAxis' => [$summary, $summary],
+                'expectedValue' => ['cellType' => 'summary', 'dataType' => 'empty', 'value' => null],
+            ],
+            'metadata' => ['matrixId' => 'mx_saved_solution_test', 'title' => 'Saved Solution Test'],
+        ];
+    }
+
     private function buildMatrixPayload(array $rowLayers = [1], array $columnLayers = [1]): array
     {
         return [

@@ -46,7 +46,7 @@ export default function PrivacyPolicyPage() {
                         <strong>Technical data:</strong> a shortened version of your IP address (with the last part removed), browser user
                         agent, the page requested and the date and time, recorded in server access logs. Error logs can include the full
                         IP address of a request that caused an error. Your full IP address is also used to limit repeated login and
-                        registration attempts.
+                        registration attempts and how often visitors without an account can load pages.
                     </>,
                     <>
                         <strong>Traffic and security analytics:</strong> Cloudflare records request data such as IP address, country,
@@ -136,7 +136,7 @@ export default function PrivacyPolicyPage() {
                         Server logs: rotated automatically, with at most 50 MB kept per service. Older entries are overwritten, so how long
                         they last depends on traffic.
                     </>,
-                    <>Login and registration attempt limits: up to one hour.</>,
+                    <>Login, registration and request limits: up to one hour.</>,
                     <>
                         Cloudflare traffic, security and web analytics: kept by Cloudflare for the periods set in its own
                         documentation. We only view them in the Cloudflare dashboard and do not export them.
@@ -208,7 +208,8 @@ export default function PrivacyPolicyPage() {
 
             <LegalSection title="9. Minimum age">
                 <LegalText>
-                    You must be at least 16 to create an account. You do not need an account to read public guides. If we learn
+                    You must be at least 16 to create an account. You do not need an account to read published combos, okis,
+                    blockstrings, scenarios and guides. If we learn
                     that an account belongs to someone under 16, we will deactivate it.
                 </LegalText>
             </LegalSection>

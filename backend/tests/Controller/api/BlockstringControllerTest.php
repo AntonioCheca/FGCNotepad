@@ -68,7 +68,7 @@ class BlockstringControllerTest extends AuthenticatedWebTestCase
         $this->assertSame([], json_decode((string) $this->client->getResponse()->getContent(), true));
     }
 
-    public function testPendingBlockstringIsHiddenFromOtherUsers(): void
+    public function testPendingBlockstringIsHiddenFromOtherUsersAndAnonymousVisitors(): void
     {
         $created = $this->createBlockstring($this->graphPayload());
         $this->assertSame('pending_review', $created['moderationState']);
@@ -89,6 +89,12 @@ class BlockstringControllerTest extends AuthenticatedWebTestCase
         $this->client->request('GET', '/api/blockstrings/' . $created['id']);
         $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
 
+        $this->client->request('GET', '/api/blockstrings?q=BURNOUT');
+        $this->assertSame([], json_decode((string) $this->client->getResponse()->getContent(), true));
+
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', '/api/blockstrings/' . $created['id']);
+        $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
         $this->client->request('GET', '/api/blockstrings?q=BURNOUT');
         $this->assertSame([], json_decode((string) $this->client->getResponse()->getContent(), true));
     }

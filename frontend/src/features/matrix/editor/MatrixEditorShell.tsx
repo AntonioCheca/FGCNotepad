@@ -43,6 +43,7 @@ interface MatrixEditorShellProps {
     displayFrequenciesAsPercent?: boolean;
     resourceContext?: MatrixResourceContext | null;
     currentScenarioId?: string | null;
+    canSolve?: boolean;
     linkedCellResolutions?: Record<string, MatrixLinkedCellResolution>;
 }
 
@@ -68,6 +69,7 @@ export function MatrixEditorShell({
     displayFrequenciesAsPercent = false,
     resourceContext = null,
     currentScenarioId = null,
+    canSolve = true,
     linkedCellResolutions = EMPTY_LINKED_CELL_RESOLUTIONS,
 }: MatrixEditorShellProps) {
     const {solveGame} = useSolverGames();
@@ -233,7 +235,7 @@ export function MatrixEditorShell({
                 selectedReferenceLabel={referenceModel.selectedReferenceLabel}
                 onOpenReferenceLink={openLinkPanelForKey}
                 onOpenDynamicCombo={openDynamicComboPanelForKey}
-                onSolve={solveCurrentMatrix}
+                onSolve={canSolve ? solveCurrentMatrix : undefined}
                 isSolving={isSolving}
                 showLayerControls={showLayerControls}
                 onShowLayerControlsChange={setShowLayerControls}

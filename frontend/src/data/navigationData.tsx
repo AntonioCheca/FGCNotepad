@@ -7,6 +7,7 @@ import {
     FactCheckOutlinedIcon,
     HelpOutlineOutlinedIcon,
     HomeOutlinedIcon,
+    LoginIcon,
     Inventory2OutlinedIcon,
     ManageAccountsOutlinedIcon,
     PendingActionsIcon,
@@ -122,6 +123,12 @@ export const accountNavigationSections: NavigationSection[] = [
                 href: "/profile",
                 icon: <AccountCircleOutlinedIcon/>,
                 requiresAuth: true,
+            },
+            {
+                label: "Log in",
+                href: "/auth/login",
+                icon: <LoginIcon/>,
+                guestOnly: true,
             }
         ]
     },

@@ -39,8 +39,15 @@ export interface ScenarioDetail extends ScenarioListItem {
     searchLabel: string;
     matrix: MatrixPayload;
     comboContext: ScenarioComboContextPayload;
+    savedSolution: ScenarioSavedSolution | null;
     createdAt: string;
     author: string | null;
+}
+
+// Equilibrium stored when the scenario was last saved (standard execution, all resources available).
+export interface ScenarioSavedSolution {
+    maxLayer: number;
+    layers: Record<string, ScenarioLayerSolveSnapshot>;
 }
 
 export type ScenarioPositionLock = "viewer_default_midscreen" | "corner" | "midscreen";

@@ -110,12 +110,20 @@ class Scenario
     #[ORM\OneToOne(mappedBy: 'scenario', targetEntity: ScenarioComboContext::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?ScenarioComboContext $comboContext = null;
 
+    /**
+     * @var Collection<int, ScenarioLayerSolution>
+     */
+    #[ORM\OneToMany(mappedBy: 'scenario', targetEntity: ScenarioLayerSolution::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['layer' => 'ASC'])]
+    private Collection $layerSolutions;
+
     public function __construct()
     {
         $this->layers = new ArrayCollection();
         $this->rows = new ArrayCollection();
         $this->columns = new ArrayCollection();
         $this->cells = new ArrayCollection();
+        $this->layerSolutions = new ArrayCollection();
         $this->publicId = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
@@ -392,6 +400,31 @@ class Scenario
             $this->rows->add($row);
             $row->setScenario($this);
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ScenarioLayerSolution>
+     */
+    public function getLayerSolutions(): Collection
+    {
+        return $this->layerSolutions;
+    }
+
+    public function addLayerSolution(ScenarioLayerSolution $solution): static
+    {
+        if (!$this->layerSolutions->contains($solution)) {
+            $solution->setScenario($this);
+            $this->layerSolutions->add($solution);
+        }
+
+        return $this;
+    }
+
+    public function removeLayerSolution(ScenarioLayerSolution $solution): static
+    {
+        $this->layerSolutions->removeElement($solution);
 
         return $this;
     }

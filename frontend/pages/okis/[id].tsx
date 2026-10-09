@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import {useRouter} from "next/router";
 import useOkis from "@/hooks/useOkis";
+import AuthContext from "@/services/AuthContext";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
@@ -17,6 +18,7 @@ export default function OkiDetailPage() {
     const router = useRouter();
     const {id} = router.query;
     const {getOki} = useOkis();
+    const isAuthenticated = React.useContext(AuthContext)?.isAuthenticated ?? false;
     const [profile, setProfile] = React.useState<OkiProfileDetail | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
@@ -58,9 +60,11 @@ export default function OkiDetailPage() {
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title={okiTitle(profile.move)}>
-                <AppBox sx={{display: "flex", justifyContent: "flex-end"}}>
-                    <Link href={`/okis/${profile.id}/edit`} style={{textDecoration: "none"}}><AppButton type="button" variant="outlined" color="secondary">Edit oki</AppButton></Link>
-                </AppBox>
+                {isAuthenticated ? (
+                    <AppBox sx={{display: "flex", justifyContent: "flex-end"}}>
+                        <Link href={`/okis/${profile.id}/edit`} style={{textDecoration: "none"}}><AppButton type="button" variant="outlined" color="secondary">Edit oki</AppButton></Link>
+                    </AppBox>
+                ) : null}
 
                 {profile.setups.map((setup) => <SetupCard key={setup.id} setup={setup} ender={profile.move} />)}
             </PageShell>

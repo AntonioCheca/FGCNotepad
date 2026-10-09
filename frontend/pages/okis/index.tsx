@@ -3,7 +3,6 @@ import Link from "next/link";
 import useOkis from "@/hooks/useOkis";
 import {CharacterSelect} from "@/src/components/characters/CharacterSelect";
 import {AppBox} from "@/src/components/ui/AppBox";
-import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppDivider} from "@/src/components/ui/AppDivider";
@@ -14,6 +13,7 @@ import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {moveLabel} from "@/src/features/pressure-graph/pressureGraphTypes";
 import type {OkiProfileSummary, OkiSearchFilters} from "@/src/types/oki";
+import {CreateContentLink} from "@/src/components/auth/CreateContentLink";
 
 export default function OkiSearchPage() {
     const {listOkis} = useOkis();
@@ -68,7 +68,7 @@ export default function OkiSearchPage() {
                         }}
                     />
                     <OkiMovePicker key={characterId} label="Ender" value={ender} characterId={characterId || undefined} disabled={!characterId} onChange={setEnder} />
-                    <Link href={characterId ? `/okis/new?characterId=${characterId}` : "/okis/new"} style={{textDecoration: "none", justifySelf: "end"}}><AppButton type="button" variant="contained" color="primary" sx={{width: {xs: "100%", sm: "auto"}}}>Create oki</AppButton></Link>
+                    <CreateContentLink href={characterId ? `/okis/new?characterId=${characterId}` : "/okis/new"} label="Create oki" linkStyle={{justifySelf: "end"}} buttonSx={{width: {xs: "100%", sm: "auto"}}} />
                 </AppPaper>
 
                 {loading ? <AppBox sx={{display: "grid", placeItems: "center", py: 4}}><AppCircularProgress /></AppBox> : <OkiResults items={items} />}

@@ -15,7 +15,7 @@ export function useVisibleNavigationSections(sections: NavigationSection[]): Nav
         const visibleSections: NavigationSection[] = [];
         for (const section of sections) {
             const items = section.items.filter((item) => {
-                if (item.requiresAuth && !isAuthenticated) {
+                if ((item.requiresAuth && !isAuthenticated) || (item.guestOnly && isAuthenticated)) {
                     return false;
                 }
 

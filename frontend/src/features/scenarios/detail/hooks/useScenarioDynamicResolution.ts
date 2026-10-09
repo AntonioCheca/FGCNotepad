@@ -18,10 +18,22 @@ interface UseScenarioDynamicResolutionOptions {
     executionSelection: ScenarioExecutionSelection;
     scenarioResources: ScenarioResourceContextPayload;
     includeCornerSpecific: boolean;
+    // null while the session is still loading; false shows the solution saved with the scenario instead of solving live.
+    liveSolving: boolean | null;
     setScenario: (scenario: ScenarioDetail) => void;
     resolveDynamicCells: (scenarioId: string, executionSelection: ScenarioExecutionSelection, scenarioResources: ScenarioResourceContextPayload, comboContext: {includeCornerSpecific: boolean}) => Promise<ResolveDynamicCellsResponse>;
     solveScenarioLayers: (scenarioId: string, executionSelection: ScenarioExecutionSelection) => Promise<{maxLayer: number; layers: Record<string, ScenarioLayerSolveSnapshot>}>;
     solveScenarioLinkedExpectedValue: (scenarioId: string, executionSelection: ScenarioExecutionSelection, scenarioResources: ScenarioResourceContextPayload, comboContext: {includeCornerSpecific: boolean}) => Promise<ScenarioLinkedExpectedValueResponse>;
+}
+
+function toLayerSnapshots(layers: Record<string, ScenarioLayerSolveSnapshot>): Record<number, ScenarioLayerSolveSnapshot> {
+    return Object.entries(layers).reduce<Record<number, ScenarioLayerSolveSnapshot>>((acc, [layer, snapshot]) => {
+        const numericLayer = Number.parseInt(layer, 10);
+        if (Number.isFinite(numericLayer)) {
+            acc[numericLayer] = snapshot;
+        }
+        return acc;
+    }, {});
 }
 
 export function useScenarioDynamicResolution({
@@ -32,6 +44,7 @@ export function useScenarioDynamicResolution({
     executionSelection,
     scenarioResources,
     includeCornerSpecific,
+    liveSolving,
     setScenario,
     resolveDynamicCells,
     solveScenarioLayers,
@@ -43,6 +56,16 @@ export function useScenarioDynamicResolution({
     const [linkedCellResolutions, setLinkedCellResolutions] = React.useState<Record<string, MatrixLinkedCellResolution>>({});
 
     React.useEffect(() => {
+        if (null === liveSolving) {
+            return;
+        }
+
+        if (!liveSolving) {
+            setLayerSolveSnapshots(toLayerSnapshots(scenario?.savedSolution?.layers ?? {}));
+            setLinkedCellResolutions({});
+            return;
+        }
+
         if (!scenarioId || !scenario || executionSelection.mode === "my_knowledge") {
             setLayerSolveSnapshots({});
             setLinkedCellResolutions({});
@@ -56,13 +79,7 @@ export function useScenarioDynamicResolution({
                     return;
                 }
 
-                const mapped = Object.entries(response.layers).reduce<Record<number, ScenarioLayerSolveSnapshot>>((acc, [layer, snapshot]) => {
-                    const numericLayer = Number.parseInt(layer, 10);
-                    if (Number.isFinite(numericLayer)) {
-                        acc[numericLayer] = snapshot;
-                    }
-                    return acc;
-                }, {});
+                const mapped = toLayerSnapshots(response.layers);
 
                 try {
                     const linked = await solveScenarioLinkedExpectedValue(scenarioId, executionSelection, scenarioResources, {includeCornerSpecific});
@@ -94,7 +111,7 @@ export function useScenarioDynamicResolution({
         return () => {
             canceled = true;
         };
-    }, [executionSelection, includeCornerSpecific, scenario, scenarioId, scenarioResources, solveScenarioLayers, solveScenarioLinkedExpectedValue]);
+    }, [executionSelection, includeCornerSpecific, liveSolving, scenario, scenarioId, scenarioResources, solveScenarioLayers, solveScenarioLinkedExpectedValue]);
 
     const refreshDynamicCombos = React.useCallback(async (): Promise<MatrixPayload> => {
         if (!scenarioId) {
@@ -119,7 +136,7 @@ export function useScenarioDynamicResolution({
     }, [refreshDynamicCombos]);
 
     React.useEffect(() => {
-        if (!scenarioId || loading || error) {
+        if (!scenarioId || loading || error || !liveSolving) {
             return;
         }
 
@@ -146,7 +163,7 @@ export function useScenarioDynamicResolution({
             canceled = true;
             window.clearTimeout(timeoutId);
         };
-    }, [error, loading, refreshDynamicCombos, scenarioId]);
+    }, [error, liveSolving, loading, refreshDynamicCombos, scenarioId]);
 
     return {
         refreshingDynamicCombos,

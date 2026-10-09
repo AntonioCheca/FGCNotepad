@@ -37,6 +37,7 @@ export {default as PlaceOutlinedIcon} from "@mui/icons-material/PlaceOutlined";
 export {default as ManageAccountsOutlinedIcon} from "@mui/icons-material/ManageAccountsOutlined";
 export {default as UploadFileOutlinedIcon} from "@mui/icons-material/UploadFileOutlined";
 export {default as LightbulbOutlinedIcon} from "@mui/icons-material/LightbulbOutlined";
+export {default as LoginIcon} from "@mui/icons-material/Login";
 export {default as LogoutIcon} from "@mui/icons-material/Logout";
 export {default as UnfoldMoreIcon} from "@mui/icons-material/UnfoldMore";
 export {default as HomeOutlinedIcon} from "@mui/icons-material/HomeOutlined";

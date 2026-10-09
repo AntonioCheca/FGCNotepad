@@ -16,6 +16,7 @@ use App\Service\ScenarioExecutionModeService;
 use App\Service\ScenarioLinkedExpectedValueResolverService;
 use App\Service\ScenarioResponseBuilder;
 use App\Service\ScenarioLayerSolveService;
+use App\Service\ScenarioSavedSolutionService;
 use App\Service\ScenarioResourceContextService;
 use App\Service\ScenarioComboContextService;
 use App\Service\ResolveScenarioDynamicComboCellsService;
@@ -45,6 +46,7 @@ class ScenarioController extends AbstractController
         private readonly AggregatedDefenseCatalogService $aggregatedDefenseCatalogService,
         private readonly ScenarioResponseBuilder $scenarioResponseBuilder,
         private readonly ScenarioLayerSolveService $scenarioLayerSolveService,
+        private readonly ScenarioSavedSolutionService $scenarioSavedSolutionService,
         private readonly ScenarioLinkedExpectedValueResolverService $scenarioLinkedExpectedValueResolverService,
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
@@ -110,6 +112,7 @@ class ScenarioController extends AbstractController
                     $this->scenarioComboContextService->buildEffectiveContext($scenario, $data)
                 );
                 $scenario->setAuthor($actor);
+                $this->scenarioSavedSolutionService->refresh($scenario);
                 $this->moderationTransitionService->submitScenarioForReview($scenario);
 
                 $this->entityManager->persist($scenario);
@@ -149,6 +152,7 @@ class ScenarioController extends AbstractController
         $data = $this->decodeRequestBody($request);
 
         $this->entityManager->getConnection()->transactional(function () use ($scenario, $data, $actor): void {
+            $this->scenarioSavedSolutionService->releaseAxisReferences($scenario);
             $this->hydrateScenario($scenario, $data, false, $actor);
 
             if (array_key_exists('matrix', $data) || array_key_exists('attackerCharacterId', $data) || array_key_exists('comboContext', $data)) {
@@ -162,6 +166,7 @@ class ScenarioController extends AbstractController
                 );
             }
 
+            $this->scenarioSavedSolutionService->refresh($scenario);
             $this->moderationTransitionService->submitScenarioForReview($scenario);
 
             $this->entityManager->flush();

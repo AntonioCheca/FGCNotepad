@@ -4,7 +4,6 @@ import useBlockstrings from "@/hooks/useBlockstrings";
 import {CharacterSelect} from "@/src/components/characters/CharacterSelect";
 import {OkiMovePicker, type OkiMoveOption} from "@/src/components/okis/OkiMovePicker";
 import {AppBox} from "@/src/components/ui/AppBox";
-import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
 import {AppPaper} from "@/src/components/ui/AppPaper";
@@ -15,6 +14,7 @@ import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {blockstringTitle} from "@/src/components/blockstrings/blockstringGraphDraft";
 import {moveLabel} from "@/src/features/pressure-graph/pressureGraphTypes";
 import type {BlockstringSummary} from "@/src/types/blockstring";
+import {CreateContentLink} from "@/src/components/auth/CreateContentLink";
 
 export default function BlockstringSearchPage() {
     const {listBlockstrings} = useBlockstrings();
@@ -53,7 +53,7 @@ export default function BlockstringSearchPage() {
                     />
                     <AppTextField size="small" margin="none" label="Search" value={q} onChange={(event) => setQ(event.target.value)} />
                     <OkiMovePicker key={characterId} label="Starting move" value={startingMove} characterId={characterId || undefined} disabled={!characterId} onChange={setStartingMove} />
-                    <Link href={characterId ? `/blockstrings/new?characterId=${characterId}` : "/blockstrings/new"} style={{textDecoration: "none", justifySelf: "end"}}><AppButton type="button" variant="contained" color="primary" sx={{width: {xs: "100%", md: "auto"}}}>Create blockstring</AppButton></Link>
+                    <CreateContentLink href={characterId ? `/blockstrings/new?characterId=${characterId}` : "/blockstrings/new"} label="Create blockstring" linkStyle={{justifySelf: "end"}} buttonSx={{width: {xs: "100%", md: "auto"}}} />
                 </AppPaper>
 
                 {loading ? <AppBox sx={{display: "grid", placeItems: "center", py: 4}}><AppCircularProgress /></AppBox> : <BlockstringResults items={items} />}

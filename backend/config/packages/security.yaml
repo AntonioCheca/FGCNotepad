@@ -61,6 +61,13 @@ security:
         - { path: ^/api/guides, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/scenarios, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/neutral-stats, roles: PUBLIC_ACCESS, methods: [GET] }
+        # Anonymous read access for the public search/detail pages. Writes, solving and the full move list stay behind login;
+        # anonymous reads are rate limited per IP (AnonymousApiReadRateLimitSubscriber).
+        - { path: '^/api/combo-sequences(/requirements/objects|/leafs/list|/\d+|/\d+/resource-ledger)?$', roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/api/okis(/enders|/\d+)?$', roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/api/blockstrings(/\d+)?$', roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/api/(characters|combo-spacings|connection-types|situations|situations/types|moves/search)$', roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/api/moves/[0-9a-fA-F-]{36}$', roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api, roles: ROLE_USER }
 
 # ========================

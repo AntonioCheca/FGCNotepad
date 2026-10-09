@@ -9,6 +9,7 @@ class ScenarioResponseBuilder
     public function __construct(
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ScenarioComboContextService $scenarioComboContextService,
+        private readonly ScenarioSavedSolutionService $scenarioSavedSolutionService,
     ) {
     }
 
@@ -66,6 +67,7 @@ class ScenarioResponseBuilder
             'triggerMoveLabel' => $scenario->getTriggerMove()?->getName(),
             'matrix' => $this->scenarioMatrixMapper->buildMatrixPayload($scenario),
             'comboContext' => $this->scenarioComboContextService->buildPayload($scenario->getComboContext()),
+            'savedSolution' => $this->scenarioSavedSolutionService->buildSnapshot($scenario),
             'createdAt' => $scenario->getCreatedAt()->format(DATE_ATOM),
             'updatedAt' => $scenario->getUpdatedAt()->format(DATE_ATOM),
             'author' => $scenario->getAuthor()?->getUsername(),

@@ -19,7 +19,7 @@ interface MatrixEditorToolbarProps {
     selectedBodyCell: MatrixBodyCell | null;
     onOpenReferenceLink: (key: string) => void;
     onOpenDynamicCombo: (key: string) => void;
-    onSolve: () => void;
+    onSolve?: () => void;
     isSolving: boolean;
     selectedReferenceLabel: string | null;
     onShowLayerControlsChange: (show: boolean) => void;
@@ -88,21 +88,23 @@ export function MatrixEditorToolbar({
                 <button type="button" onClick={() => onShowLayerControlsChange(!showLayerControls)} style={{height: 30}}>
                     {showLayerControls ? "Hide Layers" : "Show Layers"}
                 </button>
-                <button
-                    type="button"
-                    onClick={onSolve}
-                    disabled={isSolving}
-                    style={{
-                        height: 30,
-                        borderRadius: 6,
-                        border: `1px solid ${theme.fgc.action.secondary}`,
-                        background: isSolving ? theme.fgc.action.disabled : `linear-gradient(135deg, ${theme.fgc.action.secondary} 0%, ${theme.fgc.action.secondaryHover} 100%)`,
-                        color: isSolving ? theme.fgc.text.disabled : theme.palette.secondary.contrastText,
-                        fontWeight: 600,
-                    }}
-                >
-                    {isSolving ? "Solving..." : "Solve Game"}
-                </button>
+                {onSolve ? (
+                    <button
+                        type="button"
+                        onClick={onSolve}
+                        disabled={isSolving}
+                        style={{
+                            height: 30,
+                            borderRadius: 6,
+                            border: `1px solid ${theme.fgc.action.secondary}`,
+                            background: isSolving ? theme.fgc.action.disabled : `linear-gradient(135deg, ${theme.fgc.action.secondary} 0%, ${theme.fgc.action.secondaryHover} 100%)`,
+                            color: isSolving ? theme.fgc.text.disabled : theme.palette.secondary.contrastText,
+                            fontWeight: 600,
+                        }}
+                    >
+                        {isSolving ? "Solving..." : "Solve Game"}
+                    </button>
+                ) : null}
                 {selectedReferenceLabel ? <span style={{fontSize: 12, color: theme.fgc.text.muted}}>Linked: {selectedReferenceLabel}</span> : null}
             </div>
 

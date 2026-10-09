@@ -19,7 +19,7 @@ class ScenarioLayerSolveService
     /**
      * @return array{maxLayer:int,layers:array<int, array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null}>}
      */
-    public function solveByLayer(Scenario $scenario, string $executionMode, ?int $difficultyCap): array
+    public function solveByLayer(Scenario $scenario, string $executionMode, ?int $difficultyCap, bool $useCache = true): array
     {
         $rows = $scenario->getRows()->toArray();
         usort($rows, static fn (ScenarioRow $a, ScenarioRow $b): int => $a->getPosition() <=> $b->getPosition());
@@ -39,6 +39,11 @@ class ScenarioLayerSolveService
         $layerSolutions = [];
 
         for ($layer = 1; $layer <= $maxLayer; $layer++) {
+            if (!$useCache) {
+                $layerSolutions[$layer] = $this->solveOneLayer($rows, $columns, $cellsByCoordinate, $layer);
+                continue;
+            }
+
             $cacheKey = $this->buildCacheKey($scenario, $executionMode, $difficultyCap, $layer);
             $cacheItem = $this->cachePool->getItem($cacheKey);
             if ($cacheItem->isHit()) {

@@ -6,6 +6,7 @@ export interface NavigationItem {
     href: string;
     icon?: JSX.Element;
     requiresAuth?: boolean;
+    guestOnly?: boolean;
     allowedRoles?: UserRole[];
 }
 

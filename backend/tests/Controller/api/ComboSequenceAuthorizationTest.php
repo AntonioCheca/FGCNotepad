@@ -164,6 +164,10 @@ class ComboSequenceAuthorizationTest extends DatabaseTestCase
         $this->client->request('GET', sprintf('/api/combo-sequences/%d', $combo->getId()), [], [], $viewerHeaders);
         self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
 
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', sprintf('/api/combo-sequences/%d', $combo->getId()));
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
         $moderatorHeaders = $this->loginHeaders($moderator->getUsername(), 'testpassword');
         $this->client->request(
             'PATCH',
@@ -176,6 +180,10 @@ class ComboSequenceAuthorizationTest extends DatabaseTestCase
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
 
         $this->client->request('GET', sprintf('/api/combo-sequences/%d', $combo->getId()), [], [], $viewerHeaders);
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', sprintf('/api/combo-sequences/%d', $combo->getId()));
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
     }
 

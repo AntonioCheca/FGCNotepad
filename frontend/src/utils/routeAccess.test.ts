@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {canAccessRoute} from "./routeAccess";
+import {canAccessRoute, isAnonymousRoute} from "./routeAccess";
 
 test("public feature routes are open to every signed-in user", () => {
     assert.equal(canAccessRoute("/combos", ["ROLE_USER"]), true);
@@ -27,4 +27,16 @@ test("moderators reach situations but not the rest of admin", () => {
 test("prefixes only match whole path segments", () => {
     assert.equal(canAccessRoute("/administrator-guide", ["ROLE_USER"]), true);
     assert.equal(canAccessRoute("/profile", ["ROLE_USER"]), true);
+});
+
+test("anonymous visitors can read search, detail and legal pages", () => {
+    for (const path of ["/", "/privacy", "/terms", "/about/aboutUs", "/guides", "/guides/turns", "/neutral-stats", "/combos", "/combos/68", "/okis", "/okis/1", "/blockstrings", "/blockstrings/2", "/scenarios", "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144"]) {
+        assert.equal(isAnonymousRoute(path), true, path);
+    }
+});
+
+test("anonymous visitors cannot open create, edit or account pages", () => {
+    for (const path of ["/combos/new", "/okis/new", "/okis/1/edit", "/blockstrings/new", "/scenarios/new", "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144/edit", "/profile", "/moderation/queue", "/admin/users", "/replay-lab"]) {
+        assert.equal(isAnonymousRoute(path), false, path);
+    }
 });
