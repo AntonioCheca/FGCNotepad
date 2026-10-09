@@ -1,5 +1,5 @@
 import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
-import {useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import useCombos from "@/hooks/useCombos";
 import {useCharacters} from "@/hooks/useCharacters";
 import useConnections from "@/hooks/useConnections";
@@ -16,8 +16,6 @@ import type {
     StepDraft,
     TranslateErrorToken,
     TranslateParsedToken,
-    TranslateComboNotationResponse,
-    EstimateComboDamageResponse,
     EstimateComboResourcesResponse,
 } from "@/src/types/combo";
 import {
@@ -27,14 +25,13 @@ import {
     emptyRequirements,
     applyRequirementToggle,
     FormNotice,
-    getCompletedStepsCount,
     parseNotationTokens,
     requirementToggles,
-    toParsedTokens,
-    toTranslatedSteps,
     updateDraftStep,
+    validateComboDraft,
     validateSteps,
 } from "@/src/components/combos/create/utils/comboForm";
+import {type ComboResourceValues, fillDetailsBlocker, toResourceValues, useComboFillDetails} from "@/src/components/combos/create/hooks/useComboFillDetails";
 
 interface UseComboFormControllerProps {
     onSuccess?: () => void;
@@ -50,8 +47,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [minimumDriveCostNoBurnout, setMinimumDriveCostNoBurnout] = usePersistentState<string>("comboForm.minimumDriveCostNoBurnout", "");
     const [superCost, setSuperCost] = usePersistentState<string>("comboForm.superCost", "");
     const [superGain, setSuperGain] = usePersistentState<string>("comboForm.superGain", "");
-    const [description, setDescription] = usePersistentState<string>("comboForm.description", "");
-    const [notes, setNotes] = usePersistentState<string>("comboForm.notes", "");
     const [spacingCode, setSpacingCode] = usePersistentState<string>("comboForm.spacingCode", "");
     const [notationInput, setNotationInput] = usePersistentState<string>("comboForm.notationInput", "");
     const [steps, setSteps] = usePersistentState<StepDraft[]>("comboForm.steps", [], true);
@@ -64,12 +59,15 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const [parseTokens, setParseTokens] = useState<TranslateParsedToken[]>([]);
     const [requirementObjects, setRequirementObjects] = useState<RequirementObjectOption[]>([]);
     const [notice, setNotice] = useState<FormNotice | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
     const [parseSuccessToastOpen, setParseSuccessToastOpen] = useState(false);
     const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
     const [showAdvancedConditions, setShowAdvancedConditions] = useState<boolean>(false);
 
     const {mode: executionMode} = useProfileComboExecutionMode();
-    const {fetchLeafs, createFullCombo, translateComboNotation, estimateComboDamage, estimateComboResources, fetchRequirementObjects, previewResourceLedger} = useCombos();
+    const {fetchLeafs, createFullCombo, estimateComboResources, fetchRequirementObjects, previewResourceLedger} = useCombos();
+    const {fillDetails, estimateDamage} = useComboFillDetails(executionMode);
     const [resourceLedger, setResourceLedger] = useState<ResourceLedgerEntry[]>([]);
     const [leafs, setLeafs] = useState<LeafSequenceOption[]>([]);
 
@@ -130,7 +128,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
 
     const clearDraft = () => {
         setTitle("");
-        setDescription("");
         setDamage("");
         setDriveCost("");
         setDriveGain("");
@@ -138,7 +135,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setMinimumDriveCostNoBurnout("");
         setSuperCost("");
         setSuperGain("");
-        setNotes("");
         setSpacingCode("");
         setNotationInput("");
         setSteps([]);
@@ -151,7 +147,15 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setParseTokens([]);
         setParseSuccessToastOpen(false);
         setSelectedStepIndex(null);
+        setSubmitError(null);
     };
+
+    const applyResourceValues = useCallback((values: ComboResourceValues) => {
+        const setters = {driveCost: setDriveCost, driveGain: setDriveGain, minimumDriveCost: setMinimumDriveCost, minimumDriveCostNoBurnout: setMinimumDriveCostNoBurnout, superCost: setSuperCost, superGain: setSuperGain};
+        for (const [field, value] of Object.entries(values) as Array<[keyof typeof setters, string]>) {
+            setters[field](value);
+        }
+    }, [setDriveCost, setDriveGain, setMinimumDriveCost, setMinimumDriveCostNoBurnout, setSuperCost, setSuperGain]);
 
     const handleChangeStep = (index: number, update: Partial<StepDraft>) => {
         setSteps((previousSteps) =>
@@ -226,20 +230,9 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
 
     const refreshDamageEstimate = async (characterId: string, perfectParry: boolean, blockedDriveImpactStun: boolean) => {
         try {
-            const estimation = (await estimateComboDamage({
-                characterId,
-                notation: notationInput,
-                executionMode,
-                options: {
-                    perfectParry,
-                    driveRushMidCombo: false,
-                    driveImpactState: blockedDriveImpactStun ? "blocked_wallsplat" : "none",
-                    specialCancelIntoSa3: false,
-                },
-            })) as EstimateComboDamageResponse;
-
-            if (Number.isFinite(estimation.estimatedDamage)) {
-                setDamage(String(Math.trunc(estimation.estimatedDamage)));
+            const estimatedDamage = await estimateDamage({characterId, notation: notationInput, perfectParry, blockedDriveImpactStun});
+            if (estimatedDamage !== null) {
+                setDamage(estimatedDamage);
             }
         } catch {
             setNotice({severity: "warning", message: "Notation parsed but damage estimate is currently unavailable."});
@@ -263,98 +256,29 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
 
     const handleFillDetails = async () => {
         const characterId = String(character?.id ?? "").trim();
-        if (!characterId) {
-            setNotice({severity: "error", message: "Select a character before filling details."});
-            return;
-        }
-
-        if (!notationInput.trim()) {
-            setNotice({severity: "error", message: "Enter notation before filling details."});
-            return;
-        }
-
-        if (leafs.length === 0) {
-            setNotice({severity: "error", message: "No leaf moves are loaded for the selected character."});
+        const blocker = fillDetailsBlocker({characterId, notation: notationInput, leafs});
+        if (blocker) {
+            setNotice({severity: "error", message: blocker});
             return;
         }
 
         try {
-            const translated = (await translateComboNotation({
-                characterId,
-                notation: notationInput,
-            })) as TranslateComboNotationResponse;
-
-            const parsedTokenList = toParsedTokens(translated, notationInput);
-            const translatedSteps = toTranslatedSteps(parsedTokenList, translated, leafs, connections);
-
-            setSteps(translatedSteps);
-            setTranslateWarnings(translated.warnings ?? []);
-            setTranslateErrors(translated.errors ?? []);
-            setParseTokens(parsedTokenList);
-            setSelectedStepIndex(translatedSteps.length > 0 ? 0 : null);
-
-            const perfectParry = Boolean(translated.requirements?.perfect_parry_required || requirements.perfect_parry_required);
-            const blockedDriveImpactStun = Boolean(translated.requirements?.blocked_drive_impact_stun_required || requirements.blocked_drive_impact_stun_required);
-            if (translated.requirements) {
-                setRequirements((previousRequirements) => ({
-                    ...previousRequirements,
-                    punish_counter_required: Boolean(translated.requirements?.punish_counter_required) || perfectParry,
-                    counter_hit_required: Boolean(translated.requirements?.counter_hit_required) && !perfectParry,
-                    perfect_parry_required: perfectParry,
-                    blocked_drive_impact_stun_required: blockedDriveImpactStun,
-                    not_crouching_required: Boolean(translated.requirements?.not_crouching_required),
-                }));
+            const result = await fillDetails({characterId, notation: notationInput, leafs, connections, requirements});
+            setSteps(result.steps);
+            setTranslateWarnings(result.warnings);
+            setTranslateErrors(result.errors);
+            setParseTokens(result.parsedTokens);
+            setSelectedStepIndex(result.steps.length > 0 ? 0 : null);
+            setRequirements(result.requirements);
+            if (!title.trim() && result.defaultTitle) {
+                setTitle(result.defaultTitle);
             }
-
-            if (!title.trim()) {
-                const defaultTitle = notationInput.trim().replace(/\s+/g, " ").slice(0, 70);
-                if (defaultTitle.length > 0) {
-                    setTitle(defaultTitle);
-                }
+            if (result.damage !== null) {
+                setDamage(result.damage);
             }
-
-            await refreshDamageEstimate(characterId, perfectParry, blockedDriveImpactStun);
-
-            try {
-                const resources = (await estimateComboResources({
-                    characterId,
-                    steps: translatedSteps.map((step, index) => ({
-                        child_sequence_id: step.move?.id ?? 0,
-                        ordinal_in_combo: index + 1,
-                        connection_type_id: step.connection?.id ?? null,
-                    })),
-                })) as EstimateComboResourcesResponse;
-
-                if (Number.isFinite(resources.driveUsed)) {
-                    setDriveCost(String(resources.driveUsed));
-                }
-                if (Number.isFinite(resources.driveGain)) {
-                    setDriveGain(String(resources.driveGain));
-                }
-                setMinimumDriveCost(Number.isFinite(resources.minimumDriveCost) ? String(resources.minimumDriveCost) : "");
-                setMinimumDriveCostNoBurnout(Number.isFinite(resources.minimumDriveCostNoBurnout) ? String(resources.minimumDriveCostNoBurnout) : "");
-                if (Number.isFinite(resources.superUsed)) {
-                    setSuperCost(String(resources.superUsed));
-                }
-                if (Number.isFinite(resources.superGain)) {
-                    setSuperGain(String(resources.superGain));
-                }
-            } catch {
-                setNotice({severity: "warning", message: "Notation parsed but resource estimate is currently unavailable."});
-            }
-
-            if (translatedSteps.length === 0) {
-                setNotice({severity: "warning", message: "No valid steps were parsed for this character."});
-                return;
-            }
-
-            if ((translated.errors ?? []).length > 0) {
-                setNotice({severity: "warning", message: "Combo parsed partially. Review warnings and complete missing steps manually."});
-                return;
-            }
-
-            setNotice(null);
-            setParseSuccessToastOpen(true);
+            applyResourceValues(result.resources);
+            setNotice(result.notice);
+            setParseSuccessToastOpen(result.notice === null);
         } catch {
             setNotice({severity: "error", message: "Failed to translate combo notation."});
         }
@@ -363,14 +287,9 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
 
-        if (!title.trim()) {
-            setNotice({severity: "error", message: "Title is required."});
-            return;
-        }
-
-        const stepValidationError = validateSteps(steps);
-        if (stepValidationError) {
-            setNotice({severity: "error", message: stepValidationError});
+        const draftError = validateComboDraft({title, damage, steps});
+        if (draftError) {
+            setSubmitError(draftError);
             return;
         }
 
@@ -384,13 +303,13 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         });
 
         if (requirementsResult.error) {
-            setNotice({severity: "error", message: requirementsResult.error});
+            setSubmitError(requirementsResult.error);
             return;
         }
 
         const payload = buildCreateFullComboPayload({
             title,
-            description,
+            inputNotation: notationInput,
             damage,
             driveCost,
             driveGain,
@@ -406,20 +325,22 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             payload.metrics.damageExecutionMode = executionMode;
         }
 
+        setSubmitError(null);
+        setSubmitting(true);
         try {
             await createFullCombo(payload);
             clearDraft();
             setNotice({severity: "success", message: "Combo created successfully."});
             onSuccess?.();
         } catch {
-            setNotice({severity: "error", message: "Failed to create combo."});
+            setSubmitError("Failed to create combo.");
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const notationTokens = parseNotationTokens(notationInput);
-    const completedSteps = getCompletedStepsCount(steps);
     const hasParseResult = parseTokens.length > 0 || steps.length > 0 || translateErrors.length > 0 || translateWarnings.length > 0;
-    const canSubmit = title.trim().length > 0 && steps.length > 0 && completedSteps === steps.length;
     const errorByIndex = useMemo(
         () => new Map<number, TranslateErrorToken>(translateErrors.map((error) => [error.index, error])),
         [translateErrors],
@@ -467,23 +388,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             })),
         })
             .then((resources: EstimateComboResourcesResponse) => {
-                if (canceled) {
-                    return;
-                }
-
-                if (Number.isFinite(resources.driveUsed)) {
-                    setDriveCost(String(resources.driveUsed));
-                }
-                if (Number.isFinite(resources.driveGain)) {
-                    setDriveGain(String(resources.driveGain));
-                }
-                setMinimumDriveCost(Number.isFinite(resources.minimumDriveCost) ? String(resources.minimumDriveCost) : "");
-                setMinimumDriveCostNoBurnout(Number.isFinite(resources.minimumDriveCostNoBurnout) ? String(resources.minimumDriveCostNoBurnout) : "");
-                if (Number.isFinite(resources.superUsed)) {
-                    setSuperCost(String(resources.superUsed));
-                }
-                if (Number.isFinite(resources.superGain)) {
-                    setSuperGain(String(resources.superGain));
+                if (!canceled) {
+                    applyResourceValues(toResourceValues(resources));
                 }
             })
             .catch(() => {
@@ -496,7 +402,7 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         return () => {
             canceled = true;
         };
-    }, [character?.id, estimateComboResources, setDriveCost, setDriveGain, setMinimumDriveCost, setMinimumDriveCostNoBurnout, setSuperCost, setSuperGain, steps]);
+    }, [applyResourceValues, character?.id, estimateComboResources, setMinimumDriveCost, setMinimumDriveCostNoBurnout, steps]);
 
     useEffect(() => {
         if (validateSteps(steps) !== null) {
@@ -542,8 +448,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         minimumDriveCostNoBurnout,
         superCost,
         superGain,
-        description,
-        notes,
         spacingCode,
         notationInput,
         steps,
@@ -556,6 +460,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         characterRequirementObjects,
         objectStates,
         notice,
+        submitError,
+        submitting,
         parseSuccessToastOpen,
         selectedStepIndex,
         showAdvancedConditions,
@@ -570,7 +476,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         selectedObjectIsBoolean,
         selectedObjectIsInteger,
         hasParseResult,
-        canSubmit,
         errorByIndex,
         leafNameById,
         verificationTokens,
@@ -585,8 +490,6 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
         setMinimumDriveCostNoBurnout,
         setSuperCost,
         setSuperGain,
-        setDescription,
-        setNotes,
         setSpacingCode,
         setNotationInput,
         setSpecificRequirementObject,

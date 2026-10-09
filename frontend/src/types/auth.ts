@@ -7,4 +7,6 @@ export interface AuthProfile {
     isActive: boolean;
 }
 
-export type AuthUser = AuthProfile;
+export interface AuthUser extends AuthProfile {
+    hasAcceptedCurrentTerms: boolean;
+}

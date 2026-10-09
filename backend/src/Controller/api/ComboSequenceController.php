@@ -10,8 +10,8 @@ use App\Entity\Move;
 use App\Repository\CharacterRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\ConnectionTypeRepository;
-use App\Repository\SituationRepository;
-use App\Service\CompatibilityResult;
+use App\Service\ComboSearchResult;
+use App\Service\ComboSearchService;
 use App\Service\ComboNotationTranslator;
 use App\Service\ComboNotationDictionaryTranslator;
 use App\Service\NotationCanonicalizer;
@@ -20,14 +20,12 @@ use App\Service\ComboSequenceCreationService;
 use App\Service\ComboSequenceUpdateService;
 use App\Service\ComboStarterModifierExtractor;
 use App\Service\ComboCrouchRequirementInferenceService;
-use App\Service\SituationComboMatcher;
 use App\Service\Sf6ComboDamageEstimatorService;
 use App\Service\Sf6ComboResourceEstimatorService;
 use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
 use App\Service\CharacterResourceService;
 use App\Service\ComboResourceLedgerService;
-use App\Service\ComboValueEstimator;
 use App\Service\ComboLeafOptionFactory;
 use App\Service\ComboDamageMoveInputFactory;
 use App\Service\Modern\ModernMoveExecutionResolver;
@@ -50,6 +48,10 @@ use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 #[Route('/api/combo-sequences', name: 'api_combo_sequences_')]
 class ComboSequenceController extends AbstractController
 {
+    private const MAX_LIST_SIZE = 300;
+    private const DEFAULT_PAGE_SIZE = 50;
+    private const MAX_PAGE_SIZE = 100;
+
     public function __construct(
         private EntityManagerInterface      $entityManager,
         private SerializerInterface         $serializer,
@@ -65,10 +67,8 @@ class ComboSequenceController extends AbstractController
         private NotationCanonicalizer $notationCanonicalizer,
         private Sf6ComboDamageEstimatorService $sf6ComboDamageEstimatorService,
         private Sf6ComboResourceEstimatorService $sf6ComboResourceEstimatorService,
-        private ComboValueEstimator $comboValueEstimator,
         private ComboCrouchRequirementInferenceService $comboCrouchRequirementInferenceService,
-        private SituationRepository $situationRepository,
-        private SituationComboMatcher $situationComboMatcher,
+        private ComboSearchService $comboSearchService,
         private ComboExecutionModePreferenceService $executionModePreferenceService,
         private ComboLeafOptionFactory $comboLeafOptionFactory,
         private ComboDamageMoveInputFactory $comboDamageMoveInputFactory,
@@ -137,82 +137,43 @@ class ComboSequenceController extends AbstractController
             'sortDirection' => $this->normalizeSortDirectionFilter($request->query->get('sortDirection')),
         ];
 
-        $limit = $request->query->getInt('size', 100);
         $situationId = $this->normalizeIntegerFilter($request->query->get('situationId'));
-
         $actor = $this->security->getUser();
-        $executionMode = $this->executionModePreferenceService->resolveForRequest($request, $actor instanceof User ? $actor : null);
+        $actor = $actor instanceof User ? $actor : null;
+        $executionMode = $this->executionModePreferenceService->resolveForRequest($request, $actor);
         $filters['executionMode'] = $executionMode;
-        $sequences = $this->comboSequencesRepository->searchNonLeafsByFilters(
-            $filters,
-            $limit,
-            $actor instanceof User ? $actor : null,
-        );
 
-        $compatibilityByComboId = [];
-        if (null !== $situationId) {
-            $situation = $this->situationRepository->find($situationId);
-            if (null === $situation) {
-                throw new NotFoundHttpException(sprintf('Situation ID %d not found.', $situationId));
-            }
+        if (!$request->query->has('page')) {
+            $limit = max(1, min($request->query->getInt('size', 100), self::MAX_LIST_SIZE));
+            $result = $this->comboSearchService->search($filters, $actor, $situationId, $limit);
 
-            $filteredSequences = [];
-            foreach ($sequences as $sequence) {
-                $result = $this->situationComboMatcher->evaluate($sequence, $situation);
-                if (CompatibilityResult::INCOMPATIBLE === $result->getStatus()) {
-                    continue;
-                }
-
-                $comboId = $sequence->getId();
-                if (null !== $comboId) {
-                    $compatibilityByComboId[$comboId] = $result->toArray();
-                }
-                $filteredSequences[] = $sequence;
-            }
-            $sequences = $filteredSequences;
+            return new JsonResponse($this->normalizeSearchItems($result, $executionMode));
         }
 
-        if ('resourceAdjustedDamage' === $filters['sort'] && (null !== $filters['availableDrive'] || null !== $filters['availableSuper'] || [] !== $filters['availableObjectStatuses'])) {
-            $resourceContext = [
-                'drive' => $filters['availableDrive'] ?? 6.0,
-                'super' => $filters['availableSuper'] ?? 0.0,
-                'objectStatuses' => $filters['availableObjectStatuses'],
-            ];
-            usort($sequences, function (ComboSequences $left, ComboSequences $right) use ($resourceContext, $filters, $executionMode): int {
-                $leftValue = $this->comboValueEstimator->estimateSequenceValue($left, $resourceContext, $executionMode);
-                $rightValue = $this->comboValueEstimator->estimateSequenceValue($right, $resourceContext, $executionMode);
-                if ($leftValue === $rightValue) {
-                    return ($left->getId() ?? 0) <=> ($right->getId() ?? 0);
-                }
-                if (null === $leftValue) {
-                    return 1;
-                }
-                if (null === $rightValue) {
-                    return -1;
-                }
+        $page = max(1, $request->query->getInt('page', 1));
+        $pageSize = max(1, min($request->query->getInt('size', self::DEFAULT_PAGE_SIZE), self::MAX_PAGE_SIZE));
+        $result = $this->comboSearchService->searchPage($filters, $actor, $situationId, $page, $pageSize);
 
-                return 'asc' === $filters['sortDirection'] ? $leftValue <=> $rightValue : $rightValue <=> $leftValue;
-            });
+        return new JsonResponse([
+            'items' => $this->normalizeSearchItems($result, $executionMode),
+            'total' => $result->total,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeSearchItems(ComboSearchResult $result, ComboExecutionMode $executionMode): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = json_decode($this->serializer->serialize($result->items, 'json', [ComboExecutionMode::class => $executionMode]), true, flags: JSON_THROW_ON_ERROR);
+        if ([] === $result->compatibilityByComboId) {
+            return $rows;
         }
 
-        $json = $this->serializer->serialize($sequences, 'json', [ComboExecutionMode::class => $executionMode]);
-
-        if ([] !== $compatibilityByComboId) {
-            $payload = json_decode($json, true);
-            if (is_array($payload)) {
-                foreach ($payload as &$row) {
-                    if (!is_array($row) || !isset($row['id'])) {
-                        continue;
-                    }
-                    $row['compatibility'] = $compatibilityByComboId[(int) $row['id']] ?? null;
-                }
-                unset($row);
-
-                return new JsonResponse($payload, 200);
-            }
-        }
-
-        return new JsonResponse($json, 200, [], true);
+        return array_map(fn (array $row): array => $row + ['compatibility' => $result->compatibilityByComboId[(int) ($row['id'] ?? 0)] ?? null], $rows);
     }
 
     #[Route('/leafs/list', name: 'leafs', methods: ['GET'])]

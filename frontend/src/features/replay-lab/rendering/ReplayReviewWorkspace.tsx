@@ -169,7 +169,7 @@ export function ReplayReviewWorkspace({
                     <ReplaySavedAnnotations annotations={annotations} exportResult={exportResult} onSeek={onSeek} onEditAnnotation={onEditAnnotation} onRemoveAnnotation={onRemoveAnnotation} />
 
                     {showExportProgress ? (
-                        <SectionCard title="Export Progress" tone="sunken" variant="finalize">
+                        <SectionCard title="Export Progress" tone="sunken">
                             <AppStack spacing={0.9}>
                                 <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
                                     <AppChip size="small" label={exportStatusLabel === "idle" ? "Ready" : exportStatusLabel ?? "Preparing"} />

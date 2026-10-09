@@ -12,7 +12,7 @@ const AuthLayout = ({title, children}: AuthLayoutProps) => {
     return (
         <AppContainer maxWidth="sm" sx={{px: {xs: 1.5, sm: 3}, py: {xs: 2.5, sm: 5}}}>
             <PageShell title={title}>
-                <SectionCard title="Credentials" variant="input" tone="raised">
+                <SectionCard title="Credentials" tone="raised">
                     {children}
                 </SectionCard>
             </PageShell>

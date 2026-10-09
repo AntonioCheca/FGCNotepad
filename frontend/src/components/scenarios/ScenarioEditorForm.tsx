@@ -4,10 +4,10 @@ import {useCharacters} from "@/hooks/useCharacters";
 import useMoves from "@/hooks/useMoves";
 import {useScenarios} from "@/hooks/useScenarios";
 import {AppBox} from "@/src/components/ui/AppBox";
+import {AppButton} from "@/src/components/ui/AppButton";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {getScenarioDraftStorageKey, parseScenarioFormDraft, serializeScenarioFormDraft} from "./editor/scenarioEditorDraft";
 import {ScenarioComboEnvironmentSection} from "./editor/ScenarioComboEnvironmentSection";
-import {ScenarioFinalizeSection} from "./editor/ScenarioFinalizeSection";
 import {ScenarioMatrixWorkspaceSection} from "./editor/ScenarioMatrixWorkspaceSection";
 import {ScenarioSetupSection} from "./editor/ScenarioSetupSection";
 import type {CharacterOption, MoveOption, ScenarioEditorFormProps, ScenarioStatusDefinition} from "./editor/scenarioEditorTypes";
@@ -147,8 +147,6 @@ export function ScenarioEditorForm({
         onResetTriggerMove: resetTriggerMove,
     });
 
-    const canSubmit = Boolean(state.name.trim()) && Boolean(state.defenderCharacterId) && Boolean(state.attackerCharacterId) && Boolean(state.triggerMove?.id);
-
     const handleRefreshDynamicCells = React.useCallback(async () => {
         if (!onResolveDynamicCells) {
             return;
@@ -270,7 +268,11 @@ export function ScenarioEditorForm({
 
             {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
 
-            <ScenarioFinalizeSection canSubmit={canSubmit} submitting={submitting} submitLabel={submitLabel} onSubmit={handleSubmit} />
+            <AppBox sx={{display: "flex", justifyContent: {xs: "stretch", sm: "flex-end"}}}>
+                <AppButton type="button" variant="contained" color="primary" disabled={submitting} onClick={() => void handleSubmit()} sx={{width: {xs: "100%", sm: "auto"}, minHeight: 40}}>
+                    {submitting ? "Saving..." : submitLabel}
+                </AppButton>
+            </AppBox>
         </AppBox>
     );
 }

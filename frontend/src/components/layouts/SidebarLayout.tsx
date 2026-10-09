@@ -4,6 +4,7 @@ import {useState} from 'react';
 import { AppBox } from '@/src/components/ui/AppBox';
 import Sidebar from '@/src/components/layouts/Sidebar';
 import MobileBottomNav, {MOBILE_BOTTOM_NAV_HEIGHT} from '@/src/components/navigation/MobileBottomNav';
+import TermsAcceptanceDialog from '@/src/components/legal/TermsAcceptanceDialog';
 
 const COLLAPSED_SIDEBAR_WIDTH = 84;
 const EXPANDED_SIDEBAR_WIDTH = 296;
@@ -45,6 +46,7 @@ export default function SidebarLayout({
                 {children}
             </AppBox>
             <MobileBottomNav/>
+            <TermsAcceptanceDialog/>
         </AppBox>
     );
 }

@@ -80,4 +80,26 @@ class MoveRepositoryTest extends DatabaseTestCase
 
         $this->assertSame([], $results);
     }
+
+    public function testCrossCharacterResultsAreSortedByCharacterNameThenNotation(): void
+    {
+        $blanka = new Character();
+        $blanka->setName('blanka');
+        $this->entityManager->persist($blanka);
+
+        foreach (['5HP', '2HP'] as $notation) {
+            $move = new Move();
+            $move->setCharacter($blanka);
+            $move->setNumpadNotation($notation);
+            $this->entityManager->persist($move);
+        }
+        $this->entityManager->flush();
+
+        $results = $this->moveRepository->queryForSpecificNumpadOrCharactersFromString('HP');
+
+        $this->assertSame(
+            ['Aki 5HP', 'blanka 2HP', 'blanka 5HP', 'Cammy 5HP'],
+            array_map(static fn (Move $move): string => $move->getCharacter()->getName() . ' ' . $move->getNumpadNotation(), $results),
+        );
+    }
 }

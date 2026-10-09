@@ -1,4 +1,5 @@
 import {isDelayConnection} from "@/src/types/combo";
+import {COMBO_CONDITIONS, type ComboConditionKey} from "@/src/components/combos/requirements/comboConditions";
 import type {
     ComboRequirementsPayload,
     ComboObjectStateDraft,
@@ -11,31 +12,14 @@ import type {
     TranslateParsedToken,
 } from "@/src/types/combo";
 
-export type RequirementToggleKey =
-    | "counter_hit_required"
-    | "punish_counter_required"
-    | "perfect_parry_required"
-    | "blocked_drive_impact_stun_required"
-    | "corner_required"
-    | "airborne_required"
-    | "not_crouching_required"
-    | "side_switches_required";
+export type RequirementToggleKey = ComboConditionKey;
 
 export type FormNotice = {
     severity: "success" | "info" | "warning" | "error";
     message: string;
 };
 
-export const requirementToggles: Array<{ key: RequirementToggleKey; label: string }> = [
-    {key: "counter_hit_required", label: "Counter Hit Required"},
-    {key: "punish_counter_required", label: "Punish Counter Required"},
-    {key: "perfect_parry_required", label: "Perfect Parry Starter"},
-    {key: "blocked_drive_impact_stun_required", label: "Blocked DI Stun Starter"},
-    {key: "corner_required", label: "Corner Required"},
-    {key: "airborne_required", label: "Airborne Required"},
-    {key: "not_crouching_required", label: "Opponent Not Crouching"},
-    {key: "side_switches_required", label: "Side Switches Required"},
-];
+export const requirementToggles: Array<{key: RequirementToggleKey; label: string; ariaLabel: string}> = COMBO_CONDITIONS.map(({key, text, label}) => ({key, label: text, ariaLabel: label}));
 
 export const emptyRequirements: ComboRequirementsPayload = {
     counter_hit_required: false,
@@ -240,8 +224,17 @@ export function validateSteps(steps: StepDraft[]): string | null {
     return null;
 }
 
-export function getCompletedStepsCount(steps: StepDraft[]): number {
-    return steps.filter((step, index) => Boolean(step.move?.id) && (index === 0 || Boolean(step.connection?.id))).length;
+// The first problem that blocks saving, phrased for the field it concerns.
+export function validateComboDraft(params: {title: string; damage: string; steps: StepDraft[]}): string | null {
+    if (!params.title.trim()) {
+        return "Add a combo title.";
+    }
+
+    if (!params.damage.trim()) {
+        return "Add the combo damage, or use Fill Details.";
+    }
+
+    return validateSteps(params.steps);
 }
 
 function resolveSpecificStatusPayload(
@@ -409,7 +402,7 @@ export function buildRequirementsPayload(params: {
 
 export function buildCreateFullComboPayload(params: {
     title: string;
-    description: string;
+    inputNotation: string;
     damage: string;
     driveCost: string;
     driveGain: string;
@@ -421,12 +414,12 @@ export function buildCreateFullComboPayload(params: {
     requirements?: ComboRequirementsPayload;
     steps: StepDraft[];
 }): CreateFullComboPayload {
-    const {title, description, damage, driveCost, driveGain, minimumDriveCost = "", minimumDriveCostNoBurnout = "", superCost, superGain, spacingCode = "", requirements, steps} = params;
+    const {title, inputNotation, damage, driveCost, driveGain, minimumDriveCost = "", minimumDriveCostNoBurnout = "", superCost, superGain, spacingCode = "", requirements, steps} = params;
     const metrics = buildMetricsPayload({damage, driveCost, driveGain, minimumDriveCost, minimumDriveCostNoBurnout, superCost, superGain});
 
     return {
         name: title,
-        description: description || undefined,
+        inputNotation: inputNotation.trim() || null,
         spacingCode: spacingCode || null,
         metrics,
         requirements,

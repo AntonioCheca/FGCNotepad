@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\RegistrationInviteCodeService;
 use App\Service\RegistrationService;
+use App\Service\TermsAcceptanceService;
 use App\Tests\DatabaseTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -166,6 +167,7 @@ class AuthControllerTest extends DatabaseTestCase
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $username,
             'password' => 'newpassword',
+            'acceptTerms' => true,
         ]));
 
         $this->assertResponseStatusCodeSame(201);
@@ -180,6 +182,36 @@ class AuthControllerTest extends DatabaseTestCase
         $this->assertSame(['ROLE_USER'], $createdUser->getRoles());
     }
 
+    public function testRegisterRecordsCurrentTermsAcceptance(): void
+    {
+        $username = $this->nextUsername('termsuser');
+        $this->registerUser($username, 'newpassword');
+
+        $this->assertResponseStatusCodeSame(201);
+        $createdUser = $this->userRepository->findOneBy(['username' => $username]);
+        $this->assertNotNull($createdUser);
+        $this->assertSame(TermsAcceptanceService::CURRENT_VERSION, $createdUser->getTermsVersion());
+        $this->assertNotNull($createdUser->getTermsAcceptedAt());
+    }
+
+    public function testRegisterRejectsMissingTermsAcceptance(): void
+    {
+        $username = $this->nextUsername('noterms');
+        foreach ([null, false, 'true'] as $acceptTerms) {
+            $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(array_filter([
+                'username' => $username,
+                'password' => 'newpassword',
+                'acceptTerms' => $acceptTerms,
+            ], static fn (mixed $value): bool => null !== $value)));
+
+            $this->assertResponseStatusCodeSame(400);
+            $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+            $this->assertSame('You must confirm you are at least 16 and accept the Terms of Use.', $payload['message'] ?? null);
+        }
+
+        $this->assertNull($this->userRepository->findOneBy(['username' => $username]));
+    }
+
     public function testRegisterDoesNotBootstrapAdminAcrossMultipleUsers(): void
     {
         $firstUsername = $this->nextUsername('firstuser');
@@ -187,12 +219,14 @@ class AuthControllerTest extends DatabaseTestCase
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $firstUsername,
             'password' => 'firstpassword',
+            'acceptTerms' => true,
         ]));
         $this->assertResponseStatusCodeSame(201);
 
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $secondUsername,
             'password' => 'secondpassword',
+            'acceptTerms' => true,
         ]));
         $this->assertResponseStatusCodeSame(201);
 
@@ -211,12 +245,14 @@ class AuthControllerTest extends DatabaseTestCase
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $username,
             'password' => 'password1',
+            'acceptTerms' => true,
         ]));
         $this->assertResponseStatusCodeSame(201);
 
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $username,
             'password' => 'password2',
+            'acceptTerms' => true,
         ]));
 
         $this->assertResponseStatusCodeSame(409);
@@ -302,7 +338,7 @@ class AuthControllerTest extends DatabaseTestCase
 
         self::assertFalse($inviteCode->isUsed());
 
-        $user = $registrationService->register($this->nextUsername('inviteduser'), 'newpassword', $inviteCode);
+        $user = $registrationService->register($this->nextUsername('inviteduser'), 'newpassword', $inviteCode, true);
         $this->entityManager->refresh($inviteCode);
 
         self::assertTrue($inviteCode->isUsed());
@@ -333,6 +369,7 @@ class AuthControllerTest extends DatabaseTestCase
         $this->client->request('POST', '/api/register', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
             'username' => $username,
             'password' => $password,
+            'acceptTerms' => true,
         ]));
     }
 

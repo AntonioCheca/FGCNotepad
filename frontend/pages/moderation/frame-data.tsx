@@ -188,7 +188,7 @@ export default function FrameDataModerationPage() {
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title="Frame Data Moderation" badgeLabel={selectedCharacterId ? `${moves.length} moves` : "Select character"}>
-                <SectionCard title="Character" variant="review" tone="raised">
+                <SectionCard title="Character" tone="raised">
                     <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, gap: 1, alignItems: {xs: "stretch", sm: "center"}}}>
                         <AppFormControl size="small" sx={{minWidth: {xs: 0, sm: 260}, width: {xs: "100%", sm: "auto"}}}>
                             <AppInputLabel id="frame-data-character-label">Character</AppInputLabel>
@@ -210,7 +210,7 @@ export default function FrameDataModerationPage() {
 
                 {pageError ? <InlineNotice severity="error">{pageError}</InlineNotice> : null}
 
-                <SectionCard title="Imported FAT Fields" variant="review">
+                <SectionCard title="Imported FAT Fields">
                     {loadingMoves ? (
                         <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}><AppCircularProgress/></AppBox>
                     ) : moves.length === 0 ? (
@@ -256,7 +256,7 @@ export default function FrameDataModerationPage() {
                 </SectionCard>
 
                 {resources.length > 0 && moves.length > 0 ? (
-                    <SectionCard title="Resource Effects" variant="review">
+                    <SectionCard title="Resource Effects">
                         <MoveResourceEffectsSection
                             moves={moves}
                             resources={resources}
@@ -270,7 +270,7 @@ export default function FrameDataModerationPage() {
                     <ModernControlsSection characterId={selectedCharacterId} moves={moves} onMoveSaved={handleModernSaved} onFeedback={showToast} />
                 ) : null}
 
-                <SectionCard title="Manual Metadata" variant="review">
+                <SectionCard title="Manual Metadata">
                     {moves.length === 0 ? (
                         <InlineNotice severity="info">Select a character to edit project-specific metadata.</InlineNotice>
                     ) : (

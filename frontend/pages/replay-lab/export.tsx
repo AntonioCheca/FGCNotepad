@@ -230,7 +230,7 @@ export default function ReplayLabExportRoute() {
             badgeLabel="Replay Lab Export"
         >
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", xl: "0.9fr 1.1fr"}, gap: 1.5}}>
-                <SectionCard title="Source File" tone="raised" variant="input">
+                <SectionCard title="Source File" tone="raised">
                     <AppStack spacing={1.1}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
                         {!isIsolated ? <AppAlert severity="warning">Browser export headers are not active. Restart the frontend dev server and open this page directly.</AppAlert> : null}
@@ -258,7 +258,7 @@ export default function ReplayLabExportRoute() {
                     </AppStack>
                 </SectionCard>
 
-                <SectionCard title="Clips" tone="sunken" variant="finalize">
+                <SectionCard title="Clips" tone="sunken">
                     <AppStack spacing={1}>
                         {annotations.map((annotation) => (
                             <AppBox key={annotation.id} sx={(theme) => ({display: "grid", gap: 0.35, p: 1, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.25, backgroundColor: theme.fgc.surface.base})}>

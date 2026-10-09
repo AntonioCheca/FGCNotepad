@@ -122,12 +122,12 @@ type FgcTokenGroup = {
         helper: string;
         metadata: string;
     };
-    comboRequirement: {
-        counterHit: string;
-        punishCounter: string;
-        perfectParry: string;
-        wallsplat: string;
-        corner: string;
+    resourceGauge: {
+        driveFill: string;
+        superFill: string;
+        superTrack: string;
+        superEdge: string;
+        superNumeral: string;
     };
     pressureGraph: {
         normal: string;

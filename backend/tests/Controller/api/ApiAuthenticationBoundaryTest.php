@@ -20,6 +20,7 @@ final class ApiAuthenticationBoundaryTest extends DatabaseTestCase
             json_encode([
                 'username' => 'public_register_user',
                 'password' => 'testpassword',
+                'acceptTerms' => true,
             ])
         );
 

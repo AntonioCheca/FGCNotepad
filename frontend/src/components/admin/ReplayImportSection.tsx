@@ -149,7 +149,7 @@ export function ReplayImportSection({title, singleFormat, bundleFormat, submitLa
     };
 
     return (
-        <SectionCard title={title} variant="input" tone="raised">
+        <SectionCard title={title} tone="raised">
             <AppBox sx={{display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1.25, minWidth: 0}}>
                 <input
                     ref={fileInputRef}

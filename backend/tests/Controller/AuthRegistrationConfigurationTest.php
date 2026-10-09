@@ -46,7 +46,7 @@ final class AuthRegistrationConfigurationTest extends TestCase
         $registrationService
             ->expects($this->once())
             ->method('register')
-            ->with('invited_user', 'testpassword', $this->identicalTo($inviteCode))
+            ->with('invited_user', 'testpassword', $this->identicalTo($inviteCode), true)
             ->willReturn($user);
 
         $inviteCodeService = $this->createMock(RegistrationInviteCodeService::class);
@@ -68,6 +68,7 @@ final class AuthRegistrationConfigurationTest extends TestCase
             'username' => 'invited_user',
             'password' => 'testpassword',
             'inviteCode' => 'fgt-alpha-valid',
+            'acceptTerms' => true,
         ])));
 
         self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());

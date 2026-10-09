@@ -10,7 +10,7 @@ import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 export function ReplayLabChooserPage() {
     return (
         <PageShell title="Replay Lab" badgeLabel="Choose Flow">
-            <SectionCard title="Mode" tone="raised" variant="review">
+            <SectionCard title="Mode" tone="raised">
                 <AppStack spacing={{xs: 1, md: 1.25}} sx={{maxWidth: 720}}>
                     <AppTypography component="ul" sx={{m: 0, pl: 2.1, display: {xs: "none", sm: "block"}}}>
                         <li>Local: MP4 on your machine, generate clips here.</li>

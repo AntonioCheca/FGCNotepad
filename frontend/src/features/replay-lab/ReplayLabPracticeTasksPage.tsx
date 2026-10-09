@@ -81,7 +81,6 @@ export function ReplayLabPracticeTasksPage() {
                 <SectionCard
                     title="Pending drills"
                     tone="raised"
-                    variant="review"
                 >
                     <AppStack spacing={{xs: 0.8, md: 1}}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
@@ -139,7 +138,6 @@ export function ReplayLabPracticeTasksPage() {
                 <SectionCard
                     title="Drill clip"
                     tone="sunken"
-                    variant="finalize"
                 >
                     <AppStack spacing={{xs: 0.85, md: 1.1}}>
                         {selectedTask ? (

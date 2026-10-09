@@ -1,17 +1,13 @@
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCollapse} from "@/src/components/ui/AppCollapse";
-import {AppPaper} from "@/src/components/ui/AppPaper";
-import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
 import type {ScenarioType} from "@/hooks/useScenarios";
 import {ScenarioContextFiltersSection} from "./ScenarioContextFiltersSection";
 import {ScenarioPrimaryFiltersSection} from "./ScenarioPrimaryFiltersSection";
-import {ScenarioSearchFiltersHeader} from "./ScenarioSearchFiltersHeader";
 import type {ScenarioCharacterOption, ScenarioSearchFilterState, ScenarioTriggerMoveOption} from "../scenarioSearchTypes";
 
 interface ScenarioSearchFiltersPanelProps {
     filterState: ScenarioSearchFilterState;
-    activeFilterCount: number;
     characterOptions: ScenarioCharacterOption[];
     selectedAttacker: ScenarioCharacterOption | null;
     selectedDefender: ScenarioCharacterOption | null;
@@ -30,7 +26,6 @@ interface ScenarioSearchFiltersPanelProps {
 
 export function ScenarioSearchFiltersPanel({
     filterState,
-    activeFilterCount,
     characterOptions,
     selectedAttacker,
     selectedDefender,
@@ -47,9 +42,7 @@ export function ScenarioSearchFiltersPanel({
     onResetFilters,
 }: ScenarioSearchFiltersPanelProps) {
     return (
-        <AppPaper variant="outlined" sx={{p: {xs: 1, md: 1.5}, borderRadius: {xs: 2, md: 2.5}, display: "grid", gap: {xs: 0.75, md: 1}}}>
-            <ScenarioSearchFiltersHeader activeFilterCount={activeFilterCount} />
-
+        <AppBox sx={{display: "grid", gap: 1.25}}>
             <ScenarioPrimaryFiltersSection
                 characterOptions={characterOptions}
                 selectedAttacker={selectedAttacker}
@@ -65,24 +58,22 @@ export function ScenarioSearchFiltersPanel({
                 onDefenderChange={onDefenderChange}
             />
 
-            <ActionBar>
-                <AppButton type="button" variant="text" color="secondary" onClick={onToggleAdvancedFilters} sx={{color: "text.secondary"}}>
+            <AppCollapse in={filterState.showAdvancedFilters} timeout={200} unmountOnExit>
+                <ScenarioContextFiltersSection
+                    scenarioType={filterState.scenarioType}
+                    query={filterState.query}
+                    compactFieldSx={compactFieldSx}
+                    onScenarioTypeChange={onScenarioTypeChange}
+                    onQueryChange={onQueryChange}
+                />
+            </AppCollapse>
+
+            <AppBox sx={{display: "flex", gap: 1, flexWrap: "wrap", "& .MuiButton-root": {flex: {xs: "1 1 0", sm: "0 0 auto"}}}}>
+                <AppButton type="button" variant="text" color="secondary" onClick={onToggleAdvancedFilters} aria-expanded={filterState.showAdvancedFilters}>
                     {filterState.showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}
                 </AppButton>
-                <AppButton type="button" variant="outlined" color="secondary" onClick={onResetFilters}>Clear Filters</AppButton>
-            </ActionBar>
-
-            <AppCollapse in={filterState.showAdvancedFilters} timeout={200} unmountOnExit>
-                <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}, pt: {xs: 0.5, md: 0.75}}}>
-                    <ScenarioContextFiltersSection
-                        scenarioType={filterState.scenarioType}
-                        query={filterState.query}
-                        compactFieldSx={compactFieldSx}
-                        onScenarioTypeChange={onScenarioTypeChange}
-                        onQueryChange={onQueryChange}
-                    />
-                </AppBox>
-            </AppCollapse>
-        </AppPaper>
+                <AppButton type="button" variant="text" color="secondary" onClick={onResetFilters}>Clear Filters</AppButton>
+            </AppBox>
+        </AppBox>
     );
 }

@@ -6,7 +6,6 @@ import {AppInputLabel} from "@/src/components/ui/AppInputLabel";
 import {AppMenuItem} from "@/src/components/ui/AppMenuItem";
 import {AppSelect} from "@/src/components/ui/AppSelect";
 import {AppTextField} from "@/src/components/ui/AppTextField";
-import {AppTypography} from "@/src/components/ui/AppTypography";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import type {ScenarioCharacterStatusPayload, ScenarioComboContextPayload, ScenarioPositionLock} from "@/hooks/useScenarios";
 import type {ScenarioStatusDefinition} from "./scenarioEditorTypes";
@@ -41,12 +40,7 @@ export function ScenarioComboEnvironmentSection({
     const selectedStatusDefinition = statusCatalog.find((status) => status.name === statusObjectName) ?? null;
 
     return (
-        <SectionCard
-            title="Combo Environment"
-            description="Lock only scenario-wide combo assumptions that are part of the setup. Leave normal cases viewer-controlled."
-            tone="default"
-            variant="input"
-        >
+        <SectionCard title="Combo Environment">
             <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}}}>
                 <AppFormControl size="small">
                     <AppInputLabel id="combo-position-lock-label">Position Lock</AppInputLabel>
@@ -115,9 +109,7 @@ export function ScenarioComboEnvironmentSection({
                             <AppChip key={status.object_name} label={`${status.object_name}: ${String(status.status_required)}`} onDelete={() => onRemoveStatusLock(status.object_name)} />
                         ))}
                     </AppBox>
-                ) : (
-                    <AppTypography variant="body2" color="text.secondary">No character status locks.</AppTypography>
-                )}
+                ) : null}
             </AppBox>
         </SectionCard>
     );

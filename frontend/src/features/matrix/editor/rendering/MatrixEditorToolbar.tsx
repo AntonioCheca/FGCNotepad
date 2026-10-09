@@ -21,8 +21,6 @@ interface MatrixEditorToolbarProps {
     onOpenDynamicCombo: (key: string) => void;
     onSolve: () => void;
     isSolving: boolean;
-    rowCount: number;
-    columnCount: number;
     selectedReferenceLabel: string | null;
     onShowLayerControlsChange: (show: boolean) => void;
 }
@@ -38,8 +36,6 @@ export function MatrixEditorToolbar({
     onOpenDynamicCombo,
     onSolve,
     isSolving,
-    rowCount,
-    columnCount,
     selectedReferenceLabel,
     onShowLayerControlsChange,
 }: MatrixEditorToolbarProps) {
@@ -107,10 +103,6 @@ export function MatrixEditorToolbar({
                 >
                     {isSolving ? "Solving..." : "Solve Game"}
                 </button>
-                <span style={{fontSize: 12, color: theme.fgc.text.secondary}}>
-                    {rowCount}x{columnCount}
-                </span>
-                <span style={{fontSize: 12, color: theme.fgc.text.muted}}>{editable ? "Mode: Edit" : "Mode: View"}</span>
                 {selectedReferenceLabel ? <span style={{fontSize: 12, color: theme.fgc.text.muted}}>Linked: {selectedReferenceLabel}</span> : null}
             </div>
 

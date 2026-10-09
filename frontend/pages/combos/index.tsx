@@ -11,19 +11,24 @@ import ComboFilters, {ComboSearchFilters} from "@/src/components/combos/ComboFil
 import ComboTable from "@/src/components/combos/ComboTable";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
+import {PaginationBar} from "@/src/components/ui/tactical/PaginationBar";
 import useCombos from "@/hooks/useCombos";
-import {ComboRow, mapComboToRow} from "@/src/types/combo";
+import {ComboRow, type ComboSearchPage, mapComboToRow} from "@/src/types/combo";
 import type {ComboSortDirection, ComboSortField} from "@/src/components/combos/filters/comboFilterTypes";
 import {ComboExecutionModeSelect} from "@/src/components/combos/execution/ComboExecutionModeSelect";
 import {useProfileComboExecutionMode} from "@/hooks/useProfileComboExecutionMode";
 import type {ComboExecutionMode} from "@/src/types/comboExecution";
 
+const PAGE_SIZE = 50;
+
 export default function SearchCombosPage() {
     const router = useRouter();
     const {fetchCombos} = useCombos();
     const initialFilters = useMemo(() => buildFiltersFromQuery(router.query), [router.query]);
-    const [filters, setFilters] = useState<ComboSearchFilters>({...initialFilters, sort: "resourceAdjustedDamage"});
+    const [filters, setFilters] = useState<ComboSearchFilters>({...initialFilters, sort: "resourceAdjustedDamage", page: 1});
     const [combos, setCombos] = useState<ComboRow[]>([]);
+    const [total, setTotal] = useState(0);
+    const resultsRef = useRef<HTMLDivElement | null>(null);
     const [loading, setLoading] = useState(true);
     const [hasLoadedAtLeastOnce, setHasLoadedAtLeastOnce] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -42,9 +47,10 @@ export default function SearchCombosPage() {
                 ...newFilters,
                 sort: currentFilters.sort ?? "resourceAdjustedDamage",
                 sortDirection: currentFilters.sortDirection ?? "desc",
+                page: currentFilters.page ?? 1,
             } satisfies ComboSearchFilters;
 
-            return areFiltersEqual(currentFilters, nextFilters) ? currentFilters : nextFilters;
+            return areFiltersEqual(currentFilters, nextFilters) ? currentFilters : {...nextFilters, page: 1};
         });
     }, [areFiltersEqual]);
 
@@ -53,7 +59,18 @@ export default function SearchCombosPage() {
             ...currentFilters,
             sort: field,
             sortDirection: field === "seasonStartDate" ? "desc" : direction,
+            page: 1,
         }));
+    }, []);
+
+    const handlePageChange = useCallback((page: number) => {
+        setFilters((currentFilters) => ({...currentFilters, page}));
+        resultsRef.current?.scrollIntoView({block: "start", behavior: "smooth"});
+    }, []);
+
+    const handleExecutionModeChange = useCallback((mode: ComboExecutionMode) => {
+        setChosenExecutionMode(mode);
+        setFilters((currentFilters) => ({...currentFilters, page: 1}));
     }, []);
 
     const loadCombos = useCallback(async () => {
@@ -66,13 +83,13 @@ export default function SearchCombosPage() {
         setErrorMessage(null);
 
         try {
-            const data = await fetchCombos({...filters, executionMode});
+            const data = await fetchCombos({...filters, page: filters.page ?? 1, size: PAGE_SIZE, executionMode}) as ComboSearchPage;
             if (requestSequence.current !== currentRequestId) {
                 return;
             }
 
-            const mapped = (data ?? []).map(mapComboToRow);
-            setCombos(mapped);
+            setCombos(data.items.map(mapComboToRow));
+            setTotal(data.total);
             setHasLoadedAtLeastOnce(true);
         } catch {
             if (requestSequence.current !== currentRequestId) {
@@ -96,11 +113,11 @@ export default function SearchCombosPage() {
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell
                 title="Search Combos"
-                badgeLabel={`${combos.length} result${combos.length === 1 ? "" : "s"}`}
+                badgeLabel={`${total} result${total === 1 ? "" : "s"}`}
             >
                 {errorMessage ? <InlineNotice severity="error">{errorMessage}</InlineNotice> : null}
                 <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: {xs: "stretch", sm: "flex-end"}, alignItems: {sm: "center"}, gap: 1}}>
-                    <ComboExecutionModeSelect value={executionMode} onChange={setChosenExecutionMode} disabled={profileExecutionModeLoading} />
+                    <ComboExecutionModeSelect value={executionMode} onChange={handleExecutionModeChange} disabled={profileExecutionModeLoading} />
                     <Link href="/combos/new" style={{textDecoration: "none"}}>
                         <AppButton type="button" variant="contained" color="primary" sx={{width: {xs: "100%", sm: "auto"}}}>Create combo</AppButton>
                     </Link>
@@ -119,12 +136,16 @@ export default function SearchCombosPage() {
                         <AppTypography variant="body2" color="text.secondary">Loading combos...</AppTypography>
                     </AppBox>
                 ) : (
-                    <ComboTable
-                        combos={combos}
-                        sort={filters.sort ?? "resourceAdjustedDamage"}
-                        sortDirection={filters.sortDirection ?? "desc"}
-                        onSortChange={handleSortChange}
-                    />
+                    <AppBox ref={resultsRef} sx={{scrollMarginTop: 16, minWidth: 0}}>
+                        <ComboTable
+                            key={filters.page ?? 1}
+                            combos={combos}
+                            sort={filters.sort ?? "resourceAdjustedDamage"}
+                            sortDirection={filters.sortDirection ?? "desc"}
+                            onSortChange={handleSortChange}
+                        />
+                        <PaginationBar page={filters.page ?? 1} pageSize={PAGE_SIZE} total={total} disabled={loading} onPageChange={handlePageChange} />
+                    </AppBox>
                 )}
             </PageShell>
         </AppContainer>

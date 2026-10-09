@@ -9,17 +9,23 @@ import {AppButton} from "@/src/components/ui/AppButton";
 import {AppBox} from "@/src/components/ui/AppBox";
 import AuthContext from "@/services/AuthContext";
 import {AuthUser} from "@/src/types/auth";
+import {AppCheckbox} from "@/src/components/ui/AppCheckbox";
+import {AppFormControlLabel} from "@/src/components/ui/AppFormControlLabel";
+import {AppTypography} from "@/src/components/ui/AppTypography";
+import {TextLink} from "@/src/components/ui/TextLink";
 
 interface RegisterFormData {
     username: string;
     password: string;
     inviteCode: string;
+    acceptTerms: boolean;
 }
 
 const schema = yup.object().shape({
     username: yup.string().min(4, 'Username must be at least 4 characters').required('Username is required'),
     password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
     inviteCode: yup.string().required('Invite code is required'),
+    acceptTerms: yup.boolean().required().oneOf([true], 'You must be at least 16 and accept the Terms of Use'),
 });
 
 const RegisterForm = () => {
@@ -38,14 +44,15 @@ const RegisterForm = () => {
         register,
         handleSubmit,
         formState: {errors},
-    } = useForm<RegisterFormData>({resolver: yupResolver(schema)});
+    } = useForm<RegisterFormData>({resolver: yupResolver(schema), defaultValues: {acceptTerms: false}});
+    const {ref: acceptTermsRef, ...acceptTermsField} = register("acceptTerms");
 
     const onSubmit = async (data: RegisterFormData) => {
         setLoading(true);
         setMessage('');
 
         try {
-            await registerUser(data.username, data.password, data.inviteCode);
+            await registerUser(data.username, data.password, data.inviteCode, data.acceptTerms);
             const loginData = await loginUser(data.username, data.password);
             const user = loginData?.user as AuthUser | undefined;
             const csrfToken = loginData?.csrfToken;
@@ -68,6 +75,20 @@ const RegisterForm = () => {
             <InputField label="Username" type="username" name="username" register={register} errors={errors}/>
             <InputField label="Password" type="password" name="password" register={register} errors={errors}/>
             <InputField label="Invite code" type="text" name="inviteCode" register={register} errors={errors}/>
+            <AppFormControlLabel
+                control={<AppCheckbox inputRef={acceptTermsRef} {...acceptTermsField}/>}
+                label="I am at least 16 and I accept the Terms of Use"
+                sx={{minHeight: 44}}
+            />
+            {errors.acceptTerms ? <AppAlert severity="error">{errors.acceptTerms.message}</AppAlert> : null}
+            <AppTypography variant="body2" color="text.secondary">
+                Antonio Checa processes your account data to run the site and moderate contributions. You can access or delete
+                it at any time.
+            </AppTypography>
+            <AppBox sx={{display: "flex", flexWrap: "wrap", columnGap: 2, "& a": {display: "inline-flex", alignItems: "center", minHeight: 44}}}>
+                <TextLink href="/terms">Terms of Use</TextLink>
+                <TextLink href="/privacy">Privacy Policy</TextLink>
+            </AppBox>
             {message ? <AppAlert severity="error">{message}</AppAlert> : null}
             <AppButton disabled={loading} fullWidth sx={{minHeight: 44}}>
                 {loading ? 'Registering...' : 'Register'}

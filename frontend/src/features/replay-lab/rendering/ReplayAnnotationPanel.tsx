@@ -46,7 +46,7 @@ export function ReplayAnnotationPanel({
     onResetAnnotationForm,
 }: ReplayAnnotationPanelProps) {
     return (
-        <SectionCard title="Annotation" tone="raised" variant="input">
+        <SectionCard title="Annotation" tone="raised">
             <AppStack spacing={{xs: 0.65, md: 0.75}}>
                 <AppTypography variant="body2" color={clipDurationMs !== null && clipDurationMs > 10000 ? "error" : "text.secondary"}>
                     {clipStartMs === null ? "Start unset" : `Start ${formatTimestamp(clipStartMs)}`} - {clipEndMs === null ? "End unset" : `End ${formatTimestamp(clipEndMs)}`} - {clipDurationMs === null ? "No duration" : formatTimestamp(Math.max(0, clipDurationMs))}

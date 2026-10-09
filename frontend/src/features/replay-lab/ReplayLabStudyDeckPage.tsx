@@ -98,7 +98,6 @@ export function ReplayLabStudyDeckPage() {
                 <SectionCard
                     title="Due card"
                     tone="raised"
-                    variant="review"
                 >
                     <AppStack spacing={{xs: 0.85, md: 1.1}}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
@@ -160,7 +159,6 @@ export function ReplayLabStudyDeckPage() {
                 <SectionCard
                     title="Queue status"
                     tone="sunken"
-                    variant="finalize"
                 >
                     <AppStack spacing={{xs: 0.75, md: 1}}>
                         <AppStack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>

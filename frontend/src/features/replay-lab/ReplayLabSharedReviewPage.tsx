@@ -196,7 +196,6 @@ export function ReplayLabSharedReviewPage() {
                 <SectionCard
                     title={review?.session.title ?? "Loading shared review"}
                     tone="raised"
-                    variant="review"
                 >
                     <AppStack spacing={{xs: 0.85, md: 1.1}}>
                         {error ? <AppAlert severity="error" onClose={() => setError(null)}>{error}</AppAlert> : null}
@@ -272,7 +271,6 @@ export function ReplayLabSharedReviewPage() {
                 <SectionCard
                     title="Existing annotations"
                     tone="sunken"
-                    variant="finalize"
                 >
                     <AppStack spacing={{xs: 0.75, md: 1}}>
                         {annotations.length === 0 ? <AppTypography color="text.secondary">No annotations yet.</AppTypography> : null}

@@ -55,13 +55,3 @@ export function buildScenarioSearchDraft(state: ScenarioSearchFilterState): Scen
         triggerMoveId: state.triggerMoveSelection?.id ?? undefined,
     };
 }
-
-export function countActiveScenarioFilters(filters: ScenarioSearchDraft): number {
-    return [
-        Boolean(filters.q),
-        Boolean(filters.scenarioType),
-        Boolean(filters.defenderCharacterId),
-        Boolean(filters.attackerCharacterId),
-        Boolean(filters.triggerMoveId),
-    ].filter(Boolean).length;
-}

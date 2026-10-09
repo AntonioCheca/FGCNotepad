@@ -89,6 +89,7 @@ export function ReplayYouTubePlayer({videoId, fps, title, seekCommand, onPlaybac
             const typedWindow = window as YouTubeWindow;
             createdPlayer = new typedWindow.YT!.Player(playerElementId, {
                 videoId,
+                host: "https://www.youtube-nocookie.com",
                 playerVars: {
                     enablejsapi: 1,
                     origin: window.location.origin,

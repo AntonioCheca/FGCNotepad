@@ -9,7 +9,6 @@ import {AppSelect} from "@/src/components/ui/AppSelect";
 import {AppSlider} from "@/src/components/ui/AppSlider";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
-import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import type {ComboDriveWindowFilters, ComboDriveWindowMetric} from "./comboFilterTypes";
 
 const driveWindowOptions: Array<{metric: ComboDriveWindowMetric; label: string}> = [
@@ -25,7 +24,7 @@ interface ComboDriveWindowsFiltersSectionProps {
     onDriveWindowRangeChange: (metric: ComboDriveWindowMetric, min?: string, max?: string) => void;
 }
 
-export function ComboDriveWindowsFiltersSection({driveWindows, onAddDriveWindow, onRemoveDriveWindow, onDriveWindowRangeChange}: ComboDriveWindowsFiltersSectionProps) {
+export function ComboDriveWindowsFilters({driveWindows, onAddDriveWindow, onRemoveDriveWindow, onDriveWindowRangeChange}: ComboDriveWindowsFiltersSectionProps) {
     const availableOptions = driveWindowOptions.filter(({metric}) => !driveWindows[metric].enabled);
     const activeOptions = driveWindowOptions.filter(({metric}) => driveWindows[metric].enabled);
     const [selectedMetric, setSelectedMetric] = React.useState<ComboDriveWindowMetric>(availableOptions[0]?.metric ?? "driveCost");
@@ -34,40 +33,38 @@ export function ComboDriveWindowsFiltersSection({driveWindows, onAddDriveWindow,
         : availableOptions[0]?.metric ?? "driveCost";
 
     return (
-        <SectionCard title="Drive Windows" tone="default" variant="review">
-            <AppBox sx={{display: "grid", gap: 1}}>
-                {availableOptions.length > 0 ? (
-                    <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "minmax(210px, 280px) auto"}, gap: 1, alignItems: "center", justifyContent: "start"}}>
-                        <AppFormControl size="small" sx={{minWidth: {xs: "100%", sm: 240}}}>
-                            <AppInputLabel id="combo-drive-window-select-label">Metric</AppInputLabel>
-                            <AppSelect<ComboDriveWindowMetric>
-                                labelId="combo-drive-window-select-label"
-                                label="Metric"
-                                value={effectiveSelectedMetric}
-                                onChange={(event) => setSelectedMetric(event.target.value as ComboDriveWindowMetric)}
-                            >
-                                {availableOptions.map(({metric, label}) => <AppMenuItem key={metric} value={metric}>{label}</AppMenuItem>)}
-                            </AppSelect>
-                        </AppFormControl>
-                        <AppButton type="button" variant="outlined" color="secondary" onClick={() => onAddDriveWindow(effectiveSelectedMetric)} sx={{justifySelf: {xs: "stretch", sm: "start"}}}>
-                            Add drive window
-                        </AppButton>
-                    </AppBox>
-                ) : null}
+        <AppBox sx={{display: "grid", gap: 1}}>
+            {availableOptions.length > 0 ? (
+                <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "minmax(210px, 280px) auto"}, gap: 1, alignItems: "center", justifyContent: "start"}}>
+                    <AppFormControl size="small" sx={{minWidth: {xs: "100%", sm: 240}}}>
+                        <AppInputLabel id="combo-drive-window-select-label">Metric</AppInputLabel>
+                        <AppSelect<ComboDriveWindowMetric>
+                            labelId="combo-drive-window-select-label"
+                            label="Metric"
+                            value={effectiveSelectedMetric}
+                            onChange={(event) => setSelectedMetric(event.target.value as ComboDriveWindowMetric)}
+                        >
+                            {availableOptions.map(({metric, label}) => <AppMenuItem key={metric} value={metric}>{label}</AppMenuItem>)}
+                        </AppSelect>
+                    </AppFormControl>
+                    <AppButton type="button" variant="outlined" color="secondary" onClick={() => onAddDriveWindow(effectiveSelectedMetric)} sx={{justifySelf: {xs: "stretch", sm: "start"}}}>
+                        Add drive window
+                    </AppButton>
+                </AppBox>
+            ) : null}
 
-                {activeOptions.map(({metric, label}) => (
-                    <DriveWindowRow
-                        key={metric}
-                        metric={metric}
-                        label={label}
-                        min={driveWindows[metric].min}
-                        max={driveWindows[metric].max}
-                        onRangeChange={onDriveWindowRangeChange}
-                        onRemove={onRemoveDriveWindow}
-                    />
-                ))}
-            </AppBox>
-        </SectionCard>
+            {activeOptions.map(({metric, label}) => (
+                <DriveWindowRow
+                    key={metric}
+                    metric={metric}
+                    label={label}
+                    min={driveWindows[metric].min}
+                    max={driveWindows[metric].max}
+                    onRangeChange={onDriveWindowRangeChange}
+                    onRemove={onRemoveDriveWindow}
+                />
+            ))}
+        </AppBox>
     );
 }
 
@@ -90,11 +87,6 @@ function DriveWindowRow({metric, label, min, max, onRangeChange, onRemove}: Driv
                 gridTemplateColumns: {xs: "1fr", md: "minmax(150px, 190px) minmax(180px, 1fr) 76px 76px auto"},
                 gap: 1,
                 alignItems: "center",
-                p: 1,
-                border: 1,
-                borderColor: "fgc.border.default",
-                borderRadius: 2,
-                backgroundColor: "fgc.surface.sunken",
             }}
         >
             <AppTypography variant="body2" sx={{fontWeight: 750}}>{label}</AppTypography>

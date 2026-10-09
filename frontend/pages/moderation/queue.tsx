@@ -131,7 +131,7 @@ interface QueueFiltersCardProps {
 
 function QueueFiltersCard({contentFilter, stateFilter, sortFilter, loadingQueue, onContentFilterChange, onStateFilterChange, onSortFilterChange, onRefresh}: QueueFiltersCardProps) {
     return (
-        <SectionCard title="Queue Filters" variant="review" tone="raised">
+        <SectionCard title="Queue Filters" tone="raised">
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "repeat(4, minmax(0, 1fr))"}, gap: 1.1}}>
                 <AppFormControl size="small" fullWidth>
                     <AppInputLabel id="moderation-content-filter-label">Content Type</AppInputLabel>
@@ -214,7 +214,7 @@ function QueueSection({items, loadingQueue, activeReasonRowKey, activeReasonActi
     };
 
     return (
-        <SectionCard title="Queue" variant="review">
+        <SectionCard title="Queue">
             {loadingQueue ? (
                 <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}><AppCircularProgress/></AppBox>
             ) : items.length === 0 ? (

@@ -22,11 +22,16 @@ class RegistrationService
         private readonly EntityManagerInterface $entityManager,
         private readonly UserRepository $userRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly TermsAcceptanceService $termsAcceptanceService,
     ) {
     }
 
-    public function register(string $username, string $plainPassword, ?RegistrationInviteCode $inviteCode = null): User
+    public function register(string $username, string $plainPassword, ?RegistrationInviteCode $inviteCode = null, bool $termsAccepted = false): User
     {
+        if (!$termsAccepted) {
+            throw new \InvalidArgumentException('You must confirm you are at least 16 and accept the Terms of Use.');
+        }
+
         $normalizedUsername = trim($username);
         if (1 !== preg_match(self::USERNAME_PATTERN, $normalizedUsername)) {
             throw new \InvalidArgumentException(sprintf(
@@ -49,6 +54,7 @@ class RegistrationService
         $user->setUsername($normalizedUsername);
         $user->setPassword($this->passwordHasher->hashPassword($user, $plainPassword));
         $user->setRoles([UserRole::USER->value]);
+        $this->termsAcceptanceService->recordAcceptance($user);
 
         if (null !== $inviteCode) {
             $inviteCode->markUsedBy($user);

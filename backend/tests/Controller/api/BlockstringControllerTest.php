@@ -4,6 +4,7 @@ namespace App\Tests\Controller\api;
 
 use App\Entity\Character;
 use App\Entity\Move;
+use App\Entity\User;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use App\Util\Enum\UserRole;
 use Symfony\Component\HttpFoundation\Response;
@@ -64,6 +65,31 @@ class BlockstringControllerTest extends AuthenticatedWebTestCase
         }
 
         $this->client->request('GET', '/api/blockstrings?startingMoveId=' . $this->moves['2MK']->getId(), [], [], $this->getHeaders());
+        $this->assertSame([], json_decode((string) $this->client->getResponse()->getContent(), true));
+    }
+
+    public function testPendingBlockstringIsHiddenFromOtherUsers(): void
+    {
+        $created = $this->createBlockstring($this->graphPayload());
+        $this->assertSame('pending_review', $created['moderationState']);
+
+        $otherUser = (new User())
+            ->setUsername('blockstring_other_user')
+            ->setPassword(self::hashTestPassword())
+            ->setRoles([])
+            ->setIsActive(true);
+        $this->entityManager->persist($otherUser);
+        $this->entityManager->flush();
+        $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'username' => 'blockstring_other_user',
+            'password' => 'testpassword',
+        ]));
+        $this->assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/api/blockstrings/' . $created['id']);
+        $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', '/api/blockstrings?q=BURNOUT');
         $this->assertSame([], json_decode((string) $this->client->getResponse()->getContent(), true));
     }
 

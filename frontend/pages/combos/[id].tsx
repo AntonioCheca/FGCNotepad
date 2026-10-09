@@ -19,9 +19,10 @@ import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {modernDamageModeLabel} from "@/src/types/comboExecution";
-import {startingRequirementLabels} from "@/src/components/combos/resources/resourceTimeline";
 import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 import {ComboReadOnlySummary} from "@/src/components/combos/ComboReadOnlySummary";
+import {fillDetailsBlocker, useComboFillDetails} from "@/src/components/combos/create/hooks/useComboFillDetails";
+import {ComboSetupSection} from "@/src/components/combos/create/sections/ComboSetupSection";
 import {ParserVerificationSection} from "@/src/components/combos/create/sections/ParserVerificationSection";
 import {SubmitSection} from "@/src/components/combos/create/sections/SubmitSection";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
@@ -29,9 +30,11 @@ import {
     applyRequirementToggle,
     buildCreateFullComboPayload,
     buildRequirementsPayload,
+    createEmptyStep,
     emptyRequirements,
+    type FormNotice,
     updateDraftStep,
-    validateSteps,
+    validateComboDraft,
     type RequirementToggleKey,
 } from "@/src/components/combos/create/utils/comboForm";
 import type {
@@ -44,6 +47,7 @@ import type {
     LeafSequenceOption,
     RequirementObjectOption,
     StepDraft,
+    TranslateErrorToken,
     TranslateParsedToken,
 } from "@/src/types/combo";
 import {mapComboToDetailView} from "@/src/types/combo";
@@ -164,6 +168,8 @@ export default function ComboDetailPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [toast, setToast] = React.useState<{severity: "success" | "error"; message: string} | null>(null);
+    const [notice, setNotice] = React.useState<FormNotice | null>(null);
+    const [submitError, setSubmitError] = React.useState<string | null>(null);
     const [shownInClassic, setShownInClassic] = React.useState(false);
 
     const [title, setTitle] = React.useState("");
@@ -172,8 +178,14 @@ export default function ComboDetailPage() {
     const [driveGain, setDriveGain] = React.useState("");
     const [superCost, setSuperCost] = React.useState("");
     const [superGain, setSuperGain] = React.useState("");
-    const [description, setDescription] = React.useState("");
-    const [notes, setNotes] = React.useState("");
+    const [notationInput, setNotationInput] = React.useState("");
+    const [parseTokens, setParseTokens] = React.useState<TranslateParsedToken[]>([]);
+    const [translateWarnings, setTranslateWarnings] = React.useState<string[]>([]);
+    const [translateErrors, setTranslateErrors] = React.useState<TranslateErrorToken[]>([]);
+    const [fillingDetails, setFillingDetails] = React.useState(false);
+    // True once the editor changes something Fill Details would overwrite, so re-filling asks first.
+    const derivedValuesEdited = React.useRef(false);
+    const [confirmFillOpen, setConfirmFillOpen] = React.useState(false);
     const [spacingCode, setSpacingCode] = React.useState("");
     const [showAdvancedConditions, setShowAdvancedConditions] = React.useState(true);
     const [requirements, setRequirements] = React.useState<ComboRequirementsPayload>(emptyRequirements);
@@ -198,8 +210,13 @@ export default function ComboDetailPage() {
         setDriveGain(formatField(nextCombo.driveGain === "-" ? "" : nextCombo.driveGain));
         setSuperCost(formatField(nextCombo.superCost === "-" ? "" : nextCombo.superCost));
         setSuperGain(formatField(nextCombo.superGain === "-" ? "" : nextCombo.superGain));
-        setDescription(nextCombo.description);
-        setNotes("");
+        setNotationInput(nextCombo.inputNotation);
+        setParseTokens([]);
+        setTranslateWarnings([]);
+        setTranslateErrors([]);
+        derivedValuesEdited.current = false;
+        setNotice(null);
+        setSubmitError(null);
         setSpacingCode(nextCombo.spacing?.code ?? "");
         setRequirements(getInitialRequirements(nextCombo));
         setObjectStates(getObjectStates(nextCombo));
@@ -266,28 +283,108 @@ export default function ComboDetailPage() {
         () => requirementObjects.filter((option) => option.character_name.toLowerCase() === combo?.characterName.toLowerCase()),
         [combo?.characterName, requirementObjects],
     );
+    const {fillDetails, estimateDamage} = useComboFillDetails(combo?.executionMode ?? "classic");
     const selectedStep = selectedStepIndex !== null ? steps[selectedStepIndex] ?? null : null;
-    const verificationTokens = React.useMemo(() => buildTokens(steps), [steps]);
-    const tokenToStepIndex = React.useMemo(() => new Map(steps.map((_, index) => [index + 1, index])), [steps]);
-    const leafNameById = React.useMemo(() => new Map(steps.flatMap((step) => step.move?.id ? [[step.move.id, step.move.name]] : [])), [steps]);
-    const canSubmit = Boolean(title.trim()) && !validateSteps(steps) && Boolean(damage.trim());
+    const hasFreshParse = parseTokens.length > 0 && parseTokens.length === steps.length;
+    const verificationTokens = React.useMemo(() => hasFreshParse ? parseTokens : buildTokens(steps), [hasFreshParse, parseTokens, steps]);
+    const tokenToStepIndex = React.useMemo(() => new Map(verificationTokens.map((token, index) => [token.index, index])), [verificationTokens]);
+    const errorByIndex = React.useMemo(() => new Map<number, TranslateErrorToken>(hasFreshParse ? translateErrors.map((tokenError) => [tokenError.index, tokenError]) : []), [hasFreshParse, translateErrors]);
+    const leafNameById = React.useMemo(() => new Map(leafs.map((leaf) => [leaf.id, leaf.name])), [leafs]);
+
+    const editDerivedValue = (setter: (value: string) => void) => (value: string) => {
+        setter(value);
+        derivedValuesEdited.current = true;
+    };
 
     const handleChangeStep = (index: number, update: Partial<StepDraft>) => {
         setSteps((previousSteps) => previousSteps.map((currentStep, stepIndex) => stepIndex === index ? updateDraftStep(currentStep, update) : currentStep));
+        if (Object.prototype.hasOwnProperty.call(update, "move")) {
+            setParseTokens((previousTokens) => previousTokens.map((token, tokenIndex) => tokenIndex === index
+                ? {...token, status: update.move?.id ? "parsed" : "pending", child_sequence_id: update.move?.id ?? null, reason: null}
+                : token));
+        }
+        derivedValuesEdited.current = true;
     };
 
     const handleAddStep = () => {
-        setSteps((previousSteps) => [...previousSteps, {move: null, connection: null, delay_type: "fixed", delay_frames: "", delay_min_frames: "", delay_max_frames: "", delay_min_unverified: false, delay_max_unverified: false}]);
+        setSteps((previousSteps) => [...previousSteps, createEmptyStep()]);
+        setParseTokens([]);
         setSelectedStepIndex(steps.length);
+        derivedValuesEdited.current = true;
     };
 
     const handleRemoveStep = (index: number) => {
         setSteps((previousSteps) => previousSteps.filter((_, stepIndex) => stepIndex !== index));
+        setParseTokens([]);
         setSelectedStepIndex((current) => current === null ? null : Math.max(0, Math.min(current, steps.length - 2)));
+        derivedValuesEdited.current = true;
     };
 
     const handleRequirementToggle = (key: RequirementToggleKey, checked: boolean) => {
-        setRequirements((previous) => applyRequirementToggle(previous, key, checked));
+        const next = applyRequirementToggle(requirements, key, checked);
+        setRequirements(next);
+        derivedValuesEdited.current = true;
+
+        const characterId = combo?.characterId ?? "";
+        const affectsDamage = key === "perfect_parry_required" || key === "blocked_drive_impact_stun_required";
+        if (affectsDamage && characterId && notationInput.trim() && steps.length > 0) {
+            estimateDamage({characterId, notation: notationInput, perfectParry: Boolean(next.perfect_parry_required), blockedDriveImpactStun: Boolean(next.blocked_drive_impact_stun_required)})
+                .then((estimatedDamage) => {
+                    if (estimatedDamage !== null) {
+                        setDamage(estimatedDamage);
+                    }
+                })
+                .catch(() => setNotice({severity: "warning", message: "Damage estimate is currently unavailable."}));
+        }
+    };
+
+    const runFillDetails = async () => {
+        setConfirmFillOpen(false);
+        const characterId = combo?.characterId ?? "";
+        const blocker = fillDetailsBlocker({characterId, notation: notationInput, leafs});
+        if (blocker) {
+            setNotice({severity: "error", message: blocker});
+            return;
+        }
+
+        setFillingDetails(true);
+        try {
+            const result = await fillDetails({characterId, notation: notationInput, leafs, connections, requirements});
+            setSteps(result.steps);
+            setParseTokens(result.parsedTokens);
+            setTranslateWarnings(result.warnings);
+            setTranslateErrors(result.errors);
+            setSelectedStepIndex(result.steps.length > 0 ? 0 : null);
+            setRequirements(result.requirements);
+            if (!title.trim() && result.defaultTitle) {
+                setTitle(result.defaultTitle);
+            }
+            if (result.damage !== null) {
+                setDamage(result.damage);
+            }
+            const resourceSetters = {driveCost: setDriveCost, driveGain: setDriveGain, superCost: setSuperCost, superGain: setSuperGain};
+            for (const field of Object.keys(resourceSetters) as Array<keyof typeof resourceSetters>) {
+                const value = result.resources[field];
+                if (value !== undefined) {
+                    resourceSetters[field](value);
+                }
+            }
+            derivedValuesEdited.current = false;
+            setNotice(result.notice);
+        } catch {
+            setNotice({severity: "error", message: "Failed to translate combo notation."});
+        } finally {
+            setFillingDetails(false);
+        }
+    };
+
+    const handleFillDetails = () => {
+        if (derivedValuesEdited.current) {
+            setConfirmFillOpen(true);
+            return;
+        }
+
+        void runFillDetails();
     };
 
     const handleSave = async (event: React.FormEvent) => {
@@ -296,23 +393,24 @@ export default function ComboDetailPage() {
             return;
         }
 
-        const stepError = validateSteps(steps);
-        if (stepError) {
-            setToast({severity: "error", message: stepError});
+        const draftError = validateComboDraft({title, damage, steps});
+        if (draftError) {
+            setSubmitError(draftError);
             return;
         }
 
         const requirementsResult = buildRequirementsPayload({requirements, specificRequirementObject, specificRequirementStatus, selectedRequirementObject, objectStates, requirementObjects: characterRequirementObjects});
         if (requirementsResult.error) {
-            setToast({severity: "error", message: requirementsResult.error});
+            setSubmitError(requirementsResult.error);
             return;
         }
 
+        setSubmitError(null);
         setSaving(true);
         try {
             const payload = buildCreateFullComboPayload({
                 title,
-                description,
+                inputNotation: notationInput,
                 damage,
                 driveCost,
                 driveGain,
@@ -332,7 +430,7 @@ export default function ComboDetailPage() {
             setEditMode(false);
             setToast({severity: "success", message: "Combo updated."});
         } catch {
-            setToast({severity: "error", message: "Unable to update combo."});
+            setSubmitError("Unable to update combo.");
         } finally {
             setSaving(false);
         }
@@ -376,6 +474,30 @@ export default function ComboDetailPage() {
         );
     }
 
+    const stepsSection = (
+        <ParserVerificationSection
+            hasParseResult={steps.length > 0}
+            verificationTokens={verificationTokens}
+            errorByIndex={errorByIndex}
+            tokenToStepIndex={tokenToStepIndex}
+            selectedStepIndex={selectedStepIndex}
+            steps={steps}
+            selectedStep={selectedStep}
+            leafNameById={leafNameById}
+            leafs={leafs}
+            connections={connections}
+            connectionsLoading={connectionsLoading}
+            translateWarnings={editMode ? translateWarnings : []}
+            translateErrors={editMode ? translateErrors : []}
+            resourceLedger={editMode ? [] : resourceLedger}
+            readOnly={!editMode}
+            onSelectStep={setSelectedStepIndex}
+            onChangeStep={handleChangeStep}
+            onAddStep={handleAddStep}
+            onRemoveStep={handleRemoveStep}
+        />
+    );
+
     return (
         <AppContainer maxWidth={false}>
             <AppSnackbar open={toast !== null} autoHideDuration={3600} onClose={() => setToast(null)} anchorOrigin={{vertical: "top", horizontal: "center"}}>
@@ -384,16 +506,14 @@ export default function ComboDetailPage() {
 
             <AppBox component="form" onSubmit={handleSave} sx={{display: "grid", gap: {xs: 1, md: 1.75}, width: "100%", maxWidth: 1160, mx: "auto"}}>
                 <AppBox sx={{display: "grid", gap: {xs: 0.8, md: 1.2}, gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) auto"}, alignItems: "start", minWidth: 0}}>
-                    <AppBox sx={{display: "grid", gap: 0.25}}>
-                        <AppTypography variant="h2" sx={{fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 0.95, fontSize: {xs: "clamp(2rem, 12vw, 3.2rem)", md: undefined}, overflowWrap: "anywhere"}}>
-                            {combo.characterName}
-                        </AppTypography>
-                    </AppBox>
+                    <AppTypography variant="h2" sx={{fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 0.95, fontSize: {xs: "clamp(2rem, 12vw, 3.2rem)", md: undefined}, overflowWrap: "anywhere"}}>
+                        {combo.characterName}
+                    </AppTypography>
                     <AppBox sx={{display: "flex", gap: {xs: 0.65, md: 1}, justifyContent: {xs: "stretch", md: "flex-end"}, flexWrap: "wrap", "& .MuiButton-root": {flex: {xs: "1 1 calc(50% - 6px)", md: "0 0 auto"}}}}>
                         {numericComboId !== null && Number.isFinite(numericComboId) ? <ContentFlagButton targetType="combo" targetId={numericComboId}/> : null}
                         {canModerate && !editMode ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => setEditMode(true)}>Edit</AppButton> : null}
                         {canModerate && editMode ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => { resetDraftFromCombo(combo, leafs, connections); setEditMode(false); }}>Cancel</AppButton> : null}
-                        {canModerate && editMode ? <AppButton type="submit" variant="contained" color="primary" disabled={!canSubmit || saving}>Save</AppButton> : null}
+                        {canModerate && editMode ? <AppButton type="submit" variant="contained" color="primary" disabled={saving}>Save</AppButton> : null}
                         {canModerate ? <AppButton type="button" variant="outlined" color="error" disabled={saving} onClick={() => setDeleteDialogOpen(true)}>Delete</AppButton> : null}
                     </AppBox>
                 </AppBox>
@@ -401,87 +521,66 @@ export default function ComboDetailPage() {
                 {shownInClassic ? <InlineNotice severity="info">Not possible with Modern controls. Shown with Classic notation and damage.</InlineNotice> : null}
 
                 {editMode ? (
-                    <SubmitSection
-                        sectionTitle="Combo Details"
-                        title={title}
-                        damage={damage}
-                        damageModeLabel={modernDamageModeLabel(combo.executionMode)}
-                        driveCost={driveCost}
-                        driveGain={driveGain}
-                        superCost={superCost}
-                        superGain={superGain}
-                        description={description}
-                        notes={notes}
-                        spacingCode={spacingCode}
-                        spacingOptions={spacingOptions}
-                        spacingLoading={spacingLoading}
-                        canSubmit={canSubmit && !saving}
-                        showAdvancedConditions={showAdvancedConditions}
-                        requirements={requirements}
-                        requirementObjects={characterRequirementObjects}
-                        objectStates={objectStates}
-                        submitLabel="Save Combo"
-                        onTitleChange={setTitle}
-                        onDamageChange={setDamage}
-                        onDriveCostChange={setDriveCost}
-                        onDriveGainChange={setDriveGain}
-                        onSuperCostChange={setSuperCost}
-                        onSuperGainChange={setSuperGain}
-                        onDescriptionChange={setDescription}
-                        onNotesChange={setNotes}
-                        onSpacingChange={setSpacingCode}
-                        onToggleAdvancedConditions={() => setShowAdvancedConditions((previous) => !previous)}
-                        onResetDraft={() => resetDraftFromCombo(combo, leafs, connections)}
-                        onRequirementToggle={handleRequirementToggle}
-                        onObjectStatesChange={setObjectStates}
-                    />
+                    <>
+                        {notice ? <InlineNotice severity={notice.severity}>{notice.message}</InlineNotice> : null}
+                        <ComboSetupSection
+                            notationInput={notationInput}
+                            canFillDetails={Boolean(notationInput.trim()) && leafs.length > 0}
+                            fillingDetails={fillingDetails}
+                            onNotationChange={setNotationInput}
+                            onFillDetails={handleFillDetails}
+                        />
+                        {stepsSection}
+                        <SubmitSection
+                            sectionTitle="Combo Details"
+                            submitLabel={null}
+                            title={title}
+                            damage={damage}
+                            damageModeLabel={modernDamageModeLabel(combo.executionMode)}
+                            driveCost={driveCost}
+                            driveGain={driveGain}
+                            superCost={superCost}
+                            superGain={superGain}
+                            spacingCode={spacingCode}
+                            spacingOptions={spacingOptions}
+                            spacingLoading={spacingLoading}
+                            showAdvancedConditions={showAdvancedConditions}
+                            requirements={requirements}
+                            requirementObjects={characterRequirementObjects}
+                            objectStates={objectStates}
+                            submitError={submitError}
+                            submitting={saving}
+                            onTitleChange={setTitle}
+                            onDamageChange={editDerivedValue(setDamage)}
+                            onDriveCostChange={editDerivedValue(setDriveCost)}
+                            onDriveGainChange={editDerivedValue(setDriveGain)}
+                            onSuperCostChange={editDerivedValue(setSuperCost)}
+                            onSuperGainChange={editDerivedValue(setSuperGain)}
+                            onSpacingChange={setSpacingCode}
+                            onToggleAdvancedConditions={() => setShowAdvancedConditions((previous) => !previous)}
+                            onResetDraft={() => resetDraftFromCombo(combo, leafs, connections)}
+                            onRequirementToggle={handleRequirementToggle}
+                            onObjectStatesChange={setObjectStates}
+                        />
+                    </>
                 ) : (
-                    <ComboReadOnlySummary combo={combo} />
+                    <>
+                        <ComboReadOnlySummary combo={combo} />
+                        {stepsSection}
+                    </>
                 )}
-
-                <ParserVerificationSection
-                    hasParseResult={steps.length > 0}
-                    verificationTokens={verificationTokens}
-                    errorByIndex={new Map()}
-                    tokenToStepIndex={tokenToStepIndex}
-                    selectedStepIndex={selectedStepIndex}
-                    steps={steps}
-                    selectedStep={selectedStep}
-                    leafNameById={leafNameById}
-                    leafs={leafs}
-                    connections={connections}
-                    connectionsLoading={connectionsLoading}
-                    translateWarnings={[]}
-                    translateErrors={[]}
-                    resourceLedger={editMode ? [] : resourceLedger}
-                    startingRequirements={editMode ? [] : startingRequirementLabels(combo.requirements)}
-                    readOnly={!editMode}
-                    onSelectStep={setSelectedStepIndex}
-                    onChangeStep={handleChangeStep}
-                    onAddStep={handleAddStep}
-                    onRemoveStep={handleRemoveStep}
-                />
-
-                <Link href="/combos" style={{textDecoration: "none"}}>
-                    <AppButton
-                        type="button"
-                        variant="outlined"
-                        color="secondary"
-                        sx={{
-                            justifySelf: "start",
-                            width: {xs: "100%", sm: "auto"},
-                            px: 1.8,
-                            py: 0.8,
-                            borderColor: "fgc.border.strong",
-                            backgroundColor: "fgc.surface.subtle",
-                            color: "text.primary",
-                            fontWeight: 700,
-                        }}
-                    >
-                        Back to Search Combos
-                    </AppButton>
-                </Link>
             </AppBox>
+
+            <AppDialog open={confirmFillOpen} onClose={() => setConfirmFillOpen(false)}>
+                <AppDialogTitle>Replace your changes?</AppDialogTitle>
+                <AppDialogContent>
+                    <AppTypography variant="body2">Fill Details recalculates the steps, damage, resources and starter conditions from the notation, replacing the changes you made to them.</AppTypography>
+                </AppDialogContent>
+                <AppDialogActions>
+                    <AppButton type="button" variant="text" color="secondary" onClick={() => setConfirmFillOpen(false)}>Keep my changes</AppButton>
+                    <AppButton type="button" variant="contained" color="primary" onClick={() => void runFillDetails()}>Replace</AppButton>
+                </AppDialogActions>
+            </AppDialog>
 
             <AppDialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
                 <AppDialogTitle>Delete Combo</AppDialogTitle>

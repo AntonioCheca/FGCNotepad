@@ -10,6 +10,8 @@ export interface AuthContextType {
     canManageUsers: boolean;
     login: (user: AuthUser, csrfToken: string, redirectPath?: string | null) => void;
     logout: () => Promise<void>;
+    updateUser: (user: AuthUser) => void;
+    endSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

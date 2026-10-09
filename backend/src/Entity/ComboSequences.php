@@ -30,6 +30,9 @@ class ComboSequences
     #[Groups(['combo:read'])]
     private ?string $description = null;
 
+    #[ORM\Column(name: 'input_notation', type: Types::TEXT, nullable: true)]
+    private ?string $inputNotation = null;
+
     #[ORM\OneToOne(inversedBy: 'comboSequence', cascade: ['persist', 'remove'])]
     #[Groups(['combo:read'])]
     private ?Move $move = null;
@@ -131,6 +134,18 @@ class ComboSequences
     public function setDescription(string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getInputNotation(): ?string
+    {
+        return $this->inputNotation;
+    }
+
+    public function setInputNotation(?string $inputNotation): static
+    {
+        $this->inputNotation = $inputNotation;
 
         return $this;
     }

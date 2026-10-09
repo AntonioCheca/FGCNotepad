@@ -9,7 +9,7 @@ import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {ScenarioSearchActions} from "./rendering/ScenarioSearchActions";
 import {ScenarioSearchFiltersPanel} from "./rendering/ScenarioSearchFiltersPanel";
 import {ScenarioResultsPanel} from "./rendering/ScenarioResultsPanel";
-import {buildScenarioSearchDraft, countActiveScenarioFilters, normalizeScenarioCharacterOptions} from "./scenarioSearchUtils";
+import {buildScenarioSearchDraft, normalizeScenarioCharacterOptions} from "./scenarioSearchUtils";
 import {useScenarioSearchFilters} from "./useScenarioSearchFilters";
 import {useScenarioSearchResults} from "./useScenarioSearchResults";
 import {useScenarioTriggerMoveSearch} from "./useScenarioTriggerMoveSearch";
@@ -59,7 +59,6 @@ export default function ScenarioSearchPage() {
         return characterOptions.find((character) => character.id === filterState.defenderCharacterId) ?? null;
     }, [filterState.defenderCharacterId, characterOptions]);
     const normalizedFilters = React.useMemo(() => buildScenarioSearchDraft(filterState), [filterState]);
-    const activeFilterCount = React.useMemo(() => countActiveScenarioFilters(normalizedFilters), [normalizedFilters]);
     const {triggerMoveOptions, searchingMoves, clearTriggerMoveOptions} = useScenarioTriggerMoveSearch({
         triggerMoveInput: filterState.triggerMoveInput,
         attackerCharacterId: filterState.attackerCharacterId,
@@ -95,7 +94,6 @@ export default function ScenarioSearchPage() {
 
                 <ScenarioSearchFiltersPanel
                     filterState={filterState}
-                    activeFilterCount={activeFilterCount}
                     characterOptions={characterOptions}
                     selectedAttacker={selectedAttacker}
                     selectedDefender={selectedDefender}

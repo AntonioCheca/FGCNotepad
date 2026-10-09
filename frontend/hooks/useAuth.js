@@ -5,8 +5,8 @@ import {fetchCurrentUserProfile} from "@/services/authProfile";
 const useAuth = () => {
     const {request} = useApi();
 
-    const registerUser = (username, password, inviteCode) =>
-        request(() => api.post("/register", {username, password, inviteCode}));
+    const registerUser = (username, password, inviteCode, acceptTerms) =>
+        request(() => api.post("/register", {username, password, inviteCode, acceptTerms}));
 
     const loginUser = async (username, password) => {
         return request(() => api.post("/login", {username, password}));

@@ -121,8 +121,6 @@ export function MatrixEditorWorkspace({
                 onOpenDynamicCombo={onOpenDynamicCombo}
                 onSolve={onSolve}
                 isSolving={isSolving}
-                rowCount={filteredVisibleState.grid.rows.length}
-                columnCount={filteredVisibleState.grid.columns.length}
                 selectedReferenceLabel={selectedReferenceLabel}
                 onShowLayerControlsChange={onShowLayerControlsChange}
             />

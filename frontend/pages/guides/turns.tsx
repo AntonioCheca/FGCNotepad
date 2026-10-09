@@ -37,7 +37,7 @@ export default function TurnsGuidePage() {
                 {loading ? <AppBox sx={{display: "grid", placeItems: "center", py: 5}}><AppCircularProgress /></AppBox> : null}
                 {guide ? (
                     <AppBox sx={{display: "grid", gap: {xs: 1.25, md: 1.5}, minWidth: 0}}>
-                        <SectionCard title="Fast Rules" variant="review">
+                        <SectionCard title="Fast Rules">
                             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "repeat(2, minmax(0, 1fr))"}, gap: 0.85}}>
                                 {guide.heuristics.map((heuristic) => <HeuristicCard key={heuristic.title} heuristic={heuristic} />)}
                             </AppBox>

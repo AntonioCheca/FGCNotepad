@@ -3,7 +3,6 @@ import type {ComboDriveWindowFilters, ComboFilterState, ComboRequirementFilters,
 export const DEFAULT_COMBO_FILTER_SORT: ComboSortField = "resourceAdjustedDamage";
 
 export const DEFAULT_COMBO_REQUIREMENTS: ComboRequirementFilters = {
-    isEssential: "",
     counterHitRequired: "",
     punishCounterRequired: "",
     perfectParryRequired: "",
@@ -12,6 +11,7 @@ export const DEFAULT_COMBO_REQUIREMENTS: ComboRequirementFilters = {
     airborneRequired: "",
     notCrouchingRequired: "",
     sideSwitchesRequired: "",
+    rawDriveRush: "",
     requirementObjectName: "",
     requirementObjectStatus: "",
     addedObjectName: "",
@@ -30,11 +30,8 @@ export const DEFAULT_COMBO_FILTER_STATE: ComboFilterState = {
     characterId: "",
     firstMove: null,
     firstMoveQuery: "",
-    firstMoveAfterDriveRush: false,
     enderMove: null,
     enderMoveQuery: "",
-    minDifficulty: "",
-    maxDifficulty: "",
     minDamage: "",
     maxDamage: "",
     availableDrive: "",

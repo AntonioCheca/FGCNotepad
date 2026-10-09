@@ -29,12 +29,10 @@ import type {
 } from "@/src/types/combo";
 import {getDelayLabel} from "@/src/components/combos/create/utils/comboForm";
 import {resourceChangesByOrdinal, resourceLedgerWarnings} from "@/src/components/combos/resources/resourceTimeline";
-import {StartingRequirements} from "@/src/components/combos/resources/StartingRequirements";
 import {StepResourceBadges} from "@/src/components/combos/resources/StepResourceBadges";
 import type {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 
 const NO_LEDGER: ResourceLedgerEntry[] = [];
-const NO_STARTING_REQUIREMENTS: string[] = [];
 
 interface ParserVerificationSectionProps {
     hasParseResult: boolean;
@@ -51,7 +49,6 @@ interface ParserVerificationSectionProps {
     translateWarnings: string[];
     translateErrors: TranslateErrorToken[];
     resourceLedger?: ResourceLedgerEntry[];
-    startingRequirements?: string[];
     readOnly?: boolean;
     onSelectStep: (index: number) => void;
     onChangeStep: (index: number, update: Partial<StepDraft>) => void;
@@ -74,7 +71,6 @@ export function ParserVerificationSection({
     translateWarnings,
     translateErrors,
     resourceLedger = NO_LEDGER,
-    startingRequirements = NO_STARTING_REQUIREMENTS,
     readOnly = false,
     onSelectStep,
     onChangeStep,
@@ -92,12 +88,7 @@ export function ParserVerificationSection({
     const warnings = [...translateWarnings, ...resourceLedgerWarnings(resourceLedger)];
 
     return (
-        <SectionCard
-            title="Parser Verification"
-            tone="raised"
-            variant="review"
-        >
-            <StartingRequirements labels={startingRequirements} />
+        <SectionCard title="Steps">
             <AppBox sx={{display: "grid", gap: 1, gridTemplateColumns: {xs: "1fr", lg: "minmax(0, 1fr) 320px"}, alignItems: {xs: "start", lg: "stretch"}, minWidth: 0}}>
                 <AppBox sx={{display: {xs: "none", lg: "flex"}, gap: 0.35, flexWrap: "wrap", alignItems: "center", minWidth: 0, overflowX: "hidden"}}>
                     {verificationTokens.map((token, index) => {

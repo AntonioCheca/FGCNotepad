@@ -52,7 +52,7 @@ export function ReplayReviewLauncher({
 
     return (
         <AppBox sx={{display: "grid", gap: {xs: 1, md: 1.5}, minWidth: 0}}>
-            <SectionCard title="Source File" tone="raised" variant="input">
+            <SectionCard title="Source File" tone="raised">
                 <AppStack spacing={{xs: 0.8, md: 1.1}}>
                     {limits ? <AppAlert severity="info">Exports are limited to {limits.maxClipDurationSeconds}s clips. Original videos are not uploaded.</AppAlert> : null}
                     <AppStack direction={{xs: "column", sm: "row"}} spacing={1} alignItems={{xs: "stretch", sm: "center"}}>
@@ -69,7 +69,7 @@ export function ReplayReviewLauncher({
 
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "1fr 1fr"}, gap: {xs: 1, md: 1.5}}}>
                 {routeMode === "local" ? (
-                    <SectionCard title="Local Review" tone="raised" variant="review">
+                    <SectionCard title="Local Review" tone="raised">
                         <AppBox component="form" onSubmit={onStartLocalReview} sx={{display: "grid", gap: 1}}>
                             <AppButton type="submit" disabled={loading || !localSourceFile || startingWorkflow !== null}>
                                 {startingWorkflow === "local" ? "Opening..." : "Start Local Review"}
@@ -79,7 +79,7 @@ export function ReplayReviewLauncher({
                 ) : null}
 
                 {routeMode === "upload" ? (
-                    <SectionCard title="Online Review" tone="raised" variant="input">
+                    <SectionCard title="Online Review" tone="raised">
                         <AppBox component="form" onSubmit={onStartYouTubeReview} sx={{display: "grid", gap: {xs: 0.75, md: 1}}}>
                             <AppTextField label="YouTube URL or video ID" value={youtubeUrl} onChange={(event) => onYoutubeUrlChange(event.target.value)} />
                             <AppTextField label="Review title" value={youtubeTitle} onChange={(event) => onYoutubeTitleChange(event.target.value)} placeholder="Optional" />
@@ -91,7 +91,7 @@ export function ReplayReviewLauncher({
                 ) : null}
             </AppBox>
 
-            <SectionCard title="Resume Draft" tone="sunken" variant="finalize">
+            <SectionCard title="Resume Draft" tone="sunken">
                 <AppStack spacing={1}>
                     {visibleSessions.length === 0 ? <AppTypography color="text.secondary">No review drafts yet.</AppTypography> : null}
                     {visibleSessions.map((session) => {

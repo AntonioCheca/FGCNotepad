@@ -122,12 +122,12 @@ type FgcTokenSet = {
         helper: string;
         metadata: string;
     };
-    comboRequirement: {
-        counterHit: string;
-        punishCounter: string;
-        perfectParry: string;
-        wallsplat: string;
-        corner: string;
+    resourceGauge: {
+        driveFill: string;
+        superFill: string;
+        superTrack: string;
+        superEdge: string;
+        superNumeral: string;
     };
     pressureGraph: {
         normal: string;
@@ -284,14 +284,14 @@ const lightTokens: FgcTokenSet = {
         helper: "#5f728a",
         metadata: "#556a81",
     },
-    // Combo requirement badges: yellow Counter Hit, orange Punish Counter, sky Perfect Parry, red wallsplat. Light shades
-    // are deepened so icon and tag text keep >= 4.5:1 on white surfaces.
-    comboRequirement: {
-        counterHit: "#a16207",
-        punishCounter: "#c2410c",
-        perfectParry: "#0369a1",
-        wallsplat: "#b91c1c",
-        corner: "#246f89",
+    // Resource gain gauges echo SF6: a green segmented Drive gauge and a pink-edged Super numeral beside a long bar.
+    // Fills are deepened so each gauge keeps >= 3:1 against its track and the white surface.
+    resourceGauge: {
+        driveFill: "#15803d",
+        superFill: "#be185d",
+        superTrack: "#fbe4ef",
+        superEdge: "#be185d",
+        superNumeral: "#ffffff",
     },
     // Oki/blockstring graph edges follow the spec's functional hues (green autopilot, yellow confirm, blue read,
     // red fake); light shades are deepened from the chart families so each edge keeps >= 3:1 on white surfaces.
@@ -450,12 +450,12 @@ const darkTokens: FgcTokenSet = {
         helper: "#9fbfcb",
         metadata: "#86a9b7",
     },
-    comboRequirement: {
-        counterHit: "#fcbf49",
-        punishCounter: "#f78002",
-        perfectParry: "#7dd3fc",
-        wallsplat: "#ff6b6b",
-        corner: "#a2ccdb",
+    resourceGauge: {
+        driveFill: "#4ade80",
+        superFill: "#f472b6",
+        superTrack: "#3a1a2c",
+        superEdge: "#f472b6",
+        superNumeral: "#ffffff",
     },
     pressureGraph: {
         normal: "#7ccfa6",

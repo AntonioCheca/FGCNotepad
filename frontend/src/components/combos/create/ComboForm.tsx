@@ -3,7 +3,7 @@ import {AppBox} from "@/src/components/ui/AppBox";
 import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {useComboFormController} from "@/src/components/combos/create/hooks/useComboFormController";
-import {RapidIngestionSection} from "@/src/components/combos/create/sections/RapidIngestionSection";
+import {ComboSetupSection} from "@/src/components/combos/create/sections/ComboSetupSection";
 import {ParserVerificationSection} from "@/src/components/combos/create/sections/ParserVerificationSection";
 import {SubmitSection} from "@/src/components/combos/create/sections/SubmitSection";
 
@@ -33,15 +33,17 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
 
             {controller.notice ? <InlineNotice severity={controller.notice.severity}>{controller.notice.message}</InlineNotice> : null}
 
-            <RapidIngestionSection
-                character={controller.character}
-                characterOptions={controller.characterOptions ?? []}
-                charactersLoading={controller.charactersLoading}
+            <ComboSetupSection
+                characterPicker={{
+                    value: controller.character,
+                    options: controller.characterOptions ?? [],
+                    loading: controller.charactersLoading,
+                    onChange: controller.setCharacter,
+                }}
                 notationInput={controller.notationInput}
                 canFillDetails={Boolean(controller.character?.id) && Boolean(controller.notationInput.trim()) && controller.leafs.length > 0}
-                onCharacterChange={controller.setCharacter}
                 onNotationChange={controller.setNotationInput}
-                onFillDetails={controller.handleFillDetails}
+                onFillDetails={() => void controller.handleFillDetails()}
             />
 
             <ParserVerificationSection
@@ -75,24 +77,21 @@ export default function ComboForm({onSuccess}: ComboFormProps) {
                 minimumDriveCostNoBurnout={controller.minimumDriveCostNoBurnout}
                 superCost={controller.superCost}
                 superGain={controller.superGain}
-                description={controller.description}
-                notes={controller.notes}
                 spacingCode={controller.spacingCode}
                 spacingOptions={controller.spacingOptions}
                 spacingLoading={controller.spacingLoading}
-                canSubmit={controller.canSubmit}
                 showAdvancedConditions={controller.showAdvancedConditions}
                 requirements={controller.requirements}
                 requirementObjects={controller.characterRequirementObjects}
                 objectStates={controller.objectStates}
+                submitError={controller.submitError}
+                submitting={controller.submitting}
                 onTitleChange={controller.setTitle}
                 onDamageChange={controller.setDamage}
                 onDriveCostChange={controller.setDriveCost}
                 onDriveGainChange={controller.setDriveGain}
                 onSuperCostChange={controller.setSuperCost}
                 onSuperGainChange={controller.setSuperGain}
-                onDescriptionChange={controller.setDescription}
-                onNotesChange={controller.setNotes}
                 onSpacingChange={controller.setSpacingCode}
                 onToggleAdvancedConditions={() => controller.setShowAdvancedConditions((prev) => !prev)}
                 onResetDraft={controller.clearDraft}

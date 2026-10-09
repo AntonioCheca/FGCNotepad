@@ -16,13 +16,11 @@ type ComboFilterAction =
     | {type: "selectCharacter"; characterId: string}
     | {type: "setFirstMove"; value: ComboMoveSearchOption | null}
     | {type: "setFirstMoveQuery"; value: string}
-    | {type: "setFirstMoveAfterDriveRush"; value: boolean}
     | {type: "setEnderMove"; value: ComboMoveSearchOption | null}
     | {type: "setEnderMoveQuery"; value: string}
-    | {type: "setDifficultyRange"; minDifficulty?: string; maxDifficulty?: string}
     | {type: "setDamageRange"; minDamage?: string; maxDamage?: string}
     | {type: "setAvailableResource"; resource: "drive" | "super"; value: string}
-    | {type: "toggleSpacingCode"; code: string}
+    | {type: "setSpacingCodes"; codes: string[]}
     | {type: "addDriveWindow"; metric: ComboDriveWindowMetric}
     | {type: "removeDriveWindow"; metric: ComboDriveWindowMetric}
     | {type: "setDriveWindowRange"; metric: ComboDriveWindowMetric; min?: string; max?: string}
@@ -39,23 +37,15 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
         case "setQuery":
             return {...state, query: action.value};
         case "selectCharacter":
-            return {...state, characterId: action.characterId, firstMove: null, firstMoveQuery: "", firstMoveAfterDriveRush: false, enderMove: null, enderMoveQuery: ""};
+            return {...state, characterId: action.characterId, firstMove: null, firstMoveQuery: "", enderMove: null, enderMoveQuery: ""};
         case "setFirstMove":
             return {...state, firstMove: action.value};
         case "setFirstMoveQuery":
             return {...state, firstMoveQuery: action.value};
-        case "setFirstMoveAfterDriveRush":
-            return {...state, firstMoveAfterDriveRush: action.value};
         case "setEnderMove":
             return {...state, enderMove: action.value};
         case "setEnderMoveQuery":
             return {...state, enderMoveQuery: action.value};
-        case "setDifficultyRange":
-            return {
-                ...state,
-                minDifficulty: action.minDifficulty ?? state.minDifficulty,
-                maxDifficulty: action.maxDifficulty ?? state.maxDifficulty,
-            };
         case "setDamageRange":
             return {
                 ...state,
@@ -66,15 +56,8 @@ function comboFilterReducer(state: ComboFilterState, action: ComboFilterAction):
             return action.resource === "drive"
                 ? {...state, availableDrive: action.value}
                 : {...state, availableSuper: action.value};
-        case "toggleSpacingCode": {
-            const selected = state.spacingCodes.includes(action.code);
-            return {
-                ...state,
-                spacingCodes: selected
-                    ? state.spacingCodes.filter((code) => code !== action.code)
-                    : [...state.spacingCodes, action.code],
-            };
-        }
+        case "setSpacingCodes":
+            return {...state, spacingCodes: action.codes};
         case "addDriveWindow":
             return {
                 ...state,
@@ -130,16 +113,13 @@ export function useComboFilterState() {
         selectCharacter: (characterId: string) => dispatch({type: "selectCharacter", characterId}),
         setFirstMove: (value: ComboMoveSearchOption | null) => dispatch({type: "setFirstMove", value}),
         setFirstMoveQuery: (value: string) => dispatch({type: "setFirstMoveQuery", value}),
-        setFirstMoveAfterDriveRush: (value: boolean) => dispatch({type: "setFirstMoveAfterDriveRush", value}),
         setEnderMove: (value: ComboMoveSearchOption | null) => dispatch({type: "setEnderMove", value}),
         setEnderMoveQuery: (value: string) => dispatch({type: "setEnderMoveQuery", value}),
-        setMinDifficulty: (value: string) => dispatch({type: "setDifficultyRange", minDifficulty: value}),
-        setMaxDifficulty: (value: string) => dispatch({type: "setDifficultyRange", maxDifficulty: value}),
         setMinDamage: (value: string) => dispatch({type: "setDamageRange", minDamage: value}),
         setMaxDamage: (value: string) => dispatch({type: "setDamageRange", maxDamage: value}),
         setAvailableDrive: (value: string) => dispatch({type: "setAvailableResource", resource: "drive", value}),
         setAvailableSuper: (value: string) => dispatch({type: "setAvailableResource", resource: "super", value}),
-        toggleSpacingCode: (code: string) => dispatch({type: "toggleSpacingCode", code}),
+        setSpacingCodes: (codes: string[]) => dispatch({type: "setSpacingCodes", codes}),
         addDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "addDriveWindow", metric}),
         removeDriveWindow: (metric: ComboDriveWindowMetric) => dispatch({type: "removeDriveWindow", metric}),
         setDriveWindowRange: (metric: ComboDriveWindowMetric, min?: string, max?: string) => dispatch({type: "setDriveWindowRange", metric, min, max}),

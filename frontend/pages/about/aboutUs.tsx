@@ -26,7 +26,7 @@ export default function AboutPage() {
                     />
                 </AppBox>
 
-                <SectionCard title="What Is Fighting Game Theory?" variant="review" tone="raised">
+                <SectionCard title="What Is Fighting Game Theory?" tone="raised">
 
                     <NormalParagraph last>
                         <strong>Fighting Game Theory </strong> is an open source platform to break down game theory in
@@ -38,7 +38,7 @@ export default function AboutPage() {
                     </NormalParagraph>
                 </SectionCard>
 
-                <SectionCard title="Credits And Thanks" variant="review">
+                <SectionCard title="Credits And Thanks">
 
                     <NormalParagraph>
                         Built by <strong>Antonio Checa</strong>, software engineer, trying to improve at these games.
@@ -92,7 +92,7 @@ export default function AboutPage() {
                     </NormalParagraph>
                 </SectionCard>
 
-                <SectionCard title="AI Usage Transparency" variant="review">
+                <SectionCard title="AI Usage Transparency">
 
                     <NormalParagraph>
                         AI was used for the code, both in backend and frontend. All the images, logos, and

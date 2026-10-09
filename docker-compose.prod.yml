@@ -1,9 +1,17 @@
+# Docker keeps container logs forever by default; nginx logs hold visitor IPs, so cap and rotate them.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile.prod
     container_name: fgc_backend_prod
+    logging: *default-logging
     restart: unless-stopped
     env_file:
       - path: .env.prod
@@ -30,6 +38,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: /api
     container_name: fgc_frontend_prod
+    logging: *default-logging
     restart: unless-stopped
     env_file:
       - path: .env.prod
@@ -47,6 +56,7 @@ services:
   nginx:
     image: nginx:stable
     container_name: fgc_nginx_prod
+    logging: *default-logging
     restart: unless-stopped
     ports:
       - "80:80"
@@ -63,6 +73,7 @@ services:
   postgres:
     image: postgres:15
     container_name: fgc_postgres_prod
+    logging: *default-logging
     restart: unless-stopped
     env_file:
       - path: .env.prod

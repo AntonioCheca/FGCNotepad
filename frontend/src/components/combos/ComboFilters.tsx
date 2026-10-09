@@ -7,14 +7,9 @@ import useMoves from "@/hooks/useMoves";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppCollapse} from "@/src/components/ui/AppCollapse";
-import {AppPaper} from "@/src/components/ui/AppPaper";
-import {ActionBar} from "@/src/components/ui/tactical/ActionBar";
 import {ComboAdvancedFiltersSection} from "./filters/ComboAdvancedFiltersSection";
-import {ComboDriveWindowsFiltersSection} from "./filters/ComboDriveWindowsFiltersSection";
-import {ComboFiltersHeader} from "./filters/ComboFiltersHeader";
+import {ComboKeyFiltersSection} from "./filters/ComboKeyFiltersSection";
 import {ComboPrimaryFiltersSection} from "./filters/ComboPrimaryFiltersSection";
-import {ComboSpacingFiltersSection} from "./filters/ComboSpacingFiltersSection";
-import {ComboRequirementsFiltersSection} from "./filters/ComboRequirementsFiltersSection";
 import {DEFAULT_COMBO_FILTER_SORT} from "./filters/comboFilterConstants";
 import type {ComboFiltersProps, ComboSearchFilters} from "./filters/comboFilterTypes";
 import {buildComboSearchFilters, normalizeCharacterOptions, normalizeRequirementObjectOptions} from "./filters/comboFilterUtils";
@@ -37,16 +32,13 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
         selectCharacter,
         setFirstMove,
         setFirstMoveQuery,
-        setFirstMoveAfterDriveRush,
         setEnderMove,
         setEnderMoveQuery,
-        setMinDifficulty,
-        setMaxDifficulty,
         setMinDamage,
         setMaxDamage,
         setAvailableDrive,
         setAvailableSuper,
-        toggleSpacingCode,
+        setSpacingCodes,
         addDriveWindow,
         removeDriveWindow,
         setDriveWindowRange,
@@ -91,6 +83,12 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
         selectedCharacter,
         searchMoves,
     });
+    const characterRequirementObjectOptions = React.useMemo(
+        () => selectedCharacter
+            ? requirementObjectOptions.filter((option) => option.character_name.toLowerCase() === selectedCharacter.name.toLowerCase())
+            : requirementObjectOptions,
+        [requirementObjectOptions, selectedCharacter],
+    );
     const normalizedFilters = React.useMemo(() => buildComboSearchFilters(state), [state]);
 
     React.useEffect(() => {
@@ -119,15 +117,12 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
     }, [clearEnderMoveOptions, clearFilters, clearFirstMoveOptions, onChange]);
 
     return (
-        <AppPaper variant="outlined" sx={{p: {xs: 1, md: 1.5}, mb: {xs: 1, md: 2}, borderRadius: {xs: 2, md: 2.5}, display: "grid", gap: {xs: 0.75, md: 1}}}>
-            <ComboFiltersHeader />
-
+        <AppBox sx={{display: "grid", gap: 1.25, mb: {xs: 1, md: 1.5}}}>
             <ComboPrimaryFiltersSection
                 characterOptions={characterOptions}
                 selectedCharacter={selectedCharacter}
                 firstMove={state.firstMove}
                 firstMoveQuery={state.firstMoveQuery}
-                firstMoveAfterDriveRush={state.firstMoveAfterDriveRush}
                 firstMoveOptions={firstMoveOptions}
                 searchingFirstMoves={searchingFirstMoves}
                 enderMove={state.enderMove}
@@ -143,59 +138,48 @@ export default function ComboFilters({onChange, initialFilters = EMPTY_INITIAL_F
                 }}
                 onFirstMoveChange={setFirstMove}
                 onFirstMoveQueryChange={setFirstMoveQuery}
-                onFirstMoveAfterDriveRushChange={setFirstMoveAfterDriveRush}
                 onEnderMoveChange={setEnderMove}
                 onEnderMoveQueryChange={setEnderMoveQuery}
                 onQueryChange={setQuery}
             />
 
-            <ActionBar>
-                <AppButton type="button" variant="text" color="secondary" onClick={toggleAdvancedFilters} sx={{color: "text.secondary"}}>
-                    {state.showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}
-                </AppButton>
-                <AppButton type="button" variant="outlined" color="secondary" onClick={handleClearFilters}>Clear Filters</AppButton>
-            </ActionBar>
+            <ComboKeyFiltersSection
+                requirements={state.requirements}
+                spacingOptions={spacingOptions}
+                spacingCodes={state.spacingCodes}
+                availableDrive={state.availableDrive}
+                availableSuper={state.availableSuper}
+                onRequirementToggle={setRequirementToggle}
+                onSpacingCodesChange={setSpacingCodes}
+                onAvailableDriveChange={setAvailableDrive}
+                onAvailableSuperChange={setAvailableSuper}
+            />
 
             <AppCollapse in={state.showAdvancedFilters} timeout={200} unmountOnExit>
-                <AppBox sx={{display: "grid", gap: 1, pt: 0.75}}>
-                    <ComboAdvancedFiltersSection
-                        minDifficulty={state.minDifficulty}
-                        maxDifficulty={state.maxDifficulty}
-                        minDamage={state.minDamage}
-                        maxDamage={state.maxDamage}
-                        availableDrive={state.availableDrive}
-                        availableSuper={state.availableSuper}
-                        onMinDifficultyChange={setMinDifficulty}
-                        onMaxDifficultyChange={setMaxDifficulty}
-                        onMinDamageChange={setMinDamage}
-                        onMaxDamageChange={setMaxDamage}
-                        onAvailableDriveChange={setAvailableDrive}
-                        onAvailableSuperChange={setAvailableSuper}
-                    />
-
-                    <ComboSpacingFiltersSection
-                        spacingOptions={spacingOptions}
-                        selectedCodes={state.spacingCodes}
-                        onToggleSpacingCode={toggleSpacingCode}
-                    />
-
-                    <ComboDriveWindowsFiltersSection
-                        driveWindows={state.driveWindows}
-                        onAddDriveWindow={addDriveWindow}
-                        onRemoveDriveWindow={removeDriveWindow}
-                        onDriveWindowRangeChange={setDriveWindowRange}
-                    />
-
-                    <ComboRequirementsFiltersSection
-                        requirements={state.requirements}
-                        requirementObjectOptions={requirementObjectOptions}
-                        onRequirementToggle={setRequirementToggle}
-                        onRequirementObjectChange={setRequirementObject}
-                        onAddedObjectChange={setAddedObject}
-                        onConsumedObjectChange={setConsumedObject}
-                    />
-                </AppBox>
+                <ComboAdvancedFiltersSection
+                    requirements={state.requirements}
+                    requirementObjectOptions={characterRequirementObjectOptions}
+                    driveWindows={state.driveWindows}
+                    minDamage={state.minDamage}
+                    maxDamage={state.maxDamage}
+                    onRequirementToggle={setRequirementToggle}
+                    onRequirementObjectChange={setRequirementObject}
+                    onAddedObjectChange={setAddedObject}
+                    onConsumedObjectChange={setConsumedObject}
+                    onAddDriveWindow={addDriveWindow}
+                    onRemoveDriveWindow={removeDriveWindow}
+                    onDriveWindowRangeChange={setDriveWindowRange}
+                    onMinDamageChange={setMinDamage}
+                    onMaxDamageChange={setMaxDamage}
+                />
             </AppCollapse>
-        </AppPaper>
+
+            <AppBox sx={{display: "flex", gap: 1, flexWrap: "wrap", "& .MuiButton-root": {flex: {xs: "1 1 0", sm: "0 0 auto"}}}}>
+                <AppButton type="button" variant="text" color="secondary" onClick={toggleAdvancedFilters} aria-expanded={state.showAdvancedFilters}>
+                    {state.showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}
+                </AppButton>
+                <AppButton type="button" variant="text" color="secondary" onClick={handleClearFilters}>Clear Filters</AppButton>
+            </AppBox>
+        </AppBox>
     );
 }

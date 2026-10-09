@@ -49,11 +49,7 @@ export function ScenarioSetupSection({
     onDefenderChange,
 }: ScenarioSetupSectionProps) {
     return (
-        <SectionCard
-            title="Scenario Setup"
-            tone="default"
-            variant="input"
-        >
+        <SectionCard title="Scenario Setup">
             <AppBox sx={{display: "grid", gap: {xs: 0.75, md: 1}}}>
                 <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "minmax(0, 1fr) 220px"}, gap: {xs: 0.75, md: 1}, alignItems: "stretch"}}>
                     <AppTextField label="Scenario Name" value={name} onChange={(event) => onNameChange(event.target.value)} required size="small" />

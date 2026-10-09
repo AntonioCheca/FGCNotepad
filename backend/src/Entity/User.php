@@ -48,6 +48,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'deactivated_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $deactivatedAt = null;
 
+    #[ORM\Column(name: 'terms_accepted_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $termsAcceptedAt = null;
+
+    #[ORM\Column(name: 'terms_version', length: 32, nullable: true)]
+    private ?string $termsVersion = null;
+
+    #[ORM\Column(name: 'deletion_requested_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $deletionRequestedAt = null;
+
     /**
      * @var Collection<int, UserCombo>
      */
@@ -154,6 +163,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setDeactivatedAt(?\DateTimeImmutable $deactivatedAt): static
     {
         $this->deactivatedAt = $deactivatedAt;
+
+        return $this;
+    }
+
+    public function getTermsAcceptedAt(): ?\DateTimeImmutable
+    {
+        return $this->termsAcceptedAt;
+    }
+
+    public function getTermsVersion(): ?string
+    {
+        return $this->termsVersion;
+    }
+
+    public function acceptTerms(string $version, \DateTimeImmutable $acceptedAt): static
+    {
+        $this->termsVersion = $version;
+        $this->termsAcceptedAt = $acceptedAt;
+
+        return $this;
+    }
+
+    public function getDeletionRequestedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletionRequestedAt;
+    }
+
+    public function setDeletionRequestedAt(?\DateTimeImmutable $deletionRequestedAt): static
+    {
+        $this->deletionRequestedAt = $deletionRequestedAt;
 
         return $this;
     }

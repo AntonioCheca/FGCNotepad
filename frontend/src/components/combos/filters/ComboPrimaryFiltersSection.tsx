@@ -1,8 +1,6 @@
 import {AppAutocomplete} from "@/src/components/ui/AppAutocomplete";
-import {AppChip} from "@/src/components/ui/AppChip";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppTextField} from "@/src/components/ui/AppTextField";
-import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import type {ComboCharacterOption, ComboMoveSearchOption} from "./comboFilterTypes";
 
 interface ComboPrimaryFiltersSectionProps {
@@ -10,7 +8,6 @@ interface ComboPrimaryFiltersSectionProps {
     selectedCharacter: ComboCharacterOption | null;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
-    firstMoveAfterDriveRush: boolean;
     firstMoveOptions: ComboMoveSearchOption[];
     searchingFirstMoves: boolean;
     enderMove: ComboMoveSearchOption | null;
@@ -22,7 +19,6 @@ interface ComboPrimaryFiltersSectionProps {
     onCharacterChange: (value: ComboCharacterOption | null) => void;
     onFirstMoveChange: (value: ComboMoveSearchOption | null) => void;
     onFirstMoveQueryChange: (value: string) => void;
-    onFirstMoveAfterDriveRushChange: (value: boolean) => void;
     onEnderMoveChange: (value: ComboMoveSearchOption | null) => void;
     onEnderMoveQueryChange: (value: string) => void;
     onQueryChange: (value: string) => void;
@@ -33,7 +29,6 @@ export function ComboPrimaryFiltersSection({
     selectedCharacter,
     firstMove,
     firstMoveQuery,
-    firstMoveAfterDriveRush,
     firstMoveOptions,
     searchingFirstMoves,
     enderMove,
@@ -45,84 +40,50 @@ export function ComboPrimaryFiltersSection({
     onCharacterChange,
     onFirstMoveChange,
     onFirstMoveQueryChange,
-    onFirstMoveAfterDriveRushChange,
     onEnderMoveChange,
     onEnderMoveQueryChange,
     onQueryChange,
 }: ComboPrimaryFiltersSectionProps) {
     return (
-        <SectionCard title="Primary Filters" tone="raised" variant="input">
-            <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", lg: "minmax(170px, 0.75fr) minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1.25fr)"}, gap: 1}}>
-                <AppAutocomplete<ComboCharacterOption, false, false, false>
-                    options={characterOptions}
-                    value={selectedCharacter}
-                    onChange={(_, value) => onCharacterChange(value)}
-                    getOptionLabel={(option) => option.name}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                    renderInput={(params) => <AppTextField {...params} label="Character" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
-                />
+        <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "1fr 1fr", lg: "minmax(170px, 0.75fr) minmax(200px, 1fr) minmax(200px, 1fr) minmax(200px, 1.1fr)"}, gap: 1}}>
+            <AppAutocomplete<ComboCharacterOption, false, false, false>
+                options={characterOptions}
+                value={selectedCharacter}
+                onChange={(_, value) => onCharacterChange(value)}
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                renderInput={(params) => <AppTextField {...params} label="Character" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
+            />
 
-                <AppAutocomplete<ComboMoveSearchOption, false, false, false>
-                    options={firstMoveOptions}
-                    value={firstMove}
-                    inputValue={firstMoveQuery}
-                    loading={searchingFirstMoves}
-                    filterOptions={(options) => options}
-                    onChange={(_, value) => onFirstMoveChange(value)}
-                    onInputChange={(_, value) => onFirstMoveQueryChange(value)}
-                    getOptionLabel={(option) => option.summary}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                    noOptionsText="No moves found"
-                    renderInput={(params) => (
-                        <AppTextField
-                            {...params}
-                            label="First move"
-                            size="small"
-                            InputLabelProps={{shrink: true}}
-                            sx={compactFieldSx}
-                            InputProps={{
-                                ...params.InputProps,
-                                endAdornment: (
-                                    <>
-                                        <AppChip
-                                            label="Raw DR"
-                                            size="small"
-                                            clickable
-                                            aria-pressed={firstMoveAfterDriveRush}
-                                            variant={firstMoveAfterDriveRush ? "filled" : "outlined"}
-                                            onClick={() => onFirstMoveAfterDriveRushChange(!firstMoveAfterDriveRush)}
-                                            sx={{
-                                                mr: 0.5,
-                                                borderColor: firstMoveAfterDriveRush ? "fgc.border.strong" : "divider",
-                                                backgroundColor: (theme) => (firstMoveAfterDriveRush ? theme.fgc.surface.selected : "transparent"),
-                                                color: "text.primary",
-                                                fontWeight: firstMoveAfterDriveRush ? 700 : 500,
-                                            }}
-                                        />
-                                        {params.InputProps.endAdornment}
-                                    </>
-                                ),
-                            }}
-                        />
-                    )}
-                />
+            <AppAutocomplete<ComboMoveSearchOption, false, false, false>
+                options={firstMoveOptions}
+                value={firstMove}
+                inputValue={firstMoveQuery}
+                loading={searchingFirstMoves}
+                filterOptions={(options) => options}
+                onChange={(_, value) => onFirstMoveChange(value)}
+                onInputChange={(_, value) => onFirstMoveQueryChange(value)}
+                getOptionLabel={(option) => option.summary}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText="No moves found"
+                renderInput={(params) => <AppTextField {...params} label="First move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
+            />
 
-                <AppAutocomplete<ComboMoveSearchOption, false, false, false>
-                    options={enderMoveOptions}
-                    value={enderMove}
-                    inputValue={enderMoveQuery}
-                    loading={searchingEnderMoves}
-                    filterOptions={(options) => options}
-                    onChange={(_, value) => onEnderMoveChange(value)}
-                    onInputChange={(_, value) => onEnderMoveQueryChange(value)}
-                    getOptionLabel={(option) => option.summary}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                    noOptionsText="No moves found"
-                    renderInput={(params) => <AppTextField {...params} label="Ender move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
-                />
+            <AppAutocomplete<ComboMoveSearchOption, false, false, false>
+                options={enderMoveOptions}
+                value={enderMove}
+                inputValue={enderMoveQuery}
+                loading={searchingEnderMoves}
+                filterOptions={(options) => options}
+                onChange={(_, value) => onEnderMoveChange(value)}
+                onInputChange={(_, value) => onEnderMoveQueryChange(value)}
+                getOptionLabel={(option) => option.summary}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText="No moves found"
+                renderInput={(params) => <AppTextField {...params} label="Ender move" size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />}
+            />
 
-                <AppTextField label="Search sequence" placeholder="2MP xx 236HP" value={query} onChange={(event) => onQueryChange(event.target.value)} size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />
-            </AppBox>
-        </SectionCard>
+            <AppTextField label="Search sequence" placeholder="2MP xx 236HP" value={query} onChange={(event) => onQueryChange(event.target.value)} size="small" InputLabelProps={{shrink: true}} sx={compactFieldSx} />
+        </AppBox>
     );
 }

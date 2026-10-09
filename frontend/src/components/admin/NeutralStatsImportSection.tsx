@@ -84,7 +84,7 @@ export function NeutralStatsImportSection({onFinished}: {onFinished: () => void}
     };
 
     return (
-        <SectionCard title="Neutral Stats Export" variant="input" tone="raised">
+        <SectionCard title="Neutral Stats Export" tone="raised">
             <AppBox sx={{display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1.25, minWidth: 0}}>
                 <input
                     ref={fileInputRef}

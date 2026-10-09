@@ -1,0 +1,4126 @@
+{
+  "generatedAt": "2026-10-09T11:10:56.572Z",
+  "viewports": [
+    {
+      "name": "360",
+      "width": 360,
+      "height": 780
+    },
+    {
+      "name": "390",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "results": [
+    {
+      "route": "/",
+      "label": "Home",
+      "area": "Core",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": 24,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 11,
+          "undersized": 0,
+          "belowRecommended": 0,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 58,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 84
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/combos",
+      "label": "Search Combos",
+      "area": "Combos",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.4,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 34,
+          "undersized": 0,
+          "belowRecommended": 27,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 300,
+          "below14Pct": 20.7,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 77
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/combos/new",
+      "label": "Create Combo",
+      "area": "Combos",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 14,
+          "undersized": 0,
+          "belowRecommended": 9,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 181,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/combos/3606",
+      "label": "Combo Detail",
+      "area": "Combos",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.1,
+        "headingTopPx": 16,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 13,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 400,
+          "below14Pct": 6.5,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 80
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis",
+      "label": "Search Okis",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": 246,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 9,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 65,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 79
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis/new",
+      "label": "Create Oki",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 35,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 0,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 100
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis/2",
+      "label": "Oki Detail",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.3,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 228,
+          "below14Pct": 14,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis/2/edit",
+      "label": "Edit Oki",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.9,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 24,
+          "undersized": 1,
+          "belowRecommended": 19,
+          "undersizedExamples": [
+            "button.MuiButtonBase-root.MuiIconButton-root \"Add a step after Back Dash\""
+          ]
+        },
+        "text": {
+          "totalChars": 346,
+          "below14Pct": 18.8,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 77
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 99,
+        "hardPass": false,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 1,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/blockstrings",
+      "label": "Blockstrings",
+      "area": "Blockstrings",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 9,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 105,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 79
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/blockstrings/new",
+      "label": "Create Blockstring",
+      "area": "Blockstrings",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 2,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 163,
+          "below14Pct": 7.4,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 77
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/blockstrings/2",
+      "label": "Blockstring Detail",
+      "area": "Blockstrings",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 222,
+          "below14Pct": 13.1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios",
+      "label": "Search Scenarios",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 14,
+          "undersized": 0,
+          "belowRecommended": 7,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 185,
+          "below14Pct": 4.9,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios/new",
+      "label": "Create Scenario",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 2.6,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [
+          {
+            "element": "table \"P1 / P2P1 Freq0050.00%0050.00%P2 Freq50.\"",
+            "inScroller": true,
+            "columns": 5
+          }
+        ],
+        "targets": {
+          "total": 35,
+          "undersized": 0,
+          "belowRecommended": 29,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 597,
+          "below14Pct": 36.5,
+          "below12Pct": 2.2
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 3,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 73
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 97,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 3,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144",
+      "label": "Scenario Detail",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 2.3,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 20,
+          "undersized": 0,
+          "belowRecommended": 11,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 611,
+          "below14Pct": 53.4,
+          "below12Pct": 3.4
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 79
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 95,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144/edit",
+      "label": "Edit Scenario",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 2.7,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [
+          {
+            "element": "table \"Ryu / KenRyu Freq0-120030040.00%200200-9\"",
+            "inScroller": true,
+            "columns": 6
+          }
+        ],
+        "targets": {
+          "total": 47,
+          "undersized": 0,
+          "belowRecommended": 41,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 693,
+          "below14Pct": 47.5,
+          "below12Pct": 3
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 3,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 73
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 92,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 3,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/neutral-stats",
+      "label": "Neutral Stats (empty)",
+      "area": "Stats",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 7,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 22,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 0,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 100
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/neutral-stats?character=1f1ae9e2-b645-6648-a11e-95e915436371",
+      "label": "Neutral Stats",
+      "area": "Stats",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 6.3,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 37,
+          "undersized": 0,
+          "belowRecommended": 12,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 1112,
+          "below14Pct": 70.3,
+          "below12Pct": 24.3
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [
+          {
+            "element": "div.MuiBox-root \"Neutral StatsFiltersCharacterCharacterMa\"",
+            "screens": 6.2
+          },
+          {
+            "element": "div.MuiBox-root \"2MKCrouch MK – 14 uses00.511.522.53045LP\"",
+            "screens": 4.6
+          }
+        ],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 80
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 79,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 8,
+          "smallText": 5,
+          "tallBlocks": 8,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/guides",
+      "label": "Beginners Guides",
+      "area": "Guides",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": 96,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 0,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 27,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 84
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/guides/turns",
+      "label": "Turns Guide",
+      "area": "Guides",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 9.7,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 4245,
+          "below14Pct": 1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [
+          {
+            "element": "div.MuiBox-root \"Fast RulesBlocked jump-insIf you block a\"",
+            "screens": 9.5
+          },
+          {
+            "element": "div.MuiPaper-root.MuiPaper-outlined \"MoveOn blockA.K.I. 214KK+2A.K.I. 214PP+1\"",
+            "screens": 4.8
+          }
+        ],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 75
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 92,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 8,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab",
+      "label": "Replay Lab",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 7,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 48,
+          "below14Pct": 22.9,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 89
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/upload",
+      "label": "Replay Upload",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 7,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 248,
+          "below14Pct": 5.6,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 89
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/local",
+      "label": "Replay Local",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 5,
+          "undersized": 0,
+          "belowRecommended": 0,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 210,
+          "below14Pct": 6.7,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 89
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/practice-tasks",
+      "label": "Practice Tasks",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 8,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 133,
+          "below14Pct": 22.6,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 89
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/study-deck",
+      "label": "Study Deck",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 173,
+          "below14Pct": 19.1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 89
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/profile",
+      "label": "Profile",
+      "area": "Account",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.2,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 17,
+          "undersized": 0,
+          "belowRecommended": 12,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 235,
+          "below14Pct": 5.1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/about/aboutUs",
+      "label": "About",
+      "area": "Account",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 3.4,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 11,
+          "undersized": 0,
+          "belowRecommended": 4,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 2703,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [
+          {
+            "element": "div.MuiBox-root \"AboutWhat Is Fighting Game Theory?Fighti\"",
+            "screens": 3.2
+          }
+        ],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 96,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 4,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/moderation/queue",
+      "label": "Moderation Queue",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 4.7,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 90,
+          "undersized": 0,
+          "belowRecommended": 73,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 2752,
+          "below14Pct": 53.3,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [
+          {
+            "element": "div.MuiBox-root \"[mobile-audit] Ryu corner okimobile-audi\"",
+            "screens": 4.1
+          }
+        ],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 75
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 91,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 4,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/moderation/frame-data",
+      "label": "Frame Data",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 190,
+          "below14Pct": 8.4,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/moderation/resources",
+      "label": "Resources",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 37,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/admin/situations",
+      "label": "Situations",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.7,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 21,
+          "undersized": 0,
+          "belowRecommended": 15,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 281,
+          "below14Pct": 2.5,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/admin/users",
+      "label": "User Management",
+      "area": "Admin",
+      "desktopOnly": true,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.7,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 13,
+          "undersized": 0,
+          "belowRecommended": 8,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 584,
+          "below14Pct": 46.2,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 75
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 95,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/admin/replay-combo-imports",
+      "label": "Replay Import",
+      "area": "Admin",
+      "desktopOnly": true,
+      "viewport": "360",
+      "metrics": {
+        "viewport": {
+          "width": 360,
+          "height": 780
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 8,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 325,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/",
+      "label": "Home",
+      "area": "Core",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": 24,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 11,
+          "undersized": 0,
+          "belowRecommended": 0,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 58,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 86
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/combos",
+      "label": "Search Combos",
+      "area": "Combos",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.2,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 34,
+          "undersized": 0,
+          "belowRecommended": 27,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 300,
+          "below14Pct": 20.7,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 78
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/combos/new",
+      "label": "Create Combo",
+      "area": "Combos",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 14,
+          "undersized": 0,
+          "belowRecommended": 9,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 181,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/combos/3606",
+      "label": "Combo Detail",
+      "area": "Combos",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": 16,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 13,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 400,
+          "below14Pct": 6.5,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 82
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis",
+      "label": "Search Okis",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": 249,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 9,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 65,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis/new",
+      "label": "Create Oki",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 35,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 0,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 100
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis/2",
+      "label": "Oki Detail",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.3,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 228,
+          "below14Pct": 14,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/okis/2/edit",
+      "label": "Edit Oki",
+      "area": "Okis",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.6,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 24,
+          "undersized": 0,
+          "belowRecommended": 19,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 346,
+          "below14Pct": 18.8,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 79
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/blockstrings",
+      "label": "Blockstrings",
+      "area": "Blockstrings",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 9,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 105,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/blockstrings/new",
+      "label": "Create Blockstring",
+      "area": "Blockstrings",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 2,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 163,
+          "below14Pct": 7.4,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 79
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/blockstrings/2",
+      "label": "Blockstring Detail",
+      "area": "Blockstrings",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 222,
+          "below14Pct": 13.1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios",
+      "label": "Search Scenarios",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 14,
+          "undersized": 0,
+          "belowRecommended": 7,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 185,
+          "below14Pct": 4.9,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios/new",
+      "label": "Create Scenario",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 2.4,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [
+          {
+            "element": "table \"P1 / P2P1 Freq0050.00%0050.00%P2 Freq50.\"",
+            "inScroller": true,
+            "columns": 5
+          }
+        ],
+        "targets": {
+          "total": 35,
+          "undersized": 0,
+          "belowRecommended": 29,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 597,
+          "below14Pct": 36.5,
+          "below12Pct": 2.2
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 3,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 75
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 97,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 3,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144",
+      "label": "Scenario Detail",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 2,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 20,
+          "undersized": 0,
+          "belowRecommended": 12,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 611,
+          "below14Pct": 53.4,
+          "below12Pct": 3.4
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 81
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 95,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144/edit",
+      "label": "Edit Scenario",
+      "area": "Scenarios",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 2.5,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [
+          {
+            "element": "table \"Ryu / KenRyu Freq0-120030040.00%200200-9\"",
+            "inScroller": true,
+            "columns": 6
+          }
+        ],
+        "targets": {
+          "total": 47,
+          "undersized": 0,
+          "belowRecommended": 41,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 693,
+          "below14Pct": 47.5,
+          "below12Pct": 3
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 3,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 75
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 92,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 3,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/neutral-stats",
+      "label": "Neutral Stats (empty)",
+      "area": "Stats",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 7,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 22,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 0,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 100
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/neutral-stats?character=1f1ae9e2-b645-6648-a11e-95e915436371",
+      "label": "Neutral Stats",
+      "area": "Stats",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 5.8,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 37,
+          "undersized": 0,
+          "belowRecommended": 12,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 1112,
+          "below14Pct": 70.3,
+          "below12Pct": 24.3
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [
+          {
+            "element": "div.MuiBox-root \"Neutral StatsFiltersCharacterCharacterMa\"",
+            "screens": 5.7
+          },
+          {
+            "element": "div.MuiBox-root \"2MKCrouch MK – 14 uses00.511.522.53045LP\"",
+            "screens": 4.3
+          }
+        ],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 82
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 79,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 8,
+          "smallText": 5,
+          "tallBlocks": 8,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/guides",
+      "label": "Beginners Guides",
+      "area": "Guides",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": 99,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 0,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 27,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 86
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/guides/turns",
+      "label": "Turns Guide",
+      "area": "Guides",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 8.8,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 4245,
+          "below14Pct": 1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [
+          {
+            "element": "div.MuiBox-root \"Fast RulesBlocked jump-insIf you block a\"",
+            "screens": 8.6
+          },
+          {
+            "element": "div.MuiPaper-root.MuiPaper-outlined \"MoveOn blockA.K.I. 214KK+2A.K.I. 214PP+1\"",
+            "screens": 4.4
+          }
+        ],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 77
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 92,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 8,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab",
+      "label": "Replay Lab",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 7,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 48,
+          "below14Pct": 22.9,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 90
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/upload",
+      "label": "Replay Upload",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 7,
+          "undersized": 0,
+          "belowRecommended": 2,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 248,
+          "below14Pct": 5.6,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 90
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/local",
+      "label": "Replay Local",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 5,
+          "undersized": 0,
+          "belowRecommended": 0,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 210,
+          "below14Pct": 6.7,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 90
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/practice-tasks",
+      "label": "Practice Tasks",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 8,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 133,
+          "below14Pct": 22.6,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 90
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/replay-lab/study-deck",
+      "label": "Study Deck",
+      "area": "Replay Lab",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 173,
+          "below14Pct": 19.1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 90
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/profile",
+      "label": "Profile",
+      "area": "Account",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 17,
+          "undersized": 0,
+          "belowRecommended": 12,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 235,
+          "below14Pct": 5.1,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/about/aboutUs",
+      "label": "About",
+      "area": "Account",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 2.9,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 11,
+          "undersized": 0,
+          "belowRecommended": 5,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 2703,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/moderation/queue",
+      "label": "Moderation Queue",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 4.3,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 90,
+          "undersized": 0,
+          "belowRecommended": 76,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 2752,
+          "below14Pct": 53.3,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [
+          {
+            "element": "div.MuiBox-root \"[mobile-audit] Ryu corner okimobile-audi\"",
+            "screens": 3.7
+          }
+        ],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 77
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 91,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 4,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/moderation/frame-data",
+      "label": "Frame Data",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 190,
+          "below14Pct": 8.4,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/moderation/resources",
+      "label": "Resources",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 6,
+          "undersized": 0,
+          "belowRecommended": 1,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 37,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/admin/situations",
+      "label": "Situations",
+      "area": "Moderation",
+      "desktopOnly": false,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.6,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 21,
+          "undersized": 0,
+          "belowRecommended": 15,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 281,
+          "below14Pct": 2.5,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/admin/users",
+      "label": "User Management",
+      "area": "Admin",
+      "desktopOnly": true,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1.6,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 13,
+          "undersized": 0,
+          "belowRecommended": 8,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 584,
+          "below14Pct": 46.2,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 2,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 77
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 95,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 5,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    },
+    {
+      "route": "/admin/replay-combo-imports",
+      "label": "Replay Import",
+      "area": "Admin",
+      "desktopOnly": true,
+      "viewport": "390",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "horizontalOverflowPx": 0,
+        "pageScreens": 1,
+        "headingTopPx": null,
+        "offscreenElements": [],
+        "offscreenCount": 0,
+        "horizontalScrollers": [],
+        "tables": [],
+        "targets": {
+          "total": 8,
+          "undersized": 0,
+          "belowRecommended": 3,
+          "undersizedExamples": []
+        },
+        "text": {
+          "totalChars": 325,
+          "below14Pct": 0,
+          "below12Pct": 0
+        },
+        "zoomInputs": {
+          "count": 0,
+          "examples": []
+        },
+        "tallBlocks": [],
+        "boxes": {
+          "maxDepth": 1,
+          "containerOverflowCount": 0,
+          "containerOverflowExamples": [],
+          "narrowestContentPct": 83
+        },
+        "axe": []
+      },
+      "score": {
+        "value": 100,
+        "hardPass": true,
+        "penalties": {
+          "horizontalOverflow": 0,
+          "offscreenElements": 0,
+          "tablesOutsideScroller": 0,
+          "wideScrollers": 0,
+          "undersizedTargets": 0,
+          "zoomInputs": 0,
+          "tinyText": 0,
+          "smallText": 0,
+          "tallBlocks": 0,
+          "longPage": 0,
+          "accessibility": 0,
+          "containerOverflow": 0,
+          "deepNesting": 0,
+          "crampedContent": 0
+        }
+      }
+    }
+  ]
+}

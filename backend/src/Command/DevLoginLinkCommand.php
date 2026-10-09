@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\TermsAcceptanceService;
 use App\Util\Enum\UserRole;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -30,6 +31,7 @@ final class DevLoginLinkCommand extends Command
         private readonly LoginLinkHandlerInterface $loginLinkHandler,
         private readonly UserRepository $userRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly TermsAcceptanceService $termsAcceptanceService,
     ) {
         parent::__construct();
     }
@@ -70,6 +72,10 @@ final class DevLoginLinkCommand extends Command
             $user->setRoles(array_values(array_unique([...$user->getRoles(), ...$roles])));
         }
         $user->setIsActive(true);
+        // Tooling sessions would otherwise be blocked by the terms acceptance dialog on every page.
+        if (!$this->termsAcceptanceService->hasAcceptedCurrentTerms($user)) {
+            $this->termsAcceptanceService->recordAcceptance($user);
+        }
         $this->entityManager->flush();
 
         $output->writeln($this->loginLinkHandler->createLoginLink($user)->getUrl());

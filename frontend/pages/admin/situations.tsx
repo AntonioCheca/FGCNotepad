@@ -239,7 +239,7 @@ export default function AdminSituationsPage() {
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title="Situation Management" badgeLabel={`${situations.length} saved`}>
-                <SectionCard title={editingId === null ? "Create Situation" : "Edit Situation"} tone="raised" variant="input">
+                <SectionCard title={editingId === null ? "Create Situation" : "Edit Situation"} tone="raised">
                     <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", md: "repeat(4, minmax(0, 1fr))"}, gap: 1}}>
                         <AppFormControl size="small" fullWidth>
                             <AppInputLabel id="situation-type-label">Type</AppInputLabel>
@@ -270,7 +270,7 @@ export default function AdminSituationsPage() {
                     </AppBox>
                 </SectionCard>
 
-                <SectionCard title="Saved Situations" variant="review">
+                <SectionCard title="Saved Situations">
                     {situations.length === 0 ? <InlineNotice severity="info">No situations have been saved.</InlineNotice> : (
                         <>
                         <AppTableContainer sx={{display: {xs: "none", md: "block"}, maxHeight: "calc(100dvh - 420px)", backgroundColor: "fgc.surface.base"}}>

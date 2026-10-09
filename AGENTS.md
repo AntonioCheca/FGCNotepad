@@ -130,6 +130,64 @@ $env:CI = "1"; npx react-doctor@0.8.1 --no-telemetry --verbose
 - Mobile-specific components should control presentation and composition only; changes to shared feature components, hooks, and handlers must automatically apply to all viewport variants.
 - Prefer small reusable responsive primitives when a pattern clearly repeats, but do not extract abstractions prematurely.
 
+## UI/UX Design Principles — Functional Minimalism
+
+FGCNotepad is a practical analysis tool. Complexity should come from the fighting-game data, not from decoration or repeated explanations. Apply these principles to every new or changed page unless a concrete usability or domain reason justifies an exception.
+
+### A. Information-first design
+
+- Prioritize actionable data, controls and a clear hierarchy.
+- Organize with typography, alignment, whitespace and short labels before reaching for containers, color or icons.
+
+### B. Avoid decorative overcompartmentalization
+
+- Prefer `Page -> Controls` over `Page -> Card -> Section card -> Inner card -> Controls`.
+- Add a container only when it gives meaningful structure (for example Setup vs Submit on a form, or a results table vs its filters). Filters need no "Search Filters" or "Primary Filters" wrapper.
+- `SectionCard` has no decorative variants: no header icons and no colored accent edges. Do not add them back per page.
+- Small uppercase group labels are acceptable inside dense filter sets; recreating card-per-group layouts is not.
+
+### C. No tutorial-style permanent subtitles
+
+- Do not add helper text that restates what a field, button or section does ("Auto-filled from notation", "Leave unclassified if...", "Lock only scenario-wide assumptions...").
+- When a domain concept genuinely needs explanation (for example Punish tip spacing), use targeted contextual help such as `HelpTip`, not a permanent paragraph.
+
+### D. Use icons and color purposefully
+
+- Use established fighting-game abbreviations as plain text: `PC`, `CH`, `PP`, `B. DI Stun`. Combo conditions come from `comboConditions.ts` and render with `ComboConditionText`; do not wrap them in colored chips or icon badges.
+- In lists, starter conditions prefix the notation (`PC 2HP > 5MP > ...`). In detail/editor headers, keep the title and show conditions as a plain-text subtitle without repeating what the title already says.
+- Reserve color for meaningful states and visualizations (validation, danger, resource gauges). Decorative lightning icons, neon accents and redundant badges are not standard patterns.
+
+### E. Optimize information density
+
+- Use compact controls: `TriStateFilter` (Any/Yes/No) for boolean search filters, plain checkboxes for boolean form fields, short numeric fields sized to their content.
+- Order controls by how often players need them (for combos: move filters, then PC/CH/Corner/Spacing/PP/available resources; damage ranges last).
+- Use horizontal space on desktop and let rows wrap on mobile.
+
+### F. Reuse patterns across related pages
+
+- Creation and editing of the same entity share sections, labels, checkbox behavior, validation and autofill semantics (for combos: `ComboSetupSection`, `SubmitSection`, `useComboFillDetails`).
+- When changing a shared pattern, review every consumer.
+
+### G. Preserve information and functionality
+
+- Minimalism removes presentation overhead, not domain information, interactions or validation.
+- Hide unsupported controls (filters for values nobody can set yet) instead of deleting the underlying data. Do not make destructive model or database changes for cosmetic cleanup.
+
+### H. Keep default states quiet
+
+- An empty selection needs no "None selected" message; a ready form needs no "Ready" badge; an idle search needs no "Auto search on" chip.
+- Do not disable a submit button without saying why. Keep it enabled and, on submit, show actionable feedback next to the action or field that needs attention.
+- Suppress values that only restate a default (0 Drive used, 0 Super used, the 0.1 Safe Drive baseline). Keep values that are always informative, such as resource gain.
+
+### I. Prefer accurate compact visualizations
+
+- Use a visualization when it reads faster than text, for example the segmented Drive gain gauge and the Super numeral + partial bar (`ResourceGainGauges`).
+- Visualizations must be numerically exact (2.5 Drive is two full segments plus a half segment), expose the value as text or an accessible label, and use tokenized colors (`resourceGauge.*`).
+
+### J. Treat these as defaults
+
+- New pages and changes to existing pages follow these principles by default. Deviate only for a concrete usability or domain reason, and keep the deviation local.
+
 ## FGC Tactical Editorial UI System
 
 This project uses a tactical editorial visual system anchored to two separate artist palettes. Do not merge them into a single 8-color set.
@@ -180,7 +238,7 @@ This project uses a tactical editorial visual system anchored to two separate ar
   - `surface.sunken` = grouped inner regions
   - `control.default` = fields/inputs/select/button bases
 - Keep border treatment consistent via semantic border tokens.
-- Prefer segmented/grouped sections over long flat blocks.
+- Group related controls with spacing and alignment first; add a bordered section only when it gives the page real structure (see Functional Minimalism below).
 - Avoid gradient backgrounds on tactical/editorial forms and page shells unless explicitly requested.
 
 ### Accent semantics (dark mode)

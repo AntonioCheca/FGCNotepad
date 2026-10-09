@@ -192,6 +192,51 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
 
         $this->assertSame([$normal->getName()], $names('firstMoveId=' . $moveId));
         $this->assertSame([$afterDriveRush->getName()], $names('firstMoveId=' . $moveId . '&firstMoveAfterDriveRush=true'));
+        $this->assertSame([$afterDriveRush->getName()], $names('firstMoveAfterDriveRush=true'));
+        $this->assertSame([$normal->getName()], $names('firstMoveAfterDriveRush=false'));
+    }
+
+    public function testListPagesResultsWithTotalWhenPageIsRequested(): void
+    {
+        $comboType = (new ComboSequenceType())->setName('combo');
+        $leafType = (new ComboSequenceType())->setName('leaf');
+        $visibility = (new Visibility())->setName('public');
+        $connectionType = (new ConnectionType())->setName('Initial Move');
+        foreach ([$comboType, $leafType, $visibility, $connectionType] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+
+        $character = new Character();
+        $character->setName('Ryu');
+        $this->entityManager->persist($character);
+        $heavyKick = $this->createLeafForFilters($character, $leafType, $visibility, '5HK', 'normal');
+        foreach ([3000, 2000, 1000] as $damage) {
+            $this->createComboForFilters(sprintf('Combo %d', $damage), $comboType, $visibility, $heavyKick, null, $connectionType, $damage, 1, false, false, 0.0, 1.0, 0.0, 0.5);
+        }
+        $this->entityManager->flush();
+
+        $page = function (string $query): array {
+            $this->client->request('GET', '/api/combo-sequences?' . $query, [], [], $this->getHeaders());
+            $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+
+            return json_decode((string) $this->client->getResponse()->getContent(), true);
+        };
+
+        $first = $page('sort=damage&sortDirection=desc&page=1&size=2');
+        $this->assertSame(3, $first['total']);
+        $this->assertSame(1, $first['page']);
+        $this->assertSame(2, $first['pageSize']);
+        $this->assertSame(['Combo 3000', 'Combo 2000'], array_column($first['items'], 'name'));
+
+        $second = $page('sort=damage&sortDirection=desc&page=2&size=2');
+        $this->assertSame(['Combo 1000'], array_column($second['items'], 'name'));
+
+        $resourceAware = $page('sort=resourceAdjustedDamage&availableDrive=6&page=2&size=2');
+        $this->assertSame(3, $resourceAware['total']);
+        $this->assertCount(1, $resourceAware['items']);
+
+        $legacy = $page('sort=damage&sortDirection=desc');
+        $this->assertSame(['Combo 3000', 'Combo 2000', 'Combo 1000'], array_column($legacy, 'name'));
     }
 
     public function testListIncludesOwnPendingCombosButHidesOthers(): void
@@ -1183,6 +1228,43 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $updatedSequence = $this->entityManager->getRepository(ComboSequences::class)->find($comboId);
         $this->assertInstanceOf(ComboSequences::class, $updatedSequence);
         $this->assertEquals(2300.0, $updatedSequence->getComboMetrics()?->getResourceAdjustedDamage());
+    }
+
+    public function testInputNotationIsStoredUpdatedAndClearedWithoutTouchingDescription(): void
+    {
+        [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
+        $steps = [[
+            'child_sequence_id' => $leafSequence->getId(),
+            'ordinal_in_combo' => 1,
+            'connection_type_id' => $connectionType->getId(),
+        ]];
+
+        $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode([
+            'name' => 'Notation Combo',
+            'description' => 'Imported from replay combo export.',
+            'inputNotation' => '  2MP 236HP  ',
+            'steps' => $steps,
+        ]));
+        $created = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $this->assertSame('2MP 236HP', $created['inputNotation']);
+
+        $this->client->request('PATCH', sprintf('/api/combo-sequences/%d', $created['id']), [], [], $this->getJsonHeaders(), json_encode(['inputNotation' => '2MP 2MP 236HP']));
+        $updated = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame('2MP 2MP 236HP', $updated['inputNotation']);
+        $this->assertSame('Imported from replay combo export.', $updated['description']);
+
+        $this->client->request('PATCH', sprintf('/api/combo-sequences/%d', $created['id']), [], [], $this->getJsonHeaders(), json_encode(['inputNotation' => ' ']));
+        $cleared = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertNull($cleared['inputNotation']);
+
+        $this->client->request('PATCH', sprintf('/api/combo-sequences/%d', $created['id']), [], [], $this->getJsonHeaders(), json_encode(['inputNotation' => 12]));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
     public function testListCanSortByResourceAdjustedDamage(): void

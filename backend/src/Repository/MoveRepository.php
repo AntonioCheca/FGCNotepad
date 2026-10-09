@@ -78,7 +78,9 @@ class MoveRepository extends ServiceEntityRepository
         $this->applySearchTerms($queryDraft, $query);
 
         $moves = $queryDraft
-            ->orderBy('m.numpadNotation', 'ASC')
+            ->addSelect('LOWER(c.name) AS HIDDEN characterSortName')
+            ->orderBy('characterSortName', 'ASC')
+            ->addOrderBy('m.numpadNotation', 'ASC')
             ->setMaxResults(250)
             ->getQuery()
             ->getResult();

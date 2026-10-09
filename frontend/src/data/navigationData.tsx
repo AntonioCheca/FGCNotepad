@@ -13,6 +13,7 @@ import {
     PlaceOutlinedIcon,
     QueryStatsIcon,
     ScheduleIcon,
+    ShieldOutlinedIcon,
     OkiKnockdownIcon,
     SportsKabaddiOutlinedIcon,
     SportsMmaIcon,
@@ -183,6 +184,16 @@ export const accountNavigationSections: NavigationSection[] = [
                 label: "About Us",
                 href: "/about/aboutUs",
                 icon: <HelpOutlineOutlinedIcon/>
+            },
+            {
+                label: "Privacy Policy",
+                href: "/privacy",
+                icon: <ShieldOutlinedIcon/>
+            },
+            {
+                label: "Terms of Use",
+                href: "/terms",
+                icon: <ArticleOutlinedIcon/>
             }
         ]
     }

@@ -51,6 +51,15 @@ final class ComboSequenceUpdateService
             $sequence->setDescription((string) ($payload['description'] ?? ''));
         }
 
+        if (array_key_exists('inputNotation', $payload)) {
+            if (null !== $payload['inputNotation'] && !is_string($payload['inputNotation'])) {
+                throw new BadRequestHttpException('inputNotation must be a string.');
+            }
+
+            $inputNotation = trim((string) $payload['inputNotation']);
+            $sequence->setInputNotation('' === $inputNotation ? null : $inputNotation);
+        }
+
         if (array_key_exists('spacingId', $payload) || array_key_exists('spacingCode', $payload) || array_key_exists('spacing', $payload)) {
             $sequence->setSpacing($this->comboSpacingResolver->resolveFromPayload($payload));
         }

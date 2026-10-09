@@ -95,7 +95,7 @@ export default function CharacterResourcesPage() {
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title="Character Resources">
-                <SectionCard title="Character" variant="review" tone="raised">
+                <SectionCard title="Character" tone="raised">
                     <AppFormControl size="small" sx={{minWidth: {xs: 0, sm: 260}, width: {xs: "100%", sm: "auto"}}}>
                         <AppInputLabel id="resource-character-label">Character</AppInputLabel>
                         <AppSelect labelId="resource-character-label" label="Character" value={characterId} onChange={(event) => handleCharacterChange(String(event.target.value))} disabled={loadingCharacters}>
@@ -106,7 +106,7 @@ export default function CharacterResourcesPage() {
 
                 {selectedCharacter ? (
                     <>
-                        <SectionCard title={`${selectedCharacter.name} resources`} variant="review">
+                        <SectionCard title={`${selectedCharacter.name} resources`}>
                             {loadingResources ? (
                                 <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}><AppCircularProgress/></AppBox>
                             ) : resources.length === 0 ? (
@@ -130,7 +130,7 @@ export default function CharacterResourcesPage() {
                                 </AppBox>
                             )}
                         </SectionCard>
-                        <SectionCard title="Add resource" variant="input">
+                        <SectionCard title="Add resource">
                             <CharacterResourceForm
                                 busy={busy}
                                 submitLabel="Add"

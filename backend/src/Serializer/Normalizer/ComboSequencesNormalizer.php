@@ -39,6 +39,7 @@ class ComboSequencesNormalizer implements NormalizerInterface, DenormalizerInter
             'id' => $object->getId(),
             'name' => $object->getName(),
             'description' => $object->getDescription(),
+            'inputNotation' => $object->getInputNotation(),
             'move' => $object->getMove() ? $this->normalizer->normalize($object->getMove(), $format, $context) : null,
             'type' => $object->getType() ? $this->normalizer->normalize($object->getType(), $format, $context) : null,
             'comboMetrics' => $object->getComboMetrics() ? $this->normalizer->normalize($object->getComboMetrics(), $format, $context) : null,

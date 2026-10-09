@@ -50,6 +50,7 @@ final class ComboSequenceCreationService
         $sequence = (new ComboSequences())
             ->setName((string) ($payload['name'] ?? ''))
             ->setDescription((string) ($payload['description'] ?? ''))
+            ->setInputNotation($this->readInputNotation($payload))
             ->setType($type)
             ->setSpacing($this->comboSpacingResolver->resolveFromPayload($payload))
             ->setAuthor($author);
@@ -76,6 +77,19 @@ final class ComboSequenceCreationService
         }
 
         return $sequence;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function readInputNotation(array $payload): ?string
+    {
+        $inputNotation = $payload['inputNotation'] ?? null;
+        if (!is_string($inputNotation) || '' === trim($inputNotation)) {
+            return null;
+        }
+
+        return trim($inputNotation);
     }
 
     private function resolveType(string $typeName): ComboSequenceType

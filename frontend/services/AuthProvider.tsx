@@ -98,6 +98,11 @@ export function AuthProvider({children}: { children: ReactNode }) {
         }
     }, [clearSession, router]);
 
+    const endSession = useCallback(() => {
+        clearSession();
+        router.push("/auth/login");
+    }, [clearSession, router]);
+
     const hasRole = useCallback((role: UserRole): boolean => {
         return Boolean(user?.roles?.includes(role));
     }, [user]);
@@ -114,7 +119,9 @@ export function AuthProvider({children}: { children: ReactNode }) {
         canManageUsers,
         login,
         logout,
-    }), [canManageUsers, canModerate, hasRole, isAuthenticated, loading, login, logout, user]);
+        updateUser: setUser,
+        endSession,
+    }), [canManageUsers, canModerate, endSession, hasRole, isAuthenticated, loading, login, logout, user]);
 
     return (
         <AuthContext.Provider value={contextValue}>

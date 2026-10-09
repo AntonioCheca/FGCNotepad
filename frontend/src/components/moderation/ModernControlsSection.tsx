@@ -170,7 +170,7 @@ export function ModernControlsSection({characterId, moves, onMoveSaved, onFeedba
     };
 
     return (
-        <SectionCard title="Modern Controls" variant="review">
+        <SectionCard title="Modern Controls">
             <AppBox sx={{display: "grid", gridTemplateColumns: {xs: "1fr", sm: "repeat(3, minmax(0, 220px))"}, gap: 1}}>
                 {AUTO_COMBO_STRENGTHS.map((strength) => (
                     <AppTextField

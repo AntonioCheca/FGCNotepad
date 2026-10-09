@@ -1,4 +1,3 @@
-import type {ComboRequirement, RequirementSpecificCharacterPayload} from "@/src/types/combo";
 import type {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 
 export interface StepResourceChange {
@@ -33,19 +32,4 @@ export function resourceChangesByOrdinal(ledger: ResourceLedgerEntry[]): Map<num
 
 export function resourceLedgerWarnings(ledger: ResourceLedgerEntry[]): string[] {
     return ledger.flatMap((entry) => entry.warnings);
-}
-
-function startingRequirementLabel(state: RequirementSpecificCharacterPayload): string | null {
-    const required = state.status_required;
-    if (!state.object_name || required === undefined || required === null || required === false || required === "") {
-        return null;
-    }
-
-    return required === true || required === "true" ? `${state.object_name} active` : `${String(required)} ${state.object_name}`;
-}
-
-export function startingRequirementLabels(requirements: ComboRequirement | null): string[] {
-    const states = requirements?.combo_object_states ?? (requirements?.requirement_specific_character ? [requirements.requirement_specific_character] : []);
-
-    return states.map(startingRequirementLabel).filter((label): label is string => label !== null);
 }

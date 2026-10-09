@@ -1,7 +1,9 @@
+import type {TriStateValue} from "@/src/components/ui/tactical/TriStateFilter";
+
 export type ComboSortField = "damage" | "resourceAdjustedDamage" | "driveCost" | "minimumDriveCost" | "minimumDriveCostNoBurnout" | "superCost" | "driveGain" | "superGain" | "seasonStartDate";
 export type ComboSortDirection = "asc" | "desc";
 export type ComboDriveWindowMetric = "driveCost" | "minimumDriveCost" | "minimumDriveCostNoBurnout";
-export type ComboBooleanFilterValue = "" | "true" | "false";
+export type ComboBooleanFilterValue = TriStateValue;
 
 export interface ComboDriveWindowFilter {
     enabled: boolean;
@@ -22,7 +24,6 @@ export interface ComboCharacterOption {
 }
 
 export interface ComboRequirementFilters {
-    isEssential: ComboBooleanFilterValue;
     counterHitRequired: ComboBooleanFilterValue;
     punishCounterRequired: ComboBooleanFilterValue;
     perfectParryRequired: ComboBooleanFilterValue;
@@ -31,6 +32,7 @@ export interface ComboRequirementFilters {
     airborneRequired: ComboBooleanFilterValue;
     notCrouchingRequired: ComboBooleanFilterValue;
     sideSwitchesRequired: ComboBooleanFilterValue;
+    rawDriveRush: ComboBooleanFilterValue;
     requirementObjectName: string;
     requirementObjectStatus: string;
     addedObjectName: string;
@@ -45,11 +47,8 @@ export interface ComboFilterState {
     characterId: string;
     firstMove: ComboMoveSearchOption | null;
     firstMoveQuery: string;
-    firstMoveAfterDriveRush: boolean;
     enderMove: ComboMoveSearchOption | null;
     enderMoveQuery: string;
-    minDifficulty: string;
-    maxDifficulty: string;
     minDamage: string;
     maxDamage: string;
     availableDrive: string;
@@ -68,8 +67,6 @@ export interface ComboSearchFilters {
     firstMoveId?: string;
     firstMoveAfterDriveRush?: boolean;
     enderMoveId?: string;
-    minDifficulty?: number;
-    maxDifficulty?: number;
     minDamage?: number;
     maxDamage?: number;
     spacingCodes?: string[];
@@ -79,7 +76,6 @@ export interface ComboSearchFilters {
     maxMinimumDriveCost?: number;
     minMinimumDriveCostNoBurnout?: number;
     maxMinimumDriveCostNoBurnout?: number;
-    isEssential?: boolean;
     counterHitRequired?: boolean;
     punishCounterRequired?: boolean;
     perfectParryRequired?: boolean;
@@ -98,6 +94,7 @@ export interface ComboSearchFilters {
     availableObjectStatuses?: Record<string, string | number | boolean>;
     sort?: ComboSortField;
     sortDirection?: ComboSortDirection;
+    page?: number;
 }
 
 export interface ComboFiltersProps {

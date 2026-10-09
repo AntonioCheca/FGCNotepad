@@ -53,7 +53,7 @@ class AuthController extends AbstractController
         }
 
         try {
-            $user = $this->registrationService->register($data['username'], $data['password'], $inviteCode);
+            $user = $this->registrationService->register($data['username'], $data['password'], $inviteCode, true === ($data['acceptTerms'] ?? null));
         } catch (ConflictHttpException $exception) {
             return new JsonResponse(['message' => $exception->getMessage()], Response::HTTP_CONFLICT);
         } catch (\InvalidArgumentException $exception) {

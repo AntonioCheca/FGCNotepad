@@ -13,6 +13,7 @@ import AuthContext from "@/services/AuthContext";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
+import AccountDeletionSection from "@/src/components/profile/AccountDeletionSection";
 import {ComboExecutionModeSelect} from "@/src/components/combos/execution/ComboExecutionModeSelect";
 import type {ComboExecutionMode} from "@/src/types/comboExecution";
 
@@ -51,7 +52,7 @@ interface DefaultScenarioModeSectionProps {
 
 function DefaultScenarioModeSection({executionSelection, savingPreference, onSelectionChange, onSave}: DefaultScenarioModeSectionProps) {
     return (
-        <SectionCard title="Default Scenario Mode" variant="input" tone="raised">
+        <SectionCard title="Default Scenario Mode" tone="raised">
             <AppBox sx={{display: "flex", gap: {xs: 1, md: 2}, alignItems: {xs: "flex-start", md: "center"}, flexDirection: {xs: "column", sm: "row"}, flexWrap: "wrap"}}>
                 <span style={{display: "inline-flex", alignItems: "center", gap: 6}}>
                     <AppTypography variant="body2">My Current Knowledge</AppTypography>
@@ -128,7 +129,7 @@ interface ControlsSectionProps {
 
 function ControlsSection({mode, saving, onModeChange, onSave}: ControlsSectionProps) {
     return (
-        <SectionCard title="Controls" variant="input" tone="raised">
+        <SectionCard title="Controls" tone="raised">
             <AppBox sx={{display: "flex", gap: 1.5, alignItems: {xs: "stretch", sm: "center"}, flexDirection: {xs: "column", sm: "row"}}}>
                 <ComboExecutionModeSelect value={mode} onChange={onModeChange} />
                 <AppButton type="button" disabled={saving} onClick={() => void onSave()} sx={{width: {xs: "100%", sm: "auto"}}}>{saving ? "Saving..." : "Save Controls"}</AppButton>
@@ -151,7 +152,7 @@ interface ComboKnowledgeSectionProps {
 
 function ComboKnowledgeSection({characters, selectedCharacterId, combos, difficultyFilter, savingKnowledge, onCharacterChange, onCombosChange, onDifficultyFilterChange, onSave}: ComboKnowledgeSectionProps) {
     return (
-        <SectionCard title="Combo Knowledge" variant="review">
+        <SectionCard title="Combo Knowledge">
             <AppBox sx={(theme) => ({
                 display: "grid",
                 gridTemplateColumns: {xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "minmax(180px, 240px) auto auto minmax(190px, 240px) minmax(150px, 200px) auto"},
@@ -418,6 +419,8 @@ export default function ProfilePage() {
                         }
                     }}
                 />
+
+                <AccountDeletionSection/>
             </PageShell>
         </AppContainer>
     );

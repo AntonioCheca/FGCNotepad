@@ -39,7 +39,7 @@ export interface StepDraft {
 
 export interface CreateFullComboPayload {
     name: string;
-    description?: string;
+    inputNotation?: string | null;
     spacingCode?: string | null;
     metrics?: {
         damage?: number;
@@ -292,6 +292,13 @@ export function wholeDamage(value: number | string): number | string {
     return value !== "" && Number.isFinite(numeric) ? Math.round(numeric) : value;
 }
 
+export interface ComboSearchPage {
+    items: ComboApiSummary[];
+    total: number;
+    page: number;
+    pageSize: number;
+}
+
 export function mapComboToRow(combo: ComboApiSummary): ComboRow {
     const moveNamesFromLegacyField = combo.moves?.map((move) => move.name ?? "-") ?? [];
     const moveNamesFromSteps: string[] = [];
@@ -376,7 +383,7 @@ export interface ComboDetailApi {
     executionMode?: ComboExecutionMode;
     executionNotation?: string | null;
     modernLegal?: boolean;
-    description?: string | null;
+    inputNotation?: string | null;
     character?: { id?: string | number; name?: string } | null;
     comboMetrics?: ComboMetricsApi | null;
     comboRequirement?: ComboRequirement | null;
@@ -392,7 +399,7 @@ export interface ComboDetailView {
     displayTitle: string;
     executionMode: ComboExecutionMode;
     modernLegal: boolean;
-    description: string;
+    inputNotation: string;
     characterId: string | null;
     characterName: string;
     damage: number | string;
@@ -417,7 +424,7 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
         displayTitle: comboDisplayTitle(combo),
         executionMode: combo.executionMode ?? "classic",
         modernLegal: combo.modernLegal ?? false,
-        description: combo.description ?? "",
+        inputNotation: combo.inputNotation ?? "",
         characterId: combo.character?.id !== undefined ? String(combo.character.id) : null,
         characterName: combo.character?.name ?? "-",
         damage: combo.comboMetrics?.damage ?? "-",

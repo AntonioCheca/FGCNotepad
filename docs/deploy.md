@@ -60,7 +60,7 @@ sudo docker compose -f docker-compose.prod.yml exec -T backend php bin/console a
 curl -s -o /dev/null -w "%{http_code}\n" https://fightinggametheory.com/api/health
 curl -sI https://fightinggametheory.com/auth/login | grep -iE "strict-transport|x-frame|x-content-type|referrer-policy|^server"
 
-# Visitor IPs in the access log should be real client IPs, not Cloudflare 104.x / 172.64.x / 162.158.x addresses.
+# Visitor IPs in the access log should be real client IPs with the last octet zeroed (e.g. 81.40.12.0), not Cloudflare 104.x / 172.64.x / 162.158.x addresses.
 sudo docker compose -f docker-compose.prod.yml logs --tail 5 nginx
 ```
 
@@ -97,3 +97,15 @@ Restore the database only if data was damaged:
 ```bash
 sudo make prod-db-restore BACKUP=/opt/fightinggametheory/backups/postgres/<file>.dump CONFIRM_PROD_DB_RESTORE=restore
 ```
+
+## Scheduled jobs (root crontab on the VM)
+
+`/privacy` promises that original Replay Lab videos are deleted after 14 days and that database backups are kept for up to 14 days.
+Both only hold while these jobs run (`sudo crontab -e`):
+
+```cron
+0 3 * * * cd /home/ubuntu/FGCNotepad && /usr/bin/make prod-db-backup >> /var/log/fgcnotepad-db-backup.log 2>&1
+30 3 * * * cd /home/ubuntu/FGCNotepad && /usr/bin/docker compose -f docker-compose.prod.yml exec -T backend php bin/console app:replay-lab:cleanup >> /var/log/fgcnotepad-replay-cleanup.log 2>&1
+```
+
+Lightsail automatic snapshots (7 days) must stay enabled; local dumps do not survive losing the instance.

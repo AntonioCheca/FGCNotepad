@@ -15,8 +15,8 @@ import {AppTableRow} from "@/src/components/ui/AppTableRow";
 import {AppTextField} from "@/src/components/ui/AppTextField";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {ArrowDownwardIcon, ArrowUpwardIcon, PendingActionsIcon} from "@/src/components/ui/AppIcons";
-import {buildRequirementBadges} from "@/src/components/combos/requirements/comboRequirementBadges";
-import {ComboRequirementIcons} from "@/src/components/combos/requirements/ComboRequirementIcons";
+import {buildComboConditions} from "@/src/components/combos/requirements/comboConditions";
+import {ComboConditionText} from "@/src/components/combos/requirements/ComboConditionText";
 import {ComboRow} from "@/src/types/combo";
 
 interface ComboTableProps {
@@ -126,21 +126,7 @@ export default function ComboTable({combos, sort, sortDirection, onSortChange}: 
                                 >
                                     <AppTableCell sx={{minWidth: 240, maxWidth: 420}}>
                                         <AppBox sx={{display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap"}}>
-                                            <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
-                                                <AppBox
-                                                    component="span"
-                                                    sx={{
-                                                        fontWeight: 620,
-                                                        textDecoration: "underline",
-                                                        textDecorationColor: "transparent",
-                                                        textUnderlineOffset: "2px",
-                                                        '&:hover': {textDecorationColor: "currentColor"},
-                                                    }}
-                                                >
-                                                    {combo.notation}
-                                                </AppBox>
-                                            </Link>
-                                            <ComboRequirementIcons badges={buildRequirementBadges(combo.requirements)} />
+                                            <ComboTitleLink combo={combo} />
                                             {isPendingReview ? (
                                                 <AppChip
                                                     icon={<PendingActionsIcon fontSize="small" />}
@@ -239,13 +225,10 @@ function ComboMobileCards({combos}: {combos: ComboRow[]}) {
                     <AppPaper key={combo.id} variant="outlined" sx={{p: 1, borderRadius: 2, display: "grid", gap: 0.75, backgroundColor: "fgc.surface.base", borderColor: "fgc.border.default", minWidth: 0}}>
                         <AppBox sx={{display: "grid", gap: 0.35, minWidth: 0}}>
                             <AppBox sx={{display: "flex", gap: 0.65, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", minWidth: 0}}>
-                                <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
-                                    <AppTypography variant="subtitle1" sx={{fontWeight: 750, textDecoration: "underline", textUnderlineOffset: "2px", overflowWrap: "anywhere"}}>{combo.notation}</AppTypography>
-                                </Link>
+                                <ComboTitleLink combo={combo} />
                                 {isPendingReview ? <AppChip icon={<PendingActionsIcon fontSize="small" />} size="small" label="Pending" color="warning" variant="outlined" /> : null}
                             </AppBox>
                             <AppTypography variant="body2" color="text.secondary">{combo.characterName ?? "-"}</AppTypography>
-                            <ComboRequirementIcons badges={buildRequirementBadges(combo.requirements)} />
                         </AppBox>
 
                         <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.65}}>
@@ -272,6 +255,39 @@ function ComboMobileFact({label, value}: {label: string; value: React.ReactNode}
         <AppBox sx={{display: "grid", gap: 0.1, minWidth: 0}}>
             <AppTypography variant="caption" color="text.secondary" sx={{fontWeight: 700}}>{label}</AppTypography>
             <AppTypography variant="body2" sx={{fontWeight: 650, overflowWrap: "anywhere"}}>{value}</AppTypography>
+        </AppBox>
+    );
+}
+
+// Starter conditions (PC, CH, PP...) prefix the notation like players write them; the rest sit underneath.
+function ComboTitleLink({combo}: {combo: ComboRow}) {
+    const conditions = buildComboConditions(combo.requirements);
+    const starterConditions = conditions.filter((condition) => condition.starter);
+    const otherConditions = conditions.filter((condition) => !condition.starter);
+
+    return (
+        <AppBox sx={{display: "grid", gap: 0.15, minWidth: 0}}>
+            <Link href={`/combos/${combo.id}`} style={{color: "inherit", textDecoration: "none"}}>
+                <AppBox
+                    component="span"
+                    sx={{
+                        fontWeight: 620,
+                        overflowWrap: "anywhere",
+                        textDecoration: "underline",
+                        textDecorationColor: "transparent",
+                        textUnderlineOffset: "2px",
+                        "&:hover": {textDecorationColor: "currentColor"},
+                    }}
+                >
+                    {starterConditions.length > 0 ? <ComboConditionText conditions={starterConditions} sx={{mr: 0.75, fontWeight: 800}} /> : null}
+                    {combo.notation}
+                </AppBox>
+            </Link>
+            {otherConditions.length > 0 ? (
+                <AppBox sx={{typography: "caption", color: "text.secondary"}}>
+                    <ComboConditionText conditions={otherConditions} />
+                </AppBox>
+            ) : null}
         </AppBox>
     );
 }

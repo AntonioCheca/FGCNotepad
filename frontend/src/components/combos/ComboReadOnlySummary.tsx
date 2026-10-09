@@ -1,24 +1,24 @@
+import type React from "react";
+
 import {AppBox} from "@/src/components/ui/AppBox";
-import {AppChip} from "@/src/components/ui/AppChip";
 import {AppTypography} from "@/src/components/ui/AppTypography";
+import {HelpTip} from "@/src/components/ui/tactical/HelpTip";
 import type {ComboDetailView} from "@/src/types/combo";
-import {buildRequirementBadges} from "./requirements/comboRequirementBadges";
-import {ComboRequirementIcons} from "./requirements/ComboRequirementIcons";
+import {buildComboConditions, conditionsNotInTitle} from "./requirements/comboConditions";
+import {ComboConditionText} from "./requirements/ComboConditionText";
+import {DriveGainGauge, SuperGainGauge} from "./resources/ResourceGainGauges";
+import {parseGaugeValue} from "./resources/resourceGauge";
+
+// Every combo needs at least 0.1 Drive to avoid burnout, so that value says nothing about this combo.
+const SAFE_DRIVE_BASELINE = 0.1;
 
 interface ComboReadOnlySummaryProps {
     combo: ComboDetailView;
 }
 
-function hasValue(value: number | string): boolean {
-    return value !== "-" && String(value).trim() !== "";
-}
-
-function formatResource(value: number | string, unit: "bars" | "meter"): string {
-    return hasValue(value) ? `${value} ${unit}` : `0 ${unit}`;
-}
-
-function formatOptionalDrive(value: number | string): string {
-    return hasValue(value) ? `${value} bars` : "-";
+function aboveBaseline(value: number | string, baseline: number): number | null {
+    const parsed = parseGaugeValue(value);
+    return parsed !== null && parsed > baseline ? parsed : null;
 }
 
 function getComboNotation(combo: ComboDetailView): string {
@@ -29,104 +29,60 @@ function getComboNotation(combo: ComboDetailView): string {
         .join(" > ");
 }
 
+function bars(value: number): string {
+    return `${value} ${value === 1 ? "bar" : "bars"}`;
+}
+
+function joinParts(parts: Array<string | null>): string | null {
+    const present = parts.filter((part): part is string => part !== null);
+    return present.length > 0 ? present.join(", ") : null;
+}
+
 export function ComboReadOnlySummary({combo}: ComboReadOnlySummaryProps) {
-    const requirementBadges = buildRequirementBadges(combo.requirements);
+    const conditions = conditionsNotInTitle(buildComboConditions(combo.requirements), combo.displayTitle);
     const comboNotation = getComboNotation(combo);
+    const driveUsed = aboveBaseline(combo.driveCost, 0);
+    const superUsed = aboveBaseline(combo.superCost, 0);
+    const minimumDrive = aboveBaseline(combo.minimumDriveCost, 0);
+    const safeDrive = aboveBaseline(combo.minimumDriveCostNoBurnout, SAFE_DRIVE_BASELINE);
+    const resourcesUsed = joinParts([driveUsed !== null ? `Drive ${bars(driveUsed)}` : null, superUsed !== null ? `Super ${bars(superUsed)}` : null]);
+    const driveRequirements = joinParts([minimumDrive !== null ? `Min ${bars(minimumDrive)}` : null, safeDrive !== null ? `Safe ${bars(safeDrive)}` : null]);
 
     return (
-        <AppBox
-            sx={{
-                display: "grid",
-                gap: {xs: 0.85, md: 0.75},
-                px: {xs: 1.1, md: 1.35},
-                py: {xs: 1, md: 1.2},
-                border: "1px solid",
-                borderColor: "fgc.border.default",
-                borderRadius: 1.5,
-                backgroundColor: "fgc.surface.base",
-                minWidth: 0,
-            }}
-        >
-            <AppTypography variant="h5" sx={{fontWeight: 700, overflowWrap: "anywhere"}}>{combo.displayTitle}</AppTypography>
-            <ComboRequirementIcons badges={requirementBadges} />
-            <AppBox sx={{display: {xs: "grid", md: "none"}, gap: 0.75, minWidth: 0}}>
-                {comboNotation ? (
-                    <AppTypography variant="body2" sx={{fontFamily: "'IBM Plex Mono', 'Consolas', monospace", fontWeight: 700, overflowWrap: "anywhere"}}>
-                        {comboNotation}
-                    </AppTypography>
+        <AppBox sx={{display: "grid", gap: 1.25, minWidth: 0}}>
+            <AppBox sx={{display: "grid", gap: 0.35, minWidth: 0}}>
+                <AppTypography variant="h5" sx={{fontWeight: 700, overflowWrap: "anywhere"}}>{combo.displayTitle}</AppTypography>
+                {conditions.length > 0 ? (
+                    <AppBox sx={{typography: "body2", color: "text.secondary", fontWeight: 600}}>
+                        <ComboConditionText conditions={conditions} />
+                    </AppBox>
                 ) : null}
-                <AppBox sx={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.65}}>
-                    <MobileFact label="Damage" value={combo.damage} />
-                    <MobileFact label="Spacing" value={combo.spacing?.name ?? "Unclassified"} />
-                    <MobileFact label="Drive Used" value={formatResource(combo.driveCost, "bars")} />
-                    <MobileFact label="Super Used" value={formatResource(combo.superCost, "meter")} />
-                    <MobileFact label="Min Drive" value={formatOptionalDrive(combo.minimumDriveCost)} />
-                    <MobileFact label="Safe Drive" value={formatOptionalDrive(combo.minimumDriveCostNoBurnout)} />
-                </AppBox>
-                <AppBox sx={{display: "flex", gap: 0.45, flexWrap: "wrap"}}>
-                    <AppChip size="small" variant="outlined" label={`Season ${combo.seasonLabels.length > 0 ? combo.seasonLabels.join(", ") : "-"}`} />
-                    <AppChip size="small" variant="outlined" label={`Gain D ${formatResource(combo.driveGain, "bars")}`} />
-                    <AppChip size="small" variant="outlined" label={`Gain S ${formatResource(combo.superGain, "meter")}`} />
-                </AppBox>
-                {combo.spacing?.code === "punish_tip" ? (
-                    <AppTypography variant="caption" color="text.secondary">
-                        Punish tip: extended hurtbox punishment, farther than normal tip range.
-                    </AppTypography>
-                ) : null}
-                {combo.description.trim() ? <AppTypography variant="body2" color="text.secondary" sx={{overflowWrap: "anywhere"}}>{combo.description}</AppTypography> : null}
             </AppBox>
-            <AppBox component="ul" sx={{m: 0, pl: 2.4, display: {xs: "none", md: "grid"}, gap: 0.45}}>
-                <li>
-                    <AppTypography variant="body2">Season: {combo.seasonLabels.length > 0 ? combo.seasonLabels.join(", ") : "-"}</AppTypography>
-                </li>
-                {comboNotation ? (
-                    <li>
-                        <AppTypography variant="body2">Notation: {comboNotation}</AppTypography>
-                    </li>
-                ) : null}
-                <li>
-                    <AppTypography variant="body2">Spacing: {combo.spacing?.name ?? "Unclassified"}</AppTypography>
-                </li>
-                {combo.spacing?.code === "punish_tip" ? (
-                    <li>
-                        <AppTypography variant="body2" color="text.secondary">
-                            The starter connects because the punished move has an extended hurtbox. This is farther than the starter&apos;s normal tip range.
-                        </AppTypography>
-                    </li>
-                ) : null}
-                <li>
-                    <AppTypography variant="body2">Damage: {combo.damage}</AppTypography>
-                </li>
-                <li>
-                    <AppTypography variant="body2">
-                        Resources used: Drive: {formatResource(combo.driveCost, "bars")}, Super: {formatResource(combo.superCost, "meter")}
-                    </AppTypography>
-                </li>
-                <li>
-                    <AppTypography variant="body2">
-                        Drive requirements: Min: {formatOptionalDrive(combo.minimumDriveCost)}, Safe: {formatOptionalDrive(combo.minimumDriveCostNoBurnout)}
-                    </AppTypography>
-                </li>
-                <li>
-                    <AppTypography variant="body2">
-                        Resources gained: Drive: {formatResource(combo.driveGain, "bars")}, Super: {formatResource(combo.superGain, "meter")}
-                    </AppTypography>
-                </li>
-                {combo.description.trim() ? (
-                    <li>
-                        <AppTypography variant="body2">Description: {combo.description}</AppTypography>
-                    </li>
-                ) : null}
+
+            <AppBox component="dl" sx={{display: "grid", gridTemplateColumns: {xs: "minmax(84px, auto) minmax(0, 1fr)", md: "150px minmax(0, 1fr)"}, columnGap: 1.5, rowGap: 0.75, m: 0, alignItems: "center"}}>
+                {comboNotation ? <SummaryRow label="Notation"><AppBox component="span" sx={{fontFamily: "'IBM Plex Mono', 'Consolas', monospace", fontWeight: 700, overflowWrap: "anywhere"}}>{comboNotation}</AppBox></SummaryRow> : null}
+                <SummaryRow label="Spacing">
+                    <AppBox component="span" sx={{display: "inline-flex", alignItems: "center", gap: 0.5}}>
+                        {combo.spacing?.name ?? "Unclassified"}
+                        {combo.spacing?.code === "punish_tip" ? <HelpTip text="The starter connects because the punished move has an extended hurtbox, farther than the starter's normal tip range." /> : null}
+                    </AppBox>
+                </SummaryRow>
+                <SummaryRow label="Damage">{combo.damage}</SummaryRow>
+                {resourcesUsed ? <SummaryRow label="Resources used">{resourcesUsed}</SummaryRow> : null}
+                {driveRequirements ? <SummaryRow label="Drive needed">{driveRequirements}</SummaryRow> : null}
+                <SummaryRow label="Drive gain"><DriveGainGauge value={parseGaugeValue(combo.driveGain) ?? 0} /></SummaryRow>
+                <SummaryRow label="Super gain"><SuperGainGauge value={parseGaugeValue(combo.superGain) ?? 0} /></SummaryRow>
+                {combo.seasonLabels.length > 0 ? <SummaryRow label="Season">{combo.seasonLabels.join(", ")}</SummaryRow> : null}
             </AppBox>
         </AppBox>
     );
 }
 
-function MobileFact({label, value}: {label: string; value: string | number}) {
+function SummaryRow({label, children}: {label: string; children: React.ReactNode}) {
     return (
-        <AppBox sx={{display: "grid", gap: 0.1, minWidth: 0}}>
-            <AppTypography variant="caption" color="text.secondary" sx={{fontWeight: 700}}>{label}</AppTypography>
-            <AppTypography variant="body2" sx={{fontWeight: 750, overflowWrap: "anywhere"}}>{value}</AppTypography>
-        </AppBox>
+        <>
+            <AppBox component="dt" sx={{typography: "body2", color: "text.secondary", fontWeight: 700}}>{label}</AppBox>
+            <AppBox component="dd" sx={{typography: "body2", m: 0, minWidth: 0}}>{children}</AppBox>
+        </>
     );
 }

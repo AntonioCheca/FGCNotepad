@@ -4,6 +4,7 @@ namespace App\Tests\Command;
 
 use App\Command\DevLoginLinkCommand;
 use App\Entity\User;
+use App\Service\TermsAcceptanceService;
 use App\Tests\DatabaseTestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -37,6 +38,7 @@ final class DevLoginLinkCommandTest extends DatabaseTestCase
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['username' => 'audit_user']);
         self::assertInstanceOf(User::class, $user);
         self::assertEqualsCanonicalizing(['ROLE_USER', 'ROLE_ADMIN', 'ROLE_QA_TESTER'], $user->getRoles());
+        self::assertSame(TermsAcceptanceService::CURRENT_VERSION, $user->getTermsVersion());
 
         $this->client->request('POST', '/api/login', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['username' => 'audit_user', 'password' => '']));
         self::assertResponseStatusCodeSame(401);

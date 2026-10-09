@@ -16,6 +16,7 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class ComboSequencesRepository extends ServiceEntityRepository
 {
+    public const MAX_SEARCH_RESULTS = 1000;
     private const NOTATION_SEARCH_SEPARATORS = ['XX', 'DRC', 'WALK', 'BACK'];
     private const MAX_NOTATION_SEARCH_TOKENS = 10;
 
@@ -146,10 +147,33 @@ class ComboSequencesRepository extends ServiceEntityRepository
      *
      * @return list<ComboSequences>
      */
-    public function searchNonLeafsByFilters(array $filters, int $limit = 100, ?User $visibleAuthor = null): array
+    public function searchNonLeafsByFilters(array $filters, int $limit = 100, ?User $visibleAuthor = null, int $offset = 0): array
     {
-        $safeLimit = max(1, min($limit, 300));
+        $qb = $this->createNonLeafSearchQuery($filters, $visibleAuthor)
+            ->setMaxResults(max(1, min($limit, self::MAX_SEARCH_RESULTS)))
+            ->setFirstResult(max(0, $offset));
+        $this->applySort($qb, $filters);
 
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @param array<string, mixed> $filters Same shape as searchNonLeafsByFilters().
+     */
+    public function countNonLeafsByFilters(array $filters, ?User $visibleAuthor = null): int
+    {
+        return (int) $this->createNonLeafSearchQuery($filters, $visibleAuthor)
+            ->select('COUNT(DISTINCT combo.id)')
+            ->distinct(false)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    private function createNonLeafSearchQuery(array $filters, ?User $visibleAuthor): \Doctrine\ORM\QueryBuilder
+    {
         $qb = $this->createQueryBuilder('combo')
             ->leftJoin('combo.type', 'comboType')
             ->leftJoin('combo.comboMetrics', 'metrics')
@@ -158,7 +182,6 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->addSelect('comboType', 'metrics', 'requirement', 'spacing')
             ->andWhere('comboType.name != :leafType')
             ->setParameter('leafType', 'leaf')
-            ->setMaxResults($safeLimit)
             ->distinct();
 
         if ($visibleAuthor instanceof User) {
@@ -175,7 +198,8 @@ class ComboSequencesRepository extends ServiceEntityRepository
 
         $characterId = isset($filters['characterId']) && is_string($filters['characterId']) ? trim($filters['characterId']) : '';
         $firstMoveId = isset($filters['firstMoveId']) && is_string($filters['firstMoveId']) ? trim($filters['firstMoveId']) : '';
-        if ('' !== $characterId || '' !== $firstMoveId) {
+        $startsWithRawDriveRush = $filters['firstMoveAfterDriveRush'] ?? null;
+        if ('' !== $characterId || '' !== $firstMoveId || is_bool($startsWithRawDriveRush)) {
             $qb->innerJoin('combo.steps', 'starterStep')
                 ->innerJoin('starterStep.child_sequence', 'starterSequence')
                 ->innerJoin('starterSequence.move', 'starterMove')
@@ -187,7 +211,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
                     ->setParameter('characterId', $characterId);
             }
 
-            if ('' !== $firstMoveId && true === ($filters['firstMoveAfterDriveRush'] ?? null)) {
+            if ('' !== $firstMoveId && true === $startsWithRawDriveRush) {
                 $qb->innerJoin('combo.steps', 'followUpStep')
                     ->innerJoin('followUpStep.child_sequence', 'followUpSequence')
                     ->innerJoin('followUpSequence.move', 'followUpMove')
@@ -199,6 +223,14 @@ class ComboSequencesRepository extends ServiceEntityRepository
             } elseif ('' !== $firstMoveId) {
                 $qb->andWhere('starterMove.id = :firstMoveId')
                     ->setParameter('firstMoveId', $firstMoveId);
+            }
+
+            if ('' === $firstMoveId && true === $startsWithRawDriveRush) {
+                $qb->andWhere('starterMove.numpadNotation = :rawDriveRushNotation')
+                    ->setParameter('rawDriveRushNotation', 'DR');
+            } elseif (false === $startsWithRawDriveRush) {
+                $qb->andWhere('starterMove.numpadNotation <> :rawDriveRushNotation')
+                    ->setParameter('rawDriveRushNotation', 'DR');
             }
         }
 
@@ -383,9 +415,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('spacingCodes', $spacingCodes);
         }
 
-        $this->applySort($qb, $filters);
-
-        return $qb->getQuery()->getResult();
+        return $qb;
     }
 
     /**

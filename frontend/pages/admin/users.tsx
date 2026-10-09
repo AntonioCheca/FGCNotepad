@@ -97,7 +97,6 @@ function AdminControls({size, loadingUsers, onSizeChange, onRefresh}: AdminContr
     return (
         <SectionCard
             title="Admin Controls"
-            variant="review"
             tone="raised"
         >
             <AppBox sx={{display: "flex", flexDirection: {xs: "column", sm: "row"}, justifyContent: "space-between", gap: 1, alignItems: {xs: "stretch", sm: "center"}}}>
@@ -188,7 +187,6 @@ function UsersSection({rows, loadingUsers, page, totalPages, roleDraftById, pend
         <SectionCard
             title="Users"
             description="Use confirmation for dangerous actions. Backend validations are shown per user row."
-            variant="review"
         >
             {loadingUsers ? (
                 <AppBox sx={{display: "flex", justifyContent: "center", py: 2}}>
