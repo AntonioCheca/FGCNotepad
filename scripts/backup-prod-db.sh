@@ -21,10 +21,17 @@ mkdir -p "$BACKUP_DIR"
 
 echo "Creating Postgres backup: ${BACKUP_FILE}"
 $COMPOSE -f docker-compose.prod.yml exec -T postgres sh -c \
-    'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --compress=9 --file=-' \
+    'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --compress=9' \
     > "$BACKUP_FILE"
 
-echo "Backup complete: ${BACKUP_FILE}"
+# pg_dump treats "--file=-" as a file literally named "-", so check the dump really landed here.
+if [ ! -s "$BACKUP_FILE" ]; then
+    rm -f "$BACKUP_FILE"
+    echo "Backup failed: ${BACKUP_FILE} is empty." >&2
+    exit 1
+fi
+
+echo "Backup complete: ${BACKUP_FILE} ($(du -h "$BACKUP_FILE" | cut -f1))"
 
 if [ "$BACKUP_RETENTION" -gt 0 ]; then
     ls -1t "${BACKUP_DIR}"/*.dump 2>/dev/null | tail -n +$((BACKUP_RETENTION + 1)) | xargs -r rm --
