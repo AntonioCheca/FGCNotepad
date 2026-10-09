@@ -86,7 +86,7 @@ export default function AiTransparencyPage() {
                         helps people.
                     </NormalParagraph>
                     <NormalParagraph>
-                        Thanks for reading, Antonio.
+                        Thanks for reading, Checa.
                     </NormalParagraph>
                 </SectionCard>
             </PageShell>

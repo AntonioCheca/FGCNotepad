@@ -41,7 +41,7 @@ export default function AboutPage() {
                 <SectionCard title="Credits And Thanks">
 
                     <NormalParagraph>
-                        Built by <strong>Antonio Checa</strong>, software engineer, trying to improve at these games.
+                        Built by <strong>Checa</strong>, software engineer, trying to improve at these games.
                         If you want to contribute to the project, check out the
                         <TextLink href="https://github.com/AntonioCheca/FGCNotepad/">
                             GitHub repository
