@@ -91,35 +91,6 @@ export default function AboutPage() {
                         technical side of the game.
                     </NormalParagraph>
                 </SectionCard>
-
-                <SectionCard title="AI Usage Transparency">
-
-                    <NormalParagraph>
-                        AI was used for the code, both in backend and frontend. All the images, logos, and
-                        anything visual was done either by a person (specifically the logo of the website and color
-                        scheme), or taken from an open-source logo library (specifically the logos for sidebar, from
-                        MUI).
-                    </NormalParagraph>
-
-                    <NormalParagraph>
-                        An estimation of energy used for this, in the point of writing, is 120€ which translated into
-                        around ~6 days of a normal household electricity usage in Europe, estimation done by some
-                        rough estimates in Codex 5.3 - 5.5 models around summer 2026.
-                    </NormalParagraph>
-                    <NormalParagraph>
-                        <strong>Why this note? </strong> I think the law should force companies and individuals to be
-                        transparent on
-                        AI usage, both for how they use it, and estimate the energy cost of it. This is my attempt
-                        at that. I am very open to hear complaints with this note, I do take ethical AI usage seriously.
-                    </NormalParagraph>
-                    <NormalParagraph>
-                        I personally monitor my usage using
-                        <TextLink
-                            href="https://github.com/jacobjmc/OpenCodeMonitor">
-                            ocmonitor (OpenCode Monitor)
-                        </TextLink>.
-                    </NormalParagraph>
-                </SectionCard>
             </PageShell>
         </AppContainer>
     );

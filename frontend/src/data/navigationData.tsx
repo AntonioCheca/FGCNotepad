@@ -3,6 +3,7 @@ import type {UserRole} from "@/src/types/auth";
 import {
     AccountCircleOutlinedIcon,
     AltRouteIcon,
+    AutoAwesomeOutlinedIcon,
     ArticleOutlinedIcon,
     FactCheckOutlinedIcon,
     HelpOutlineOutlinedIcon,
@@ -191,6 +192,11 @@ export const accountNavigationSections: NavigationSection[] = [
                 label: "About Us",
                 href: "/about/aboutUs",
                 icon: <HelpOutlineOutlinedIcon/>
+            },
+            {
+                label: "AI Transparency",
+                href: "/about/aiTransparency",
+                icon: <AutoAwesomeOutlinedIcon/>
             },
             {
                 label: "Privacy Policy",

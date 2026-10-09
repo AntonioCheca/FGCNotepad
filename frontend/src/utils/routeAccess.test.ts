@@ -30,7 +30,7 @@ test("prefixes only match whole path segments", () => {
 });
 
 test("anonymous visitors can read search, detail and legal pages", () => {
-    for (const path of ["/", "/privacy", "/terms", "/about/aboutUs", "/guides", "/guides/turns", "/neutral-stats", "/combos", "/combos/68", "/okis", "/okis/1", "/blockstrings", "/blockstrings/2", "/scenarios", "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144"]) {
+    for (const path of ["/", "/privacy", "/terms", "/about/aboutUs", "/about/aiTransparency", "/guides", "/guides/turns", "/neutral-stats", "/combos", "/combos/68", "/okis", "/okis/1", "/blockstrings", "/blockstrings/2", "/scenarios", "/scenarios/01a0fcbc-398b-7b66-9e6a-d1c1f647d144"]) {
         assert.equal(isAnonymousRoute(path), true, path);
     }
 });

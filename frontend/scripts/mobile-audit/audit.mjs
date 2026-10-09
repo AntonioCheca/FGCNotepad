@@ -117,6 +117,7 @@ async function resolveRoutes(session) {
         route("/replay-lab/study-deck", "Study Deck", "Replay Lab"),
         route("/profile", "Profile", "Account"),
         route("/about/aboutUs", "About", "Account"),
+        route("/about/aiTransparency", "AI Transparency", "Account"),
         route("/privacy", "Privacy Policy", "Account"),
         route("/terms", "Terms of Use", "Account"),
         route("/auth/register", "Register", "Account"),
