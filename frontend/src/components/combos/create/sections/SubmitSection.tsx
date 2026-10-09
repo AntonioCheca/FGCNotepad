@@ -14,11 +14,7 @@ import type {
     ComboSpacingOption,
     RequirementObjectOption,
 } from "@/src/types/combo";
-import {
-    isRequirementToggleLocked,
-    requirementToggles,
-    type RequirementToggleKey,
-} from "@/src/components/combos/create/utils/comboForm";
+import {isRequirementToggleLocked, requirementToggles, type RequirementToggleKey} from "@/src/components/combos/create/utils/comboRequirementsForm";
 
 // Every combo needs at least 0.1 Drive to avoid burnout, so that value says nothing about this combo.
 const SAFE_DRIVE_BASELINE = 0.1;

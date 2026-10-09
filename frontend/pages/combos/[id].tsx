@@ -26,17 +26,9 @@ import {ComboSetupSection} from "@/src/components/combos/create/sections/ComboSe
 import {ParserVerificationSection} from "@/src/components/combos/create/sections/ParserVerificationSection";
 import {SubmitSection} from "@/src/components/combos/create/sections/SubmitSection";
 import {ContentFlagButton} from "@/src/components/flags/ContentFlagButton";
-import {
-    applyRequirementToggle,
-    buildCreateFullComboPayload,
-    buildRequirementsPayload,
-    createEmptyStep,
-    emptyRequirements,
-    type FormNotice,
-    updateDraftStep,
-    validateComboDraft,
-    type RequirementToggleKey,
-} from "@/src/components/combos/create/utils/comboForm";
+import {createEmptyStep, type FormNotice, updateDraftStep, validateComboDraft} from "@/src/components/combos/create/utils/comboForm";
+import {applyRequirementToggle, buildRequirementsPayload, emptyRequirements, type RequirementToggleKey} from "@/src/components/combos/create/utils/comboRequirementsForm";
+import {buildCreateFullComboPayload} from "@/src/components/combos/create/utils/comboPayload";
 import type {
     ComboDetailApi,
     ComboDetailView,

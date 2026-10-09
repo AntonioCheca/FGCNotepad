@@ -18,19 +18,9 @@ import type {
     TranslateParsedToken,
     EstimateComboResourcesResponse,
 } from "@/src/types/combo";
-import {
-    buildCreateFullComboPayload,
-    buildRequirementsPayload,
-    createEmptyStep,
-    emptyRequirements,
-    applyRequirementToggle,
-    FormNotice,
-    parseNotationTokens,
-    requirementToggles,
-    updateDraftStep,
-    validateComboDraft,
-    validateSteps,
-} from "@/src/components/combos/create/utils/comboForm";
+import {createEmptyStep, FormNotice, parseNotationTokens, updateDraftStep, validateComboDraft, validateSteps} from "@/src/components/combos/create/utils/comboForm";
+import {buildRequirementsPayload, emptyRequirements, applyRequirementToggle, requirementToggles} from "@/src/components/combos/create/utils/comboRequirementsForm";
+import {buildCreateFullComboPayload} from "@/src/components/combos/create/utils/comboPayload";
 import {type ComboResourceValues, fillDetailsBlocker, toResourceValues, useComboFillDetails} from "@/src/components/combos/create/hooks/useComboFillDetails";
 
 interface UseComboFormControllerProps {

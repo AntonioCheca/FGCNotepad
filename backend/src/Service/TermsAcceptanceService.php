@@ -7,7 +7,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class TermsAcceptanceService
 {
-    // Must match TERMS_VERSION in frontend/src/data/legal/legalVersion.ts; bumping it asks every user to accept again.
+    // Bumping it asks every user to accept again; also update LEGAL_LAST_UPDATED in frontend/src/data/legal/legalVersion.ts.
     public const CURRENT_VERSION = '2026-10-09';
 
     public function __construct(
