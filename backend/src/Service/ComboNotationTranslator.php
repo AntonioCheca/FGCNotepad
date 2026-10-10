@@ -541,7 +541,8 @@ final class ComboNotationTranslator
         ?string $pendingConnector,
         array $leafAliasIndex
     ): ?array {
-        if ([] === $resolvedMoves) {
+        // A Drive Rush or high jump cancel sits between two separate moves, so the next button can never be a target combo hop.
+        if ([] === $resolvedMoves || in_array($pendingConnector, ['drive_rush_cancel', 'hj_cancel'], true)) {
             return null;
         }
 

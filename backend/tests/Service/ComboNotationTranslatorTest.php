@@ -258,6 +258,17 @@ class ComboNotationTranslatorTest extends TestCase
         self::assertSame([], $result['errors']);
     }
 
+    public function testTranslateDoesNotMergeTargetComboAcrossDriveRushCancel(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('5HK DRC 4HK', $this->leafOptions + [99 => ['id' => 122, 'notation' => '4HK', 'moveType' => 'normal', 'cancelTypeCodes' => []]], $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(115, $result['steps'][0]['child_sequence_id']);
+        self::assertSame(122, $result['steps'][1]['child_sequence_id']);
+        self::assertSame('DR Cancel', $result['steps'][1]['connection_type_name']);
+        self::assertSame([], $result['errors']);
+    }
+
     public function testTranslateMergesDirectionalTargetComboFollowUp(): void
     {
         $result = $this->translator->translateNotationToInternalSteps('6HP XX 6HP', $this->leafOptions, $this->connectionTypes);
