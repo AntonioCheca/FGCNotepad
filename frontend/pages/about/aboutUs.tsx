@@ -75,7 +75,8 @@ export default function AboutPage() {
                         <TextLink href="https://www.youtube.com/user/Shintroy">
                             ThirtyFourEC
                         </TextLink>, whose optimal videos on combos served as a baseline for drive bar value and super
-                        bar value for each character for resource-adjusted calculations.
+                        bar value for each character for resource-adjusted calculations. Thanks to Wilson, for helping
+                        with both the design and spotting errors in the early versions of the combo importer.
                     </NormalParagraph>
 
                     <NormalParagraph>
@@ -86,7 +87,9 @@ export default function AboutPage() {
                         to learn the games and offering amazing free coaching everyday. Much of what appears
                         here is the workflow I built over years thanks to them and other people in the community.
                         Special thanks to Sestze for the spreadsheets of basic breakdown and combos, that fill this
-                        database.
+                        database. Additional thanks to Adam, who helped me with the baseline for the replay into json
+                        mod, by sharing his work on similar stuff. Thanks to Rappz and Wael for their public
+                        contributions in this as well.
                     </NormalParagraph>
                     <NormalParagraph last>
                         Additional thanks to my friend Niakky for making fighting games a place I feel
