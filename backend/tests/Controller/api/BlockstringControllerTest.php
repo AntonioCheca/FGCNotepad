@@ -99,6 +99,48 @@ class BlockstringControllerTest extends AuthenticatedWebTestCase
         $this->assertSame([], json_decode((string) $this->client->getResponse()->getContent(), true));
     }
 
+    public function testModeratorFindsPendingBlockstringInTheQueueAndApprovesIt(): void
+    {
+        $created = $this->createBlockstring($this->graphPayload());
+        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
+        $this->addContentTypeJsonToHeaders();
+
+        $this->client->request('GET', '/api/moderation/queue?contentType=blockstring', [], [], $this->getHeaders());
+        $queue = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $this->assertSame([['blockstring', (string) $created['id'], 'Akuma — Burnout pressure', 'pending_review']], array_map(
+            static fn (array $row): array => [$row['contentType'], $row['contentId'], $row['title'], $row['state']],
+            $queue['data'],
+        ));
+
+        $this->client->request('GET', '/api/blockstrings/' . $created['id'], [], [], $this->getHeaders());
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), 'moderators open pending blockstrings from the queue');
+
+        $this->client->request('POST', '/api/moderation/blockstring/' . $created['id'] . '/approve', [], [], $this->getHeaders());
+        $decision = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $this->assertSame('approved', $decision['moderationState']);
+
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', '/api/blockstrings/' . $created['id']);
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->client->request('GET', '/api/blockstrings?q=BURNOUT');
+        $this->assertSame([$created['id']], array_column(json_decode((string) $this->client->getResponse()->getContent(), true), 'id'));
+    }
+
+    public function testModeratorRejectsBlockstringWithAReason(): void
+    {
+        $created = $this->createBlockstring($this->graphPayload());
+        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
+        $this->addContentTypeJsonToHeaders();
+
+        $this->client->request('POST', '/api/moderation/blockstring/' . $created['id'] . '/reject', [], [], $this->getHeaders(), json_encode(['reason' => 'Not a blockstring'], JSON_THROW_ON_ERROR));
+        $decision = json_decode((string) $this->client->getResponse()->getContent(), true);
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $this->assertSame(['rejected', 'Not a blockstring'], [$decision['moderationState'], $decision['moderationReason']]);
+    }
+
     public function testReadLabelIsDroppedForNonReadEdges(): void
     {
         $payload = $this->graphPayload();

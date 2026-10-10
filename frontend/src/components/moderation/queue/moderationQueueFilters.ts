@@ -13,6 +13,7 @@ export const CONTENT_FILTER_OPTIONS: Array<{value: ContentFilter; label: string}
     {value: "combo", label: "Combos"},
     {value: "scenario", label: "Scenarios"},
     {value: "oki", label: "Okis"},
+    {value: "blockstring", label: "Blockstrings"},
 ];
 
 export const STATE_FILTER_OPTIONS: Array<{value: StateFilter; label: string}> = [

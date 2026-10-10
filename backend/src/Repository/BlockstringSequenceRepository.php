@@ -49,7 +49,7 @@ class BlockstringSequenceRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
-    public function findDetail(int $id, ?User $visibleAuthor = null): ?BlockstringSequence
+    public function findDetail(int $id, ?User $visibleAuthor = null, bool $anyModerationState = false): ?BlockstringSequence
     {
         $qb = $this->createQueryBuilder('sequence')
             ->leftJoin('sequence.author', 'author')
@@ -64,7 +64,9 @@ class BlockstringSequenceRepository extends ServiceEntityRepository
             ->addSelect('author', 'attacker', 'startingMove', 'block', 'step', 'move', 'moveFrameData', 'moveCharacter', 'edge')
             ->andWhere('sequence.id = :id')
             ->setParameter('id', $id);
-        $this->restrictToVisible($qb, $visibleAuthor);
+        if (!$anyModerationState) {
+            $this->restrictToVisible($qb, $visibleAuthor);
+        }
 
         return $qb->getQuery()->getOneOrNullResult();
     }

@@ -2,10 +2,12 @@
 
 namespace App\Controller\api;
 
+use App\Entity\BlockstringSequence;
 use App\Entity\ComboSequences;
 use App\Entity\OkiSetup;
 use App\Entity\Scenario;
 use App\Entity\User;
+use App\Repository\BlockstringSequenceRepository;
 use App\Repository\ComboSequencesRepository;
 use App\Repository\OkiSetupRepository;
 use App\Repository\ScenarioRepository;
@@ -36,6 +38,7 @@ class ModerationController extends AbstractController
         private readonly ComboSequencesRepository $comboSequencesRepository,
         private readonly ScenarioRepository $scenarioRepository,
         private readonly OkiSetupRepository $okiSetupRepository,
+        private readonly BlockstringSequenceRepository $blockstringSequenceRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly Security $security,
     ) {
@@ -83,6 +86,8 @@ class ModerationController extends AbstractController
                 $this->moderationTransitionService->approveCombo($target, $actor);
             } elseif ($target instanceof OkiSetup) {
                 $this->moderationTransitionService->approveOkiSetup($target, $actor);
+            } elseif ($target instanceof BlockstringSequence) {
+                $this->moderationTransitionService->approveBlockstring($target, $actor);
             } else {
                 $this->moderationTransitionService->approveScenario($target, $actor);
             }
@@ -117,6 +122,8 @@ class ModerationController extends AbstractController
                 $this->moderationTransitionService->rejectCombo($target, $actor, $reason);
             } elseif ($target instanceof OkiSetup) {
                 $this->moderationTransitionService->rejectOkiSetup($target, $actor, $reason);
+            } elseif ($target instanceof BlockstringSequence) {
+                $this->moderationTransitionService->rejectBlockstring($target, $actor, $reason);
             } else {
                 $this->moderationTransitionService->rejectScenario($target, $actor, $reason);
             }
@@ -151,6 +158,8 @@ class ModerationController extends AbstractController
                 $this->moderationTransitionService->hideCombo($target, $actor, $reason);
             } elseif ($target instanceof OkiSetup) {
                 $this->moderationTransitionService->hideOkiSetup($target, $actor, $reason);
+            } elseif ($target instanceof BlockstringSequence) {
+                $this->moderationTransitionService->hideBlockstring($target, $actor, $reason);
             } else {
                 $this->moderationTransitionService->hideScenario($target, $actor, $reason);
             }
@@ -228,7 +237,7 @@ class ModerationController extends AbstractController
         return $reason;
     }
 
-    private function resolveTarget(string $type, string $id): ComboSequences|Scenario|OkiSetup
+    private function resolveTarget(string $type, string $id): ComboSequences|Scenario|OkiSetup|BlockstringSequence
     {
         $normalizedType = trim(mb_strtolower($type));
 
@@ -267,13 +276,22 @@ class ModerationController extends AbstractController
             return $setup;
         }
 
+        if ('blockstring' === $normalizedType) {
+            $blockstring = ctype_digit($id) ? $this->blockstringSequenceRepository->find((int) $id) : null;
+            if (!$blockstring instanceof BlockstringSequence) {
+                throw new NotFoundHttpException('Blockstring not found.');
+            }
+
+            return $blockstring;
+        }
+
         throw new NotFoundHttpException('Unsupported moderation type.');
     }
 
     /**
      * @return array<string,mixed>
      */
-    private function buildDecisionResponse(string $type, ComboSequences|Scenario|OkiSetup $target): array
+    private function buildDecisionResponse(string $type, ComboSequences|Scenario|OkiSetup|BlockstringSequence $target): array
     {
         $contentType = trim(mb_strtolower($type));
         $contentId = $target instanceof Scenario

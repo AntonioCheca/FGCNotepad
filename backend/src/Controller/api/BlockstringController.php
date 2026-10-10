@@ -5,6 +5,7 @@ namespace App\Controller\api;
 use App\Entity\BlockstringSequence;
 use App\Entity\User;
 use App\Repository\BlockstringSequenceRepository;
+use App\Service\AuthorizationPolicyService;
 use App\Service\BlockstringMutationService;
 use App\Service\BlockstringResponseBuilder;
 use App\Service\EndpointAuthorizationService;
@@ -28,6 +29,7 @@ final class BlockstringController extends AbstractController
         private readonly BlockstringResponseBuilder $responseBuilder,
         private readonly BlockstringMutationService $mutationService,
         private readonly EndpointAuthorizationService $authorizationService,
+        private readonly AuthorizationPolicyService $authorizationPolicyService,
         private readonly ModerationTransitionService $moderationTransitionService,
         private readonly Security $security,
     ) {
@@ -71,7 +73,9 @@ final class BlockstringController extends AbstractController
     public function read(int $id): JsonResponse
     {
         $actor = $this->security->getUser();
-        $sequence = $this->repository->findDetail($id, $actor instanceof User ? $actor : null);
+        $actor = $actor instanceof User ? $actor : null;
+        // Moderators open pending blockstrings from the moderation queue.
+        $sequence = $this->repository->findDetail($id, $actor, $this->authorizationPolicyService->canModerateContent($actor));
         if (!$sequence instanceof BlockstringSequence) {
             throw new NotFoundHttpException(sprintf('Blockstring %d not found.', $id));
         }

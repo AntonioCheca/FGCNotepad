@@ -9,6 +9,10 @@ export function buildContentLink(item: ModerationQueueItem): string {
         return `/okis/${item.profileId}`;
     }
 
+    if (item.contentType === "blockstring") {
+        return `/blockstrings/${item.contentId}`;
+    }
+
     return `/scenarios/${item.contentId}`;
 }
 

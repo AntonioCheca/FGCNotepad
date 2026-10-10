@@ -1,4 +1,4 @@
-export type ModerationContentType = "combo" | "scenario" | "oki";
+export type ModerationContentType = "combo" | "scenario" | "oki" | "blockstring";
 
 export type ModerationState = "pending_review" | "approved" | "rejected" | "hidden";
 

@@ -2,6 +2,7 @@ import React from "react";
 import {useRouter} from "next/router";
 import AuthContext from "@/services/AuthContext";
 import useBlockstrings from "@/hooks/useBlockstrings";
+import {useModeration} from "@/hooks/useModeration";
 import {BlockstringForm} from "@/src/components/blockstrings/BlockstringForm";
 import {blockstringTitle, blockToGraph} from "@/src/components/blockstrings/blockstringGraphDraft";
 import {AppBox} from "@/src/components/ui/AppBox";
@@ -12,6 +13,7 @@ import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {SectionCard} from "@/src/components/ui/tactical/SectionCard";
 import {PressureGraphView} from "@/src/features/pressure-graph/PressureGraphView";
+import {normalizeApiError} from "@/src/utils/apiErrorMessage";
 import type {BlockstringBlock, BlockstringDetail, BlockstringPayload} from "@/src/types/blockstring";
 
 export default function BlockstringDetailPage() {
@@ -23,6 +25,7 @@ export default function BlockstringDetailPage() {
     const {id} = router.query;
     const blockstringId = typeof id === "string" ? id : null;
     const {getBlockstring, updateBlockstring} = useBlockstrings();
+    const {approve} = useModeration();
     const [item, setItem] = React.useState<BlockstringDetail | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [editMode, setEditMode] = React.useState(false);
@@ -60,6 +63,22 @@ export default function BlockstringDetailPage() {
         }
     };
 
+    const handleApprove = async () => {
+        if (!blockstringId) {
+            return;
+        }
+        setSaving(true);
+        setError(null);
+        try {
+            const decision = await approve("blockstring", blockstringId);
+            setItem((current) => current ? {...current, moderationState: decision.moderationState} : current);
+        } catch (approveError) {
+            setError(normalizeApiError(approveError, "Could not approve blockstring."));
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (loading) {
         return <AppContainer sx={{py: 4}}><AppBox sx={{display: "grid", placeItems: "center", py: 5}}><AppCircularProgress /></AppBox></AppContainer>;
     }
@@ -71,9 +90,10 @@ export default function BlockstringDetailPage() {
     return (
         <AppContainer maxWidth={false} sx={{py: {xs: 2.25, md: 3.25}, px: {xs: 1.75, md: 3, xl: 4}}}>
             <PageShell title={blockstringTitle(item)}>
-                {error && editMode ? <InlineNotice severity="error">{error}</InlineNotice> : null}
+                {error ? <InlineNotice severity="error">{error}</InlineNotice> : null}
                 {authContext.canModerate ? (
-                    <AppBox sx={{display: "flex", justifyContent: "flex-end"}}>
+                    <AppBox sx={{display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 1}}>
+                        {!editMode && item.moderationState !== "approved" ? <AppButton type="button" variant="contained" color="primary" disabled={saving} onClick={() => void handleApprove()}>Approve</AppButton> : null}
                         <AppButton type="button" variant="outlined" color="secondary" onClick={() => setEditMode((current) => !current)}>{editMode ? "Cancel edit" : "Edit"}</AppButton>
                     </AppBox>
                 ) : null}

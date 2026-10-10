@@ -97,6 +97,36 @@ class ModerationTransitionService
         $this->moderateOkiSetup($setup, $actor, ModerationState::HIDDEN->value, $reason);
     }
 
+    public function moderateBlockstring(BlockstringSequence $blockstring, User $actor, string $targetState, ?string $reason): void
+    {
+        $this->moderate(
+            static fn (): string => $blockstring->getModerationState(),
+            static fn (string $state) => $blockstring->setModerationState($state),
+            static fn (?\DateTimeImmutable $submittedAt) => $blockstring->setSubmittedForReviewAt($submittedAt),
+            static fn (?\DateTimeImmutable $decidedAt) => $blockstring->setModerationDecidedAt($decidedAt),
+            static fn (?User $decider) => $blockstring->setModerationDecidedBy($decider),
+            static fn (?string $moderationReason) => $blockstring->setModerationReason($moderationReason),
+            $actor,
+            $targetState,
+            $reason,
+        );
+    }
+
+    public function approveBlockstring(BlockstringSequence $blockstring, User $actor): void
+    {
+        $this->moderateBlockstring($blockstring, $actor, ModerationState::APPROVED->value, null);
+    }
+
+    public function rejectBlockstring(BlockstringSequence $blockstring, User $actor, string $reason): void
+    {
+        $this->moderateBlockstring($blockstring, $actor, ModerationState::REJECTED->value, $reason);
+    }
+
+    public function hideBlockstring(BlockstringSequence $blockstring, User $actor, string $reason): void
+    {
+        $this->moderateBlockstring($blockstring, $actor, ModerationState::HIDDEN->value, $reason);
+    }
+
     public function moderateCombo(ComboSequences $combo, User $actor, string $targetState, ?string $reason): void
     {
         $this->moderate(
