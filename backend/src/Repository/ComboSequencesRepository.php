@@ -78,6 +78,30 @@ class ComboSequencesRepository extends ServiceEntityRepository
         return array_values(array_map('intval', array_keys(array_filter($byParent, static fn (array $existing): bool => $existing === $steps))));
     }
 
+    /**
+     * Pending combos that no other combo uses as a step, oldest first.
+     *
+     * @return list<array{id:int,name:string}>
+     */
+    public function findDeletablePendingReview(): array
+    {
+        $rows = $this->createQueryBuilder('cs')
+            ->select('cs.id', 'cs.name')
+            ->where('cs.moderationState = :pending')
+            ->andWhere('NOT EXISTS (SELECT 1 FROM ' . Step::class . ' s WHERE s.child_sequence = cs)')
+            ->setParameter('pending', ModerationState::PENDING_REVIEW->value)
+            ->orderBy('cs.id', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): array => ['id' => (int) $row['id'], 'name' => (string) $row['name']], $rows);
+    }
+
+    public function countPendingReview(): int
+    {
+        return $this->count(['moderationState' => ModerationState::PENDING_REVIEW->value]);
+    }
+
     public function findAllLeafs(): array
     {
         $qb = $this->createQueryBuilder('cs')

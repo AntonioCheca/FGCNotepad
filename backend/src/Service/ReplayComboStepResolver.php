@@ -28,6 +28,7 @@ final class ReplayComboStepResolver
         'drc' => 'driverushcancel',
         'walk_forward' => 'walkforward',
         'walk_back' => 'walkback',
+        'hj_cancel' => 'hjcancel',
     ];
 
     /** Export `connection` value -> internal connection. `target_combo` is handled by collapsing the hop. */
@@ -37,6 +38,7 @@ final class ReplayComboStepResolver
         'special_cancel' => 'special',
         'super_cancel' => 'super',
         'drive_rush_cancel' => 'drc',
+        'hj_cancel' => 'hj_cancel',
     ];
 
     /** @var array<string, array<string, list<ComboSequences>>> */
@@ -227,13 +229,18 @@ final class ReplayComboStepResolver
 
         // Consecutive hops compose: "5HK > HP" then "5HK > HK" is the leaf "5HK > HP > HK".
         $chain = null !== $last['chain'] ? $last['chain'] . ' > ' . $parts[1] : $target;
+        // A resolved earlier hop is also tried in the catalogue's spelling ("6HP > 6HP" for the export's "6HP > HP").
+        $catalogueChain = null !== $last['chain'] && !$last['pending'] ? $last['label'] . ' > ' . $parts[1] : $chain;
         $candidates = [];
-        foreach ($this->translator->candidates($chain, $character, $stepState) as $translated) {
+        foreach (array_unique([...$this->translator->candidates($chain, $character, $stepState), ...$this->translator->candidates($catalogueChain, $character, $stepState)]) as $translated) {
             $chainParts = array_map('trim', explode('>', $translated));
             $candidates[ReplayMoveNotation::key($translated)] = $translated;
-            $stance = 1 === preg_match('/^(\d)/', ReplayMoveNotation::key($chainParts[0]), $matches) ? $matches[1] : '';
+            // "j.HP > HP" is the jumping target combo "8HP > 8HP".
+            $first = ReplayMoveNotation::key($chainParts[0]);
+            $first = ReplayMoveNotation::jumpAliasKey($first) ?? $first;
+            $stance = 1 === preg_match('/^(\d)/', $first, $matches) ? $matches[1] : '';
             if ('' !== $stance) {
-                $candidates[ReplayMoveNotation::key(implode(' > ', array_merge([$chainParts[0]], array_map(static fn (string $part): string => $stance . $part, array_slice($chainParts, 1)))))] = $translated;
+                $candidates[ReplayMoveNotation::key(implode(' > ', array_merge([$first], array_map(static fn (string $part): string => $stance . $part, array_slice($chainParts, 1)))))] = $translated;
             }
         }
 
@@ -424,6 +431,8 @@ final class ReplayComboStepResolver
         foreach ($resolved as $entry) {
             if ('drc' === $entry['connection']) {
                 $parts[] = '[DRC]';
+            } elseif ('hj_cancel' === $entry['connection']) {
+                $parts[] = '[HJC]';
             } elseif (in_array($entry['connection'], ['walk_forward', 'walk_back'], true)) {
                 $parts[] = '[walk]';
             }

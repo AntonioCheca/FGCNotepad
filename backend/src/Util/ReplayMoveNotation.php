@@ -22,10 +22,10 @@ final class ReplayMoveNotation
         return 1 === preg_match('/^J\.([LMH][PK])$/', $key, $matches) ? '8' . $matches[1] : null;
     }
 
-    /** "214P" / "236K": the extractor could not tell the strength, so no single catalogue move corresponds. */
+    /** "214P" / "236K": the extractor could not tell the strength, so no single catalogue move corresponds. "720P" is no numpad motion. */
     public static function isStrengthAgnostic(string $key): bool
     {
-        return 1 === preg_match('/^\d+[PK]$/', $key);
+        return 1 === preg_match('/^[1-9]+[PK]$/', $key);
     }
 
     public static function characterKey(string $name): string

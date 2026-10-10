@@ -30,4 +30,10 @@ final class MoveNotationAliasesTest extends TestCase
         self::assertSame([], MoveNotationAliases::alternatives('5HP or 5HK (Monoid)'));
         self::assertSame([], MoveNotationAliases::alternatives('236LPMP or LPHP'));
     }
+
+    public function testAlternativesPairsFatDirectionsWithEveryButtonSet(): void
+    {
+        self::assertSame(['4PPP', '4KKK', '6PPP', '6KKK'], MoveNotationAliases::alternatives('4 or 6PPP or KKK'));
+        self::assertSame(['4PPP (air)', '4KKK (air)', '6PPP (air)', '6KKK (air)'], MoveNotationAliases::alternatives('4 or 6PPP or KKK (air)'));
+    }
 }

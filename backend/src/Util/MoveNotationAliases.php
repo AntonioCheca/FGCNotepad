@@ -24,11 +24,22 @@ final class MoveNotationAliases
     /**
      * The individual notations of a "4MP or 6MP" move; empty for ordinary moves and for compound rows such as
      * "5HP or 5HK (Monoid)" or "236LPMP or LPHP" whose parts are not standalone notations.
+     * FAT's "4 or 6PPP or KKK" (Dhalsim's teleport) pairs every direction with every button set.
      *
      * @return list<string>
      */
     public static function alternatives(string $notation): array
     {
+        if (1 === preg_match('/^(\d(?: or \d)+)([A-Za-z+]+)((?: or [A-Za-z+]+)+)( \(.+\))?$/', trim($notation), $matches)) {
+            $buttons = [$matches[2], ...array_slice(explode(self::SEPARATOR, $matches[3]), 1)];
+            $suffix = $matches[4] ?? '';
+
+            return array_merge(...array_map(
+                static fn (string $direction): array => array_map(static fn (string $button): string => $direction . $button . $suffix, $buttons),
+                explode(self::SEPARATOR, $matches[1]),
+            ));
+        }
+
         $parts = array_map('trim', explode(self::SEPARATOR, $notation));
         if (count($parts) < 2) {
             return [];

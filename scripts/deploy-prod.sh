@@ -30,6 +30,11 @@ compose build
 echo "Starting production services..."
 compose up -d
 
+echo "Restarting Nginx..."
+# Nginx resolves the backend/frontend upstreams only at startup, so recreated app containers leave it pointing at stale IPs.
+compose exec -T nginx nginx -t
+compose restart nginx
+
 echo "Running Doctrine migrations..."
 compose exec -T backend php bin/console doctrine:migrations:migrate --no-interaction
 

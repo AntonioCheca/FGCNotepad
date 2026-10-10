@@ -22,6 +22,11 @@ final class ComboExecutionNotationServiceTest extends TestCase
         self::assertSame('DR 6MP, 2MP xx 236HP', $this->notation([['DR', null], ['6MP', 'Link'], ['2MP', 'Link'], ['236HP', 'Special']]));
     }
 
+    public function testHighJumpCancelIsWrittenBetweenItsMoves(): void
+    {
+        self::assertSame('2MK HJC 214LP', $this->notation([['2MK', null], ['214LP', 'HJ Cancel']]));
+    }
+
     public function testMovesAfterOtherMovesKeepTheirCommaSeparator(): void
     {
         self::assertSame('5HP, 2MP', $this->notation([['5HP', null], ['2MP', 'Link']]));

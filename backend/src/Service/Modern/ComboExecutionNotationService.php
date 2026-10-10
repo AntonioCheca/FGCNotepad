@@ -12,6 +12,7 @@ final class ComboExecutionNotationService
 {
     private const DRIVE_RUSH_CANCEL_CONNECTIONS = ['dr cancel', 'drive rush cancel', 'drc'];
     private const CANCEL_CONNECTIONS = ['special', 'super cancel'];
+    private const HIGH_JUMP_CANCEL_CONNECTIONS = ['hj cancel', 'high jump cancel', 'hjc'];
     private const WALK_CONNECTIONS = ['walk forward' => 'walk', 'walk back' => 'walk back'];
     private const RAW_DRIVE_RUSH_NOTATION = 'DR';
 
@@ -62,6 +63,7 @@ final class ComboExecutionNotationService
         return match (true) {
             in_array($connection, self::DRIVE_RUSH_CANCEL_CONNECTIONS, true) => ' DRC ',
             in_array($connection, self::CANCEL_CONNECTIONS, true) => ' xx ',
+            in_array($connection, self::HIGH_JUMP_CANCEL_CONNECTIONS, true) => ' HJC ',
             isset(self::WALK_CONNECTIONS[$connection]) => ', ' . self::WALK_CONNECTIONS[$connection] . ', ',
             self::RAW_DRIVE_RUSH_NOTATION === $previous->getNumpadNotation() => ' ',
             default => ', ',

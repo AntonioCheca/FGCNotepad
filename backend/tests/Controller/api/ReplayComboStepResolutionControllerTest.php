@@ -143,6 +143,34 @@ final class ReplayComboStepResolutionControllerTest extends DatabaseTestCase
         self::assertStringContainsString('no target_notation', $payload['results'][4]['reason']);
     }
 
+    public function testTargetHopsComposeOnTheCatalogueSpellingAndJumpStance(): void
+    {
+        $this->persistCatalog();
+
+        $payload = $this->import([
+            $this->combo('mixed', [$this->move('6HP'), $this->target('6HP', '6HP > HP', ['HP']), $this->target('6HP', '6HP > HK', ['HK'])]),
+            $this->combo('jump', [$this->move('j.HP'), $this->target('j.HP', 'j.HP > HP', ['HP'])]),
+        ]);
+
+        self::assertSame(['6HP > 6HP > HK'], $this->leafNotations($payload['results'][0]['comboId']));
+        self::assertSame(['8HP > 8HP'], $this->leafNotations($payload['results'][1]['comboId']));
+    }
+
+    public function testHighJumpCancelBecomesItsOwnConnection(): void
+    {
+        $this->persistCatalog();
+
+        $payload = $this->import([$this->combo('c1', [
+            $this->move('2MK'),
+            ['kind' => 'high_jump_cancel'] + $this->base(),
+            $this->move('236+HP', 'hj_cancel'),
+        ])]);
+
+        $comboId = $payload['results'][0]['comboId'];
+        self::assertSame(['Initial Move', 'HJ Cancel'], $this->connectionNames($comboId));
+        self::assertStringStartsWith('2MK > [HJC] > 236HP', (string) $this->entityManager->getRepository(ComboSequences::class)->find($comboId)->getName());
+    }
+
     public function testChargeBracketsAndUnknownStepKindsAreHandled(): void
     {
         $this->persistCatalog();
@@ -167,6 +195,19 @@ final class ReplayComboStepResolutionControllerTest extends DatabaseTestCase
 
         self::assertStringContainsString('does not say which strength', $payload['results'][0]['reason']);
         self::assertStringContainsString('No leaf move matches notation "4MK"', $payload['results'][1]['reason']);
+    }
+
+    public function testTeleportAlternativesMatchAndA720IsNotAMissingStrength(): void
+    {
+        $this->persistCatalog();
+
+        $payload = $this->import([
+            $this->combo('teleport', [$this->move('5LP'), $this->move('6PPP', 'link')]),
+            $this->combo('spd', [$this->move('5LP'), $this->move('720P', 'super_cancel')]),
+        ]);
+
+        self::assertSame(['5LP', '4 or 6PPP or KKK'], $this->leafNotations($payload['results'][0]['comboId']));
+        self::assertStringContainsString('No leaf move matches notation "720P"', $payload['results'][1]['reason']);
     }
 
     public function testObservationKeepsStartTimingAndPlayerHomeIds(): void
@@ -298,12 +339,12 @@ final class ReplayComboStepResolutionControllerTest extends DatabaseTestCase
         foreach ([$comboType, $leafType, $visibility, $season, $character] as $entity) {
             $this->entityManager->persist($entity);
         }
-        foreach (['Initial Move', 'Link', 'Chain', 'Special', 'Super Cancel', 'DR Cancel', 'Walk Forward', 'Walk Back', 'Target Combo', 'Delay'] as $connectionName) {
+        foreach (['Initial Move', 'Link', 'Chain', 'Special', 'Super Cancel', 'DR Cancel', 'Walk Forward', 'Walk Back', 'Target Combo', 'Delay', 'HJ Cancel'] as $connectionName) {
             $this->entityManager->persist((new ConnectionType())->setName($connectionName));
         }
         $this->entityManager->flush();
 
-        $notations = ['5LP', '2LP', '5HK', '2MP', '5MP', '2MK', '236HP', '214214K', '28LK', '8HP', 'DR', '66', '8', '5MP > 5MK', '2MK > HP', '5HK > HP > HK'];
+        $notations = ['5LP', '2LP', '5HK', '2MP', '5MP', '2MK', '236HP', '214214K', '28LK', '8HP', 'DR', '66', '8', '5MP > 5MK', '2MK > HP', '5HK > HP > HK', '6HP', '6HP > 6HP', '6HP > 6HP > HK', '8HP > 8HP', '4 or 6PPP or KKK'];
         foreach ($notations as $notation) {
             $move = (new Move())->setCharacter($character)->setNumpadNotation($notation);
             $leaf = (new ComboSequences())->setName($notation)->setDescription('leaf')->setMove($move)->setType($leafType)->setVisibility($visibility);

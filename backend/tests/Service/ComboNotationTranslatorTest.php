@@ -55,6 +55,7 @@ class ComboNotationTranslatorTest extends TestCase
             ['id' => 5, 'name' => 'Target Combo'],
             ['id' => 6, 'name' => 'Link'],
             ['id' => 7, 'name' => 'DR Cancel'],
+            ['id' => 8, 'name' => 'HJ Cancel'],
         ];
     }
 
@@ -140,6 +141,14 @@ class ComboNotationTranslatorTest extends TestCase
 
         self::assertCount(2, $result['steps']);
         self::assertSame(3, $result['steps'][1]['connection_type_id']);
+    }
+
+    public function testTranslateHighJumpCancelConnector(): void
+    {
+        $result = $this->translator->translateNotationToInternalSteps('2LP HJC 236MK', $this->leafOptions, $this->connectionTypes);
+
+        self::assertCount(2, $result['steps']);
+        self::assertSame(8, $result['steps'][1]['connection_type_id']);
     }
 
     public function testTranslateExplicitCancelInfersSuperCancel(): void

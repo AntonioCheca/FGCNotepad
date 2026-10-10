@@ -708,6 +708,7 @@ final class ComboNotationTranslator
     {
         return match ($token) {
             'DR', 'DRC' => 'drive_rush_cancel',
+            'HJC' => 'hj_cancel',
             self::CONNECTOR_ARROW => 'cancel',
             self::CONNECTOR_CANCEL => 'cancel',
             self::CONNECTOR_TARGET_COMBO => 'target_combo',
@@ -742,6 +743,10 @@ final class ComboNotationTranslator
 
         if ('drive_rush_cancel' === $explicitConnector) {
             return 'drive_rush_cancel';
+        }
+
+        if ('hj_cancel' === $explicitConnector) {
+            return 'hj_cancel';
         }
 
         $candidateConnections = [];
@@ -865,6 +870,7 @@ final class ComboNotationTranslator
             'special_cancel' => ['specialcancel', 'special', 'cancel'],
             'super_cancel' => ['supercancel', 'super'],
             'drive_rush_cancel' => ['drcancel', 'driverushcancel', 'drc'],
+            'hj_cancel' => ['hjcancel', 'highjumpcancel', 'hjc'],
             'target_combo' => ['targetcombo', 'tc'],
             'link' => ['link'],
         ];
@@ -912,6 +918,10 @@ final class ComboNotationTranslator
 
         if (in_array($normalized, ['drcancel', 'driverushcancel', 'drc'], true)) {
             return 'DRC';
+        }
+
+        if (in_array($normalized, ['hjcancel', 'highjumpcancel', 'hjc'], true)) {
+            return 'HJC';
         }
 
         return null;
