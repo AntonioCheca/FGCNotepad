@@ -13,6 +13,7 @@ final class ComboExecutionNotationService
     private const DRIVE_RUSH_CANCEL_CONNECTIONS = ['dr cancel', 'drive rush cancel', 'drc'];
     private const CANCEL_CONNECTIONS = ['special', 'super cancel'];
     private const WALK_CONNECTIONS = ['walk forward' => 'walk', 'walk back' => 'walk back'];
+    private const RAW_DRIVE_RUSH_NOTATION = 'DR';
 
     public function __construct(private readonly ModernMoveExecutionResolver $executionResolver)
     {
@@ -43,15 +44,18 @@ final class ComboExecutionNotationService
     public function sequenceNotation(array $moves, ComboExecutionMode $mode): ?string
     {
         $notation = '';
+        $previous = null;
         foreach ($moves as ['move' => $move, 'connectionTypeName' => $connectionTypeName]) {
             $stepNotation = $this->stepNotation($move, $mode);
-            $notation .= '' === $notation ? $stepNotation : $this->separator($connectionTypeName) . $stepNotation;
+            $notation .= null === $previous ? $stepNotation : $this->separator($connectionTypeName, $previous) . $stepNotation;
+            $previous = $move;
         }
 
         return '' === $notation ? null : $notation;
     }
 
-    private function separator(?string $connectionTypeName): string
+    /** Raw Drive Rush reads as one action with the move it runs into: "DR 6MP", not "DR, 6MP". */
+    private function separator(?string $connectionTypeName, Move $previous): string
     {
         $connection = mb_strtolower(trim((string) $connectionTypeName));
 
@@ -59,6 +63,7 @@ final class ComboExecutionNotationService
             in_array($connection, self::DRIVE_RUSH_CANCEL_CONNECTIONS, true) => ' DRC ',
             in_array($connection, self::CANCEL_CONNECTIONS, true) => ' xx ',
             isset(self::WALK_CONNECTIONS[$connection]) => ', ' . self::WALK_CONNECTIONS[$connection] . ', ',
+            self::RAW_DRIVE_RUSH_NOTATION === $previous->getNumpadNotation() => ' ',
             default => ', ',
         };
     }

@@ -43,7 +43,7 @@ final class ComboNotationSearchTest extends DatabaseTestCase
 
         $notations = array_column($this->search([]), 'executionNotation', 'name');
 
-        self::assertSame('2MP xx 236HP, 5LP, DR, 5HP DRC 214MP xx 214214HP', $notations['replay combo']);
+        self::assertSame('2MP xx 236HP, 5LP, DR 5HP DRC 214MP xx 214214HP', $notations['replay combo']);
         self::assertSame('5LP, walk, 5HP, walk back, 2MP', $notations['walk combo']);
     }
 

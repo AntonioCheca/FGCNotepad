@@ -1,4 +1,5 @@
 import type {ComboExecutionMode} from "@/src/types/comboExecution";
+import type {ModerationState} from "@/src/types/moderation";
 import {ComboSpacingOption, RequirementSpecificCharacterPayload} from "@/src/types/comboDraft";
 import {ComboSeasonSummary, comboDisplayTitle, wholeDamage} from "@/src/types/comboSummary";
 
@@ -46,6 +47,7 @@ export interface ComboDetailApi {
     executionMode?: ComboExecutionMode;
     executionNotation?: string | null;
     modernLegal?: boolean;
+    moderationState?: ModerationState;
     inputNotation?: string | null;
     character?: { id?: string | number; name?: string } | null;
     comboMetrics?: ComboMetricsApi | null;
@@ -62,6 +64,7 @@ export interface ComboDetailView {
     displayTitle: string;
     executionMode: ComboExecutionMode;
     modernLegal: boolean;
+    moderationState: ModerationState;
     inputNotation: string;
     characterId: string | null;
     characterName: string;
@@ -87,6 +90,7 @@ export function mapComboToDetailView(combo: ComboDetailApi): ComboDetailView {
         displayTitle: comboDisplayTitle(combo),
         executionMode: combo.executionMode ?? "classic",
         modernLegal: combo.modernLegal ?? false,
+        moderationState: combo.moderationState ?? "approved",
         inputNotation: combo.inputNotation ?? "",
         characterId: combo.character?.id !== undefined ? String(combo.character.id) : null,
         characterName: combo.character?.name ?? "-",

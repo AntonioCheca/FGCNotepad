@@ -5,6 +5,7 @@ import {useRouter} from "next/router";
 import useCombos from "@/hooks/useCombos";
 import useConnections from "@/hooks/useConnections";
 import useComboSpacings from "@/hooks/useComboSpacings";
+import {useModeration} from "@/hooks/useModeration";
 import AuthContext from "@/services/AuthContext";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppBox} from "@/src/components/ui/AppBox";
@@ -19,6 +20,7 @@ import {AppSnackbar} from "@/src/components/ui/AppSnackbar";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import {modernDamageModeLabel} from "@/src/types/comboExecution";
+import {normalizeApiError} from "@/src/utils/apiErrorMessage";
 import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 import {ComboReadOnlySummary} from "@/src/components/combos/ComboReadOnlySummary";
 import {fillDetailsBlocker, useComboFillDetails} from "@/src/components/combos/create/hooks/useComboFillDetails";
@@ -147,6 +149,7 @@ export default function ComboDetailPage() {
     const canModerate = authContext.canModerate;
 
     const {getCombo, updateCombo, deleteCombo, fetchLeafs, fetchRequirementObjects, getResourceLedger} = useCombos();
+    const {approve} = useModeration();
     const [resourceLedger, setResourceLedger] = React.useState<ResourceLedgerEntry[]>([]);
     const {connections, loading: connectionsLoading, fetchConnections} = useConnections();
     const {spacings: spacingOptions, loading: spacingLoading, fetchComboSpacings} = useComboSpacings();
@@ -428,6 +431,23 @@ export default function ComboDetailPage() {
         }
     };
 
+    const handleApprove = async () => {
+        if (!comboId) {
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const decision = await approve("combo", comboId);
+            setCombo((current) => current ? {...current, moderationState: decision.moderationState} : current);
+            setToast({severity: "success", message: "Combo approved."});
+        } catch (approveError) {
+            setToast({severity: "error", message: normalizeApiError(approveError, "Unable to approve combo.")});
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleDelete = async () => {
         if (!comboId) {
             return;
@@ -503,6 +523,7 @@ export default function ComboDetailPage() {
                     </AppTypography>
                     <AppBox sx={{display: "flex", gap: {xs: 0.65, md: 1}, justifyContent: {xs: "stretch", md: "flex-end"}, flexWrap: "wrap", "& .MuiButton-root": {flex: {xs: "1 1 calc(50% - 6px)", md: "0 0 auto"}}}}>
                         {numericComboId !== null && Number.isFinite(numericComboId) ? <ContentFlagButton targetType="combo" targetId={numericComboId}/> : null}
+                        {canModerate && !editMode && combo.moderationState !== "approved" ? <AppButton type="button" variant="contained" color="primary" disabled={saving} onClick={() => void handleApprove()}>Approve</AppButton> : null}
                         {canModerate && !editMode ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => setEditMode(true)}>Edit</AppButton> : null}
                         {canModerate && editMode ? <AppButton type="button" variant="outlined" color="secondary" onClick={() => { resetDraftFromCombo(combo, leafs, connections); setEditMode(false); }}>Cancel</AppButton> : null}
                         {canModerate && editMode ? <AppButton type="submit" variant="contained" color="primary" disabled={saving}>Save</AppButton> : null}
