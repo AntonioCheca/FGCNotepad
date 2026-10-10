@@ -1102,6 +1102,46 @@ class ComboSequenceControllerTest extends AuthenticatedWebTestCase
         $this->assertNull($clearPayload['spacing']);
     }
 
+    public function testCreateFullComboRejectsExactDuplicateEvenWhenCornerDiffers(): void
+    {
+        [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
+        $payload = fn (bool $corner): array => [
+            'name' => $corner ? 'Corner copy' : 'Original',
+            'metrics' => ['damage' => 1200],
+            'requirements' => ['punish_counter_required' => true, 'corner_required' => $corner],
+            'steps' => [['child_sequence_id' => $leafSequence->getId(), 'ordinal_in_combo' => 1, 'connection_type_id' => $connectionType->getId()]],
+        ];
+
+        $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode($payload(false)));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $originalId = json_decode((string) $this->client->getResponse()->getContent(), true)['id'];
+
+        $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode($payload(true)));
+        $response = $this->client->getResponse();
+        $conflict = json_decode((string) $response->getContent(), true);
+
+        self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        self::assertSame($originalId, $conflict['id']);
+        self::assertSame(sprintf('This combo already exists as #%d with the same starter conditions and damage.', $originalId), $conflict['error']);
+        self::assertSame(1, $this->entityManager->getRepository(ComboSequences::class)->count(['name' => ['Original', 'Corner copy']]));
+    }
+
+    public function testCreateFullComboAllowsSameMovesWithDifferentDamageOrStarterConditions(): void
+    {
+        [$leafSequence, $connectionType] = $this->seedCreateFullComboData();
+        $payload = fn (string $name, int $damage, bool $punishCounter): array => [
+            'name' => $name,
+            'metrics' => ['damage' => $damage],
+            'requirements' => ['punish_counter_required' => $punishCounter],
+            'steps' => [['child_sequence_id' => $leafSequence->getId(), 'ordinal_in_combo' => 1, 'connection_type_id' => $connectionType->getId()]],
+        ];
+
+        foreach ([$payload('PC 1200', 1200, true), $payload('PC 1300', 1300, true), $payload('Raw 1200', 1200, false)] as $body) {
+            $this->client->request('POST', '/api/combo-sequences/full', [], [], $this->getJsonHeaders(), json_encode($body));
+            self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode(), $body['name']);
+        }
+    }
+
     public function testCreateFullComboRejectsUnknownSpacingCode(): void
     {
         [$leafSequence, $connectionType] = $this->seedCreateFullComboData();

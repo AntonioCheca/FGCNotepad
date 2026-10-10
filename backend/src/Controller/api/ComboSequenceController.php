@@ -17,6 +17,7 @@ use App\Service\ComboNotationDictionaryTranslator;
 use App\Service\NotationCanonicalizer;
 use App\Service\NotationDictionaryPreferenceService;
 use App\Service\ComboSequenceCreationService;
+use App\Service\ComboDuplicateFinder;
 use App\Service\ComboSequenceUpdateService;
 use App\Service\ComboStarterModifierExtractor;
 use App\Service\ComboCrouchRequirementInferenceService;
@@ -74,6 +75,7 @@ class ComboSequenceController extends AbstractController
         private ComboDamageMoveInputFactory $comboDamageMoveInputFactory,
         private ModernMoveExecutionResolver $moveExecutionResolver,
         private ComboExecutionNotationService $comboExecutionNotationService,
+        private ComboDuplicateFinder $comboDuplicateFinder,
     )
     {
     }
@@ -415,6 +417,11 @@ class ComboSequenceController extends AbstractController
         // 1. Validate required top-level fields
         if (empty($data['name']) || empty($data['steps']) || !is_array($data['steps'])) {
             throw new BadRequestHttpException('Name and steps are required.');
+        }
+
+        $duplicate = $this->comboDuplicateFinder->findExactDuplicate($data);
+        if ($duplicate instanceof ComboSequences) {
+            return new JsonResponse(['error' => sprintf('This combo already exists as #%d with the same starter conditions and damage.', (int) $duplicate->getId()), 'id' => $duplicate->getId()], JsonResponse::HTTP_CONFLICT);
         }
 
         $sequence = $this->comboSequenceCreationService->createFromPayload((array) $data, 'combo', $data['steps'], $actor);

@@ -24,6 +24,7 @@ final class ReplayComboImportService
         private readonly ReplayContextImportService $replayContextImportService,
         private readonly ComboSpacingResolver $comboSpacingResolver,
         private readonly ReplayComboResourceMapper $resourceMapper,
+        private readonly ComboDuplicateFinder $comboDuplicateFinder,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -169,17 +170,8 @@ final class ReplayComboImportService
 
         try {
             ['payload' => $payload, 'resourceTrace' => $resourceTrace, 'warnings' => $warnings] = $this->buildCreationPayload($combo, $replay->getExtractorReplayId(), $id);
-            $candidateIds = $this->comboSequencesRepository->findIdsWithStepsAndStarterConditions(
-                array_map(
-                    static fn (array $step): array => ['leaf' => $step['child_sequence_id'], 'connection' => $step['connection_type_id']],
-                    $payload['steps'],
-                ),
-                true === ($payload['requirements']['counter_hit_required'] ?? false),
-                true === ($payload['requirements']['punish_counter_required'] ?? false),
-                true === ($payload['requirements']['perfect_parry_required'] ?? false),
-                true === ($payload['requirements']['blocked_drive_impact_stun_required'] ?? false),
-            );
-            $knownId = $this->matchingComboId($candidateIds, $payload['metrics']['damage'], $resourceTrace, $warnings);
+            $candidates = $this->comboDuplicateFinder->findSameMovesAndStarterConditions($payload['steps'], $payload['requirements'] ?? []);
+            $knownId = $this->matchingComboId($candidates, $payload['metrics']['damage'], $resourceTrace, $warnings);
             $status = 'imported';
             $sequence = $this->entityManager->wrapInTransaction(function () use ($payload, $actor, $knownId, $combo, $id, $replay, &$status): ComboSequences {
                 if (null !== $knownId) {
@@ -221,13 +213,12 @@ final class ReplayComboImportService
      * Same moves, connections and starter conditions with the same damage is the same combo. Different damage
      * normally means different resources; if even the resources match, the damage gap is only reported.
      *
-     * @param list<int> $candidateIds
+     * @param list<ComboSequences> $candidates
      * @param array{starts: array<string, int>, steps: array<int, array{0: string, 1: int}>} $resourceTrace
      * @param list<string> $warnings
      */
-    private function matchingComboId(array $candidateIds, int $damage, array $resourceTrace, array &$warnings): ?int
+    private function matchingComboId(array $candidates, int $damage, array $resourceTrace, array &$warnings): ?int
     {
-        $candidates = array_filter(array_map(fn (int $id): ?ComboSequences => $this->comboSequencesRepository->find($id), $candidateIds));
         foreach ($candidates as $candidate) {
             if ($damage === $candidate->getComboMetrics()?->getDamage()) {
                 return (int) $candidate->getId();

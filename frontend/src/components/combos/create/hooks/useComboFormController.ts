@@ -1,6 +1,7 @@
 import {ResourceLedgerEntry} from "@/src/types/resourceLedger";
 import {useCallback, useEffect, useMemo, useState} from "react";
 import useCombos from "@/hooks/useCombos";
+import {normalizeApiError} from "@/src/utils/apiErrorMessage";
 import {useCharacters} from "@/hooks/useCharacters";
 import useConnections from "@/hooks/useConnections";
 import useComboSpacings from "@/hooks/useComboSpacings";
@@ -322,8 +323,8 @@ export function useComboFormController({onSuccess}: UseComboFormControllerProps)
             clearDraft();
             setNotice({severity: "success", message: "Combo created successfully."});
             onSuccess?.();
-        } catch {
-            setSubmitError("Failed to create combo.");
+        } catch (error) {
+            setSubmitError(normalizeApiError(error, "Failed to create combo."));
         } finally {
             setSubmitting(false);
         }
