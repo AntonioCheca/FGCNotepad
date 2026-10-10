@@ -1,6 +1,6 @@
 # Deploy notes
 
-Run every command on the Lightsail VM from `~/FGCNotepad`. The normal flow is still `scripts/deploy-prod.sh`; this file lists only what differs for a given release.
+Run every command on the Lightsail VM from `~/FGCNotepad`. The normal flow is still `sudo ./scripts/deploy-prod.sh` (it pulls as your user, not root); this file lists only what differs for a given release.
 
 ## Release: Symfony 7.4, PHP 8.4, security hardening (October 2026)
 

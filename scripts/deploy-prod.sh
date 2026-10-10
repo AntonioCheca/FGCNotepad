@@ -14,7 +14,12 @@ compose() {
 }
 
 echo "Updating repository..."
-git pull --ff-only
+# Under sudo, pull as the invoking user so root never writes into the user-owned checkout.
+if [ -n "${SUDO_USER:-}" ]; then
+    sudo -u "$SUDO_USER" git pull --ff-only
+else
+    git pull --ff-only
+fi
 
 echo "Validating production Compose config..."
 compose config >/dev/null
