@@ -29,6 +29,8 @@ export {default as ChatBubbleOutlineIcon} from "@mui/icons-material/ChatBubbleOu
 export {default as AltRouteIcon} from "@mui/icons-material/AltRoute";
 export {default as TuneIcon} from "@mui/icons-material/Tune";
 export {default as QueryStatsIcon} from "@mui/icons-material/QueryStats";
+export {default as ScienceOutlinedIcon} from "@mui/icons-material/ScienceOutlined";
+export {default as OndemandVideoOutlinedIcon} from "@mui/icons-material/OndemandVideoOutlined";
 export {default as ShieldOutlinedIcon} from "@mui/icons-material/ShieldOutlined";
 export {default as FactCheckOutlinedIcon} from "@mui/icons-material/FactCheckOutlined";
 export {default as TableChartOutlinedIcon} from "@mui/icons-material/TableChartOutlined";

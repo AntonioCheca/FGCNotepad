@@ -22,6 +22,7 @@ const ANONYMOUS_ROUTE_PATTERNS: RegExp[] = [
     /^\/$/,
     /^\/(privacy|terms|neutral-stats)$/,
     /^\/(about|guides)(\/[^/]+)?$/,
+    /^\/research(\/.+)?$/,
     /^\/(combos|okis|blockstrings|scenarios)$/,
     /^\/(combos|okis|blockstrings)\/\d+$/,
     /^\/scenarios\/[0-9a-fA-F-]{36}$/,

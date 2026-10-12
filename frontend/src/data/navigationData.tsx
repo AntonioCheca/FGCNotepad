@@ -14,6 +14,7 @@ import {
     PendingActionsIcon,
     PlaceOutlinedIcon,
     QueryStatsIcon,
+    ScienceOutlinedIcon,
     ScheduleIcon,
     ShieldOutlinedIcon,
     OkiKnockdownIcon,
@@ -100,6 +101,16 @@ export const navigationSections: NavigationSection[] = [
                 label: "Blockstrings",
                 href: "/blockstrings",
                 icon: <SportsKabaddiOutlinedIcon/>
+            }
+        ]
+    },
+    {
+        title: "Research",
+        items: [
+            {
+                label: "Research",
+                href: "/research",
+                icon: <ScienceOutlinedIcon/>
             }
         ]
     },

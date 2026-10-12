@@ -1,7 +1,8 @@
 import React from 'react';
 import {Button as MUIButton, ButtonProps as MUIButtonProps} from '@mui/material';
 
-type AppButtonProps = MUIButtonProps;
+// target/rel reach the rendered <a> when the button has an href.
+type AppButtonProps = MUIButtonProps & Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, "target" | "rel">;
 
 export const AppButton: React.FC<AppButtonProps> = ({
                                                         type = "submit",

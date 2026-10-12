@@ -1,6 +1,6 @@
 // Mobile layout audit: measures every route at phone widths and writes JSON + Markdown scorecards.
 // Usage and thresholds: docs/mobile-audit.md
-import {mkdir, writeFile} from "node:fs/promises";
+import {mkdir, readdir, writeFile} from "node:fs/promises";
 import {join} from "node:path";
 import {chromium} from "playwright";
 import {AxeBuilder} from "@axe-core/playwright";
@@ -110,6 +110,8 @@ async function resolveRoutes(session) {
         ids.character && route(`/neutral-stats?character=${ids.character}`, "Neutral Stats", "Stats"),
         route("/guides", "Beginners Guides", "Guides"),
         route("/guides/turns", "Turns Guide", "Guides"),
+        route("/research", "Research", "Research"),
+        ids.researchArticle && route(`/research/${ids.researchArticle}`, "Research Article", "Research"),
         route("/replay-lab", "Replay Lab", "Replay Lab"),
         route("/replay-lab/upload", "Replay Upload", "Replay Lab"),
         route("/replay-lab/local", "Replay Local", "Replay Lab"),
@@ -147,6 +149,9 @@ async function resolveDynamicIds(session) {
         scenario: await first("/scenarios?size=1", (items) => items[0]?.id)
             ?? await first("/moderation/queue", (queue) => findQueuedId(queue, "scenario")),
         character: await first("/characters", (items) => items.find((character) => character.name === "Ryu")?.id ?? items[0]?.id),
+        researchArticle: await readdir("content/research")
+            .then((files) => files.find((file) => file.endsWith(".md") && !file.startsWith("_"))?.slice(0, -".md".length) ?? null)
+            .catch(() => null),
     };
 }
 

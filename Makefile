@@ -48,6 +48,7 @@ mobile-audit:
 		-e AUDIT_OUTPUT_DIR=/out -e AUDIT_SCREENSHOTS="$(SCREENSHOTS)" -e AUDIT_ONLY="$(ONLY)" \
 		-v $(CURDIR)/frontend/node_modules:/w/node_modules:ro \
 		-v $(CURDIR)/frontend/scripts/mobile-audit:/w/scripts:ro \
+		-v $(CURDIR)/frontend/content:/w/content:ro \
 		-v $(CURDIR)/frontend/mobile-audit-results:/out \
 		-w /w mcr.microsoft.com/playwright:v$$(docker compose exec -T frontend node -p "require('playwright/package.json').version" | tr -d '\r')-noble \
 		node scripts/audit.mjs

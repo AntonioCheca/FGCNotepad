@@ -74,5 +74,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!api|_next/static|_next/image|favicon.ico|logos|images).*)"],
+    // Research articles and their figures are static public content, so they skip the auth round trip.
+    matcher: ["/((?!api|_next/static|_next/image|favicon.ico|logos|images|research).*)"],
 };
