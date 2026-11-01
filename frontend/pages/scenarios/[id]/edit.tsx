@@ -7,24 +7,8 @@ import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {PageShell} from "@/src/components/ui/tactical/PageShell";
 import {ScenarioEditorForm} from "@/src/components/scenarios/ScenarioEditorForm";
 import {MatrixLinkedCellResolution} from "@/src/features/matrix/model";
-import {useScenarios, ScenarioDetail, ScenarioResolvedLinkedCell} from "@/hooks/useScenarios";
-
-function formatLinkedFormula(value: number): string {
-    return Number.isInteger(value) ? String(value) : value.toFixed(2);
-}
-
-function buildLinkedCellResolutionMap(cells: ScenarioResolvedLinkedCell[]): Record<string, MatrixLinkedCellResolution> {
-    return cells.reduce<Record<string, MatrixLinkedCellResolution>>((acc, cell) => {
-        acc[`body::row_${cell.row + 1}::column_${cell.column + 1}`] = {
-            basePreValue: cell.basePreValue,
-            linkedExpectedValue: cell.linkedExpectedValue,
-            finalValue: cell.finalValue,
-            displayFormula: `${formatLinkedFormula(cell.basePreValue)}+${formatLinkedFormula(cell.linkedExpectedValue)}`,
-        };
-
-        return acc;
-    }, {});
-}
+import {useScenarios, ScenarioDetail} from "@/hooks/useScenarios";
+import {buildLinkedCellResolutionMap} from "@/src/features/scenarios/detail/scenarioDetailUtils";
 
 export default function EditScenarioPage() {
     const router = useRouter();

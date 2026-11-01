@@ -1,6 +1,6 @@
 import React from "react";
 
-import {MatrixBodyCell, MatrixEditorState, MatrixResourceRequirement} from "@/src/features/matrix/model";
+import {MatrixBodyCell, MatrixEditorState, MatrixLinkedCellResolution, MatrixResourceRequirement} from "@/src/features/matrix/model";
 import {MatrixAction, matrixActions} from "@/src/features/matrix/state/actions";
 import type {MatrixEditorPermissions} from "../hooks/useMatrixEditorPermissions";
 import {ReferenceInspectorData} from "../services/referenceInspector";
@@ -46,7 +46,7 @@ interface MatrixEditorWorkspaceProps {
     activeColumnId: string | null;
     draftHasFormatError: boolean;
     displayedBodyValues: Record<string, number | null>;
-    referenceDisplayLabels: Record<string, string>;
+    linkedResolutionsByKey: Record<string, MatrixLinkedCellResolution>;
     moveLabelById: Record<string, string>;
     resourceGating: MatrixEditorResourceGatingView;
     dispatch: React.Dispatch<MatrixAction>;
@@ -87,7 +87,7 @@ export function MatrixEditorWorkspace({
     activeColumnId,
     draftHasFormatError,
     displayedBodyValues,
-    referenceDisplayLabels,
+    linkedResolutionsByKey,
     moveLabelById,
     resourceGating,
     dispatch,
@@ -125,7 +125,6 @@ export function MatrixEditorWorkspace({
                 onShowLayerControlsChange={onShowLayerControlsChange}
             />
             {inspectorData ? <ReferenceInspector data={inspectorData}/> : null}
-            <MatrixInsightsDashboard insights={matrixInsights}/>
 
             <div style={{display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-start", width: "100%", minWidth: 0}}>
                 <div style={{flex: "1 1 560px", minWidth: 0, width: "100%"}}>
@@ -143,7 +142,7 @@ export function MatrixEditorWorkspace({
                         draftHasFormatError={draftHasFormatError}
                         validationByKey={state.validation.byKey}
                         displayedBodyValues={displayedBodyValues}
-                        displayLabelsByKey={referenceDisplayLabels}
+                        linkedResolutionsByKey={linkedResolutionsByKey}
                         moveLabelById={moveLabelById}
                         unavailableRowIds={resourceGating.unavailableRowIds}
                         unavailableColumnIds={resourceGating.unavailableColumnIds}
@@ -201,6 +200,8 @@ export function MatrixEditorWorkspace({
 
                 {inlinePanels}
             </div>
+
+            <MatrixInsightsDashboard insights={matrixInsights}/>
         </MatrixEditorLayout>
     );
 }

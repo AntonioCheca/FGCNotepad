@@ -52,7 +52,7 @@ class ResolveDynamicComboCellService
 
         $normalizedHitType = $this->normalizeHitType($hitType);
 
-        $comboMatch = $this->comboSequencesRepository->findBestDynamicComboMatchWithExecutionFilter(
+        $candidates = $this->comboSequencesRepository->findDynamicComboCandidatesWithExecutionFilter(
             trim($attackerCharacterId),
             $normalizedStarterMoveIds,
             $normalizedHitType,
@@ -64,10 +64,10 @@ class ResolveDynamicComboCellService
             $this->mergeAvailableObjectStatuses($comboContext, $availableResources)
         );
 
-        return $this->buildResolutionFromComboMatch(
+        return $this->buildResolutionFromCandidates(
             trim($attackerCharacterId),
             $normalizedStarterMoveIds,
-            $comboMatch,
+            $candidates,
             $availableResources
         );
     }
@@ -101,7 +101,7 @@ class ResolveDynamicComboCellService
 
         $normalizedHitType = $this->normalizeHitType($hitType);
 
-        $comboMatch = $this->comboSequencesRepository->findBestDynamicComboMatchWithExecutionFilter(
+        $candidates = $this->comboSequencesRepository->findDynamicComboCandidatesWithExecutionFilter(
             trim($attackerCharacterId),
             $normalizedStarterMoveIds,
             $normalizedHitType,
@@ -113,41 +113,56 @@ class ResolveDynamicComboCellService
             $this->mergeAvailableObjectStatuses($comboContext, $availableResources)
         );
 
-        return $this->buildResolutionFromComboMatch(
+        return $this->buildResolutionFromCandidates(
             trim($attackerCharacterId),
             $normalizedStarterMoveIds,
-            $comboMatch,
+            $candidates,
             $availableResources
         );
     }
 
     /**
+     * The candidate worth most once its resource costs and gains are valued: the highest raw damage can spend
+     * more than it gains, so a cheaper combo may be the better answer (and a superset of candidates, such as
+     * counter hit over normal hit, can never resolve lower).
+     *
      * @param list<string> $starterMoveIds
-     * @param array{combo_id:int,resolved_damage:int,starter_move_id:string}|null $comboMatch
+     * @param list<array{combo_id:int,resolved_damage:int,starter_move_id:string}> $candidates
      * @param array<string,mixed>|null $availableResources
      *
      * @return array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null,resourceContext:array<string,mixed>|null}
      */
-    private function buildResolutionFromComboMatch(
+    private function buildResolutionFromCandidates(
         string $attackerCharacterId,
         array $starterMoveIds,
-        ?array $comboMatch,
+        array $candidates,
         ?array $availableResources
     ): array {
-        if (null !== $comboMatch) {
-            $combo = $this->comboSequencesRepository->find($comboMatch['combo_id']);
-            $resolvedValue = (float) $comboMatch['resolved_damage'];
-            $nextResourceContext = $availableResources;
-            if (null !== $combo) {
-                $resolvedValue = $this->comboValueEstimator->estimateSequenceValue($combo, $availableResources) ?? $resolvedValue;
-                $nextResourceContext = $this->comboValueEstimator->applySequenceResourceDeltas($combo, $availableResources);
+        $combosById = [];
+        if ([] !== $candidates) {
+            foreach ($this->comboSequencesRepository->findBy(['id' => array_column($candidates, 'combo_id')]) as $combo) {
+                $combosById[(int) $combo->getId()] = $combo;
             }
+        }
 
+        $best = null;
+        foreach ($candidates as $candidate) {
+            $combo = $combosById[$candidate['combo_id']] ?? null;
+            $value = (null !== $combo ? $this->comboValueEstimator->estimateSequenceValue($combo, $availableResources) : null)
+                ?? (float) $candidate['resolved_damage'];
+            if (null === $best || $value > $best['value'] || ($value === $best['value'] && $candidate['combo_id'] < $best['candidate']['combo_id'])) {
+                $best = ['candidate' => $candidate, 'combo' => $combo, 'value' => $value];
+            }
+        }
+
+        if (null !== $best) {
             return [
-                'resolvedDamage' => $resolvedValue,
-                'resolvedComboId' => $comboMatch['combo_id'],
-                'resolvedStarterMoveId' => $comboMatch['starter_move_id'],
-                'resourceContext' => $nextResourceContext,
+                'resolvedDamage' => $best['value'],
+                'resolvedComboId' => $best['candidate']['combo_id'],
+                'resolvedStarterMoveId' => $best['candidate']['starter_move_id'],
+                'resourceContext' => null !== $best['combo']
+                    ? $this->comboValueEstimator->applySequenceResourceDeltas($best['combo'], $availableResources)
+                    : $availableResources,
             ];
         }
 
@@ -206,7 +221,7 @@ class ResolveDynamicComboCellService
     {
         $normalized = trim(mb_strtolower($hitType));
 
-        return in_array($normalized, ['normal', 'counter_hit', 'punish_counter'], true)
+        return in_array($normalized, ['normal', 'counter_hit', 'punish_counter', 'perfect_parry'], true)
             ? $normalized
             : 'normal';
     }

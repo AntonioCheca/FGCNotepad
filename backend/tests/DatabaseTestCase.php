@@ -70,16 +70,41 @@ abstract class DatabaseTestCase extends WebTestCase
         $this->entityManager->clear();
         $connection->executeStatement("SET synchronous_commit = OFF");
 
-        $truncatableTables = $this->getTruncatableTables();
-        if ([] === $truncatableTables) {
+        $dirtyTables = $this->getDirtyTables($this->getTruncatableTables());
+        if ([] === $dirtyTables) {
             return;
+        }
+
+        // DELETE is milliseconds on these small tables, while TRUNCATE recreates each table's files. Skipping
+        // FK triggers needs a superuser, so other setups fall back to TRUNCATE.
+        $connection->beginTransaction();
+        try {
+            $connection->executeStatement('SET LOCAL session_replication_role = replica');
+            foreach ($dirtyTables as $table) {
+                $connection->executeStatement(sprintf('DELETE FROM %s', $table));
+            }
+            $connection->executeQuery(sprintf(
+                "SELECT setval(s.oid::regclass, ps.start_value, false)
+                FROM pg_depend d
+                JOIN pg_class s ON s.oid = d.objid AND s.relkind = 'S'
+                JOIN pg_namespace n ON n.oid = s.relnamespace
+                JOIN pg_sequences ps ON ps.schemaname = n.nspname AND ps.sequencename = s.relname
+                WHERE d.classid = 'pg_class'::regclass AND d.refclassid = 'pg_class'::regclass
+                  AND d.refobjid IN (%s)",
+                implode(', ', array_map(static fn (string $table): string => $connection->quote($table) . '::regclass', $dirtyTables))
+            ));
+            $connection->commit();
+
+            return;
+        } catch (\Throwable) {
+            $connection->rollBack();
         }
 
         $connection->beginTransaction();
         try {
             $connection->executeStatement(sprintf(
                 'TRUNCATE %s RESTART IDENTITY CASCADE',
-                implode(', ', array_map([$this, 'quoteTableName'], $truncatableTables))
+                implode(', ', $dirtyTables)
             ));
             $connection->commit();
         } catch (\Throwable $e) {
@@ -94,7 +119,42 @@ abstract class DatabaseTestCase extends WebTestCase
     }
 
     /**
-     * @return list<string>
+     * TRUNCATE rewrites every listed table's files, which costs about a second per test for the whole schema.
+     * Only tables holding rows, or whose owned id sequence was used since its last reset, need it.
+     *
+     * @param list<string> $tables quoted table names
+     *
+     * @return list<string> quoted table names
+     */
+    private function getDirtyTables(array $tables): array
+    {
+        if ([] === $tables) {
+            return [];
+        }
+
+        $connection = $this->entityManager->getConnection();
+        $checks = array_map(
+            static fn (string $quoted): string => sprintf(
+                "SELECT %s WHERE EXISTS (SELECT 1 FROM %s) OR EXISTS (
+                    SELECT 1 FROM pg_depend d
+                    JOIN pg_class s ON s.oid = d.objid AND s.relkind = 'S'
+                    JOIN pg_namespace n ON n.oid = s.relnamespace
+                    JOIN pg_sequences ps ON ps.schemaname = n.nspname AND ps.sequencename = s.relname
+                    WHERE d.classid = 'pg_class'::regclass AND d.refclassid = 'pg_class'::regclass
+                      AND d.refobjid = %s::regclass AND ps.last_value IS NOT NULL
+                )",
+                $connection->quote($quoted),
+                $quoted,
+                $connection->quote($quoted)
+            ),
+            $tables
+        );
+
+        return array_map('strval', $connection->fetchFirstColumn(implode(' UNION ALL ', $checks)));
+    }
+
+    /**
+     * @return list<string> quoted table names
      */
     private function getTruncatableTables(): array
     {
@@ -127,7 +187,27 @@ abstract class DatabaseTestCase extends WebTestCase
             }
         }
 
-        self::$truncatableTables = $truncatableTables;
+        if ([] === $truncatableTables) {
+            return self::$truncatableTables = [];
+        }
+
+        // Tables that reference entity tables (join tables and the like) were emptied by TRUNCATE ... CASCADE.
+        $entityTables = array_map(
+            fn (string $table): string => $connection->quote($this->quoteTableName($table)),
+            $truncatableTables
+        );
+        self::$truncatableTables = array_map('strval', $connection->fetchFirstColumn(sprintf(
+            "WITH RECURSIVE reset_tables(oid) AS (
+                SELECT unnest(ARRAY[%s]::regclass[])::oid
+                UNION
+                SELECT c.conrelid FROM pg_constraint c JOIN reset_tables r ON c.confrelid = r.oid WHERE c.contype = 'f'
+            )
+            SELECT format('%%I.%%I', n.nspname, t.relname)
+            FROM reset_tables r
+            JOIN pg_class t ON t.oid = r.oid
+            JOIN pg_namespace n ON n.oid = t.relnamespace",
+            implode(', ', $entityTables)
+        )));
 
         return self::$truncatableTables;
     }

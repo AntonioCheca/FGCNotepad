@@ -3,6 +3,7 @@ import useApi from "@/hooks/useApi";
 import api from "@/services/api";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
 import {ScenarioExecutionSelection} from "@/src/types/scenarioExecution";
+import type {MatrixReferencePerspective} from "@/src/features/matrix/model";
 
 export type ScenarioType = "oki" | "blockstring" | "aggregated_oki";
 
@@ -136,14 +137,14 @@ export interface ScenarioResolvedLinkedCell {
     scenarioId: string | null;
     basePreValue: number;
     linkedExpectedValue: number;
+    weight?: number;
+    perspective?: MatrixReferencePerspective;
     finalValue: number;
-    depth: number;
 }
 
 export interface ScenarioLinkedExpectedValueResponse extends ScenarioLayerSolveSnapshot {
     scenarioId: string;
     executionMode: ScenarioExecutionModePayload;
-    depth: number;
     resolvedCells: ScenarioResolvedLinkedCell[];
 }
 

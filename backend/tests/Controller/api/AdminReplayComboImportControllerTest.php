@@ -207,7 +207,8 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
             $declared[(string) $state->getObjectKey()] = $state->getStatusRequired();
         }
         ksort($declared);
-        self::assertSame(['ed_install' => 'true', 'ed_scaler' => '4', 'ed_stock' => '2'], $declared);
+        // The combo spends one of the two stocks held, so it needs one: a stock is declared at what the combo needs.
+        self::assertSame(['ed_install' => 'true', 'ed_scaler' => '4', 'ed_stock' => '1'], $declared);
 
         $ledger = static::getContainer()->get(ComboResourceLedgerService::class)->forCombo($created);
         $summary = array_combine(
@@ -215,11 +216,40 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
             array_map(static fn (array $entry): array => [$entry['start'], $entry['end'], array_column($entry['steps'], 'delta', 'ordinal')], $ledger),
         );
         ksort($summary);
-        self::assertSame(['ed_install' => [1, 1, []], 'ed_scaler' => [4, 4, []], 'ed_stock' => [2, 1, [2 => -1]]], $summary);
+        self::assertSame(['ed_install' => [1, 1, []], 'ed_scaler' => [4, 4, []], 'ed_stock' => [1, 0, [2 => -1]]], $summary);
 
         $usage = $this->entityManager->getRepository(ComboResourceUsage::class)->findOneBy(['combo' => $created, 'characterObject' => $this->edResource('ed_stock')]);
         self::assertInstanceOf(ComboResourceUsage::class, $usage);
-        self::assertSame([2, 1, 0, 1], [$usage->getStartValue(), $usage->getSpent(), $usage->getGained(), $usage->getEndValue()]);
+        self::assertSame([1, 1, 0, 0], [$usage->getStartValue(), $usage->getSpent(), $usage->getGained(), $usage->getEndValue()]);
+    }
+
+    public function testStockRequirementIsTheDeepestRunningSpendNotTheStockHeld(): void
+    {
+        $this->persistComboCatalog();
+        $this->persistEdResources();
+        $spendsOne = $this->resourceCombo('c1', 400, ['stock' => 3], false, [$this->resourceChange('stock', 1, -1)]);
+        $gainsThenSpendsTwo = $this->resourceCombo('c2', 900, ['stock' => 3], false, [
+            $this->resourceChange('stock', 0, 1),
+            $this->resourceChange('stock', 1, -2),
+        ]);
+        $onlyGains = $this->resourceCombo('c3', 700, ['stock' => 2], false, [$this->resourceChange('stock', 1, 1)]);
+
+        $results = $this->importCombos([$spendsOne, $gainsThenSpendsTwo, $onlyGains])['results'];
+
+        self::assertSame(['imported', 'imported', 'imported'], array_column($results, 'status'));
+        $this->entityManager->clear();
+        $declared = [];
+        foreach ($results as $result) {
+            $combo = $this->entityManager->getRepository(ComboSequences::class)->find($result['comboId']);
+            self::assertInstanceOf(ComboSequences::class, $combo);
+            $states = [];
+            foreach ($combo->getComboRequirement()?->getCharacterObjectStates() ?? [] as $state) {
+                self::assertInstanceOf(CharacterObjectState::class, $state);
+                $states[(string) $state->getObjectKey()] = $state->getStatusRequired();
+            }
+            $declared[] = $states;
+        }
+        self::assertSame([['ed_stock' => '1'], ['ed_stock' => '1'], []], $declared);
     }
 
     public function testDamageDecidesWhetherSameMovesAreTheSameCombo(): void

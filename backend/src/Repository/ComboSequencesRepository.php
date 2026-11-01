@@ -645,16 +645,19 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->addOrderBy('combo.id', 'ASC')
             ->setMaxResults(1);
 
-        return $this->finalizeBestDynamicComboQuery($qb, $hitType, null, null, false);
+        return $this->finalizeDynamicComboQuery($qb, $hitType, null, null, false)[0] ?? null;
     }
 
     /**
      * @param list<string> $starterMoveIds
      * @param list<int>|null $allowedComboIds
      *
-     * @return array{combo_id:int,resolved_damage:int,starter_move_id:string}|null
+     * Every combo the filters allow, best raw damage first. The caller ranks them by resource-adjusted value,
+     * which depends on the available resources.
+     *
+     * @return list<array{combo_id:int,resolved_damage:int,starter_move_id:string}>
      */
-    public function findBestDynamicComboMatchWithExecutionFilter(
+    public function findDynamicComboCandidatesWithExecutionFilter(
         string $attackerCharacterId,
         array $starterMoveIds,
         string $hitType,
@@ -664,13 +667,13 @@ class ComboSequencesRepository extends ServiceEntityRepository
         ?float $availableDrive = null,
         ?float $availableSuper = null,
         ?array $comboContext = null,
-    ): ?array {
+    ): array {
         if ([] === $starterMoveIds) {
-            return null;
+            return [];
         }
 
         if (is_array($allowedComboIds) && [] === $allowedComboIds) {
-            return null;
+            return [];
         }
 
         $qb = $this->createQueryBuilder('combo')
@@ -697,10 +700,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
             ->setParameter('attackerCharacterId', $attackerCharacterId)
             ->setParameter('starterMoveIds', $starterMoveIds)
             ->orderBy('metrics.damage', 'DESC')
-            ->addOrderBy('combo.id', 'ASC')
-            ->setMaxResults(1);
+            ->addOrderBy('combo.id', 'ASC');
 
-        return $this->finalizeBestDynamicComboQuery(
+        return $this->finalizeDynamicComboQuery(
             $qb,
             $hitType,
             $allowedComboIds,
@@ -868,9 +870,9 @@ class ComboSequencesRepository extends ServiceEntityRepository
     /**
      * @param list<int>|null $allowedComboIds
      *
-     * @return array{combo_id:int,resolved_damage:int,starter_move_id:string}|null
+     * @return list<array{combo_id:int,resolved_damage:int,starter_move_id:string}> one row per combo
      */
-    private function finalizeBestDynamicComboQuery(
+    private function finalizeDynamicComboQuery(
         \Doctrine\ORM\QueryBuilder $qb,
         string $hitType,
         ?array $allowedComboIds,
@@ -879,7 +881,7 @@ class ComboSequencesRepository extends ServiceEntityRepository
         ?float $availableDrive = null,
         ?float $availableSuper = null,
         ?array $comboContext = null,
-    ): ?array {
+    ): array {
         if (null !== $allowedComboIds) {
             $qb->andWhere('combo.id IN (:allowedComboIds)')
                 ->setParameter('allowedComboIds', $allowedComboIds);
@@ -905,7 +907,10 @@ class ComboSequencesRepository extends ServiceEntityRepository
                 ->setParameter('availableSuper', $availableSuper);
         }
 
-        $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.perfect_parry_required = false AND comboRequirement.blocked_drive_impact_stun_required = false)');
+        $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.blocked_drive_impact_stun_required = false)');
+        if ('perfect_parry' !== $hitType) {
+            $qb->andWhere('(comboRequirement.id IS NULL) OR (comboRequirement.perfect_parry_required = false)');
+        }
 
         if ('normal' === $hitType) {
             $qb->andWhere(
@@ -947,15 +952,16 @@ class ComboSequencesRepository extends ServiceEntityRepository
             }
         }
 
-        $result = $qb->getQuery()->getOneOrNullResult();
-        if (!is_array($result)) {
-            return null;
+        $matches = [];
+        foreach ($qb->getQuery()->getArrayResult() as $row) {
+            $comboId = (int) $row['combo_id'];
+            $matches[$comboId] ??= [
+                'combo_id' => $comboId,
+                'resolved_damage' => (int) $row['resolved_damage'],
+                'starter_move_id' => (string) $row['starter_move_id'],
+            ];
         }
 
-        return [
-            'combo_id' => (int) $result['combo_id'],
-            'resolved_damage' => (int) $result['resolved_damage'],
-            'starter_move_id' => (string) $result['starter_move_id'],
-        ];
+        return array_values($matches);
     }
 }

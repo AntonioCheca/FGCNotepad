@@ -7,6 +7,8 @@ import {MatrixDensityProfile} from "./gridDensity";
 import type {MatrixGridViewOptions} from "./matrix-grid/matrixGridTypes";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
 import {AxisRequirementTrigger} from "./AxisRequirementEditor";
+import {AxisLabelField} from "./AxisLabelField";
+import type {MatrixGridSizing} from "./matrix-grid/matrixGridSizing";
 
 interface MatrixGridHeaderProps {
     state: MatrixEditorState;
@@ -21,6 +23,7 @@ interface MatrixGridHeaderProps {
     onOpenColumnRequirements: (columnId: string, anchor: HTMLElement) => void;
     onSelectColumnHeader: (columnId: string) => void;
     densityProfile: MatrixDensityProfile;
+    sizing: MatrixGridSizing;
     viewOptions: MatrixGridViewOptions;
 }
 
@@ -37,6 +40,7 @@ export function MatrixGridHeader({
     onOpenColumnRequirements,
     onSelectColumnHeader,
     densityProfile,
+    sizing,
     viewOptions,
 }: MatrixGridHeaderProps) {
     const {theme} = useMode();
@@ -54,7 +58,7 @@ export function MatrixGridHeader({
                     zIndex: 5,
                     background: theme.fgc.surface.subtle,
                     borderBottom: `1px solid ${theme.fgc.border.default}`,
-                    minWidth: densityProfile.rowLabelWidth,
+                    minWidth: sizing.rowLabelWidth,
                     fontSize: densityProfile.labelFontSize,
                     color: theme.fgc.text.secondary,
                 }}
@@ -74,28 +78,22 @@ export function MatrixGridHeader({
                             zIndex: 4,
                             background: columnUnavailable ? theme.fgc.surface.sunken : activeColumnId === column.id ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
                             borderBottom: activeColumnId === column.id ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.default}`,
-                            minWidth: densityProfile.columnLabelWidth,
-                            height: densityProfile.cellHeight + (showLayerControls ? 20 : 0) + densityProfile.cellPadding * 2,
+                            minWidth: sizing.columnWidthById[column.id] ?? densityProfile.columnLabelWidth,
+                            minHeight: densityProfile.cellHeight + (showLayerControls ? 20 : 0) + densityProfile.cellPadding * 2,
+                            verticalAlign: "top",
                             opacity: columnUnavailable ? 0.72 : 1,
                         }}
                     >
-                    <input
-                        type="text"
-                        aria-label={`Column label ${column.label || column.id}`}
+                    <AxisLabelField
+                        ariaLabel={`Column label ${column.label || column.id}`}
                         value={column.label}
                         readOnly={!permissions.canEditColumnAxisLabels}
+                        disabled={columnUnavailable}
+                        width={sizing.columnWidthById[column.id] ?? densityProfile.columnLabelWidth}
+                        minHeight={densityProfile.cellHeight}
+                        fontSize={densityProfile.labelFontSize}
                         onFocus={() => onSelectColumnHeader(column.id)}
-                        onChange={(event) => onColumnLabelChange(column.id, event.target.value)}
-                        style={{
-                            width: `${densityProfile.columnLabelWidth - 12}px`,
-                            minHeight: densityProfile.cellHeight,
-                            fontSize: densityProfile.labelFontSize,
-                            padding: "2px 6px",
-                            borderRadius: 6,
-                            border: `1px solid ${theme.fgc.border.default}`,
-                            background: theme.fgc.control.default,
-                            color: columnUnavailable ? theme.fgc.text.disabled : theme.fgc.text.primary,
-                        }}
+                        onChange={(label) => onColumnLabelChange(column.id, label)}
                     />
                     {columnUnavailable ? (
                         <span style={{position: "absolute", right: 4, top: 3, fontSize: 12, color: theme.fgc.text.disabled}}>

@@ -63,6 +63,38 @@ class ResolveDynamicComboCellServiceTest extends DatabaseTestCase
         self::assertSame((string) $starterMove->getId(), $result['resolvedStarterMoveId']);
     }
 
+    public function testCostlyHigherDamageComboDoesNotOutrankACheaperOneWorthMore(): void
+    {
+        [$character, $starterMove, , $comboIdsByDamage] = $this->seedComboGraph();
+        $costlyCounterHitCombo = $this->entityManager->getRepository(ComboSequences::class)->find($comboIdsByDamage[1500]);
+        self::assertInstanceOf(ComboSequences::class, $costlyCounterHitCombo);
+        $costlyCounterHitCombo->getComboMetrics()?->setDriveCost(3.0);
+        $this->entityManager->flush();
+
+        $normal = $this->service->resolve((string) $character->getId(), [(string) $starterMove->getId()], 'normal');
+        $counterHit = $this->service->resolve((string) $character->getId(), [(string) $starterMove->getId()], 'counter_hit');
+
+        self::assertSame(1200.0, $normal['resolvedDamage']);
+        self::assertSame(1200.0, $counterHit['resolvedDamage']);
+        self::assertSame($comboIdsByDamage[1200], $counterHit['resolvedComboId']);
+    }
+
+    public function testMoreResourcesNeverResolveLower(): void
+    {
+        [$character, $starterMove, , $comboIdsByDamage] = $this->seedComboGraph();
+        $costlyCounterHitCombo = $this->entityManager->getRepository(ComboSequences::class)->find($comboIdsByDamage[1500]);
+        self::assertInstanceOf(ComboSequences::class, $costlyCounterHitCombo);
+        $costlyCounterHitCombo->getComboMetrics()?->setDriveCost(3.0)->setMinimumDriveCost(3.0);
+        $this->entityManager->flush();
+
+        $starter = [(string) $starterMove->getId()];
+        $empty = $this->service->resolve((string) $character->getId(), $starter, 'counter_hit', null, null, null, ['drive' => 0.0, 'super' => 0.0]);
+        $full = $this->service->resolve((string) $character->getId(), $starter, 'counter_hit', null, null, null, ['drive' => 6.0, 'super' => 3.0]);
+
+        self::assertSame(1200.0, $empty['resolvedDamage']);
+        self::assertSame(1200.0, $full['resolvedDamage']);
+    }
+
     public function testFallsBackToStarterMoveDamageWhenNoComboMatches(): void
     {
         [$character, , $fallbackStarterMove] = $this->seedComboGraph();

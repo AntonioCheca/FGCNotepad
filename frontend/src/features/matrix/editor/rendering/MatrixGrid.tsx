@@ -3,7 +3,7 @@ import React from "react";
 import {useMode} from "@/src/context/ThemeContext";
 import {resolveDensityProfile} from "./gridDensity";
 import {
-    EMPTY_DISPLAY_LABELS_BY_KEY,
+    EMPTY_LINKED_RESOLUTIONS_BY_KEY,
     EMPTY_HEATMAP_TONE_BY_CELL_KEY,
     EMPTY_UNAVAILABLE_COLUMN_IDS,
     EMPTY_UNAVAILABLE_REASON_BY_COLUMN_ID,
@@ -37,7 +37,7 @@ export function MatrixGrid({
     draftHasFormatError,
     validationByKey,
     displayedBodyValues,
-    displayLabelsByKey = EMPTY_DISPLAY_LABELS_BY_KEY,
+    linkedResolutionsByKey = EMPTY_LINKED_RESOLUTIONS_BY_KEY,
     moveLabelById,
     unavailableRowIds = EMPTY_UNAVAILABLE_ROW_IDS,
     unavailableColumnIds = EMPTY_UNAVAILABLE_COLUMN_IDS,
@@ -107,11 +107,11 @@ export function MatrixGrid({
     const focusRows = React.useMemo(() => buildRowFocusRows({
         grid: state.grid,
         displayedBodyValues,
-        displayLabelsByKey,
+        linkedResolutionsByKey,
         unavailableRowIds,
         unavailableColumnIds,
         formatFrequency: summaryValueFormatter,
-    }), [state.grid, displayedBodyValues, displayLabelsByKey, unavailableRowIds, unavailableColumnIds, summaryValueFormatter]);
+    }), [state.grid, displayedBodyValues, linkedResolutionsByKey, unavailableRowIds, unavailableColumnIds, summaryValueFormatter]);
     const defaultFocusRowId = React.useMemo(() => pickDefaultRowId(
         focusRows,
         Object.fromEntries(state.grid.rows.map((row) => [row.id, state.grid.rowSummaryCells[createRowSummaryKey(row.id)]?.value ?? null])),
@@ -146,7 +146,7 @@ export function MatrixGrid({
                         draftHasFormatError={draftHasFormatError}
                         validationByKey={validationByKey}
                         displayedBodyValues={displayedBodyValues}
-                        displayLabelsByKey={displayLabelsByKey}
+                        linkedResolutionsByKey={linkedResolutionsByKey}
                         moveLabelById={moveLabelById}
                         unavailableRowIds={unavailableRowIds}
                         unavailableColumnIds={unavailableColumnIds}

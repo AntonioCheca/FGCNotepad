@@ -15,6 +15,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(name: "idx_scenario_public_id", columns: ["public_id"])]
 #[ORM\Index(name: "idx_scenario_search_label", columns: ["search_label"])]
 #[ORM\Index(name: "idx_scenario_is_essential", columns: ["is_essential"])]
+#[ORM\UniqueConstraint(name: "uniq_scenario_import_key", columns: ["import_source", "import_external_id"])]
 #[ORM\Entity(repositoryClass: ScenarioRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 class Scenario
@@ -80,6 +81,21 @@ class Scenario
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
     private ?ScenarioType $type = null;
+
+    #[ORM\Column(name: 'knockdown_advantage', type: Types::SMALLINT, nullable: true)]
+    private ?int $knockdownAdvantage = null;
+
+    #[ORM\Column(name: 'import_source', type: Types::STRING, length: 64, nullable: true)]
+    private ?string $importSource = null;
+
+    #[ORM\Column(name: 'import_external_id', type: Types::STRING, length: 191, nullable: true)]
+    private ?string $importExternalId = null;
+
+    /**
+     * Hash of the scenario_export_v1 content right after the last import; a different current hash means site edits.
+     */
+    #[ORM\Column(name: 'import_content_hash', type: Types::STRING, length: 64, nullable: true)]
+    private ?string $importContentHash = null;
 
     /**
      * @var Collection<int, ScenarioLayer>
@@ -352,6 +368,48 @@ class Scenario
     public function setType(?ScenarioType $type): static
     {
         $this->type = $type;
+
+        return $this;
+    }
+
+    public function getKnockdownAdvantage(): ?int
+    {
+        return $this->knockdownAdvantage;
+    }
+
+    public function setKnockdownAdvantage(?int $knockdownAdvantage): static
+    {
+        $this->knockdownAdvantage = $knockdownAdvantage;
+
+        return $this;
+    }
+
+    public function getImportSource(): ?string
+    {
+        return $this->importSource;
+    }
+
+    public function getImportExternalId(): ?string
+    {
+        return $this->importExternalId;
+    }
+
+    public function setImportKey(?string $importSource, ?string $importExternalId): static
+    {
+        $this->importSource = $importSource;
+        $this->importExternalId = $importExternalId;
+
+        return $this;
+    }
+
+    public function getImportContentHash(): ?string
+    {
+        return $this->importContentHash;
+    }
+
+    public function setImportContentHash(?string $importContentHash): static
+    {
+        $this->importContentHash = $importContentHash;
 
         return $this;
     }

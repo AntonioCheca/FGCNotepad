@@ -4,6 +4,7 @@ import {useReplayComboImport} from "@/hooks/useReplayComboImport";
 import {useReplayOkiImport} from "@/hooks/useReplayOkiImport";
 import {ImportRow, ReplayImportSection} from "@/src/components/admin/ReplayImportSection";
 import {NeutralStatsImportSection} from "@/src/components/admin/NeutralStatsImportSection";
+import {ScenarioTransferSection} from "@/src/components/admin/ScenarioTransferSection";
 import {AppAlert} from "@/src/components/ui/AppAlert";
 import {AppCircularProgress} from "@/src/components/ui/AppCircularProgress";
 import {AppContainer} from "@/src/components/ui/AppContainer";
@@ -60,6 +61,7 @@ export default function ReplayImportsPage() {
                     onFinished={() => setToastMessage("Import finished. Created Oki setups are pending moderation.")}
                 />
                 <NeutralStatsImportSection onFinished={() => setToastMessage("Neutral stats import finished.")}/>
+                <ScenarioTransferSection onImported={() => setToastMessage("Scenarios imported. They are pending moderation.")}/>
             </PageShell>
 
             <AppSnackbar open={toastMessage !== null} autoHideDuration={4000} onClose={() => setToastMessage(null)} anchorOrigin={{vertical: "bottom", horizontal: "right"}}>

@@ -3,6 +3,7 @@ import React from "react";
 import {MatrixEditorState, selectGridValues} from "@/src/features/matrix/model";
 import {MatrixAction, matrixActions} from "@/src/features/matrix/state/actions";
 import {computeExpectedValue} from "../services/matrixComputationService";
+import {axisPayoffAdjustment} from "../services/matrixAxisResourceCost";
 import {buildMatrixResourceGating, MatrixResourceContext} from "../services/matrixResourceGating";
 import {useMatrixLayerVisibility} from "./useMatrixLayerVisibility";
 
@@ -27,11 +28,14 @@ export function useMatrixEditorViewModel({
     layerSolveSnapshots,
     resourceContext = null,
 }: UseMatrixEditorViewModelOptions) {
-    const layerVisibility = useMatrixLayerVisibility({state, editable});
-    const {effectiveLayerLimit, showAllLayers, visibleState} = layerVisibility;
+    const layerVisibility = useMatrixLayerVisibility({state});
+    const {effectiveLayerLimit, highestLayer, visibleState} = layerVisibility;
 
     const expectedValue = React.useMemo(() => {
-        const values = selectGridValues(state);
+        const values = selectGridValues(state).map((rowValues, rowIndex) => {
+            const rowAdjustment = axisPayoffAdjustment(state.grid.rows[rowIndex]);
+            return rowValues.map((value, columnIndex) => value === null ? null : value + rowAdjustment + axisPayoffAdjustment(state.grid.columns[columnIndex]));
+        });
         const rowWeights = state.grid.rows.map((row) => state.grid.rowSummaryCells[`row-summary::${row.id}`]?.value ?? null);
         const columnWeights = state.grid.columns.map((column) => state.grid.columnSummaryCells[`column-summary::${column.id}`]?.value ?? null);
         return computeExpectedValue(values, rowWeights, columnWeights);
@@ -106,12 +110,13 @@ export function useMatrixEditorViewModel({
     }, [displayFrequenciesAsPercent]);
 
     const layerSnapshot = React.useMemo(() => {
-        if (editable || showAllLayers || effectiveLayerLimit === null || !layerSolveSnapshots || (resourceContext && hasResourceRequirements)) {
+        if (editable || !layerSolveSnapshots || (resourceContext && hasResourceRequirements)) {
             return null;
         }
 
-        return layerSolveSnapshots[effectiveLayerLimit] ?? null;
-    }, [editable, effectiveLayerLimit, hasResourceRequirements, layerSolveSnapshots, resourceContext, showAllLayers]);
+        // Each layer includes every layer below it, so all layers is the highest layer's solution.
+        return layerSolveSnapshots[effectiveLayerLimit ?? highestLayer] ?? null;
+    }, [editable, effectiveLayerLimit, hasResourceRequirements, highestLayer, layerSolveSnapshots, resourceContext]);
 
     const displayState = React.useMemo(() => {
         if (!layerSnapshot) {

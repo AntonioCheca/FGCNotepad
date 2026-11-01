@@ -1,6 +1,7 @@
+import type {MatrixLinkedCellResolution} from "@/src/features/matrix/model";
 import type {MatrixHeatmapTone} from "../../services/matrixInsightService";
 
-export const EMPTY_DISPLAY_LABELS_BY_KEY: Record<string, string> = {};
+export const EMPTY_LINKED_RESOLUTIONS_BY_KEY: Record<string, MatrixLinkedCellResolution> = {};
 export const EMPTY_UNAVAILABLE_ROW_IDS = new Set<string>();
 export const EMPTY_UNAVAILABLE_COLUMN_IDS = new Set<string>();
 export const EMPTY_UNAVAILABLE_REASON_BY_ROW_ID: Record<string, string> = {};

@@ -1,13 +1,16 @@
 import React from "react";
-import {MatrixValidationIssue} from "@/src/features/matrix/model";
+import {MatrixLinkedCellResolution, MatrixValidationIssue} from "@/src/features/matrix/model";
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixDensityProfile} from "./gridDensity";
 import {MatrixHeatmapTone} from "../services/matrixInsightService";
+import {formatCellNumber, formatLinkedBreakdown, formatReferenceWeight} from "./cellValueFormat";
 
 interface MatrixValueCellProps {
     value: number | null;
     valueFormatter?: (value: number | null) => string;
-    displayLabel?: string;
+    linkedResolution?: MatrixLinkedCellResolution;
+    referenceWeight?: number;
+    referenceTitle?: string;
     dynamicChipLabels?: string[];
     dynamicChipTone?: "normal" | "counter_hit" | "punish_counter";
     bodyCellKind?: "static" | "reference" | "dynamic_combo";
@@ -30,6 +33,7 @@ interface MatrixValueCellProps {
     onCommitEdit: () => void;
     onCancelEdit: () => void;
     densityProfile: MatrixDensityProfile;
+    minHeight?: number;
 }
 
 function isPrintableKey(event: React.KeyboardEvent<HTMLButtonElement>): boolean {
@@ -39,7 +43,9 @@ function isPrintableKey(event: React.KeyboardEvent<HTMLButtonElement>): boolean 
 function MatrixValueCellComponent({
                                         value,
                                         valueFormatter,
-                                        displayLabel,
+                                        linkedResolution,
+                                        referenceWeight,
+                                        referenceTitle,
                                         dynamicChipLabels = [],
                                       dynamicChipTone = "normal",
                                       bodyCellKind,
@@ -62,6 +68,7 @@ function MatrixValueCellComponent({
                                       onCommitEdit,
                                     onCancelEdit,
                                        densityProfile,
+                                       minHeight = densityProfile.cellHeight,
                                     }: MatrixValueCellProps) {
     const {theme} = useMode();
     const hasCommittedError = issues.length > 0;
@@ -85,8 +92,10 @@ function MatrixValueCellComponent({
                 }}
                 onBlur={onCommitEdit}
                 style={{
-                    width: `${densityProfile.valueCellWidth}px`,
-                    minHeight: densityProfile.cellHeight,
+                    boxSizing: "border-box",
+                    width: "100%",
+                    minWidth: densityProfile.valueCellWidth,
+                    minHeight,
                     fontSize: densityProfile.valueFontSize,
                     padding: "1px 6px",
                     border: draftHasFormatError ? `1px solid ${theme.fgc.feedback.warning}` : `1px solid ${theme.fgc.border.default}`,
@@ -107,7 +116,16 @@ function MatrixValueCellComponent({
                 ? {background: theme.fgc.highlight.surface, border: `1px solid ${theme.fgc.accent.warning}`, color: theme.fgc.text.secondary}
                 : {background: theme.fgc.chip.neutralBg, border: `1px solid ${theme.fgc.chip.neutralBorder}`, color: theme.fgc.chip.neutralText};
 
-    const displayValue = displayLabel ?? (valueFormatter ? valueFormatter(value) : value === null ? "" : String(value));
+    // Every cell leads with its total at one size; the starter or the linked damage split sits underneath.
+    const displayValue = valueFormatter
+        ? valueFormatter(value)
+        : value === null
+            ? bodyCellKind === "dynamic_combo" ? "--" : ""
+            : formatCellNumber(value, bodyCellKind);
+    const unresolvedShare = formatReferenceWeight(referenceWeight);
+    const detail = linkedResolution
+        ? formatLinkedBreakdown(linkedResolution)
+        : bodyCellKind === "reference" ? `Linked${unresolvedShare ? ` · ${unresolvedShare}` : ""}` : null;
     const heatmapBackground = heatmapTone === "positiveStrong"
         ? theme.fgc.chip.successBg
         : heatmapTone === "positiveSoft"
@@ -149,8 +167,10 @@ function MatrixValueCellComponent({
                 }
             }}
                 style={{
-                    width: `${densityProfile.valueCellWidth}px`,
-                    minHeight: densityProfile.cellHeight,
+                    boxSizing: "border-box",
+                    width: "100%",
+                    minWidth: densityProfile.valueCellWidth,
+                    minHeight,
                     fontSize: densityProfile.valueFontSize,
                     border: hasCommittedError
                         ? `2px solid ${theme.fgc.feedback.error}`
@@ -170,33 +190,15 @@ function MatrixValueCellComponent({
                     cursor: "pointer",
                     borderRadius: 6,
                     fontVariantNumeric: "tabular-nums",
-                    padding: dynamicChipLabels.length > 0 ? "4px" : undefined,
+                    padding: "4px 6px",
                     textAlign: "left",
                 }}
             aria-label={unavailable ? "Unavailable cell" : readOnly ? "Read-only cell" : "Editable cell"}
-            title={issues[0]?.message ?? (unavailable ? "Unavailable due to resource requirements" : undefined)}
+            title={issues[0]?.message ?? (unavailable ? "Unavailable due to resource requirements" : referenceTitle)}
         >
-            {bodyCellKind === "reference" ? (
-                <span style={{display: "grid", gap: 3}}>
-                    <span
-                        style={{
-                            display: "inline-block",
-                            width: "fit-content",
-                            borderRadius: 999,
-                            padding: "1px 6px",
-                            fontSize: Math.max(10, densityProfile.valueFontSize - 2),
-                            lineHeight: 1.3,
-                            background: theme.fgc.chip.neutralBg,
-                            border: `1px solid ${theme.fgc.chip.neutralBorder}`,
-                            color: theme.fgc.chip.neutralText,
-                        }}
-                    >
-                        Linked
-                    </span>
-                    <span style={{color: theme.fgc.text.primary}}>{displayValue}</span>
-                </span>
-            ) : dynamicChipLabels.length > 0 ? (
-                <span style={{display: "grid", gap: 4}}>
+            <span style={{display: "grid", gap: 3}}>
+                <span style={{fontSize: densityProfile.valueFontSize + 1, fontWeight: 650, lineHeight: 1.25}}>{displayValue}</span>
+                {dynamicChipLabels.length > 0 ? (
                     <span style={{display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center"}}>
                         {dynamicChipLabels.map((label) => (
                             <span
@@ -206,23 +208,19 @@ function MatrixValueCellComponent({
                                     display: "inline-block",
                                     borderRadius: 999,
                                     padding: "1px 6px",
-                                    fontSize: Math.max(10, densityProfile.valueFontSize - 1),
-                                    lineHeight: 1.4,
-                                    maxWidth: densityProfile.valueCellWidth - 12,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
+                                    fontSize: Math.max(12, densityProfile.valueFontSize),
+                                    lineHeight: 1.3,
+                                    maxWidth: "100%",
+                                    overflowWrap: "anywhere",
                                 }}
                             >
                                 {label}
                             </span>
                         ))}
                     </span>
-                    <span style={{fontSize: Math.max(10, densityProfile.valueFontSize - 1), color: theme.fgc.text.muted}}>
-                        Current: {value === null ? "--" : value}
-                    </span>
-                </span>
-            ) : displayValue}
+                ) : null}
+                {detail ? <span style={{fontSize: 12, lineHeight: 1.25, color: unavailable ? theme.fgc.text.disabled : theme.fgc.text.secondary}}>{detail}</span> : null}
+            </span>
         </button>
     );
 }
@@ -234,7 +232,9 @@ export const MatrixValueCell = React.memo(MatrixValueCellComponent, (previous, n
     return (
         previous.value === next.value &&
         previous.valueFormatter === next.valueFormatter &&
-        previous.displayLabel === next.displayLabel &&
+        previous.linkedResolution === next.linkedResolution &&
+        previous.referenceWeight === next.referenceWeight &&
+        previous.referenceTitle === next.referenceTitle &&
         previous.bodyCellKind === next.bodyCellKind &&
         (previous.dynamicChipLabels?.join("|") ?? "") === (next.dynamicChipLabels?.join("|") ?? "") &&
         previous.dynamicChipTone === next.dynamicChipTone &&
@@ -250,6 +250,7 @@ export const MatrixValueCell = React.memo(MatrixValueCellComponent, (previous, n
         (previous.issues?.length ?? 0) === (next.issues?.length ?? 0) &&
         previousFirstIssue?.code === nextFirstIssue?.code &&
         previousFirstIssue?.message === nextFirstIssue?.message &&
-        previous.densityProfile === next.densityProfile
+        previous.densityProfile === next.densityProfile &&
+        previous.minHeight === next.minHeight
     );
 });

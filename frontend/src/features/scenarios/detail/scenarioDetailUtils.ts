@@ -26,10 +26,6 @@ export const DEFAULT_SCENARIO_RESOURCES: ScenarioResourceContextPayload = {
 
 export type CharacterLifeOption = {id: string; name: string; life?: number | null};
 
-export function formatLinkedFormula(value: number): string {
-    return Number.isInteger(value) ? String(value) : value.toFixed(2);
-}
-
 export function linkedResolutionKey(cell: Pick<ScenarioResolvedLinkedCell, "row" | "column">): string {
     return `body::row_${cell.row + 1}::column_${cell.column + 1}`;
 }
@@ -39,8 +35,9 @@ export function buildLinkedCellResolutionMap(cells: ScenarioResolvedLinkedCell[]
         acc[linkedResolutionKey(cell)] = {
             basePreValue: cell.basePreValue,
             linkedExpectedValue: cell.linkedExpectedValue,
+            weight: cell.weight ?? 1,
+            perspective: cell.perspective ?? "same",
             finalValue: cell.finalValue,
-            displayFormula: `${formatLinkedFormula(cell.basePreValue)}+${formatLinkedFormula(cell.linkedExpectedValue)}`,
         };
 
         return acc;

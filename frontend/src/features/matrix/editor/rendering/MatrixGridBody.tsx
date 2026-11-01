@@ -1,6 +1,6 @@
 import React from "react";
 
-import {MatrixEditorState, MatrixValidationIssue, createBodyCellKey, createRowSummaryKey, isEditableBodyCell} from "@/src/features/matrix/model";
+import {MatrixEditorState, MatrixLinkedCellResolution, MatrixValidationIssue, createBodyCellKey, createRowSummaryKey, isEditableBodyCell} from "@/src/features/matrix/model";
 import type {MatrixEditorPermissions} from "../hooks/useMatrixEditorPermissions";
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixValueCell} from "./MatrixValueCell";
@@ -8,6 +8,9 @@ import {MatrixDensityProfile} from "./gridDensity";
 import type {MatrixGridViewOptions} from "./matrix-grid/matrixGridTypes";
 import {MatrixLayerBadge} from "./MatrixLayerBadge";
 import {AxisRequirementTrigger} from "./AxisRequirementEditor";
+import {AxisLabelField} from "./AxisLabelField";
+import {formatLinkedFormula} from "./cellValueFormat";
+import type {MatrixGridSizing} from "./matrix-grid/matrixGridSizing";
 import {MatrixHeatmapTone} from "../services/matrixInsightService";
 
 interface MatrixGridBodyProps {
@@ -24,7 +27,7 @@ interface MatrixGridBodyProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
-    displayLabelsByKey?: Record<string, string>;
+    linkedResolutionsByKey?: Record<string, MatrixLinkedCellResolution>;
     moveLabelById: Record<string, string>;
     permissions: MatrixEditorPermissions;
     onRowLabelChange: (rowId: string, label: string) => void;
@@ -41,6 +44,7 @@ interface MatrixGridBodyProps {
     onCommitEdit: () => void;
     onCancelEdit: () => void;
     densityProfile: MatrixDensityProfile;
+    sizing: MatrixGridSizing;
     viewOptions: MatrixGridViewOptions;
     summaryValueFormatter?: (value: number | null) => string;
     heatmapToneByCellKey?: Record<string, MatrixHeatmapTone>;
@@ -60,7 +64,7 @@ export function MatrixGridBody({
                                      draftHasFormatError,
                                         validationByKey,
                                         displayedBodyValues,
-                                        displayLabelsByKey = {},
+                                        linkedResolutionsByKey = {},
                                         moveLabelById,
                                        permissions,
                                         onRowLabelChange,
@@ -77,6 +81,7 @@ export function MatrixGridBody({
                                        onCommitEdit,
                                        onCancelEdit,
                                        densityProfile,
+                                       sizing,
                                        viewOptions,
                                        summaryValueFormatter,
                                        heatmapToneByCellKey = {},
@@ -100,28 +105,21 @@ export function MatrixGridBody({
                         zIndex: 3,
                         background: rowUnavailable ? theme.fgc.surface.sunken : rowIsActive ? theme.fgc.selection.hover : theme.fgc.surface.subtle,
                         borderRight: rowIsActive ? `2px solid ${theme.fgc.selection.active}` : `1px solid ${theme.fgc.border.default}`,
-                        minWidth: densityProfile.rowLabelWidth,
+                        minWidth: sizing.rowLabelWidth,
                         height: densityProfile.cellHeight,
                         opacity: rowUnavailable ? 0.72 : 1,
                     }}
                 >
-                    <input
-                        type="text"
-                        aria-label={`Row label ${row.label || row.id}`}
+                    <AxisLabelField
+                        ariaLabel={`Row label ${row.label || row.id}`}
                         value={row.label}
                         readOnly={!permissions.canEditRowAxisLabels}
+                        disabled={rowUnavailable}
+                        width={sizing.rowLabelWidth}
+                        minHeight={densityProfile.cellHeight}
+                        fontSize={densityProfile.labelFontSize}
                         onFocus={() => onSelectRowHeader(row.id)}
-                        onChange={(event) => onRowLabelChange(row.id, event.target.value)}
-                        style={{
-                            width: `${densityProfile.rowLabelWidth - 12}px`,
-                            minHeight: densityProfile.cellHeight,
-                            fontSize: densityProfile.labelFontSize,
-                            padding: "2px 6px",
-                            borderRadius: 6,
-                            border: `1px solid ${theme.fgc.border.default}`,
-                            background: theme.fgc.control.default,
-                            color: rowUnavailable ? theme.fgc.text.disabled : theme.fgc.text.primary,
-                        }}
+                        onChange={(label) => onRowLabelChange(row.id, label)}
                     />
                     {rowUnavailable ? (
                         <span style={{position: "absolute", right: 4, top: 3, fontSize: 12, color: theme.fgc.text.disabled}}>
@@ -166,7 +164,14 @@ export function MatrixGridBody({
                         >
                             <MatrixValueCell
                                 value={displayedBodyValues[key] ?? cell?.value ?? null}
-                                displayLabel={displayLabelsByKey[key]}
+                                linkedResolution={linkedResolutionsByKey[key]}
+                                referenceWeight={cell?.kind === "reference" ? cell.reference?.weight : undefined}
+                                referenceTitle={cell?.kind === "reference" && cell.reference ? formatLinkedFormula(
+                                    linkedResolutionsByKey[key]?.basePreValue ?? (cell.reference.preValue.kind === "static" ? cell.reference.preValue.staticValue : null),
+                                    cell.reference.weight,
+                                    cell.reference.scenarioLabel ?? cell.reference.scenarioId,
+                                    cell.reference.perspective,
+                                ) : undefined}
                                 bodyCellKind={cell?.kind}
                                 dynamicChipLabels={
                                     cell?.kind === "dynamic_combo" && cell.dynamicCombo
@@ -200,6 +205,7 @@ export function MatrixGridBody({
                                 onCommitEdit={onCommitEdit}
                                 onCancelEdit={onCancelEdit}
                                 densityProfile={densityProfile}
+                                minHeight={sizing.bodyCellMinHeight}
                             />
                         </td>
                     );

@@ -9,8 +9,8 @@ use App\Util\Enum\ComboExecutionMode;
 
 final class ComboValueEstimator
 {
-    private const DRIVE_BAR_VALUE = 200.0;
-    private const SUPER_BAR_VALUE = 500.0;
+    public const DRIVE_BAR_VALUE = 200.0;
+    public const SUPER_BAR_VALUE = 500.0;
     private const OBJECT_UNIT_VALUE = 200.0;
 
     public function estimateMetricsValue(?ComboMetrics $metrics): ?float

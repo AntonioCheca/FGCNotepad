@@ -1,10 +1,12 @@
-import {MatrixEditorState, MatrixLinkedCellResolution} from "@/src/features/matrix/model";
+import {MatrixEditorState, MatrixLinkedCellResolution, MatrixReferencePerspective} from "@/src/features/matrix/model";
 import {buildPayoffMatrix, toSolveRowsAndColumns} from "./matrixSolveService";
 
-const MAX_REFERENCE_DEPTH = 3;
+// Same fixed number of passes as the server's linked-scenario iteration.
+export const LINK_PASSES = 3;
 
-function formatFormulaValue(value: number): string {
-    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+// The linked EV counts with the cell's weight, subtracted when the linked scenario is the opponent's.
+export function linkedEvFactor(weight: number, perspective: MatrixReferencePerspective | undefined): number {
+    return perspective === "opponent" ? -weight : weight;
 }
 
 function getStaticPreValue(cell: MatrixEditorState["grid"]["bodyCells"][string]): number {
@@ -17,6 +19,14 @@ function getStaticPreValue(cell: MatrixEditorState["grid"]["bodyCells"][string])
     }
 
     return 0;
+}
+
+function getReferenceWeight(cell: MatrixEditorState["grid"]["bodyCells"][string]): number {
+    return cell?.kind === "reference" ? cell.reference?.weight ?? 1 : 1;
+}
+
+function getReferencePerspective(cell: MatrixEditorState["grid"]["bodyCells"][string]): MatrixReferencePerspective {
+    return cell?.kind === "reference" ? cell.reference?.perspective ?? "same" : "same";
 }
 
 function getMaxLayer(state: MatrixEditorState): number {
@@ -81,23 +91,15 @@ export async function resolveEditorLinkedReferences({
         return existingResolutions;
     }
 
-    async function resolveExpectedValue(depth: number): Promise<number> {
-        const layerLimit = getMaxLayer(state);
-        const {rows, columns} = toSolveRowsAndColumns(state, layerLimit);
-        const displayedBodyValues = {...baseDisplayedBodyValues};
-        const linkedExpectedValue = depth >= MAX_REFERENCE_DEPTH ? 0 : await resolveExpectedValue(depth + 1);
+    const layerLimit = getMaxLayer(state);
+    const {rows, columns} = toSolveRowsAndColumns(state, layerLimit);
 
-        for (const key of selfReferenceKeys) {
-            const cell = state.grid.bodyCells[key];
-            const basePreValue = getStaticPreValue(cell);
-            displayedBodyValues[key] = basePreValue + linkedExpectedValue;
-        }
-
+    async function solveWith(selfValues: Record<string, number>): Promise<number> {
         const payoffMatrix = buildPayoffMatrix({
             state,
             rows,
             columns,
-            displayedBodyValues,
+            displayedBodyValues: {...baseDisplayedBodyValues, ...selfValues},
             dynamicOverrides: {},
         });
 
@@ -105,17 +107,34 @@ export async function resolveEditorLinkedReferences({
         return toExpectedValue(result, payoffMatrix);
     }
 
-    const nextResolutions = {...existingResolutions};
-    const linkedExpectedValue = await resolveExpectedValue(2);
+    // Fixed-point passes, as on the server: pass 0 uses each cell's stored total (or its pre-value), and pass n
+    // feeds the EV of pass n-1 back into the self-linked cells. It stops after LINK_PASSES, so it cannot loop.
+    const selfValues: Record<string, number> = {};
     for (const key of selfReferenceKeys) {
         const cell = state.grid.bodyCells[key];
-        const basePreValue = getStaticPreValue(cell);
-        const finalValue = basePreValue + linkedExpectedValue;
+        selfValues[key] = cell.reference?.cachedValue ?? getStaticPreValue(cell);
+    }
+
+    let expectedValue = await solveWith(selfValues);
+    let linkedExpectedValue = expectedValue;
+    for (let pass = 1; pass <= LINK_PASSES; pass += 1) {
+        linkedExpectedValue = expectedValue;
+        for (const key of selfReferenceKeys) {
+            const cell = state.grid.bodyCells[key];
+            selfValues[key] = getStaticPreValue(cell) + linkedEvFactor(getReferenceWeight(cell), getReferencePerspective(cell)) * linkedExpectedValue;
+        }
+        expectedValue = await solveWith(selfValues);
+    }
+
+    const nextResolutions = {...existingResolutions};
+    for (const key of selfReferenceKeys) {
+        const cell = state.grid.bodyCells[key];
         nextResolutions[key] = {
-            basePreValue,
+            basePreValue: getStaticPreValue(cell),
             linkedExpectedValue,
-            finalValue,
-            displayFormula: `${formatFormulaValue(basePreValue)}+${formatFormulaValue(linkedExpectedValue)}`,
+            weight: getReferenceWeight(cell),
+            perspective: getReferencePerspective(cell),
+            finalValue: selfValues[key],
         };
     }
 

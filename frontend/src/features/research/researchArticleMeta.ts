@@ -3,6 +3,8 @@ export const RESEARCH_BASE_PATH = "/research";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_FIGURE_WIDTH = 25;
+const MAX_FIGURE_WIDTH = 60;
 
 export interface ResearchDataInfo {
     sources: string[];
@@ -29,6 +31,11 @@ export interface ResearchArticleMeta {
 export interface ResearchHeading {
     id: string;
     text: string;
+}
+
+export interface ResearchFigurePlacement {
+    path: string;
+    rightWidth: number | null;
 }
 
 export class ResearchFrontmatterError extends Error {
@@ -82,6 +89,22 @@ export function resolveResearchAssetPath(slug: string, path: string): string {
     }
 
     return `${RESEARCH_BASE_PATH}/${slug}/${path.replace(/^\.\//, "")}`;
+}
+
+// `figures/x.png#right-40` floats a figure to the right at 40% of the article column. A typo fails the build.
+export function parseFigurePlacement(slug: string, src: string): ResearchFigurePlacement {
+    const hashIndex = src.indexOf("#");
+    if (hashIndex === -1) {
+        return {path: src, rightWidth: null};
+    }
+
+    const fragment = src.slice(hashIndex + 1);
+    const rightWidth = /^right-\d+$/.test(fragment) ? Number(fragment.slice("right-".length)) : null;
+    if (rightWidth === null || rightWidth < MIN_FIGURE_WIDTH || rightWidth > MAX_FIGURE_WIDTH) {
+        throw new ResearchFrontmatterError(slug, `"${src}": figure placement must be #right-${MIN_FIGURE_WIDTH} to #right-${MAX_FIGURE_WIDTH}`);
+    }
+
+    return {path: src.slice(0, hashIndex), rightWidth};
 }
 
 export function toAbsoluteSiteUrl(path: string): string {

@@ -129,16 +129,48 @@
     overflow-x: hidden;
 }
 
+/* Attacker and defender mixes side by side so they compare at a glance; the EV KPI takes a narrow column. */
 .insightsDashboard {
     display: grid;
-    grid-template-columns: minmax(300px, 1fr) minmax(360px, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(160px, 220px);
+    grid-template-areas: "attacker defender ev";
+    align-items: stretch;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+.insightsAttacker {
+    grid-area: attacker;
+    min-width: 0;
+}
+
+.insightsDefender {
+    grid-area: defender;
+    min-width: 0;
+}
+
+.insightsExpectedValue {
+    grid-area: ev;
+    align-self: start;
+    min-width: 0;
+}
+
+@media (max-width: 1199.95px) {
+    .insightsDashboard {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "ev ev"
+            "attacker defender";
+    }
 }
 
 @media (max-width: 899.95px) {
     .insightsDashboard {
         grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "ev"
+            "attacker"
+            "defender";
     }
 }
 

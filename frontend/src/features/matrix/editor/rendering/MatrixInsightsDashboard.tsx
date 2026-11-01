@@ -1,13 +1,8 @@
 import React from "react";
-import dynamic from "next/dynamic";
 import {MatrixInsights} from "../services/matrixInsightService";
 import {StrategyMixChart} from "./StrategyMixChart";
+import {ExpectedValueKpi} from "./ExpectedValueKpi";
 import styles from "./matrixEditorRendering.module.css";
-
-const ExpectedValueRangeChart = dynamic(
-    () => import("./ExpectedValueRangeChart").then((module) => module.ExpectedValueRangeChart),
-    {ssr: false, loading: () => <div style={{height: 280}} />}
-);
 
 interface MatrixInsightsDashboardProps {
     insights: MatrixInsights;
@@ -16,21 +11,14 @@ interface MatrixInsightsDashboardProps {
 export function MatrixInsightsDashboard({insights}: MatrixInsightsDashboardProps) {
     return (
         <div className={styles.insightsDashboard}>
-            <div style={{display: "grid", gridTemplateRows: "1fr 1fr", gap: 10, minWidth: 0}}>
-                <StrategyMixChart
-                    title="Attacker Mix"
-                    data={insights.attackerMix.map((item) => ({label: item.label, frequency: item.frequency}))}
-                />
-                <StrategyMixChart
-                    title="Defender Mix"
-                    data={insights.defenderMix.map((item) => ({label: item.label, frequency: item.frequency}))}
-                />
+            <div className={styles.insightsAttacker}>
+                <StrategyMixChart title="Attacker Mix" data={insights.attackerMix}/>
             </div>
-            <div style={{minWidth: 0}}>
-                <ExpectedValueRangeChart
-                    expectedValue={insights.expectedValue}
-                    histogram={insights.evHistogram}
-                />
+            <div className={styles.insightsDefender}>
+                <StrategyMixChart title="Defender Mix" data={insights.defenderMix}/>
+            </div>
+            <div className={styles.insightsExpectedValue}>
+                <ExpectedValueKpi expectedValue={insights.expectedValue}/>
             </div>
         </div>
     );

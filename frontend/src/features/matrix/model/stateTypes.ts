@@ -15,17 +15,25 @@ export interface MatrixResourceRequirement {
     threshold: number;
 }
 
+export interface MatrixSeenStats {
+    frequency: number;
+    sampleCount: number | null;
+}
+
 export interface MatrixAxisItem {
     id: string;
     label: string;
     layer: number;
     requirements: MatrixResourceRequirement[];
     colorTag: MatrixOptionColorTag | null;
+    // Only imported scenarios carry observed stats.
+    seenStats?: MatrixSeenStats | null;
 }
 
 export interface MatrixDynamicComboStarterContext {
     isPunishCounter: boolean;
     isCounterHit: boolean;
+    isPerfectParry?: boolean;
 }
 
 export interface MatrixDynamicComboData {
@@ -35,11 +43,15 @@ export interface MatrixDynamicComboData {
     starterContext: MatrixDynamicComboStarterContext;
 }
 
+// "opponent": the linked scenario's attacker is this scenario's defender, so its EV is subtracted.
+export type MatrixReferencePerspective = "same" | "opponent";
+
 export interface MatrixLinkedCellResolution {
     basePreValue: number;
     linkedExpectedValue: number;
+    weight: number;
+    perspective?: MatrixReferencePerspective;
     finalValue: number;
-    displayFormula: string;
 }
 
 export type MatrixReferencePreValue =
@@ -53,6 +65,10 @@ export interface MatrixReferenceData {
     scenarioLabel?: string;
     cachedValue: number | null;
     preValue: MatrixReferencePreValue;
+    // Share of the linked scenario's EV the cell counts, in (0, 1]; missing means 1.
+    weight?: number;
+    // Missing means "same".
+    perspective?: MatrixReferencePerspective;
 }
 
 export interface MatrixBodyCell {

@@ -18,6 +18,10 @@ export function useMatrixEditorController({matrix, onMatrixChange, persistChange
 
     const dispatch = React.useCallback((action: Parameters<typeof matrixEditorReducer>[1]) => {
         const nextState = matrixEditorReducer(stateRef.current, action);
+        if (nextState === stateRef.current) {
+            return;
+        }
+
         stateRef.current = nextState;
         setState(nextState);
 

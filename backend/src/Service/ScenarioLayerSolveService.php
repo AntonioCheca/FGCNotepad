@@ -13,6 +13,7 @@ class ScenarioLayerSolveService
     public function __construct(
         private readonly MixedStrategyGameSolver $mixedStrategyGameSolver,
         private readonly CacheItemPoolInterface $cachePool,
+        private readonly ScenarioAxisResourceCostService $axisResourceCostService,
     ) {
     }
 
@@ -21,50 +22,78 @@ class ScenarioLayerSolveService
      */
     public function solveByLayer(Scenario $scenario, string $executionMode, ?int $difficultyCap, bool $useCache = true): array
     {
+        return $this->solveLayers($scenario, [], false, fn (int $layer, \Closure $solve): array => $useCache
+            ? $this->cachedLayer($this->buildCacheKey($scenario, $executionMode, $difficultyCap, $layer), $solve)
+            : $solve());
+    }
+
+    /**
+     * Solves every layer with the given reference cell values (keyed by spl_object_id of the cell) in place of their
+     * stored cachedValue. Never cached: the values come from a linked-scenario iteration still in progress.
+     *
+     * @param array<int, float> $referenceValues
+     *
+     * @return array{maxLayer:int,layers:array<int, array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null}>}
+     */
+    public function solveByLayerWithReferenceValues(Scenario $scenario, array $referenceValues, bool $topLayerOnly = false): array
+    {
+        return $this->solveLayers($scenario, $referenceValues, $topLayerOnly, static fn (int $layer, \Closure $solve): array => $solve());
+    }
+
+    /**
+     * @param array<int, float> $referenceValues
+     * @param \Closure(int, \Closure(): array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null}): array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null} $solveLayer
+     *
+     * @return array{maxLayer:int,layers:array<int, array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null}>}
+     */
+    private function solveLayers(Scenario $scenario, array $referenceValues, bool $topLayerOnly, \Closure $solveLayer): array
+    {
         $rows = $scenario->getRows()->toArray();
         usort($rows, static fn (ScenarioRow $a, ScenarioRow $b): int => $a->getPosition() <=> $b->getPosition());
 
         $columns = $scenario->getColumns()->toArray();
         usort($columns, static fn (ScenarioColumn $a, ScenarioColumn $b): int => $a->getPosition() <=> $b->getPosition());
 
-        $rowCount = count($rows);
-        $columnCount = count($columns);
         $maxLayer = $this->computeMaxLayer($rows, $columns);
 
-        if (0 === $rowCount || 0 === $columnCount || $maxLayer <= 0) {
-            return ['maxLayer' => max(1, $maxLayer), 'layers' => []];
+        if ([] === $rows || [] === $columns) {
+            return ['maxLayer' => $maxLayer, 'layers' => []];
         }
 
         $cellsByCoordinate = $this->buildCellCoordinateMap($scenario);
         $layerSolutions = [];
 
-        for ($layer = 1; $layer <= $maxLayer; $layer++) {
-            if (!$useCache) {
-                $layerSolutions[$layer] = $this->solveOneLayer($rows, $columns, $cellsByCoordinate, $layer);
-                continue;
-            }
-
-            $cacheKey = $this->buildCacheKey($scenario, $executionMode, $difficultyCap, $layer);
-            $cacheItem = $this->cachePool->getItem($cacheKey);
-            if ($cacheItem->isHit()) {
-                $cached = $cacheItem->get();
-                if (is_array($cached)) {
-                    $layerSolutions[$layer] = $cached;
-                    continue;
-                }
-            }
-
-            $solution = $this->solveOneLayer($rows, $columns, $cellsByCoordinate, $layer);
-            $cacheItem->set($solution);
-            $cacheItem->expiresAfter(86400);
-            $this->cachePool->save($cacheItem);
-            $layerSolutions[$layer] = $solution;
+        for ($layer = $topLayerOnly ? $maxLayer : 1; $layer <= $maxLayer; $layer++) {
+            $layerSolutions[$layer] = $solveLayer($layer, fn (): array => $this->solveOneLayer($rows, $columns, $cellsByCoordinate, $layer, $referenceValues));
         }
 
         return [
             'maxLayer' => $maxLayer,
             'layers' => $layerSolutions,
         ];
+    }
+
+    /**
+     * @param \Closure(): array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null} $solve
+     *
+     * @return array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null}
+     */
+    private function cachedLayer(string $cacheKey, \Closure $solve): array
+    {
+        $cacheItem = $this->cachePool->getItem($cacheKey);
+        if ($cacheItem->isHit()) {
+            $cached = $cacheItem->get();
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
+
+        $solution = $solve();
+        $cacheItem->set($solution);
+        $cacheItem->expiresAfter(86400);
+        $this->cachePool->save($cacheItem);
+
+        return $solution;
     }
 
     /**
@@ -89,10 +118,11 @@ class ScenarioLayerSolveService
      * @param list<ScenarioRow> $rows
      * @param list<ScenarioColumn> $columns
      * @param array<int, array<int, ScenarioCell>> $cellsByCoordinate
+     * @param array<int, float> $referenceValues
      *
      * @return array{rowAxis:list<float|null>,columnAxis:list<float|null>,expectedValue:float|null}
      */
-    private function solveOneLayer(array $rows, array $columns, array $cellsByCoordinate, int $layer): array
+    private function solveOneLayer(array $rows, array $columns, array $cellsByCoordinate, int $layer, array $referenceValues): array
     {
         $visibleRowIndexes = [];
         foreach ($rows as $index => $row) {
@@ -132,15 +162,21 @@ class ScenarioLayerSolveService
         $payoffMatrix = [];
         foreach ($visibleRowIndexes as $rowIndex) {
             $rowKey = $rowKeys[$rowIndex];
+            $rowCost = $this->axisResourceCostService->payoffAdjustment($rows[$rowIndex]);
             $payoffMatrix[$rowKey] = [];
             foreach ($visibleColumnIndexes as $columnIndex) {
                 $cell = $cellsByCoordinate[$rowIndex][$columnIndex] ?? null;
-                $value = 0;
+                $value = 0.0;
                 if ($cell instanceof ScenarioCell) {
-                    $raw = ScenarioCell::KIND_STATIC === $cell->getKind() ? $cell->getStaticValue() : $cell->getCachedValue();
-                    $value = is_numeric($raw) ? (int) round((float) $raw) : 0;
+                    $raw = match (true) {
+                        ScenarioCell::KIND_STATIC === $cell->getKind() => $cell->getStaticValue(),
+                        isset($referenceValues[spl_object_id($cell)]) => $referenceValues[spl_object_id($cell)],
+                        default => $cell->getCachedValue(),
+                    };
+                    $value = is_numeric($raw) ? (float) $raw : 0.0;
                 }
-                $payoffMatrix[$rowKey][$columnKeys[$columnIndex]] = $value;
+                $value += $rowCost + $this->axisResourceCostService->payoffAdjustment($columns[$columnIndex]);
+                $payoffMatrix[$rowKey][$columnKeys[$columnIndex]] = (int) round($value);
             }
         }
 
@@ -216,6 +252,6 @@ class ScenarioLayerSolveService
         $scenarioId = $scenario->getPublicId()->toRfc4122();
         $cap = null === $difficultyCap ? 'none' : (string) $difficultyCap;
 
-        return sprintf('scenario_layer_solve_%s_%s_%s_%s_%d', $scenarioId, $updatedAt, $executionMode, $cap, $layer);
+        return sprintf('scenario_layer_solve_v2_%s_%s_%s_%s_%d', $scenarioId, $updatedAt, $executionMode, $cap, $layer);
     }
 }

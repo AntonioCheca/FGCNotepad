@@ -26,6 +26,7 @@ export function ReferenceInspector({data}: ReferenceInspectorProps) {
                 <div><strong>Name:</strong> {data.scenarioName}</div>
                 <div><strong>ID:</strong> {data.scenarioId}</div>
                 <div><strong>Kind:</strong> {data.referenceKind}</div>
+                <div><strong>Share of linked EV:</strong> {Math.round(data.weight * 100)}%</div>
                 <div><strong>Resolved Value:</strong> {data.resolvedValue ?? "--"}</div>
                 <div><strong>Cached Value:</strong> {data.cachedValue ?? "--"}</div>
                 {data.metadata.length > 0 ? (

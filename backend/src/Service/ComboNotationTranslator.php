@@ -503,9 +503,15 @@ final class ComboNotationTranslator
         return count($tokens);
     }
 
+    /**
+     * A neutral follow-up hop is written both bare and with an explicit 5 ("4HP > HP" in move data, "4HP > 5HP" after
+     * canonicalisation), so both spellings compare equal.
+     */
     private function normalizeForAliasComparison(string $normalizedToken): string
     {
-        return str_replace('>', self::CONNECTOR_CANCEL, $normalizedToken);
+        $comparable = str_replace('>', self::CONNECTOR_CANCEL, $normalizedToken);
+
+        return preg_replace('/XX5(?=[LMH]?[PK])/', self::CONNECTOR_CANCEL, $comparable) ?? $comparable;
     }
 
     private function formatAliasToken(string $token): string

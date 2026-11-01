@@ -52,6 +52,7 @@ function coerceDynamicCombo(value: unknown): MatrixDynamicComboPayload | undefin
         starterContext: {
             isPunishCounter: starterContext.isPunishCounter,
             isCounterHit: starterContext.isCounterHit,
+            ...(starterContext.isPerfectParry === true ? {isPerfectParry: true} : {}),
         },
     };
 }
@@ -278,6 +279,8 @@ export function deserializeMatrixPayload(raw: unknown): MatrixDeserializationRes
         columnLayers,
         rowRequirements,
         columnRequirements,
+        rowSeenStats: Array.isArray(axes.rowSeenStats) ? axes.rowSeenStats : undefined,
+        columnSeenStats: Array.isArray(axes.columnSeenStats) ? axes.columnSeenStats : undefined,
         values: normalizedValues,
         bodyCellTypes: normalizedBodyCellTypes,
         bodyCellMetadata: normalizedBodyCellMetadata,

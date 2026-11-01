@@ -2,6 +2,10 @@ import type {MatrixDynamicComboData} from "@/src/features/matrix/model";
 import type {DynamicComboMoveOption, StarterContextPreset} from "./dynamicComboPanelTypes";
 
 export function contextFromPreset(preset: StarterContextPreset): MatrixDynamicComboData["starterContext"] {
+    if (preset === "perfect_parry") {
+        return {isPunishCounter: true, isCounterHit: false, isPerfectParry: true};
+    }
+
     if (preset === "punish_counter") {
         return {isPunishCounter: true, isCounterHit: false};
     }
@@ -14,6 +18,10 @@ export function contextFromPreset(preset: StarterContextPreset): MatrixDynamicCo
 }
 
 export function presetFromContext(value: MatrixDynamicComboData["starterContext"] | null | undefined): StarterContextPreset {
+    if (value?.isPerfectParry) {
+        return "perfect_parry";
+    }
+
     if (value?.isPunishCounter) {
         return "punish_counter";
     }

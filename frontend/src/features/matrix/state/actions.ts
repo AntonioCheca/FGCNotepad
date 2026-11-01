@@ -1,4 +1,4 @@
-import {MatrixDynamicComboData, MatrixOptionColorTag, MatrixReferencePreValue, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
+import {MatrixDynamicComboData, MatrixOptionColorTag, MatrixReferencePerspective, MatrixReferencePreValue, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue, MatrixViewportSlice} from "../model/stateTypes";
 
 export type MatrixAction =
     | { type: "grid/replaceState"; payload: { state: import("../model/stateTypes").MatrixEditorState } }
@@ -8,6 +8,8 @@ export type MatrixAction =
     | { type: "grid/linkReferenceCell"; payload: { key: string; scenarioId: string; scenarioLabel: string } }
     | { type: "grid/unlinkReferenceCell"; payload: { key: string } }
     | { type: "grid/setReferencePreValue"; payload: { key: string; preValue: MatrixReferencePreValue } }
+    | { type: "grid/setReferenceWeight"; payload: { key: string; weight: number } }
+    | { type: "grid/setReferencePerspective"; payload: { key: string; perspective: MatrixReferencePerspective } }
     | { type: "grid/setDynamicComboCell"; payload: { key: string; dynamicCombo: MatrixDynamicComboData } }
     | { type: "grid/setDynamicComboResolvedValue"; payload: { key: string; value: number | null } }
     | { type: "grid/setRowSummaryValue"; payload: { rowId: string; value: number | null } }
@@ -81,6 +83,14 @@ export const matrixActions = {
     unlinkReferenceCell: (key: string): MatrixAction => ({
         type: "grid/unlinkReferenceCell",
         payload: {key},
+    }),
+    setReferenceWeight: (key: string, weight: number): MatrixAction => ({
+        type: "grid/setReferenceWeight",
+        payload: {key, weight},
+    }),
+    setReferencePerspective: (key: string, perspective: MatrixReferencePerspective): MatrixAction => ({
+        type: "grid/setReferencePerspective",
+        payload: {key, perspective},
     }),
     setReferencePreValue: (key: string, preValue: MatrixReferencePreValue): MatrixAction => ({
         type: "grid/setReferencePreValue",

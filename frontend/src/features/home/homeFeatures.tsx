@@ -5,6 +5,7 @@ import {
     ArticleOutlinedIcon,
     QueryStatsIcon,
     OkiKnockdownIcon,
+    ScienceOutlinedIcon,
     SportsKabaddiOutlinedIcon,
     SportsMmaIcon,
     TimelineIcon,
@@ -42,6 +43,11 @@ export const homeFeatures: HomeFeature[] = [
         label: "Neutral Stats",
         href: "/neutral-stats",
         icon: <QueryStatsIcon/>,
+    },
+    {
+        label: "Research",
+        href: "/research",
+        icon: <ScienceOutlinedIcon/>,
     },
     {
         label: "Replay Lab",

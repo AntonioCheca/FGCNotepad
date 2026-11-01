@@ -157,3 +157,75 @@ test("payload adapter preserves dynamic combo cells", () => {
         },
     });
 });
+
+test("payload adapter keeps the perfect parry starter context through an editor round trip", () => {
+    const starterContext = {isPunishCounter: true, isCounterHit: false, isPerfectParry: true};
+    const payload = serializeMatrixPayload({
+        rows: ["R1"],
+        columns: ["C1"],
+        values: [[null]],
+        bodyCellTypes: [["dynamic_combo"]],
+        bodyCellDynamicCombos: [[{attackerCharacterId: "char_juri", starterMoveIds: ["st_hp"], starterContext}]],
+        metadata: {matrixId: "mx_perfect_parry_adapter"},
+    });
+
+    const roundTrip = matrixEditorStateToPayload(matrixPayloadToEditorState(payload), payload);
+
+    assert.deepEqual(roundTrip.cells[0][0].dynamicCombo?.starterContext, starterContext);
+});
+
+test("payload adapter keeps imported seen stats and leaves them out for site-made matrices", () => {
+    const base = {rows: ["Meaty", "Throw"], columns: ["Block"], values: [[0], [1200]], metadata: {matrixId: "mx_seen"}};
+    const imported = serializeMatrixPayload({...base, rowSeenStats: [{frequency: 0.46, sampleCount: 57}, null], columnSeenStats: [{frequency: 0.52, sampleCount: null}]});
+
+    const state = matrixPayloadToEditorState(imported);
+    assert.deepEqual(state.grid.rows[0].seenStats, {frequency: 0.46, sampleCount: 57});
+    assert.equal(state.grid.rows[1].seenStats, null);
+
+    const roundTrip = matrixEditorStateToPayload(state, imported);
+    assert.deepEqual(roundTrip.axes.rowSeenStats, [{frequency: 0.46, sampleCount: 57}, null]);
+    assert.deepEqual(roundTrip.axes.columnSeenStats, [{frequency: 0.52, sampleCount: null}]);
+
+    const siteMade = matrixEditorStateToPayload(matrixPayloadToEditorState(serializeMatrixPayload(base)));
+    assert.equal(siteMade.axes.rowSeenStats, undefined);
+});
+
+test("payload adapter keeps a reference weight and defaults it to 1", () => {
+    const reference = (weight?: number) => ({scenarioId: "linked", referenceKind: "reference", preValue: {kind: "static", staticValue: 2040}, ...(weight === undefined ? {} : {weight})});
+    const payload = serializeMatrixPayload({
+        rows: ["Throw"],
+        columns: ["Parry", "Block"],
+        values: [[2308.46, 2473]],
+        bodyCellTypes: [["reference", "reference"]],
+        bodyCellMetadata: [[reference(0.62), reference()]],
+        metadata: {matrixId: "mx_weight"},
+    });
+
+    const state = matrixPayloadToEditorState(payload);
+    assert.equal(state.grid.bodyCells["body::row_1::column_1"].reference?.weight, 0.62);
+    assert.equal(state.grid.bodyCells["body::row_1::column_2"].reference?.weight, 1);
+
+    const roundTrip = matrixEditorStateToPayload(state, payload);
+    assert.equal(roundTrip.cells[0][0].metadata?.weight, 0.62);
+    assert.equal(roundTrip.cells[0][1].metadata?.weight, 1);
+});
+
+test("payload adapter keeps an opponent-side reference and defaults to the same side", () => {
+    const reference = (perspective?: string) => ({scenarioId: "linked", referenceKind: "reference", preValue: {kind: "static", staticValue: -1200}, ...(perspective === undefined ? {} : {perspective})});
+    const payload = serializeMatrixPayload({
+        rows: ["Meaty"],
+        columns: ["Ken throws", "Block"],
+        values: [[-1468, 0]],
+        bodyCellTypes: [["reference", "reference"]],
+        bodyCellMetadata: [[reference("opponent"), reference()]],
+        metadata: {matrixId: "mx_perspective"},
+    });
+
+    const state = matrixPayloadToEditorState(payload);
+    assert.equal(state.grid.bodyCells["body::row_1::column_1"].reference?.perspective, "opponent");
+    assert.equal(state.grid.bodyCells["body::row_1::column_2"].reference?.perspective, "same");
+
+    const roundTrip = matrixEditorStateToPayload(state, payload);
+    assert.equal(roundTrip.cells[0][0].metadata?.perspective, "opponent");
+    assert.equal(roundTrip.cells[0][1].metadata?.perspective, "same");
+});

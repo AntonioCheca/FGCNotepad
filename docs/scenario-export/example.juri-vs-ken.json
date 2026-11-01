@@ -1,0 +1,97 @@
+{
+  "$schema": "./scenario_export_v1.schema.json",
+  "format": "scenario_export_v1",
+  "generator": "sf6replaysdb oki-rps (illustrative example; values are not real data)",
+  "scenarios": [
+    {
+      "key": {"source": "sf6replaysdb", "externalId": "juri-vs-ken/2hk-oki/midscreen"},
+      "name": "Juri 2HK oki vs Ken (midscreen)",
+      "scenarioType": "oki",
+      "isEssential": false,
+      "attacker": "Juri",
+      "defender": "Ken",
+      "situation": {
+        "triggerMove": {"character": "Juri", "notation": "2HK"},
+        "position": "midscreen",
+        "knockdownAdvantage": 30,
+        "characterStatuses": [{"object": "juri_fuha", "status": 1}]
+      },
+      "rows": [
+        {"key": "meaty-2mk", "label": "Meaty 2MK", "description": "Dash 2MK timed to hit on Ken's first wakeup frame.", "layer": 1, "stats": {"seenFrequency": 0.46, "sampleCount": 57}},
+        {"key": "throw", "label": "Throw", "layer": 1, "stats": {"seenFrequency": 0.31, "sampleCount": 57}},
+        {"key": "shimmy", "label": "Shimmy", "description": "Walk back, then whiff punish.", "layer": 2},
+        {
+          "key": "dr-throw",
+          "label": "Drive Rush throw",
+          "layer": 2,
+          "requirements": [{"owner": "attacker", "resource": "drive", "threshold": 1}]
+        }
+      ],
+      "columns": [
+        {"key": "block", "label": "Block", "layer": 1, "stats": {"seenFrequency": 0.52, "sampleCount": 57}},
+        {"key": "tech", "label": "Throw tech", "layer": 1},
+        {
+          "key": "od-dp",
+          "label": "OD DP",
+          "layer": 2,
+          "requirements": [{"owner": "defender", "resource": "drive", "threshold": 2}]
+        }
+      ],
+      "cells": [
+        {"row": "meaty-2mk", "column": "block", "kind": "static", "value": 0,
+         "provenance": {"status": "observed", "sampleCount": 31, "confidence": 0.9, "note": null}},
+        {"row": "meaty-2mk", "column": "tech", "kind": "dynamic_combo",
+         "starter": {"initiator": "attacker", "moves": ["2MK"], "hitCondition": "counter_hit"},
+         "provenance": {"status": "observed", "sampleCount": 9, "confidence": 0.8, "note": "Throw-tech attempts get counter hit."}},
+        {"row": "meaty-2mk", "column": "od-dp", "kind": "dynamic_combo",
+         "starter": {"initiator": "defender", "moves": ["623PP"], "hitCondition": "normal"},
+         "provenance": {"status": "inferred", "sampleCount": 2, "confidence": 0.5, "note": null}},
+
+        {"row": "throw", "column": "block", "kind": "static", "value": 1200,
+         "provenance": {"status": "inferred", "sampleCount": null, "confidence": null, "note": "Throw damage from frame data."}},
+        {"row": "throw", "column": "tech", "kind": "static", "value": 0},
+        {"row": "throw", "column": "od-dp", "kind": "dynamic_combo",
+         "starter": {"initiator": "defender", "moves": ["623PP"], "hitCondition": "normal"}},
+
+        {"row": "shimmy", "column": "block", "kind": "static", "value": 0},
+        {"row": "shimmy", "column": "tech", "kind": "dynamic_combo",
+         "starter": {"initiator": "attacker", "moves": ["5HP", "2HP"], "hitCondition": "punish_counter"},
+         "provenance": {"status": "disputed", "sampleCount": 4, "confidence": 0.4, "note": "Two samples look like a delayed tech, not a whiffed one."}},
+        {"row": "shimmy", "column": "od-dp", "kind": "reference",
+         "reference": {
+           "scenario": {"source": "sf6replaysdb", "externalId": "juri-vs-ken/after-whiffed-od-dp"},
+           "mode": "reference",
+           "weight": 0.62,
+           "cachedValue": null,
+           "preValue": {"kind": "static", "value": 0}
+         }},
+
+        {"row": "dr-throw", "column": "block", "kind": "static", "value": 1200},
+        {"row": "dr-throw", "column": "tech", "kind": "static", "value": 0},
+        {"row": "dr-throw", "column": "od-dp", "kind": "dynamic_combo",
+         "starter": {"initiator": "defender", "moves": ["623PP"], "hitCondition": "normal"}}
+      ]
+    },
+    {
+      "key": {"source": "sf6replaysdb", "externalId": "juri-vs-ken/after-whiffed-od-dp"},
+      "name": "Juri punishes Ken's whiffed OD DP",
+      "scenarioType": "oki",
+      "attacker": "Juri",
+      "defender": "Ken",
+      "situation": {
+        "triggerMove": {"character": "Ken", "notation": "623PP"},
+        "position": "midscreen"
+      },
+      "rows": [
+        {"key": "punish", "label": "Punish 5HP", "layer": 1}
+      ],
+      "columns": [
+        {"key": "recover", "label": "Recover", "layer": 1}
+      ],
+      "cells": [
+        {"row": "punish", "column": "recover", "kind": "dynamic_combo",
+         "starter": {"initiator": "attacker", "moves": ["5HP"], "hitCondition": "punish_counter"}}
+      ]
+    }
+  ]
+}

@@ -49,6 +49,8 @@ class ScenarioMatrixMapper
         $rowAxis = is_array($summary['rowAxis'] ?? null) ? $summary['rowAxis'] : [];
         $columnAxis = is_array($summary['columnAxis'] ?? null) ? $summary['columnAxis'] : [];
 
+        $previousAnnotations = $this->captureAnnotations($scenario);
+
         foreach ($scenario->getCells()->toArray() as $cell) {
             $scenario->removeCell($cell);
             $this->entityManager->remove($cell);
@@ -119,6 +121,143 @@ class ScenarioMatrixMapper
                 $scenario->addCell($cell);
             }
         }
+
+        $this->restoreAnnotations($scenario, $previousAnnotations);
+    }
+
+    /**
+     * The editor payload has no row/column descriptions, seen stats or cell provenance, and a save recreates every
+     * row, column and cell. They are carried over by label; provenance only while the cell content is unchanged.
+     *
+     * @return array{rows:array<string,ScenarioRow>,columns:array<string,ScenarioColumn>,cells:array<string,ScenarioCell>}
+     */
+    private function captureAnnotations(Scenario $scenario): array
+    {
+        $rowKeys = $this->axisLabelKeys($this->sortedAxis($scenario->getRows()->toArray()));
+        $columnKeys = $this->axisLabelKeys($this->sortedAxis($scenario->getColumns()->toArray()));
+
+        $cells = [];
+        foreach ($scenario->getCells() as $cell) {
+            $rowKey = $rowKeys[spl_object_id($cell->getRow())] ?? null;
+            $columnKey = $columnKeys[spl_object_id($cell->getColumn())] ?? null;
+            if (null !== $rowKey && null !== $columnKey && $cell->hasProvenance()) {
+                $cells[$rowKey . "\n" . $columnKey] = $cell;
+            }
+        }
+
+        return [
+            'rows' => $this->itemsByLabelKey($scenario->getRows()->toArray(), $rowKeys),
+            'columns' => $this->itemsByLabelKey($scenario->getColumns()->toArray(), $columnKeys),
+            'cells' => $cells,
+        ];
+    }
+
+    /**
+     * @param array{rows:array<string,ScenarioRow>,columns:array<string,ScenarioColumn>,cells:array<string,ScenarioCell>} $annotations
+     */
+    private function restoreAnnotations(Scenario $scenario, array $annotations): void
+    {
+        $rowKeys = $this->axisLabelKeys($this->sortedAxis($scenario->getRows()->toArray()));
+        $columnKeys = $this->axisLabelKeys($this->sortedAxis($scenario->getColumns()->toArray()));
+
+        foreach ($scenario->getRows() as $row) {
+            $previous = $annotations['rows'][$rowKeys[spl_object_id($row)]] ?? null;
+            if (null !== $previous) {
+                $row->copyAnnotationsFrom($previous);
+            }
+        }
+        foreach ($scenario->getColumns() as $column) {
+            $previous = $annotations['columns'][$columnKeys[spl_object_id($column)]] ?? null;
+            if (null !== $previous) {
+                $column->copyAnnotationsFrom($previous);
+            }
+        }
+        foreach ($scenario->getCells() as $cell) {
+            $previous = $annotations['cells'][$rowKeys[spl_object_id($cell->getRow())] . "\n" . $columnKeys[spl_object_id($cell->getColumn())]] ?? null;
+            if (null !== $previous && $this->cellContentSignature($previous) === $this->cellContentSignature($cell)) {
+                $cell->copyProvenanceFrom($previous);
+            }
+        }
+    }
+
+    /**
+     * @template T of ScenarioRow|ScenarioColumn
+     *
+     * @param list<T> $items
+     *
+     * @return list<T>
+     */
+    private function sortedAxis(array $items): array
+    {
+        usort($items, static fn (ScenarioRow|ScenarioColumn $a, ScenarioRow|ScenarioColumn $b): int => $a->getPosition() <=> $b->getPosition());
+
+        return $items;
+    }
+
+    /**
+     * Labels may repeat, so the key also counts earlier occurrences of the same label.
+     *
+     * @param list<ScenarioRow|ScenarioColumn> $sortedItems
+     *
+     * @return array<int, string> keyed by spl_object_id
+     */
+    private function axisLabelKeys(array $sortedItems): array
+    {
+        $occurrences = [];
+        $keys = [];
+        foreach ($sortedItems as $item) {
+            $label = $item->getLabel();
+            $occurrences[$label] = ($occurrences[$label] ?? 0) + 1;
+            $keys[spl_object_id($item)] = sprintf('%s#%d', $label, $occurrences[$label]);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @template T of ScenarioRow|ScenarioColumn
+     *
+     * @param array<int, T> $items
+     * @param array<int, string> $labelKeys
+     *
+     * @return array<string, T>
+     */
+    private function itemsByLabelKey(array $items, array $labelKeys): array
+    {
+        $byKey = [];
+        foreach ($items as $item) {
+            $byKey[$labelKeys[spl_object_id($item)]] = $item;
+        }
+
+        return $byKey;
+    }
+
+    /**
+     * @return array{frequency:float,sampleCount:int|null}|null
+     */
+    private function buildSeenStatsPayload(ScenarioRow|ScenarioColumn $item): ?array
+    {
+        $frequency = $item->getSeenFrequency();
+
+        return null === $frequency ? null : ['frequency' => $frequency, 'sampleCount' => $item->getSeenSampleCount()];
+    }
+
+    private function cellContentSignature(ScenarioCell $cell): string
+    {
+        $starterMoveIds = array_map(static fn (Move $move): string => (string) $move->getId(), $cell->getStarterMoves()->toArray());
+        sort($starterMoveIds);
+
+        return json_encode([
+            $cell->getKind(),
+            $cell->getStaticValue(),
+            $cell->getStarterContext(),
+            $cell->isComboInitiatorAttacker(),
+            $starterMoveIds,
+            $cell->getReferenceScenario()?->getPublicId()->toRfc4122(),
+            $cell->getReferenceKind(),
+            $cell->getReferenceWeight(),
+            $cell->getReferencePerspective(),
+        ], JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -162,6 +301,8 @@ class ScenarioMatrixMapper
                 'columnLayers' => array_map(static fn (ScenarioColumn $column): int => $column->getLayer(), $columns),
                 'rowRequirements' => array_map(fn (ScenarioRow $row): array => $this->buildRequirementsPayload($row->getResourceRequirements()->toArray()), $rows),
                 'columnRequirements' => array_map(fn (ScenarioColumn $column): array => $this->buildRequirementsPayload($column->getResourceRequirements()->toArray()), $columns),
+                'rowSeenStats' => array_map(fn (ScenarioRow $row): ?array => $this->buildSeenStatsPayload($row), $rows),
+                'columnSeenStats' => array_map(fn (ScenarioColumn $column): ?array => $this->buildSeenStatsPayload($column), $columns),
             ],
             'cells' => $matrixCells,
             'summary' => [
@@ -216,6 +357,8 @@ class ScenarioMatrixMapper
                 ->setKind(ScenarioCell::KIND_REFERENCE)
                 ->setReferenceScenario($referenceScenario)
                 ->setReferenceKind('computed' === $referenceKind ? 'computed' : 'reference')
+                ->setReferenceWeight($this->extractReferenceWeight($metadata, sprintf('matrix.cells[%d][%d].metadata.weight', $row->getPosition(), $column->getPosition())))
+                ->setReferencePerspective($this->extractReferencePerspective($scenario, $referenceScenario, $metadata, sprintf('matrix.cells[%d][%d].metadata.perspective', $row->getPosition(), $column->getPosition())))
                 ->setCachedValue($this->extractReferenceCachedValue($sourceCell, $metadata));
 
             $this->applyReferencePreValuePayload($scenario, $cell, $metadata);
@@ -366,6 +509,8 @@ class ScenarioMatrixMapper
                     'scenarioLabel' => $reference?->getName(),
                     'cachedValue' => $cell->getCachedValue(),
                     'referenceKind' => $cell->getReferenceKind() ?? 'reference',
+                    'weight' => $cell->getReferenceWeight(),
+                    'perspective' => $cell->getReferencePerspective(),
                     'preValue' => $this->buildReferencePreValuePayload($cell),
                 ],
             ];
@@ -517,13 +662,22 @@ class ScenarioMatrixMapper
     /**
      * @param array<string, mixed> $starterContext
      */
-    private function resolveStarterContext(array $starterContext): string
+    public function resolveStarterContext(array $starterContext): string
     {
         $isPunishCounter = isset($starterContext['isPunishCounter']) && true === $starterContext['isPunishCounter'];
         $isCounterHit = isset($starterContext['isCounterHit']) && true === $starterContext['isCounterHit'];
+        $isPerfectParry = isset($starterContext['isPerfectParry']) && true === $starterContext['isPerfectParry'];
 
         if ($isPunishCounter && $isCounterHit) {
             throw new BadRequestHttpException('starterContext cannot set both isPunishCounter and isCounterHit to true.');
+        }
+
+        if ($isPerfectParry && !$isPunishCounter) {
+            throw new BadRequestHttpException('starterContext.isPerfectParry requires isPunishCounter.');
+        }
+
+        if ($isPerfectParry) {
+            return 'perfect_parry';
         }
 
         if ($isPunishCounter) {
@@ -543,8 +697,9 @@ class ScenarioMatrixMapper
     private function toStarterContextPayload(?string $starterContext): array
     {
         return [
-            'isPunishCounter' => 'punish_counter' === $starterContext,
+            'isPunishCounter' => in_array($starterContext, ['punish_counter', 'perfect_parry'], true),
             'isCounterHit' => 'counter_hit' === $starterContext,
+            'isPerfectParry' => 'perfect_parry' === $starterContext,
         ];
     }
 
@@ -585,6 +740,52 @@ class ScenarioMatrixMapper
         }
 
         return $this->extractNumericValue($sourceCell);
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    private function extractReferenceWeight(array $metadata, string $path): ?float
+    {
+        $weight = $metadata['weight'] ?? null;
+        if (null === $weight) {
+            return null;
+        }
+        if ((!is_int($weight) && !is_float($weight)) || $weight <= 0 || $weight > 1) {
+            throw new BadRequestHttpException(sprintf('%s must be a number greater than 0 and at most 1.', $path));
+        }
+
+        return (float) $weight;
+    }
+
+    /**
+     * A same-side link needs the linked scenario's attacker to be this scenario's attacker; an opponent-side link,
+     * this scenario's defender.
+     *
+     * @param array<string, mixed> $metadata
+     */
+    private function extractReferencePerspective(Scenario $scenario, Scenario $referenceScenario, array $metadata, string $path): string
+    {
+        $perspective = $metadata['perspective'] ?? ScenarioCell::PERSPECTIVE_SAME;
+        if (!is_string($perspective) || !in_array($perspective, ScenarioCell::PERSPECTIVES, true)) {
+            throw new BadRequestHttpException(sprintf('%s must be one of %s.', $path, implode(', ', ScenarioCell::PERSPECTIVES)));
+        }
+
+        $opponent = ScenarioCell::PERSPECTIVE_OPPONENT === $perspective;
+        $expected = $opponent ? $scenario->getDefenderCharacter() : $scenario->getAttackerCharacter();
+        $linkedAttacker = $referenceScenario->getAttackerCharacter();
+        if (null !== $expected && null !== $linkedAttacker && $expected->getId()?->toRfc4122() !== $linkedAttacker->getId()?->toRfc4122()) {
+            throw new BadRequestHttpException(sprintf(
+                '%s: a %s-side link needs the linked scenario\'s attacker to be this scenario\'s %s (%s), not %s.',
+                $path,
+                $perspective,
+                $opponent ? 'defender' : 'attacker',
+                $expected->getName(),
+                $linkedAttacker->getName()
+            ));
+        }
+
+        return $perspective;
     }
 
     private function extractLayerValue(mixed $value): int

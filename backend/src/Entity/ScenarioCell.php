@@ -16,6 +16,18 @@ class ScenarioCell
     public const KIND_REFERENCE = 'reference';
     public const KIND_DYNAMIC_COMBO = 'dynamic_combo';
 
+    /** The linked scenario's attacker is this scenario's attacker: its EV adds to this cell. */
+    public const PERSPECTIVE_SAME = 'same';
+    /** The linked scenario's attacker is this scenario's defender: its EV is subtracted. */
+    public const PERSPECTIVE_OPPONENT = 'opponent';
+    public const PERSPECTIVES = [self::PERSPECTIVE_SAME, self::PERSPECTIVE_OPPONENT];
+
+    public const PROVENANCE_OBSERVED = 'observed';
+    public const PROVENANCE_INFERRED = 'inferred';
+    public const PROVENANCE_DISPUTED = 'disputed';
+    public const PROVENANCE_STATUSES = [self::PROVENANCE_OBSERVED, self::PROVENANCE_INFERRED, self::PROVENANCE_DISPUTED];
+    public const PROVENANCE_NOTE_MAX_LENGTH = 500;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -49,11 +61,31 @@ class ScenarioCell
     #[ORM\Column(name: 'cached_value', type: Types::FLOAT, nullable: true)]
     private ?float $cachedValue = null;
 
+    /** Share of the linked scenario's EV a reference cell counts; null means the whole EV. */
+    #[ORM\Column(name: 'reference_weight', type: Types::FLOAT, nullable: true)]
+    private ?float $referenceWeight = null;
+
+    /** Null is the same side; only the opponent side is stored. */
+    #[ORM\Column(name: 'reference_perspective', type: Types::STRING, length: 8, nullable: true)]
+    private ?string $referencePerspective = null;
+
     #[ORM\Column(name: 'starter_context', type: Types::STRING, length: 24, nullable: true)]
     private ?string $starterContext = null;
 
     #[ORM\Column(name: 'is_combo_initiator_attacker', type: Types::BOOLEAN, options: ['default' => true])]
     private bool $isComboInitiatorAttacker = true;
+
+    #[ORM\Column(name: 'provenance_status', type: Types::STRING, length: 16, nullable: true)]
+    private ?string $provenanceStatus = null;
+
+    #[ORM\Column(name: 'provenance_sample_count', type: Types::INTEGER, nullable: true)]
+    private ?int $provenanceSampleCount = null;
+
+    #[ORM\Column(name: 'provenance_confidence', type: Types::FLOAT, nullable: true)]
+    private ?float $provenanceConfidence = null;
+
+    #[ORM\Column(name: 'provenance_note', type: Types::STRING, length: 500, nullable: true)]
+    private ?string $provenanceNote = null;
 
     /**
      * @var Collection<int, Move>
@@ -172,6 +204,49 @@ class ScenarioCell
         return $this;
     }
 
+    public function getReferenceWeight(): float
+    {
+        return $this->referenceWeight ?? 1.0;
+    }
+
+    /**
+     * @param float|null $weight in (0, 1]; 1 or null stores the default, so unweighted references stay null
+     */
+    public function setReferenceWeight(?float $weight): static
+    {
+        if (null !== $weight && ($weight <= 0.0 || $weight > 1.0)) {
+            throw new \InvalidArgumentException('A reference weight must be greater than 0 and at most 1.');
+        }
+
+        $this->referenceWeight = null === $weight || 1.0 === $weight ? null : $weight;
+
+        return $this;
+    }
+
+    public function getReferencePerspective(): string
+    {
+        return $this->referencePerspective ?? self::PERSPECTIVE_SAME;
+    }
+
+    public function setReferencePerspective(?string $perspective): static
+    {
+        if (null !== $perspective && !in_array($perspective, self::PERSPECTIVES, true)) {
+            throw new \InvalidArgumentException(sprintf('A reference perspective must be one of %s.', implode(', ', self::PERSPECTIVES)));
+        }
+
+        $this->referencePerspective = self::PERSPECTIVE_OPPONENT === $perspective ? $perspective : null;
+
+        return $this;
+    }
+
+    /**
+     * The signed factor applied to the linked scenario's EV: the weight, negated for the opponent's side.
+     */
+    public function getReferenceFactor(): float
+    {
+        return self::PERSPECTIVE_OPPONENT === $this->getReferencePerspective() ? -$this->getReferenceWeight() : $this->getReferenceWeight();
+    }
+
     public function getStarterContext(): ?string
     {
         return $this->starterContext;
@@ -218,5 +293,45 @@ class ScenarioCell
         $this->starterMoves->removeElement($starterMove);
 
         return $this;
+    }
+
+    public function getProvenanceStatus(): ?string
+    {
+        return $this->provenanceStatus;
+    }
+
+    public function getProvenanceSampleCount(): ?int
+    {
+        return $this->provenanceSampleCount;
+    }
+
+    public function getProvenanceConfidence(): ?float
+    {
+        return $this->provenanceConfidence;
+    }
+
+    public function getProvenanceNote(): ?string
+    {
+        return $this->provenanceNote;
+    }
+
+    public function hasProvenance(): bool
+    {
+        return null !== $this->provenanceStatus;
+    }
+
+    public function setProvenance(?string $status, ?int $sampleCount, ?float $confidence, ?string $note): static
+    {
+        $this->provenanceStatus = $status;
+        $this->provenanceSampleCount = $sampleCount;
+        $this->provenanceConfidence = $confidence;
+        $this->provenanceNote = $note;
+
+        return $this;
+    }
+
+    public function copyProvenanceFrom(self $cell): static
+    {
+        return $this->setProvenance($cell->provenanceStatus, $cell->provenanceSampleCount, $cell->provenanceConfidence, $cell->provenanceNote);
     }
 }

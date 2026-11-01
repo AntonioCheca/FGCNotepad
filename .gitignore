@@ -3,6 +3,9 @@
 .opencode/
 skills-lock.json
 
+# Private skills, loaded through ~/.claude/skills symlinks
+.claude/internal-skills/
+
 # Tool caches
 .phpunit.result.cache
 **/.phpunit.result.cache

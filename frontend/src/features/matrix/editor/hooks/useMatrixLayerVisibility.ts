@@ -5,12 +5,11 @@ import {buildVisibleMatrixState, computeHighestLayer} from "../services/matrixLa
 
 interface UseMatrixLayerVisibilityOptions {
     state: MatrixEditorState;
-    editable: boolean;
 }
 
-export function useMatrixLayerVisibility({state, editable}: UseMatrixLayerVisibilityOptions) {
+export function useMatrixLayerVisibility({state}: UseMatrixLayerVisibilityOptions) {
     const [selectedLayer, setSelectedLayer] = React.useState(1);
-    const [showAllLayers, setShowAllLayers] = React.useState<boolean>(editable);
+    const [showAllLayers, setShowAllLayers] = React.useState(true);
 
     const highestLayer = React.useMemo(() => computeHighestLayer(state), [state]);
 

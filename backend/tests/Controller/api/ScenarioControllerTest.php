@@ -209,6 +209,35 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertSame(1450, $created['matrix']['cells'][0][0]['value']);
     }
 
+    public function testPerfectParryStarterRoundTripsAndOnlyItUsesPerfectParryCombos(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $starterMove = $this->createMoveWithDamage($attacker, '5HP', 800);
+        $this->createComboForStarter($attacker, $starterMove, 1500, false, true);
+        $perfectParryCombo = $this->createComboForStarter($attacker, $starterMove, 2500, false, true);
+        $this->em->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $perfectParryCombo])?->setPerfectParryRequired(true);
+        $this->em->flush();
+
+        $values = [];
+        foreach (['punish_counter', 'perfect_parry'] as $hitCondition) {
+            $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+                'name' => sprintf('Parry %s', $hitCondition),
+                'scenarioType' => 'oki',
+                'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+                'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+                'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+                'matrix' => $this->buildDynamicMatrixPayload($attacker, $starterMove, $hitCondition),
+            ]));
+            self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+            $cell = json_decode((string) $this->client->getResponse()->getContent(), true)['matrix']['cells'][0][0];
+            self::assertSame('perfect_parry' === $hitCondition, $cell['dynamicCombo']['starterContext']['isPerfectParry']);
+            self::assertTrue($cell['dynamicCombo']['starterContext']['isPunishCounter']);
+            $values[$hitCondition] = $cell['value'];
+        }
+
+        self::assertSame(['punish_counter' => 1500, 'perfect_parry' => 2500], $values);
+    }
+
     public function testResolveDynamicCellsEndpointRefreshesScenarioValues(): void
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
@@ -448,7 +477,8 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
 
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
-        self::assertSame(1200, $payload['resolvedDamage']);
+        // The 2600 combo needs 3 Drive; the 1200 one is worth 1200 - 1 Drive bar (200).
+        self::assertSame(1000, $payload['resolvedDamage']);
     }
 
     public function testResolveDynamicCellPreviewFiltersBySuperResource(): void
@@ -470,7 +500,8 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
 
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
-        self::assertSame(1300, $payload['resolvedDamage']);
+        // The 2800 combo needs 3 Super; the 1300 one is worth 1300 - 1 Super bar (500).
+        self::assertSame(800, $payload['resolvedDamage']);
     }
 
     public function testResolveDynamicCellPreviewFallsBackWhenNoComboIsAffordable(): void
@@ -760,7 +791,60 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
         self::assertEqualsWithDelta(1220.0, $payload['resolvedCells'][0]['finalValue'], 0.001);
     }
 
-    public function testSolveLinkedExpectedValueLimitsSelfRecursiveReferencesToDepthThree(): void
+    public function testWeightedReferenceCountsItsShareOfTheLinkedEvAndKeepsItThroughSaves(): void
+    {
+        [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
+        $linkedScenario = $this->createScenario('Juri throw oki vs Ken (corner)', 'oki', $defender, $attacker, $triggerMove);
+        $linkedScenario->getCells()->first()->setStaticValue(433.0);
+        $this->em->flush();
+
+        $matrix = $this->buildMatrixPayload();
+        $matrix['cells'][0][0] = [
+            'cellType' => 'reference',
+            'dataType' => 'empty',
+            'value' => null,
+            'metadata' => [
+                'scenarioId' => $linkedScenario->getPublicId()->toRfc4122(),
+                'referenceKind' => 'reference',
+                'weight' => 0.62,
+                'preValue' => ['kind' => 'static', 'staticValue' => 2040],
+            ],
+        ];
+        $this->client->request('POST', '/api/scenarios', [], [], $this->getHeaders(), json_encode([
+            'name' => 'Weighted Throw',
+            'scenarioType' => 'oki',
+            'defenderCharacterId' => $defender->getId()?->toRfc4122(),
+            'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
+            'triggerMoveId' => $triggerMove->getId()?->toRfc4122(),
+            'matrix' => $matrix,
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        $id = json_decode((string) $this->client->getResponse()->getContent(), true)['id'];
+
+        $this->client->request('POST', sprintf('/api/scenarios/%s/solve-linked-ev', $id), [], [], $this->getHeaders(), json_encode(['executionMode' => ['mode' => 'standard']]));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $resolved = json_decode((string) $this->client->getResponse()->getContent(), true)['resolvedCells'][0];
+        self::assertEqualsWithDelta(2040.0, $resolved['basePreValue'], 0.001);
+        self::assertEqualsWithDelta(433.0, $resolved['linkedExpectedValue'], 0.001);
+        self::assertEqualsWithDelta(0.62, $resolved['weight'], 0.0001);
+        self::assertEqualsWithDelta(2308.46, $resolved['finalValue'], 0.001, '2040 + 0.62 × 433');
+
+        $this->client->request('GET', sprintf('/api/scenarios/%s', $id), [], [], $this->getHeaders());
+        $saved = json_decode((string) $this->client->getResponse()->getContent(), true)['matrix'];
+        self::assertSame(0.62, $saved['cells'][0][0]['metadata']['weight']);
+
+        $this->client->request('PATCH', sprintf('/api/scenarios/%s', $id), [], [], $this->getHeaders(), json_encode(['matrix' => $saved]));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->em->clear();
+        self::assertSame(0.62, $this->em->getRepository(Scenario::class)->findOneBy(['name' => 'Weighted Throw'])?->getCells()->first()->getReferenceWeight());
+
+        $saved['cells'][0][0]['metadata']['weight'] = 1.5;
+        $this->client->request('PATCH', sprintf('/api/scenarios/%s', $id), [], [], $this->getHeaders(), json_encode(['matrix' => $saved]));
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('matrix.cells[0][0].metadata.weight', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testSolveLinkedExpectedValueStopsASelfLinkAfterTheFixedPassesAndFlagsIt(): void
     {
         [$defender, $attacker, $triggerMove] = $this->createScenarioActors();
 
@@ -800,11 +884,58 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
             'executionMode' => ['mode' => 'standard'],
         ]));
 
+        // A full-weight self-link never settles (v = 1200 + v): passes 0-3 give 1200, 2400, 3600, 4800, then it stops.
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
         $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
-        self::assertEqualsWithDelta(3600.0, $payload['expectedValue'], 0.001);
-        self::assertEqualsWithDelta(2400.0, $payload['resolvedCells'][0]['linkedExpectedValue'], 0.001);
-        self::assertEqualsWithDelta(3600.0, $payload['resolvedCells'][0]['finalValue'], 0.001);
+        self::assertEqualsWithDelta(4800.0, $payload['expectedValue'], 0.001);
+        self::assertEqualsWithDelta(3600.0, $payload['resolvedCells'][0]['linkedExpectedValue'], 0.001);
+        self::assertEqualsWithDelta(4800.0, $payload['resolvedCells'][0]['finalValue'], 0.001);
+        self::assertSame(3, $payload['linkConvergence']['passes']);
+        self::assertEqualsWithDelta(1200.0, $payload['linkConvergence']['lastPassDelta'], 0.001);
+        self::assertFalse($payload['linkConvergence']['settled']);
+    }
+
+    public function testEditingOneScenarioOfAnOpponentSideCycleResolvesTheOther(): void
+    {
+        [$ryu, $cammy, $triggerMove] = $this->createScenarioActors();
+        $cammyOki = $this->createScenario('Cammy oki vs Ryu', 'oki', $ryu, $cammy, $triggerMove);
+        $ryuOki = $this->createScenario('Ryu oki vs Cammy', 'oki', $cammy, $ryu, $triggerMove);
+        $cammyOki->getCells()->first()->setKind(\App\Entity\ScenarioCell::KIND_REFERENCE)->setReferenceScenario($ryuOki)->setReferenceKind('reference')
+            ->setReferenceWeight(0.5)->setReferencePerspective('opponent')->setStaticValue(-1000.0);
+        $ryuOki->getCells()->first()->setKind(\App\Entity\ScenarioCell::KIND_REFERENCE)->setReferenceScenario($cammyOki)->setReferenceKind('reference')
+            ->setReferenceWeight(0.5)->setReferencePerspective('opponent')->setStaticValue(-800.0);
+        $author = $this->em->getRepository(\App\Entity\User::class)->findOneBy(['username' => 'testuser']);
+        $cammyOki->setAuthor($author);
+        $ryuOki->setAuthor($author);
+        $this->em->flush();
+        $cammyOkiId = $cammyOki->getPublicId()->toRfc4122();
+        $ryuOkiId = $ryuOki->getPublicId()->toRfc4122();
+
+        $this->client->request('GET', sprintf('/api/scenarios/%s', $cammyOkiId), [], [], $this->getHeaders());
+        $matrix = json_decode((string) $this->client->getResponse()->getContent(), true)['matrix'];
+        self::assertSame('opponent', $matrix['cells'][0][0]['metadata']['perspective']);
+        $matrix['cells'][0][0]['metadata']['preValue']['staticValue'] = -1200;
+
+        $this->client->request('PATCH', sprintf('/api/scenarios/%s', $cammyOkiId), [], [], $this->getHeaders(), json_encode(['matrix' => $matrix]));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        // a = -1200 - 0.5b, b = -800 - 0.5a from (-1200, -800): (-800, -200), (-1100, -400), then (-1000, -250).
+        $this->em->clear();
+        $ryuOki = $this->em->getRepository(Scenario::class)->findOneBy(['name' => 'Ryu oki vs Cammy']);
+        $cammyOki = $this->em->getRepository(Scenario::class)->findOneBy(['name' => 'Cammy oki vs Ryu']);
+        self::assertEqualsWithDelta(-250.0, $ryuOki?->getCells()->first()->getCachedValue(), 0.001);
+        self::assertEqualsWithDelta(-250.0, $ryuOki?->getLayerSolutions()->first()->getExpectedValue(), 0.001);
+        self::assertEqualsWithDelta(-1000.0, $cammyOki?->getLayerSolutions()->first()->getExpectedValue(), 0.001);
+
+        $this->client->request('POST', sprintf('/api/scenarios/%s/solve-layers', $ryuOkiId), [], [], $this->getHeaders(), json_encode(['executionMode' => ['mode' => 'standard']]));
+        $solved = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame(3, $solved['linkConvergence']['passes']);
+        self::assertCount(2, $solved['linkConvergence']['scenarios']);
+
+        $matrix['cells'][0][0]['metadata']['perspective'] = 'same';
+        $this->client->request('PATCH', sprintf('/api/scenarios/%s', $cammyOkiId), [], [], $this->getHeaders(), json_encode(['matrix' => $matrix]));
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('matrix.cells[0][0].metadata.perspective', (string) $this->client->getResponse()->getContent());
     }
 
     public function testUpdateScenarioReplacesMatrixWithoutRowPositionConflict(): void
@@ -1229,8 +1360,9 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
                     'attackerCharacterId' => $attacker->getId()?->toRfc4122(),
                     'starterMoveIds' => [$starterMove->getId()?->toRfc4122()],
                     'starterContext' => [
-                        'isPunishCounter' => 'punish_counter' === $starterContext,
+                        'isPunishCounter' => in_array($starterContext, ['punish_counter', 'perfect_parry'], true),
                         'isCounterHit' => 'counter_hit' === $starterContext,
+                        'isPerfectParry' => 'perfect_parry' === $starterContext,
                     ],
                 ],
             ]]],

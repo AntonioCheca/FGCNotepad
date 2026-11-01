@@ -6,11 +6,13 @@ export const MATRIX_PAYLOAD_SCHEMA_VERSION = 1 as const;
  * - normal hit: isPunishCounter=false, isCounterHit=false
  * - punish counter: isPunishCounter=true, isCounterHit=false
  * - counter hit: isPunishCounter=false, isCounterHit=true
- * The pair true/true is invalid.
+ * - perfect parry punish: isPunishCounter=true, isPerfectParry=true
+ * The pair isPunishCounter/isCounterHit true/true is invalid.
  */
 export interface MatrixDynamicComboStarterContext {
     isPunishCounter: boolean;
     isCounterHit: boolean;
+    isPerfectParry?: boolean;
 }
 
 /**
@@ -51,6 +53,12 @@ export interface MatrixCellPayload {
     extensions?: Record<string, unknown>;
 }
 
+// How often an imported option was observed; scenarios created on the site have none.
+export interface MatrixSeenStatsPayload {
+    frequency: number;
+    sampleCount: number | null;
+}
+
 export interface MatrixAxesPayload {
     rows: string[];
     columns: string[];
@@ -58,6 +66,8 @@ export interface MatrixAxesPayload {
     columnLayers?: number[];
     rowRequirements?: MatrixResourceRequirementPayload[][];
     columnRequirements?: MatrixResourceRequirementPayload[][];
+    rowSeenStats?: Array<MatrixSeenStatsPayload | null>;
+    columnSeenStats?: Array<MatrixSeenStatsPayload | null>;
 }
 
 export interface MatrixSummaryPayload {
@@ -92,6 +102,8 @@ export interface MatrixSerializationInput {
     columnLayers?: Array<number | string | null | undefined>;
     rowRequirements?: Array<Array<MatrixResourceRequirementPayload | null | undefined> | null | undefined>;
     columnRequirements?: Array<Array<MatrixResourceRequirementPayload | null | undefined> | null | undefined>;
+    rowSeenStats?: unknown[];
+    columnSeenStats?: unknown[];
     values: Array<Array<number | string | null | undefined>>;
     bodyCellTypes?: Array<Array<"value" | "reference" | "computed" | "dynamic_combo" | undefined>>;
     bodyCellMetadata?: Array<Array<Record<string, unknown> | undefined>>;

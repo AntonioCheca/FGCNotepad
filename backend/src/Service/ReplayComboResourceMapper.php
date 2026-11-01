@@ -37,7 +37,7 @@ final class ReplayComboResourceMapper
         $warnings = [];
         $stepChanges = $this->stepChanges($combo['resource_changes'] ?? [], $resources, $sourceIndexes, $warnings);
         $changedKeys = array_map(static fn (array $change): string => (string) $change['resource']->getObjectKey(), $stepChanges);
-        $starts = $this->declaredStarts($combo['resources_at_start'] ?? null, $resources, $changedKeys, $warnings);
+        $starts = $this->declaredStarts($combo['resources_at_start'] ?? null, $resources, $changedKeys, $this->stockNeeds($stepChanges), $warnings);
 
         return [
             'stepChanges' => $stepChanges,
@@ -133,16 +133,39 @@ final class ReplayComboResourceMapper
     }
 
     /**
+     * The fewest units of each stock the combo can start with: its deepest running spend. A combo that spends
+     * one Fuha stock needs one, however many the player happened to hold.
+     *
+     * @param array<int, array{resource: CharacterObject, delta: int}> $stepChanges in step order
+     *
+     * @return array<string, int> object key => units needed at the start
+     */
+    private function stockNeeds(array $stepChanges): array
+    {
+        $running = [];
+        $needs = [];
+        foreach ($stepChanges as $change) {
+            $objectKey = (string) $change['resource']->getObjectKey();
+            $running[$objectKey] = ($running[$objectKey] ?? 0) + $change['delta'];
+            $needs[$objectKey] = max($needs[$objectKey] ?? 0, -$running[$objectKey]);
+        }
+
+        return $needs;
+    }
+
+    /**
      * Only starts that differ from the resource default are declared: the ledger already assumes the default.
-     * Stocks are declared only when the combo changes them; scalers and states always matter to the damage.
+     * Stocks are declared only when the combo changes them, at what the combo needs rather than what the player
+     * held; scalers and states always matter to the damage, so their observed start is declared.
      *
      * @param array{named: array<string, CharacterObject>, install: CharacterObject|null} $resources
      * @param list<string> $changedKeys
+     * @param array<string, int> $stockNeeds
      * @param list<string> $warnings
      *
      * @return array<string, int> object key => starting value
      */
-    private function declaredStarts(mixed $atStart, array $resources, array $changedKeys, array &$warnings): array
+    private function declaredStarts(mixed $atStart, array $resources, array $changedKeys, array $stockNeeds, array &$warnings): array
     {
         if (!is_array($atStart)) {
             return [];
@@ -176,6 +199,13 @@ final class ReplayComboResourceMapper
         $starts = [];
         foreach ($observed as [$resource, $value]) {
             $objectKey = (string) $resource->getObjectKey();
+            if (CharacterObject::KIND_STOCK === $resource->getKind() && in_array($objectKey, $changedKeys, true)) {
+                $needed = $stockNeeds[$objectKey] ?? 0;
+                if ($needed > $resource->getStartsWith()) {
+                    $starts[$objectKey] = $needed;
+                }
+                continue;
+            }
             $matters = in_array($objectKey, $changedKeys, true) || in_array($resource->getKind(), self::STATE_DECLARED_KINDS, true);
             if (!$matters || $value === $resource->getStartsWith()) {
                 continue;

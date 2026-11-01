@@ -69,13 +69,16 @@ export function reduceCellAction(state: MatrixEditorState, action: MatrixAction)
                     return;
                 }
 
-                if (cell.reference.cachedValue === update.cachedValue) {
+                if (cell.reference.cachedValue === update.cachedValue && cell.value === update.cachedValue) {
                     return;
                 }
 
+                // The cell value follows the cache, as a payload round trip would; a stale value would
+                // otherwise ask for the same update after every render.
                 hasChanges = true;
                 nextBodyCells[update.key] = {
                     ...cell,
+                    value: update.cachedValue,
                     reference: {
                         ...cell.reference,
                         cachedValue: update.cachedValue,
@@ -118,6 +121,8 @@ export function reduceCellAction(state: MatrixEditorState, action: MatrixAction)
                                 scenarioLabel: action.payload.scenarioLabel,
                                 cachedValue: cell.value,
                                 preValue: cell.kind === "reference" && cell.reference ? cell.reference.preValue : {kind: "none"},
+                                weight: cell.kind === "reference" && cell.reference ? cell.reference.weight : undefined,
+                                perspective: cell.kind === "reference" && cell.reference ? cell.reference.perspective : undefined,
                             },
                         },
                     },
@@ -161,6 +166,46 @@ export function reduceCellAction(state: MatrixEditorState, action: MatrixAction)
                     ...state.derived,
                     isDirty: true,
                 },
+            };
+        }
+
+        case "grid/setReferenceWeight": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            const weight = action.payload.weight;
+            if (!cell || cell.kind !== "reference" || !cell.reference || !(weight > 0 && weight <= 1) || (cell.reference.weight ?? 1) === weight) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {...cell, reference: {...cell.reference, weight}},
+                    },
+                },
+                derived: {...state.derived, isDirty: true},
+            };
+        }
+
+        case "grid/setReferencePerspective": {
+            const cell = state.grid.bodyCells[action.payload.key];
+            const perspective = action.payload.perspective;
+            if (!cell || cell.kind !== "reference" || !cell.reference || (cell.reference.perspective ?? "same") === perspective) {
+                return state;
+            }
+
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    bodyCells: {
+                        ...state.grid.bodyCells,
+                        [action.payload.key]: {...cell, reference: {...cell.reference, perspective}},
+                    },
+                },
+                derived: {...state.derived, isDirty: true},
             };
         }
 
@@ -223,6 +268,7 @@ export function reduceCellAction(state: MatrixEditorState, action: MatrixAction)
                                 starterContext: {
                                     isPunishCounter: action.payload.dynamicCombo.starterContext.isPunishCounter,
                                     isCounterHit: action.payload.dynamicCombo.starterContext.isCounterHit,
+                                    ...(action.payload.dynamicCombo.starterContext.isPerfectParry === true ? {isPerfectParry: true} : {}),
                                 },
                             },
                         },

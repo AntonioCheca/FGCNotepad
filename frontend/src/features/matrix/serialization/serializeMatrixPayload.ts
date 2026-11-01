@@ -6,6 +6,7 @@ import {
     MatrixMetadataPayload,
     MatrixPayload,
     MatrixResourceRequirementPayload,
+    MatrixSeenStatsPayload,
     MatrixSerializationInput,
 } from "@/src/types/matrixPayload";
 
@@ -70,6 +71,19 @@ function normalizeRequirements(
         }
 
         return requirements.map(normalizeRequirement).filter((requirement): requirement is MatrixResourceRequirementPayload => requirement !== null);
+    });
+}
+
+function normalizeSeenStats(source: unknown[] | undefined, count: number): Array<MatrixSeenStatsPayload | null> {
+    return Array.from({length: count}, (_, index) => {
+        const stats = source?.[index] as Partial<MatrixSeenStatsPayload> | null | undefined;
+        const frequency = stats?.frequency;
+        if (typeof frequency !== "number" || !Number.isFinite(frequency) || frequency < 0 || frequency > 1) {
+            return null;
+        }
+
+        const sampleCount = stats?.sampleCount;
+        return {frequency, sampleCount: typeof sampleCount === "number" && Number.isInteger(sampleCount) && sampleCount >= 0 ? sampleCount : null};
     });
 }
 
@@ -216,6 +230,9 @@ export function serializeMatrixPayload(input: MatrixSerializationInput): MatrixP
     );
     const rowRequirements = normalizeRequirements(input.rowRequirements, normalized.rows.length);
     const columnRequirements = normalizeRequirements(input.columnRequirements, normalized.columns.length);
+    const rowSeenStats = normalizeSeenStats(input.rowSeenStats, normalized.rows.length);
+    const columnSeenStats = normalizeSeenStats(input.columnSeenStats, normalized.columns.length);
+    const hasSeenStats = [...rowSeenStats, ...columnSeenStats].some((stats) => stats !== null);
 
     return {
         kind: MATRIX_PAYLOAD_KIND,
@@ -227,6 +244,7 @@ export function serializeMatrixPayload(input: MatrixSerializationInput): MatrixP
             columnLayers: normalized.columnLayers,
             rowRequirements,
             columnRequirements,
+            ...(hasSeenStats ? {rowSeenStats, columnSeenStats} : {}),
         },
         cells,
         summary: {

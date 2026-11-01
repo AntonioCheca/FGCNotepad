@@ -8,21 +8,34 @@ use App\Entity\ScenarioColumn;
 use App\Entity\ScenarioRow;
 use App\Entity\User;
 
+/**
+ * Solves a scenario for one viewer (execution mode, difficulty cap, resources) together with every scenario its
+ * reference cells reach, by fixed-point iteration (ScenarioLinkFixedPoint), so self-links and cycles terminate. A
+ * linked scenario is solved with the resources left after the reference cell's preValue combo, so each
+ * (scenario, resources) pair is its own node.
+ *
+ * @phpstan-import-type FixedPointLink from ScenarioLinkFixedPoint
+ *
+ * @phpstan-type ViewerReference array{id:int,row:int,column:int,cell:ScenarioCell,base:float,resourceContext:array<string,mixed>|null}
+ * @phpstan-type ViewerNode array{scenario:Scenario,rowCount:int,columnCount:int,rowKeys:array<int,string>,columnKeys:array<int,string>,payoffs:array<int,array<int,float>>,links:array<int,array<int,int>>,references:list<ViewerReference>}
+ */
 class ScenarioLinkedExpectedValueResolverService
 {
-    private const MAX_REFERENCE_DEPTH = 3;
+    /** Distinct (scenario, resources) nodes solved per request; links past it count the linked scenario's saved EV. */
+    private const MAX_NODES = 32;
 
     public function __construct(
         private readonly MixedStrategyGameSolver $mixedStrategyGameSolver,
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
         private readonly ScenarioComboContextService $scenarioComboContextService,
+        private readonly ScenarioAxisResourceCostService $axisResourceCostService,
     ) {
     }
 
     /**
      * @param array<string, array<string, mixed>|null> $resourceContext
      *
-     * @return array{scenarioId:string,depth:int,expectedValue:float|null,rowAxis:list<float|null>,columnAxis:list<float|null>,resolvedCells:list<array<string, mixed>>}
+     * @return array{scenarioId:string,expectedValue:float|null,rowAxis:list<float|null>,columnAxis:list<float|null>,resolvedCells:list<array<string, mixed>>,convergence:array{passes:int,lastPassDelta:float|null,settled:bool}}
      */
     public function resolve(
         Scenario $scenario,
@@ -31,18 +44,85 @@ class ScenarioLinkedExpectedValueResolverService
         ?int $difficultyCap = null,
         ?array $resourceContext = null,
         array $viewerContextPayload = [],
+        ?int $passes = null,
     ): array {
-        return $this->resolveScenarioAtDepth($scenario, 1, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
+        $seedKey = $this->nodeKey($scenario, $resourceContext);
+        $nodes = [];
+        $linksByNode = [];
+        $queue = [[$seedKey, $scenario, $resourceContext]];
+        $queued = [$seedKey => true];
+        while ([] !== $queue) {
+            [$key, $nodeScenario, $nodeResources] = array_shift($queue);
+            $nodes[$key] = $this->buildNode($nodeScenario, $user, $executionMode, $difficultyCap, $nodeResources, $viewerContextPayload);
+            $linksByNode[$key] = [];
+            foreach ($nodes[$key]['references'] as $reference) {
+                $linked = $reference['cell']->getReferenceScenario();
+                $target = null === $linked ? null : $this->nodeKey($linked, $reference['resourceContext']);
+                if (null !== $linked && null !== $target && !isset($queued[$target]) && count($queued) < self::MAX_NODES) {
+                    $queue[] = [$target, $linked, $reference['resourceContext']];
+                    $queued[$target] = true;
+                }
+
+                $linksByNode[$key][] = [
+                    'id' => $reference['id'],
+                    'base' => $reference['base'],
+                    'factor' => $reference['cell']->getReferenceFactor(),
+                    'target' => null !== $target && isset($queued[$target]) ? $target : null,
+                    'initial' => $reference['cell']->getCachedValue() ?? $reference['base'],
+                    'fallback' => null !== $linked ? $this->savedTopLayerExpectedValue($linked) : 0.0,
+                ];
+            }
+        }
+
+        $fixedPoint = ScenarioLinkFixedPoint::iterate(
+            $linksByNode,
+            fn (string $key, array $values): ?float => $this->solveNode($nodes[$key], $values)['expectedValue'],
+            ScenarioLinkFixedPoint::clampPasses($passes),
+        );
+
+        $seed = $nodes[$seedKey];
+        $solved = $this->solveNode($seed, $fixedPoint['values']);
+        $resolvedCells = [];
+        foreach ($seed['references'] as $reference) {
+            $cell = $reference['cell'];
+            $resolvedCells[] = [
+                'row' => $reference['row'],
+                'column' => $reference['column'],
+                'scenarioId' => $cell->getReferenceScenario()?->getPublicId()->toRfc4122(),
+                'basePreValue' => $reference['base'],
+                'linkedExpectedValue' => $fixedPoint['linkedExpectedValues'][$reference['id']] ?? 0.0,
+                'weight' => $cell->getReferenceWeight(),
+                'perspective' => $cell->getReferencePerspective(),
+                'finalValue' => $fixedPoint['values'][$reference['id']] ?? $reference['base'],
+            ];
+        }
+
+        $lastPassDelta = [] === $seed['references'] ? null : $fixedPoint['lastPassDeltas'][$seedKey];
+
+        return [
+            'scenarioId' => $scenario->getPublicId()->toRfc4122(),
+            'expectedValue' => $solved['expectedValue'],
+            'rowAxis' => $solved['rowAxis'],
+            'columnAxis' => $solved['columnAxis'],
+            'resolvedCells' => $resolvedCells,
+            'convergence' => [
+                'passes' => $fixedPoint['passes'],
+                'lastPassDelta' => $lastPassDelta,
+                'settled' => ScenarioLinkFixedPoint::isSettled($lastPassDelta, $solved['expectedValue']),
+            ],
+        ];
     }
 
     /**
+     * The scenario's top-layer payoffs with every non-reference cell resolved for this viewer. Reference cells keep
+     * only their axis costs in payoffs; their value comes from the iteration.
+     *
      * @param array<string, array<string, mixed>|null> $resourceContext
      *
-     * @return array{scenarioId:string,depth:int,expectedValue:float|null,rowAxis:list<float|null>,columnAxis:list<float|null>,resolvedCells:list<array<string, mixed>>}
+     * @return ViewerNode
      */
-    private function resolveScenarioAtDepth(
+    private function buildNode(
         Scenario $scenario,
-        int $depth,
         ?User $user,
         ?string $executionMode,
         ?int $difficultyCap,
@@ -58,122 +138,134 @@ class ScenarioLinkedExpectedValueResolverService
         $maxLayer = $this->computeMaxLayer($rows, $columns);
         $visibleRowIndexes = $this->visibleIndexes($rows, $maxLayer);
         $visibleColumnIndexes = $this->visibleIndexes($columns, $maxLayer);
-        $rowAxis = array_fill(0, count($rows), null);
-        $columnAxis = array_fill(0, count($columns), null);
-
-        if ([] === $visibleRowIndexes || [] === $visibleColumnIndexes) {
-            return $this->emptyResult($scenario, $depth, $rowAxis, $columnAxis);
-        }
-
         $cellsByCoordinate = $this->buildCellCoordinateMap($scenario);
-        $rowKeys = $this->buildAxisKeys($rows, $visibleRowIndexes, 'row');
-        $columnKeys = $this->buildAxisKeys($columns, $visibleColumnIndexes, 'column');
-        $resolvedCells = [];
-        $payoffMatrix = [];
+        $payoffs = [];
+        $links = [];
+        $references = [];
 
         foreach ($visibleRowIndexes as $rowIndex) {
-            $rowKey = $rowKeys[$rowIndex];
-            $payoffMatrix[$rowKey] = [];
-
+            $rowCost = $this->axisResourceCostService->payoffAdjustment($rows[$rowIndex]);
             foreach ($visibleColumnIndexes as $columnIndex) {
                 $cell = $cellsByCoordinate[$rowIndex][$columnIndex] ?? null;
-                $resolved = $this->resolveCellValue($cell, $depth, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
-                $payoffMatrix[$rowKey][$columnKeys[$columnIndex]] = (int) round($resolved['finalValue']);
+                $costs = $rowCost + $this->axisResourceCostService->payoffAdjustment($columns[$columnIndex]);
 
                 if ($cell instanceof ScenarioCell && ScenarioCell::KIND_REFERENCE === $cell->getKind()) {
-                    $resolvedCells[] = [
+                    $preValue = $this->resolveReferencePreValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
+                    $id = spl_object_id($cell);
+                    $references[] = [
+                        'id' => $id,
                         'row' => $rowIndex,
                         'column' => $columnIndex,
-                        'scenarioId' => $cell->getReferenceScenario()?->getPublicId()->toRfc4122(),
-                        'basePreValue' => $resolved['basePreValue'],
-                        'linkedExpectedValue' => $resolved['linkedExpectedValue'],
-                        'finalValue' => $resolved['finalValue'],
-                        'depth' => $depth,
+                        'cell' => $cell,
+                        'base' => $preValue['value'],
+                        'resourceContext' => $preValue['resourceContext'],
                     ];
+                    $links[$rowIndex][$columnIndex] = $id;
+                    $payoffs[$rowIndex][$columnIndex] = $costs;
+                    continue;
                 }
+
+                $payoffs[$rowIndex][$columnIndex] = $costs + $this->resolveCellValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
+            }
+        }
+
+        return [
+            'scenario' => $scenario,
+            'rowCount' => count($rows),
+            'columnCount' => count($columns),
+            'rowKeys' => $this->buildAxisKeys($rows, $visibleRowIndexes, 'row'),
+            'columnKeys' => $this->buildAxisKeys($columns, $visibleColumnIndexes, 'column'),
+            'payoffs' => $payoffs,
+            'links' => $links,
+            'references' => $references,
+        ];
+    }
+
+    /**
+     * @param ViewerNode $node
+     * @param array<int, float> $referenceValues
+     *
+     * @return array{expectedValue:float|null,rowAxis:list<float|null>,columnAxis:list<float|null>}
+     */
+    private function solveNode(array $node, array $referenceValues): array
+    {
+        $rowAxis = array_fill(0, $node['rowCount'], null);
+        $columnAxis = array_fill(0, $node['columnCount'], null);
+        if ([] === $node['rowKeys'] || [] === $node['columnKeys']) {
+            return ['expectedValue' => null, 'rowAxis' => $rowAxis, 'columnAxis' => $columnAxis];
+        }
+
+        $payoffMatrix = [];
+        foreach ($node['rowKeys'] as $rowIndex => $rowKey) {
+            foreach ($node['columnKeys'] as $columnIndex => $columnKey) {
+                $linkId = $node['links'][$rowIndex][$columnIndex] ?? null;
+                $value = $node['payoffs'][$rowIndex][$columnIndex] + (null !== $linkId ? ($referenceValues[$linkId] ?? 0.0) : 0.0);
+                $payoffMatrix[$rowKey][$columnKey] = (int) round($value);
             }
         }
 
         $result = $this->mixedStrategyGameSolver->solveMixedStrategyGame($payoffMatrix);
         $equilibrium = $result['equilibria'][0] ?? null;
         if (!is_array($equilibrium)) {
-            return $this->emptyResult($scenario, $depth, $rowAxis, $columnAxis, $resolvedCells);
+            return ['expectedValue' => null, 'rowAxis' => $rowAxis, 'columnAxis' => $columnAxis];
         }
 
         $expectedValue = 0.0;
-        foreach ($visibleRowIndexes as $rowIndex) {
-            $rowKey = $rowKeys[$rowIndex];
+        foreach ($node['rowKeys'] as $rowIndex => $rowKey) {
             $rowProbability = $this->toProbability($equilibrium['P1'][$rowKey] ?? null);
             $rowAxis[$rowIndex] = $rowProbability;
-
-            foreach ($visibleColumnIndexes as $columnIndex) {
-                $columnKey = $columnKeys[$columnIndex];
-                $columnProbability = $this->toProbability($equilibrium['P2'][$columnKey] ?? null);
-                $expectedValue += ($payoffMatrix[$rowKey][$columnKey] ?? 0) * $rowProbability * $columnProbability;
+            foreach ($node['columnKeys'] as $columnKey) {
+                $expectedValue += $payoffMatrix[$rowKey][$columnKey] * $rowProbability * $this->toProbability($equilibrium['P2'][$columnKey] ?? null);
             }
         }
 
-        foreach ($visibleColumnIndexes as $columnIndex) {
-            $columnAxis[$columnIndex] = $this->toProbability($equilibrium['P2'][$columnKeys[$columnIndex]] ?? null);
+        foreach ($node['columnKeys'] as $columnIndex => $columnKey) {
+            $columnAxis[$columnIndex] = $this->toProbability($equilibrium['P2'][$columnKey] ?? null);
         }
 
-        return [
-            'scenarioId' => $scenario->getPublicId()->toRfc4122(),
-            'depth' => $depth,
-            'expectedValue' => $expectedValue,
-            'rowAxis' => $rowAxis,
-            'columnAxis' => $columnAxis,
-            'resolvedCells' => $resolvedCells,
-        ];
+        return ['expectedValue' => $expectedValue, 'rowAxis' => $rowAxis, 'columnAxis' => $columnAxis];
     }
 
     /**
      * @param array<string, array<string, mixed>|null> $resourceContext
-     *
-     * @return array{basePreValue:float,linkedExpectedValue:float,finalValue:float,resourceContext:array<string,mixed>|null}
      */
     private function resolveCellValue(
         ?ScenarioCell $cell,
-        int $depth,
         ?User $user,
         ?string $executionMode,
         ?int $difficultyCap,
         ?array $resourceContext,
         array $viewerContextPayload,
-    ): array {
+    ): float {
         if (!$cell instanceof ScenarioCell) {
-            return ['basePreValue' => 0.0, 'linkedExpectedValue' => 0.0, 'finalValue' => 0.0, 'resourceContext' => $resourceContext];
-        }
-
-        if (ScenarioCell::KIND_REFERENCE === $cell->getKind()) {
-            $referencePreValue = $this->resolveReferencePreValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
-            $basePreValue = $referencePreValue['value'];
-            $nextResourceContext = $referencePreValue['resourceContext'];
-            $linkedExpectedValue = 0.0;
-            $referenceScenario = $cell->getReferenceScenario();
-
-            if ($referenceScenario instanceof Scenario && $depth < self::MAX_REFERENCE_DEPTH) {
-                $linked = $this->resolveScenarioAtDepth($referenceScenario, $depth + 1, $user, $executionMode, $difficultyCap, $nextResourceContext, $viewerContextPayload);
-                $linkedExpectedValue = null !== $linked['expectedValue'] ? $linked['expectedValue'] : 0.0;
-            }
-
-            return [
-                'basePreValue' => $basePreValue,
-                'linkedExpectedValue' => $linkedExpectedValue,
-                'finalValue' => $basePreValue + $linkedExpectedValue,
-                'resourceContext' => $nextResourceContext,
-            ];
+            return 0.0;
         }
 
         if (ScenarioCell::KIND_DYNAMIC_COMBO === $cell->getKind()) {
-            $resolved = $this->resolveDynamicComboValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload);
-
-            return ['basePreValue' => $resolved['value'], 'linkedExpectedValue' => 0.0, 'finalValue' => $resolved['value'], 'resourceContext' => $resolved['resourceContext']];
+            return $this->resolveDynamicComboValue($cell, $user, $executionMode, $difficultyCap, $resourceContext, $viewerContextPayload)['value'];
         }
 
-        $value = null !== $cell->getStaticValue() ? (float) $cell->getStaticValue() : 0.0;
+        return null !== $cell->getStaticValue() ? (float) $cell->getStaticValue() : 0.0;
+    }
 
-        return ['basePreValue' => $value, 'linkedExpectedValue' => 0.0, 'finalValue' => $value, 'resourceContext' => $resourceContext];
+    private function savedTopLayerExpectedValue(Scenario $scenario): float
+    {
+        $top = null;
+        foreach ($scenario->getLayerSolutions() as $solution) {
+            if (null === $top || $solution->getLayer() > $top->getLayer()) {
+                $top = $solution;
+            }
+        }
+
+        return $top?->getExpectedValue() ?? 0.0;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>|null>|null $resourceContext
+     */
+    private function nodeKey(Scenario $scenario, ?array $resourceContext): string
+    {
+        return $scenario->getPublicId()->toRfc4122() . '|' . (null === $resourceContext ? 'any' : md5(json_encode($resourceContext, JSON_THROW_ON_ERROR)));
     }
 
     /**
@@ -327,6 +419,10 @@ class ScenarioLinkedExpectedValueResolverService
 
     private function toHitType(?string $starterContext): string
     {
+        if ('perfect_parry' === $starterContext) {
+            return 'perfect_parry';
+        }
+
         if ('punish_counter' === $starterContext) {
             return 'punish_counter';
         }
@@ -341,24 +437,5 @@ class ScenarioLinkedExpectedValueResolverService
     private function toProbability(mixed $value): float
     {
         return is_numeric($value) ? (float) $value : 0.0;
-    }
-
-    /**
-     * @param list<float|null> $rowAxis
-     * @param list<float|null> $columnAxis
-     * @param list<array<string, mixed>> $resolvedCells
-     *
-     * @return array{scenarioId:string,depth:int,expectedValue:float|null,rowAxis:list<float|null>,columnAxis:list<float|null>,resolvedCells:list<array<string, mixed>>}
-     */
-    private function emptyResult(Scenario $scenario, int $depth, array $rowAxis, array $columnAxis, array $resolvedCells = []): array
-    {
-        return [
-            'scenarioId' => $scenario->getPublicId()->toRfc4122(),
-            'depth' => $depth,
-            'expectedValue' => null,
-            'rowAxis' => $rowAxis,
-            'columnAxis' => $columnAxis,
-            'resolvedCells' => $resolvedCells,
-        ];
     }
 }

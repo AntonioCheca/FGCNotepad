@@ -37,7 +37,7 @@ interface MatrixEditorShellProps {
         attackerCharacterId: string;
         isComboInitiatorAttacker?: boolean;
         starterMoveIds: string[];
-        starterContext: {isPunishCounter: boolean; isCounterHit: boolean};
+        starterContext: {isPunishCounter: boolean; isCounterHit: boolean; isPerfectParry?: boolean};
     }) => Promise<number | null>;
     layerSolveSnapshots?: Record<number, {rowAxis: Array<number | null>; columnAxis: Array<number | null>; expectedValue: number | null}>;
     displayFrequenciesAsPercent?: boolean;
@@ -244,7 +244,7 @@ export function MatrixEditorShell({
                 activeColumnId={interactions.axisContext.activeColumnId}
                 draftHasFormatError={interactions.draftHasFormatError}
                 displayedBodyValues={referenceModel.referenceResolution.displayedBodyValues}
-                referenceDisplayLabels={referenceModel.referenceDisplayLabels}
+                linkedResolutionsByKey={referenceModel.linkedResolutionsByKey}
                 moveLabelById={moveLabelById}
                 resourceGating={viewModel.resourceGating}
                 dispatch={dispatch}

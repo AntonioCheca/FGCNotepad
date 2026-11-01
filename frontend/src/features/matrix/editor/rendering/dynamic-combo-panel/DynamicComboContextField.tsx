@@ -12,6 +12,7 @@ export function DynamicComboContextField({starterPreset, onStarterPresetChange}:
             <select value={starterPreset} onChange={(event) => onStarterPresetChange(event.target.value as StarterContextPreset)}>
                 <option value="normal">Normal Hit</option>
                 <option value="punish_counter">Punish Counter</option>
+                <option value="perfect_parry">Perfect Parry</option>
                 <option value="counter_hit">Counter Hit</option>
             </select>
         </label>

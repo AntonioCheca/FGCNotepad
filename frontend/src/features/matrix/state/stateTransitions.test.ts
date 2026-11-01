@@ -248,3 +248,48 @@ test("setDynamicComboCell converts body cell to dynamic combo metadata", () => {
         },
     });
 });
+
+test("reference cache updates bring a stale cell value in line, then settle", () => {
+    const state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const key = Object.keys(state.grid.bodyCells)[0];
+    state.grid.bodyCells[key] = {
+        ...state.grid.bodyCells[key],
+        kind: "reference",
+        value: 433,
+        reference: {kind: "reference", scenarioId: "linked", cachedValue: 1468, preValue: {kind: "none"}},
+    };
+
+    const updated = matrixEditorReducer(state, matrixActions.batchUpdateReferenceCache([{key, cachedValue: 1468}]));
+    assert.equal(updated.grid.bodyCells[key].value, 1468);
+    assert.equal(updated.grid.bodyCells[key].reference?.cachedValue, 1468);
+
+    const settled = matrixEditorReducer(updated, matrixActions.batchUpdateReferenceCache([{key, cachedValue: 1468}]));
+    assert.equal(settled, updated);
+});
+
+test("reference weight accepts a share in (0, 1] and ignores anything else", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const key = Object.keys(state.grid.bodyCells)[0];
+    state = matrixEditorReducer(state, matrixActions.linkReferenceCell(key, "linked", "Juri throw oki vs Ken (corner)"));
+
+    const weighted = matrixEditorReducer(state, matrixActions.setReferenceWeight(key, 0.62));
+    assert.equal(weighted.grid.bodyCells[key].reference?.weight, 0.62);
+    assert.equal(matrixEditorReducer(weighted, matrixActions.setReferenceWeight(key, 0)), weighted);
+    assert.equal(matrixEditorReducer(weighted, matrixActions.setReferenceWeight(key, 1.2)), weighted);
+
+    const relinked = matrixEditorReducer(weighted, matrixActions.linkReferenceCell(key, "other", "Other"));
+    assert.equal(relinked.grid.bodyCells[key].reference?.weight, 0.62, "relinking keeps the share");
+});
+
+test("reference perspective switches sides and survives relinking", () => {
+    let state = createInitialMatrixEditorState({rowCount: 1, columnCount: 1});
+    const key = Object.keys(state.grid.bodyCells)[0];
+    state = matrixEditorReducer(state, matrixActions.linkReferenceCell(key, "linked", "Ken throw oki vs Juri"));
+
+    const opponent = matrixEditorReducer(state, matrixActions.setReferencePerspective(key, "opponent"));
+    assert.equal(opponent.grid.bodyCells[key].reference?.perspective, "opponent");
+    assert.equal(matrixEditorReducer(opponent, matrixActions.setReferencePerspective(key, "opponent")), opponent);
+
+    const relinked = matrixEditorReducer(opponent, matrixActions.linkReferenceCell(key, "other", "Other"));
+    assert.equal(relinked.grid.bodyCells[key].reference?.perspective, "opponent");
+});

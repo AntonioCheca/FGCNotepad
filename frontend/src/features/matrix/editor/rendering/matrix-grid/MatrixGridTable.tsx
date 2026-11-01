@@ -1,8 +1,11 @@
+import React from "react";
+
 import {MatrixGridBody} from "../MatrixGridBody";
 import {MatrixGridHeader} from "../MatrixGridHeader";
 import {MatrixSummaryAxes} from "../MatrixSummaryAxes";
 import type {MatrixDensityProfile} from "../gridDensity";
 import type {MatrixGridProps} from "./matrixGridTypes";
+import {buildMatrixGridSizing} from "./matrixGridSizing";
 
 interface MatrixGridTableProps extends Omit<MatrixGridProps,
     "onAddRow" |
@@ -40,7 +43,7 @@ export function MatrixGridTable({
     draftHasFormatError,
     validationByKey,
     displayedBodyValues,
-    displayLabelsByKey,
+    linkedResolutionsByKey,
     moveLabelById,
     unavailableRowIds,
     unavailableColumnIds,
@@ -71,6 +74,11 @@ export function MatrixGridTable({
     onOpenRowRequirements,
     onOpenColumnRequirements,
 }: MatrixGridTableProps) {
+    const sizing = React.useMemo(
+        () => buildMatrixGridSizing(state, profile, moveLabelById, linkedResolutionsByKey),
+        [linkedResolutionsByKey, moveLabelById, profile, state]
+    );
+
     return (
         <table
             style={{
@@ -95,6 +103,7 @@ export function MatrixGridTable({
                 onOpenColumnRequirements={onOpenColumnRequirements}
                 onSelectColumnHeader={onSelectColumnHeader}
                 densityProfile={profile}
+                sizing={sizing}
                 viewOptions={viewOptions}
             />
             <MatrixGridBody
@@ -111,7 +120,7 @@ export function MatrixGridTable({
                 draftHasFormatError={draftHasFormatError}
                 validationByKey={validationByKey}
                 displayedBodyValues={displayedBodyValues}
-                displayLabelsByKey={displayLabelsByKey}
+                linkedResolutionsByKey={linkedResolutionsByKey}
                 moveLabelById={moveLabelById}
                 permissions={permissions}
                 onRowLabelChange={onRowLabelChange}
@@ -128,6 +137,7 @@ export function MatrixGridTable({
                 onCommitEdit={onCommitEdit}
                 onCancelEdit={onCancelEdit}
                 densityProfile={profile}
+                sizing={sizing}
                 viewOptions={viewOptions}
                 summaryValueFormatter={summaryValueFormatter}
                 heatmapToneByCellKey={heatmapToneByCellKey}

@@ -2,6 +2,7 @@ import React from "react";
 
 import {useMode} from "@/src/context/ThemeContext";
 import {MatrixResourceRequirement, MatrixResourceOwner, MatrixResourceType} from "@/src/features/matrix/model";
+import {requirementPayoffAdjustment} from "../services/matrixAxisResourceCost";
 import styles from "./matrixEditorRendering.module.css";
 
 interface AxisRequirementTriggerProps {
@@ -40,7 +41,9 @@ function createRequirementRenderId(): string {
 function formatRequirement(requirement: MatrixResourceRequirement): string {
     const owner = requirement.owner === "attacker" ? "Atk" : "Def";
     const resource = requirement.resource === "health" ? "HP" : requirement.resource === "drive" ? "Drv" : "Sup";
-    return `${owner} ${resource} >= ${requirement.threshold}`;
+    const adjustment = requirementPayoffAdjustment(requirement);
+    const cost = adjustment === 0 ? "" : ` (payoff ${adjustment > 0 ? "+" : ""}${adjustment})`;
+    return `${owner} ${resource} >= ${requirement.threshold}${cost}`;
 }
 
 function normalizeThreshold(resource: MatrixResourceType, value: string): number {

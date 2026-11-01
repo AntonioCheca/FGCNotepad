@@ -33,7 +33,7 @@ export function ResearchArticlePage({meta, html, headings}: ResearchArticlePageP
                 imageAlt={meta.imageAlt}
                 article={{publishedTime: meta.date, modifiedTime: meta.updated, author: meta.author, tags: meta.tags}}
             />
-            <AppBox component="article" sx={{maxWidth: 760, mx: "auto", minWidth: 0, display: "grid", gap: {xs: 2.5, md: 3}}}>
+            <AppBox component="article" sx={{maxWidth: 820, mx: "auto", minWidth: 0, display: "grid", gap: {xs: 2.5, md: 3}}}>
                 <ArticleHeader meta={meta}/>
                 {meta.data ? <ArticleDataInfo data={meta.data}/> : null}
                 {headings.length >= MIN_HEADINGS_FOR_CONTENTS ? <ArticleContents headings={headings}/> : null}

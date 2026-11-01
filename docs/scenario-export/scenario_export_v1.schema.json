@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fightinggametheory.com/schemas/scenario_export_v1.schema.json",
+  "title": "scenario_export_v1",
+  "description": "RPS scenarios (rows, columns, cells, layers) exchanged between FGCNotepad instances and Sf6ReplaysDb. Mirrors backend/src/Service/ScenarioTransfer/ScenarioImportDocumentValidator.php; see docs/scenario-export.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "scenarios"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "format": {"const": "scenario_export_v1"},
+    "exportedAt": {"type": "string", "description": "Informational; ignored on import."},
+    "generator": {"type": "string", "description": "Informational; ignored on import."},
+    "scenarios": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/scenario"}}
+  },
+  "$defs": {
+    "scenarioKey": {
+      "description": "Stable identity. A re-import with the same key updates the scenario. Scenarios created on the site export as source fgcnotepad with their public id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "externalId"],
+      "properties": {
+        "source": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"},
+        "externalId": {"type": "string", "minLength": 1, "maxLength": 191, "pattern": "^\\S(.*\\S)?$"}
+      }
+    },
+    "characterName": {"type": "string", "minLength": 1, "maxLength": 64, "description": "Character name as listed by FGCNotepad (case and punctuation insensitive)."},
+    "notation": {"type": "string", "minLength": 1, "maxLength": 64, "description": "Numpad notation of a move of the given character, e.g. 2MK, 623PP, 236KK > 6HK."},
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "name", "scenarioType", "attacker", "defender", "situation", "rows", "columns", "cells"],
+      "properties": {
+        "key": {"$ref": "#/$defs/scenarioKey"},
+        "name": {"type": "string", "minLength": 1, "maxLength": 200},
+        "scenarioType": {"enum": ["oki", "blockstring", "aggregated_oki"]},
+        "isEssential": {"type": "boolean", "default": false},
+        "attacker": {"$ref": "#/$defs/characterName"},
+        "defender": {"$ref": "#/$defs/characterName"},
+        "situation": {"$ref": "#/$defs/situation"},
+        "rows": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/axisItem"}, "description": "Row player options (offense). Keys must be unique within rows; at least one row on layer 1."},
+        "columns": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/axisItem"}, "description": "Column player options (defense). aggregated_oki scenarios must use the fixed defensive catalog columns."},
+        "cells": {"type": "array", "items": {"$ref": "#/$defs/cell"}, "description": "Exactly one cell per row x column pair."}
+      }
+    },
+    "situation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["triggerMove"],
+      "properties": {
+        "triggerMove": {
+          "description": "The move that creates the situation (usually the knockdown). character defaults to the scenario attacker.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["notation"],
+          "properties": {
+            "character": {"$ref": "#/$defs/characterName"},
+            "notation": {"$ref": "#/$defs/notation"}
+          }
+        },
+        "position": {
+          "enum": ["viewer_default_midscreen", "midscreen", "corner"],
+          "default": "viewer_default_midscreen",
+          "description": "corner/midscreen lock which combos dynamic cells may use; viewer_default_midscreen lets the viewer include corner combos."
+        },
+        "knockdownAdvantage": {"type": ["integer", "null"], "minimum": -100, "maximum": 300, "description": "Frames of advantage on the knockdown. Informational; nothing computes from it yet."},
+        "characterStatuses": {
+          "type": "array",
+          "description": "Character resources fixed for the whole scenario (e.g. Juri Fuha stocks). They filter which combos dynamic cells may use.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["object", "status"],
+            "properties": {
+              "object": {"type": "string", "minLength": 1, "maxLength": 128, "description": "Character resource object key (e.g. juri_fuha) or name."},
+              "status": {"type": ["string", "integer", "boolean"], "description": "Stock count for integer resources, true for boolean ones. Exported as a string."}
+            }
+          }
+        }
+      }
+    },
+    "axisItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label"],
+      "properties": {
+        "key": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$", "description": "Referenced by cells. Exports derive keys from labels."},
+        "label": {"type": "string", "minLength": 1, "maxLength": 200},
+        "description": {"type": ["string", "null"], "maxLength": 2000},
+        "layer": {"type": "integer", "minimum": 1, "maximum": 50, "default": 1, "description": "Layer that introduces this option. Layer N is solved with every row/column whose layer is <= N."},
+        "requirements": {
+          "type": "array",
+          "description": "The option is only available when every requirement holds (the viewer's resource context).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["owner", "resource", "threshold"],
+            "properties": {
+              "owner": {"enum": ["attacker", "defender"]},
+              "resource": {"enum": ["health", "drive", "super"]},
+              "threshold": {"type": "number", "minimum": 0, "description": "Meaning: resource >= threshold. Integer for health and super."}
+            }
+          }
+        },
+        "summaryValue": {"type": ["number", "null"], "description": "Probability shown on the axis by the editor; null when unset."},
+        "stats": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["seenFrequency"],
+          "description": "Observed stats from the source data: how often this option was picked. Shown as \"Seen\" on the axis; omit for options without observations.",
+          "properties": {
+            "seenFrequency": {"type": "number", "minimum": 0, "maximum": 1, "description": "Share of observed situations where this option was picked (0-1)."},
+            "sampleCount": {"type": ["integer", "null"], "minimum": 0, "description": "Number of observed situations the frequency is based on."}
+          }
+        }
+      }
+    },
+    "starter": {
+      "description": "A dynamic combo starter. The cell value is the best stored combo of the initiator starting with one of these moves under the hit condition, resolved against the viewer's resources.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["moves"],
+      "properties": {
+        "initiator": {"enum": ["attacker", "defender"], "default": "attacker", "description": "Which side starts the combo; moves are that character's moves."},
+        "moves": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/notation"}},
+        "hitCondition": {"enum": ["normal", "counter_hit", "punish_counter", "perfect_parry"], "default": "normal"}
+      }
+    },
+    "provenance": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["observed", "inferred", "disputed"]},
+        "sampleCount": {"type": ["integer", "null"], "minimum": 0},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "note": {"type": ["string", "null"], "maxLength": 500}
+      }
+    },
+    "cell": {
+      "type": "object",
+      "required": ["row", "column", "kind"],
+      "properties": {
+        "row": {"type": "string"},
+        "column": {"type": "string"},
+        "kind": {"enum": ["static", "dynamic_combo", "reference"]},
+        "provenance": {"$ref": "#/$defs/provenance"}
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "row": true, "column": true, "provenance": true,
+            "kind": {"const": "static"},
+            "value": {"type": ["number", "null"]}
+          },
+          "additionalProperties": false
+        },
+        {
+          "required": ["starter"],
+          "properties": {
+            "row": true, "column": true, "provenance": true,
+            "kind": {"const": "dynamic_combo"},
+            "starter": {"$ref": "#/$defs/starter"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "required": ["reference"],
+          "properties": {
+            "row": true, "column": true, "provenance": true,
+            "kind": {"const": "reference"},
+            "reference": {"$ref": "#/$defs/reference"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "reference": {
+      "description": "The cell continues into another scenario (in this document or already stored), which may be this scenario itself or one that links back.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario"],
+      "properties": {
+        "scenario": {"$ref": "#/$defs/scenarioKey"},
+        "mode": {"enum": ["reference", "computed"], "default": "reference"},
+        "weight": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "default": 1,
+          "description": "Share of the linked scenario's EV the cell counts: value = preValue + weight × linked EV. Use it when only part of the outcomes reach the linked scenario. Left out when 1."
+        },
+        "perspective": {
+          "enum": ["same", "opponent"],
+          "default": "same",
+          "description": "Whose EV the linked scenario holds. same: its attacker is this scenario's attacker, value = preValue + weight × linked EV. opponent: its attacker is this scenario's defender, value = preValue - weight × linked EV (e.g. -(throw damage) - weight × the opponent's throw oki EV). Any other pairing is rejected. Left out when same."
+        },
+        "cachedValue": {"type": ["number", "null"], "description": "The cell's total, recomputed by the site on import and whenever a linked scenario changes; a value given here is only the starting point of that computation. Layer solving and the saved solution use it as the cell's value. Not part of the re-import content hash."},
+        "preValue": {
+          "description": "Value gained before entering the referenced scenario, e.g. the combo that leads into it.",
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "value"],
+              "properties": {"kind": {"const": "static"}, "value": {"type": "number"}}
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "starter"],
+              "properties": {"kind": {"const": "dynamic_combo"}, "starter": {"$ref": "#/$defs/starter"}}
+            }
+          ]
+        }
+      }
+    }
+  }
+}

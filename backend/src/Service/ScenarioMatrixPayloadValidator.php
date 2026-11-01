@@ -204,6 +204,11 @@ class ScenarioMatrixPayloadValidator
                 $cellPath
             );
         }
+
+        $hasPerfectParry = $starterContext['isPerfectParry'] ?? false;
+        if (!is_bool($hasPerfectParry) || ($hasPerfectParry && !$hasPunishCounter)) {
+            $errors[] = sprintf('%s.dynamicCombo.starterContext.isPerfectParry must be a boolean and requires isPunishCounter.', $cellPath);
+        }
     }
 
     /**

@@ -10,6 +10,7 @@ import {unified} from "unified";
 import {
     type ResearchHeading,
     ResearchFrontmatterError,
+    parseFigurePlacement,
     resolveResearchAssetPath,
 } from "@/src/features/research/researchArticleMeta";
 
@@ -19,6 +20,7 @@ export interface RenderedResearchMarkdown {
 }
 
 const GFM_FOOTNOTES_HEADING_ID = "footnote-label";
+const FIGURE_NUMBER_PATTERN = /^(Figure \d+\.)(\s[\s\S]*)$/;
 
 export async function renderResearchMarkdown(slug: string, markdown: string): Promise<RenderedResearchMarkdown> {
     const headings: ResearchHeading[] = [];
@@ -81,14 +83,35 @@ function singleImage(paragraph: Element): Element | null {
 function toFigure(slug: string, image: Element): Element {
     const caption = typeof image.properties.title === "string" ? image.properties.title.trim() : "";
     delete image.properties.title;
+
+    const placement = typeof image.properties.src === "string" ? parseFigurePlacement(slug, image.properties.src) : null;
+    if (placement) {
+        image.properties.src = placement.path;
+    }
     prepareImage(slug, image);
 
     const children: ElementContent[] = [image];
     if (caption) {
-        children.push({type: "element", tagName: "figcaption", properties: {}, children: [{type: "text", value: caption}]});
+        children.push({type: "element", tagName: "figcaption", properties: {}, children: captionContent(caption)});
     }
 
-    return {type: "element", tagName: "figure", properties: {}, children};
+    const properties = placement?.rightWidth
+        ? {className: ["research-figure-right"], style: `--research-figure-width: ${placement.rightWidth}%`}
+        : {};
+
+    return {type: "element", tagName: "figure", properties, children};
+}
+
+function captionContent(caption: string): ElementContent[] {
+    const numbered = FIGURE_NUMBER_PATTERN.exec(caption);
+    if (!numbered) {
+        return [{type: "text", value: caption}];
+    }
+
+    return [
+        {type: "element", tagName: "strong", properties: {}, children: [{type: "text", value: numbered[1]}]},
+        {type: "text", value: numbered[2]},
+    ];
 }
 
 function prepareImage(slug: string, image: Element): void {

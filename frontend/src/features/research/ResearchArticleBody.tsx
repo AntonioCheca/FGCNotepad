@@ -18,8 +18,11 @@ const articleProseStyles = (theme: Theme) => ({
     lineHeight: 1.75,
     overflowWrap: "break-word",
     "& > :first-child": {mt: 0},
+    // Phones keep left alignment: justified lines that narrow open wide gaps between words.
+    "& p": {[theme.breakpoints.up("sm")]: {textAlign: "justify", hyphens: "auto"}},
     "& p, & ul, & ol, & blockquote, & pre, & figure, & .research-table-scroll, & .katex-display": {my: 2},
     "& h2, & h3, & h4": {
+        clear: "both",
         color: theme.fgc.text.primary,
         fontWeight: 700,
         lineHeight: 1.25,
@@ -43,8 +46,10 @@ const articleProseStyles = (theme: Theme) => ({
         borderRadius: 1,
     },
     "& strong": {fontWeight: 700},
-    "& hr": {my: 4, border: 0, borderTop: `1px solid ${theme.fgc.border.default}`},
+    "& hr": {clear: "both", my: 4, border: 0, borderTop: `1px solid ${theme.fgc.border.default}`},
     "& blockquote": {
+        // Keeps the note's background from running under a floated figure.
+        display: "flow-root",
         mx: 0,
         px: 2,
         py: 1.25,
@@ -74,9 +79,20 @@ const articleProseStyles = (theme: Theme) => ({
     },
     "& figure": {
         mx: 0,
+        my: 3,
         display: "grid",
         gap: 1,
         justifyItems: "center",
+    },
+    "& figure.research-figure-right": {
+        [theme.breakpoints.up("sm")]: {
+            float: "right",
+            clear: "right",
+            width: "var(--research-figure-width)",
+            mt: 0.75,
+            mb: 2,
+            ml: 3,
+        },
     },
     "& img": {
         display: "block",
@@ -84,16 +100,12 @@ const articleProseStyles = (theme: Theme) => ({
         height: "auto",
         borderRadius: 1,
     },
-    // Matplotlib figures are usually exported on white; keep them on a light plate so they read in dark mode too.
-    "& figure img": {
-        backgroundColor: theme.palette.common.white,
-        p: {xs: 0.5, md: 1},
-        border: `1px solid ${theme.fgc.border.default}`,
-    },
     "& figcaption": {
         width: "100%",
         fontSize: "0.875rem",
         lineHeight: 1.55,
+        fontStyle: "italic",
+        textAlign: "center",
         color: theme.fgc.text.secondary,
     },
     "& .research-table-scroll": {
@@ -119,6 +131,7 @@ const articleProseStyles = (theme: Theme) => ({
     "& tbody tr:last-of-type td": {borderBottom: 0},
     "& .katex-display": {overflowX: "auto", overflowY: "hidden", py: 0.5},
     "& .footnotes": {
+        clear: "both",
         mt: 5,
         pt: 1,
         borderTop: `1px solid ${theme.fgc.border.default}`,

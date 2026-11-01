@@ -7,6 +7,28 @@ import {computeDisplayedExpectedValue} from "../services/matrixComputationServic
 import {createMapReferenceResolver, resolveReferenceDisplayValues} from "../services/referenceResolutionService";
 import {buildReferenceInspectorData} from "../services/referenceInspector";
 import {buildMatrixInsights} from "../services/matrixInsightService";
+import {withAxisResourceCosts} from "../services/matrixAxisResourceCost";
+import {linkedEvFactor} from "../services/linkedReferenceResolutionService";
+
+// A weight or side edited in the cell editor applies right away: the linked EV is known, so only the total changes.
+function applyCurrentReferenceWeights(
+    resolutions: Record<string, MatrixLinkedCellResolution>,
+    bodyCells: MatrixEditorState["grid"]["bodyCells"]
+): Record<string, MatrixLinkedCellResolution> {
+    let changed = false;
+    const next = {...resolutions};
+    Object.entries(resolutions).forEach(([key, resolution]) => {
+        const cell = bodyCells[key];
+        const weight = cell?.kind === "reference" ? cell.reference?.weight ?? 1 : resolution.weight;
+        const perspective = cell?.kind === "reference" ? cell.reference?.perspective ?? "same" : resolution.perspective ?? "same";
+        if (weight !== resolution.weight || perspective !== (resolution.perspective ?? "same")) {
+            changed = true;
+            next[key] = {...resolution, weight, perspective, finalValue: resolution.basePreValue + linkedEvFactor(weight, perspective) * resolution.linkedExpectedValue};
+        }
+    });
+
+    return changed ? next : resolutions;
+}
 
 interface UseMatrixReferenceViewModelOptions {
     matrix: MatrixPayload;
@@ -43,10 +65,11 @@ export function useMatrixReferenceViewModel({
         return {};
     }, [matrix.extensions]);
 
-    const effectiveLinkedCellResolutions = React.useMemo(() => ({
-        ...linkedCellResolutions,
-        ...editorLinkedCellResolutions,
-    }), [editorLinkedCellResolutions, linkedCellResolutions]);
+    const bodyCells = state.grid.bodyCells;
+    const effectiveLinkedCellResolutions = React.useMemo(
+        () => applyCurrentReferenceWeights({...linkedCellResolutions, ...editorLinkedCellResolutions}, bodyCells),
+        [bodyCells, editorLinkedCellResolutions, linkedCellResolutions]
+    );
 
     const referenceResolution = React.useMemo(() => {
         const resolver = createMapReferenceResolver(referenceSourceMap);
@@ -61,21 +84,19 @@ export function useMatrixReferenceViewModel({
         });
     }, [state, referenceSourceMap, effectiveLinkedCellResolutions]);
 
-    const referenceDisplayLabels = React.useMemo(() => {
-        return Object.entries(effectiveLinkedCellResolutions).reduce<Record<string, string>>((acc, [key, resolution]) => {
-            acc[key] = resolution.displayFormula;
-            return acc;
-        }, {});
-    }, [effectiveLinkedCellResolutions]);
-
-    const displayedExpectedValue = React.useMemo(
-        () => computeDisplayedExpectedValue(filteredVisibleState, referenceResolution.displayedBodyValues),
+    const payoffBodyValues = React.useMemo(
+        () => withAxisResourceCosts(filteredVisibleState, referenceResolution.displayedBodyValues),
         [filteredVisibleState, referenceResolution.displayedBodyValues]
     );
 
+    const displayedExpectedValue = React.useMemo(
+        () => computeDisplayedExpectedValue(filteredVisibleState, payoffBodyValues),
+        [filteredVisibleState, payoffBodyValues]
+    );
+
     const matrixInsights = React.useMemo(
-        () => buildMatrixInsights(filteredVisibleState, referenceResolution.displayedBodyValues, displayedExpectedValue),
-        [displayedExpectedValue, filteredVisibleState, referenceResolution.displayedBodyValues]
+        () => buildMatrixInsights(filteredVisibleState, payoffBodyValues, displayedExpectedValue),
+        [displayedExpectedValue, filteredVisibleState, payoffBodyValues]
     );
 
     React.useEffect(() => {
@@ -137,7 +158,7 @@ export function useMatrixReferenceViewModel({
     return {
         effectiveLinkedCellResolutions,
         referenceResolution,
-        referenceDisplayLabels,
+        linkedResolutionsByKey: effectiveLinkedCellResolutions,
         displayedExpectedValue,
         matrixInsights,
         displayWarnings,

@@ -1,6 +1,6 @@
 import React from "react";
 
-import {MatrixReferencePreValue} from "@/src/features/matrix/model";
+import {MatrixReferencePerspective, MatrixReferencePreValue} from "@/src/features/matrix/model";
 import {AppBox} from "@/src/components/ui/AppBox";
 import {AppButton} from "@/src/components/ui/AppButton";
 import {AppTextField} from "@/src/components/ui/AppTextField";
@@ -14,11 +14,13 @@ interface ScenarioLinkPanelProps {
     initialScenarioId?: string;
     initialScenarioLabel?: string;
     initialPreValue?: MatrixReferencePreValue;
+    initialWeight?: number;
+    initialPerspective?: MatrixReferencePerspective;
     moveLabelById: Record<string, string>;
     presentation?: "modal" | "inline";
     resetKey?: string;
     onClose: () => void;
-    onConfirm: (item: ScenarioSearchItem, preValue: MatrixReferencePreValue, starterLabels: Record<string, string>) => void;
+    onConfirm: (item: ScenarioSearchItem, preValue: MatrixReferencePreValue, starterLabels: Record<string, string>, weight: number, perspective: MatrixReferencePerspective) => void;
     onRemove?: () => void;
 }
 
@@ -36,7 +38,7 @@ export function ScenarioLinkPanel({open, resetKey = "scenario-link-panel", ...bo
     return <ScenarioLinkPanelBody key={resetKey} {...bodyProps} />;
 }
 
-function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initialPreValue, moveLabelById, presentation = "modal", onClose, onConfirm, onRemove}: ScenarioLinkPanelBodyProps) {
+function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initialPreValue, initialWeight, initialPerspective, moveLabelById, presentation = "modal", onClose, onConfirm, onRemove}: ScenarioLinkPanelBodyProps) {
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [query, setQuery] = React.useState("");
@@ -46,6 +48,8 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
     const [preValueKind, setPreValueKind] = React.useState<PreValueKind>(() => initialPreValue?.kind ?? "none");
     const [staticPreValue, setStaticPreValue] = React.useState(() => initialPreValue?.kind === "static" ? String(initialPreValue.staticValue) : "");
     const [dynamicPreValue, setDynamicPreValue] = React.useState(() => initialPreValue?.kind === "dynamic_combo" ? initialPreValue.dynamicCombo : null);
+    const [weightPercent, setWeightPercent] = React.useState(() => String(Math.round((initialWeight ?? 1) * 1000) / 10));
+    const [perspective, setPerspective] = React.useState<MatrixReferencePerspective>(initialPerspective ?? "same");
     const dynamicStarterLabelsRef = React.useRef<Record<string, string>>({});
 
     React.useEffect(() => {
@@ -200,6 +204,36 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                         </AppBox>
                     ) : null}
 
+                    <AppBox component="label" sx={{display: "grid", gap: 0.5}}>
+                        <AppTypography variant="caption" sx={(theme) => ({color: theme.fgc.text.secondary})}>Share of linked EV (%)</AppTypography>
+                        <AppTextField
+                            size="small"
+                            type="number"
+                            inputProps={{min: 1, max: 100, step: 1}}
+                            value={weightPercent}
+                            onChange={(event) => {
+                                setWeightPercent(event.target.value);
+                                setError(null);
+                            }}
+                            sx={{width: {xs: "100%", sm: 140}}}
+                        />
+                    </AppBox>
+
+                    <AppBox component="label" sx={{display: "grid", gap: 0.5}}>
+                        <AppTypography variant="caption" sx={(theme) => ({color: theme.fgc.text.secondary})}>Linked scenario&apos;s attacker</AppTypography>
+                        <select
+                            className="scenario-link-control"
+                            value={perspective}
+                            onChange={(event) => {
+                                setPerspective(event.target.value === "opponent" ? "opponent" : "same");
+                                setError(null);
+                            }}
+                        >
+                            <option value="same">This attacker (adds its EV)</option>
+                            <option value="opponent">This defender (subtracts its EV)</option>
+                        </select>
+                    </AppBox>
+
                     {preValueKind === "dynamic_combo" ? (
                         <DynamicComboPanel
                             open
@@ -234,6 +268,13 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                                     }
                                     : null);
                             if (selected) {
+                                const percent = Number(weightPercent);
+                                if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+                                    setError("Share of linked EV must be above 0% and at most 100%.");
+                                    return;
+                                }
+                                const weight = percent / 100;
+
                                 if (preValueKind === "static") {
                                     const numeric = Number(staticPreValue);
                                     if (!Number.isFinite(numeric)) {
@@ -241,7 +282,7 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                                         return;
                                     }
 
-                                    onConfirm(selected, {kind: "static", staticValue: numeric}, {});
+                                    onConfirm(selected, {kind: "static", staticValue: numeric}, {}, weight, perspective);
                                     return;
                                 }
 
@@ -251,11 +292,11 @@ function ScenarioLinkPanelBody({initialScenarioId, initialScenarioLabel, initial
                                         return;
                                     }
 
-                                    onConfirm(selected, {kind: "dynamic_combo", dynamicCombo: dynamicPreValue}, dynamicStarterLabelsRef.current);
+                                    onConfirm(selected, {kind: "dynamic_combo", dynamicCombo: dynamicPreValue}, dynamicStarterLabelsRef.current, weight, perspective);
                                     return;
                                 }
 
-                                onConfirm(selected, {kind: "none"}, {});
+                                onConfirm(selected, {kind: "none"}, {}, weight, perspective);
                             }
                         }}
                     >

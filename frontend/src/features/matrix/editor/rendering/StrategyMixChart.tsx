@@ -1,58 +1,84 @@
 import React from "react";
 import {useMode} from "@/src/context/ThemeContext";
 import {readableTextOn} from "@/src/components/ui/AppThemeUtils";
+import type {MatrixMixDatum} from "../services/matrixInsightService";
 import {buildChartPalette} from "./optionColorTags";
 
 interface StrategyMixChartProps {
     title: string;
-    data: Array<{label: string; frequency: number}>;
+    data: MatrixMixDatum[];
 }
 
-export function StrategyMixChart({title, data}: StrategyMixChartProps) {
+function formatShare(value: number | null): string {
+    return value === null ? "–" : `${Math.round(value * 100)}%`;
+}
+
+function MixBar({label, options, share, palette}: {label: string; options: MatrixMixDatum[]; share: (option: MatrixMixDatum) => number; palette: string[]}) {
     const {theme} = useMode();
-    const segments = data.filter((item) => item.frequency > 0).sort((a, b) => b.frequency - a.frequency);
-    const palette = buildChartPalette(theme, Math.max(segments.length, 5));
 
     return (
-        <div data-chart="strategy-mix" style={{border: `1px solid ${theme.fgc.border.default}`, borderRadius: 10, padding: 10, background: theme.fgc.surface.raised}}>
-            <div style={{fontSize: 14, fontWeight: 700, color: theme.fgc.text.secondary, marginBottom: 8}}>{title}</div>
-            <div style={{height: 62, border: `1px solid ${theme.fgc.border.default}`, borderRadius: 8, overflow: "hidden", display: "flex", background: theme.fgc.surface.sunken}}>
-                {segments.map((segment, index) => {
-                    const widthPercent = Math.max(0, Number((segment.frequency * 100).toFixed(2)));
-                    return (
+        <div style={{display: "grid", gap: 3}}>
+            <span style={{fontSize: 12, fontWeight: 600, color: theme.fgc.text.secondary}}>{label}</span>
+            <div style={{height: 28, border: `1px solid ${theme.fgc.border.default}`, borderRadius: 6, overflow: "hidden", display: "flex", background: theme.fgc.surface.sunken}}>
+                {options.map((option) => {
+                    const widthPercent = Math.max(0, share(option) * 100);
+                    const color = palette[option.colorIndex % palette.length];
+                    return widthPercent > 0 ? (
                         <div
-                            key={segment.label}
-                            style={{
-                                width: `${widthPercent}%`,
-                                background: palette[index],
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                minWidth: widthPercent > 0 ? 2 : 0,
-                                padding: widthPercent >= 8 ? "0 4px" : 0,
-                                boxSizing: "border-box",
-                            }}
-                            title={`${segment.label} ${(segment.frequency * 100).toFixed(2)}%`}
+                            key={option.id}
+                            title={`${option.label} ${formatShare(share(option))}`}
+                            style={{width: `${widthPercent}%`, minWidth: 2, background: color, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden"}}
                         >
-                            {widthPercent >= 8 ? (
-                                <span style={{fontSize: 12, fontWeight: 600, color: readableTextOn(palette[index], theme.palette.common.white, theme.fgc.app.canvas), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>
-                                    {segment.label} {(segment.frequency * 100).toFixed(1)}%
-                                </span>
+                            {widthPercent >= 10 ? (
+                                <span style={{fontSize: 12, fontWeight: 600, color: readableTextOn(color, theme.palette.common.white, theme.fgc.app.canvas)}}>{formatShare(share(option))}</span>
                             ) : null}
                         </div>
-                    );
+                    ) : null;
                 })}
             </div>
-            <div style={{display: "grid", gridTemplateColumns: "1fr", gap: 6, marginTop: 8}}>
-                {segments.slice(0, 5).map((segment, index) => (
-                    <div key={segment.label} style={{display: "flex", alignItems: "center", gap: 8, minWidth: 0}}>
-                        <span style={{width: 8, height: 8, borderRadius: 999, background: palette[index], flexShrink: 0}} />
-                        <span style={{fontSize: 12, color: theme.fgc.text.secondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
-                            {segment.label} {(segment.frequency * 100).toFixed(1)}%
-                        </span>
-                    </div>
-                ))}
+        </div>
+    );
+}
+
+// Nash equilibrium mix next to the mix seen in replays: one color per option in both bars, in the same order.
+export function StrategyMixChart({title, data}: StrategyMixChartProps) {
+    const {theme} = useMode();
+    const options = data.filter((option) => option.frequency > 0 || (option.seen ?? 0) > 0);
+    const palette = buildChartPalette(theme, Math.max(data.length, 5));
+    const hasSeen = data.some((option) => option.seen !== null);
+    const solved = data.some((option) => option.frequency > 0);
+    const sampleCounts = data.map((option) => option.seenSampleCount).filter((count): count is number => count !== null);
+    const seenLabel = sampleCounts.length > 0 ? `Seen (n=${Math.max(...sampleCounts)})` : "Seen";
+    const cell = {fontSize: 12, color: theme.fgc.text.secondary, textAlign: "right" as const, fontVariantNumeric: "tabular-nums" as const};
+
+    return (
+        <div data-chart="strategy-mix" style={{boxSizing: "border-box", height: "100%", border: `1px solid ${theme.fgc.border.default}`, borderRadius: 10, padding: 10, background: theme.fgc.surface.raised}}>
+            <div style={{fontSize: 14, fontWeight: 700, color: theme.fgc.text.secondary, marginBottom: 8}}>{title}</div>
+            <div style={{display: "grid", gap: 8}}>
+                <MixBar label="Nash Equilibrium" options={options} share={(option) => option.frequency} palette={palette}/>
+                {hasSeen ? <MixBar label={seenLabel} options={options} share={(option) => option.seen ?? 0} palette={palette}/> : null}
             </div>
+            {options.length > 0 ? (
+                <div style={{display: "grid", gridTemplateColumns: hasSeen ? "minmax(0, 1fr) auto auto" : "minmax(0, 1fr) auto", columnGap: 16, rowGap: 6, marginTop: 10, alignItems: "center"}}>
+                    {hasSeen ? (
+                        <>
+                            <span/>
+                            <span style={{...cell, fontWeight: 600}}>Nash Equilibrium</span>
+                            <span style={{...cell, fontWeight: 600}}>Seen</span>
+                        </>
+                    ) : null}
+                    {options.map((option) => (
+                        <React.Fragment key={option.id}>
+                            <span style={{display: "flex", alignItems: "center", gap: 8, minWidth: 0}}>
+                                <span style={{width: 8, height: 8, borderRadius: 999, background: palette[option.colorIndex % palette.length], flexShrink: 0}}/>
+                                <span style={{fontSize: 12, color: theme.fgc.text.primary, overflowWrap: "anywhere"}}>{option.label}</span>
+                            </span>
+                            <span style={cell}>{solved ? formatShare(option.frequency) : "–"}</span>
+                            {hasSeen ? <span style={cell}>{formatShare(option.seen)}</span> : null}
+                        </React.Fragment>
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 }

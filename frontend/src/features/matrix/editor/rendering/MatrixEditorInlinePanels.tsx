@@ -72,10 +72,20 @@ export function MatrixEditorInlinePanels({
                             ? state.grid.bodyCells[linkTargetKey].reference?.preValue
                             : {kind: "none"}
                     }
+                    initialWeight={
+                        linkTargetKey && state.grid.bodyCells[linkTargetKey]?.kind === "reference"
+                            ? state.grid.bodyCells[linkTargetKey].reference?.weight
+                            : undefined
+                    }
+                    initialPerspective={
+                        linkTargetKey && state.grid.bodyCells[linkTargetKey]?.kind === "reference"
+                            ? state.grid.bodyCells[linkTargetKey].reference?.perspective
+                            : undefined
+                    }
                     resetKey={linkTargetKey ?? "closed"}
                     moveLabelById={moveLabelById}
                     onClose={closeLinkPanel}
-                    onConfirm={(item, preValue, starterLabels) => {
+                    onConfirm={(item, preValue, starterLabels, weight, perspective) => {
                         if (!linkTargetKey) {
                             return;
                         }
@@ -83,6 +93,8 @@ export function MatrixEditorInlinePanels({
                         mergeMoveLabels(starterLabels);
                         dispatch(actions.linkReferenceCell(linkTargetKey, item.id, item.label));
                         dispatch(actions.setReferencePreValue(linkTargetKey, preValue));
+                        dispatch(actions.setReferenceWeight(linkTargetKey, weight));
+                        dispatch(actions.setReferencePerspective(linkTargetKey, perspective));
                         closeLinkPanel();
                     }}
                     onRemove={() => {

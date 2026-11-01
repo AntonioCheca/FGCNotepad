@@ -68,16 +68,18 @@ export function MatrixRowFocus({rows, defaultRowId, rowAxisLabel, columnAxisLabe
                             gap: 12,
                             padding: "10px 12px",
                             borderTop: index === 0 ? "none" : `1px solid ${theme.fgc.border.subtle}`,
-                            background: theme.fgc.surface.base,
-                            opacity: outcome.unavailable ? 0.6 : 1,
+                            background: outcome.unavailable ? theme.fgc.surface.sunken : theme.fgc.surface.base,
                         }}
                     >
-                        <span style={{minWidth: 0, fontSize: 16, fontWeight: 700, color: theme.fgc.text.primary, overflowWrap: "anywhere"}}>
+                        <span style={{minWidth: 0, fontSize: 16, fontWeight: 700, color: outcome.unavailable ? theme.fgc.text.secondary : theme.fgc.text.primary, overflowWrap: "anywhere"}}>
                             {outcome.columnLabel}
                             {outcome.columnFrequency ? <span style={{marginLeft: 6, fontSize: 14, fontWeight: 500, color: theme.fgc.text.secondary}}>{outcome.columnFrequency}</span> : null}
                         </span>
-                        <span style={{fontSize: 18, fontWeight: 700, fontVariantNumeric: "tabular-nums", textAlign: "right", color: outcome.unavailable ? theme.fgc.text.disabled : valueColor(outcome.value)}}>
+                        <span style={{fontSize: 18, fontWeight: 700, fontVariantNumeric: "tabular-nums", textAlign: "right", color: outcome.unavailable ? theme.fgc.text.secondary : valueColor(outcome.value)}}>
                             {outcome.unavailable ? "Unavailable" : outcome.display}
+                            {!outcome.unavailable && outcome.breakdown ? (
+                                <span style={{display: "block", fontSize: 13, fontWeight: 500, color: theme.fgc.text.secondary}}>{outcome.breakdown}</span>
+                            ) : null}
                         </span>
                     </li>
                 ))}

@@ -26,6 +26,16 @@ class ScenarioColumn
     #[ORM\Column(type: Types::TEXT)]
     private string $label = '';
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $description = null;
+
+    /** Share of observed situations where this option was picked; only imported scenarios carry it. */
+    #[ORM\Column(name: 'seen_frequency', type: Types::FLOAT, nullable: true)]
+    private ?float $seenFrequency = null;
+
+    #[ORM\Column(name: 'seen_sample_count', type: Types::INTEGER, nullable: true)]
+    private ?int $seenSampleCount = null;
+
     #[ORM\Column(type: Types::INTEGER)]
     private int $layer = 1;
 
@@ -83,6 +93,46 @@ class ScenarioColumn
         $this->label = $label;
 
         return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): static
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
+    public function getSeenFrequency(): ?float
+    {
+        return $this->seenFrequency;
+    }
+
+    public function getSeenSampleCount(): ?int
+    {
+        return $this->seenSampleCount;
+    }
+
+    public function setSeenStats(?float $frequency, ?int $sampleCount): static
+    {
+        $this->seenFrequency = $frequency;
+        $this->seenSampleCount = null === $frequency ? null : $sampleCount;
+
+        return $this;
+    }
+
+    /**
+     * Copies what the editor payload does not carry: the description and the seen stats.
+     */
+    public function copyAnnotationsFrom(self $previous): static
+    {
+        $this->description = $previous->getDescription();
+
+        return $this->setSeenStats($previous->getSeenFrequency(), $previous->getSeenSampleCount());
     }
 
     public function getLayer(): int

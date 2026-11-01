@@ -2,7 +2,9 @@
 
 namespace App\Tests\Service;
 
+use App\Service\ComboNotationDictionaryTranslator;
 use App\Service\ComboNotationTranslator;
+use App\Service\NotationCanonicalizer;
 use PHPUnit\Framework\TestCase;
 
 class ComboNotationTranslatorTest extends TestCase
@@ -226,6 +228,24 @@ class ComboNotationTranslatorTest extends TestCase
         self::assertSame(112, $result['steps'][0]['child_sequence_id']);
         self::assertSame('2MP > MP', $result['steps'][0]['token']);
         self::assertSame([], $result['errors']);
+    }
+
+    public function testTranslateMatchesThreeHopTargetComboAfterBareButtonIsCanonicalised(): void
+    {
+        $leafOptions = [
+            ...$this->leafOptions,
+            ['id' => 140, 'notation' => '5MP > 4HP', 'moveType' => 'normal', 'cancelTypeCodes' => []],
+            ['id' => 141, 'notation' => '5MP > 4HP > HP', 'moveType' => 'normal', 'cancelTypeCodes' => ['su']],
+        ];
+        $canonicalizer = new NotationCanonicalizer(new ComboNotationDictionaryTranslator());
+
+        foreach (['5MP > 4HP > HP' => [141], '2LP > 5MP > 4HP > HP' => [101, 141]] as $notation => $expectedLeafIds) {
+            $canonicalNotation = $canonicalizer->canonicalize($notation)['canonicalNotation'];
+            $result = $this->translator->translateNotationToInternalSteps($canonicalNotation, $leafOptions, $this->connectionTypes);
+
+            self::assertSame([], $result['errors']);
+            self::assertSame($expectedLeafIds, array_column($result['steps'], 'child_sequence_id'), $notation);
+        }
     }
 
     public function testTranslateDoesNotMergeTargetComboWhenPreviousMoveLacksTc(): void

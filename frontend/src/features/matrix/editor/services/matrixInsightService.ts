@@ -1,4 +1,4 @@
-import {MatrixEditorState, createBodyCellKey} from "@/src/features/matrix/model";
+import {MatrixAxisItem, MatrixEditorState, createBodyCellKey} from "@/src/features/matrix/model";
 
 export type MatrixHeatmapTone = "positiveStrong" | "positiveSoft" | "negativeStrong" | "negativeSoft" | "neutral";
 
@@ -6,6 +6,11 @@ export interface MatrixMixDatum {
     id: string;
     label: string;
     frequency: number;
+    // Observed share from an imported scenario; null when the option was never measured.
+    seen: number | null;
+    seenSampleCount: number | null;
+    // Rank in the mix: both mixes use colors in the same order, and an option keeps its color in both bars.
+    colorIndex: number;
 }
 
 export interface WeightedOutcomeDatum {
@@ -21,7 +26,6 @@ export interface MatrixInsights {
     payoffMin: number | null;
     payoffMax: number | null;
     weightedOutcomes: WeightedOutcomeDatum[];
-    evHistogram: Array<{eventLabel: string; payoff: number; likelihood: number}>;
     heatmapToneByCellKey: Record<string, MatrixHeatmapTone>;
 }
 
@@ -54,30 +58,23 @@ function classifyOutcome(value: number): string {
     return "Combo Achieved";
 }
 
-function classifyEventLabel(value: number): string {
-    if (value <= -1000) return "OD DP Hit";
-    if (value < 0) return "Punished";
-    if (value === 0) return "Neutral / Whiff";
-    if (value < 3000) return "Throw Landed";
-    return "Max Punish Combo";
+// Ordered by the Nash share, then the seen share, so both bars read in the same order.
+function buildMix(axis: MatrixAxisItem[], optimalFrequency: (item: MatrixAxisItem) => number | null | undefined): MatrixMixDatum[] {
+    return axis
+        .map((item) => ({
+            id: item.id,
+            label: item.label || item.id,
+            frequency: normalize01(optimalFrequency(item) ?? 0),
+            seen: item.seenStats ? normalize01(item.seenStats.frequency) : null,
+            seenSampleCount: item.seenStats?.sampleCount ?? null,
+        }))
+        .sort((a, b) => b.frequency - a.frequency || (b.seen ?? 0) - (a.seen ?? 0))
+        .map((option, rank) => ({...option, colorIndex: rank}));
 }
 
 export function buildMatrixInsights(state: MatrixEditorState, displayedBodyValues: Record<string, number | null>, expectedValue: number | null): MatrixInsights {
-    const attackerMix: MatrixMixDatum[] = state.grid.rows
-        .map((row) => ({
-            id: row.id,
-            label: row.label || row.id,
-            frequency: normalize01(state.grid.rowSummaryCells[`row-summary::${row.id}`]?.value ?? 0),
-        }))
-        .sort((a, b) => b.frequency - a.frequency);
-
-    const defenderMix: MatrixMixDatum[] = state.grid.columns
-        .map((column) => ({
-            id: column.id,
-            label: column.label || column.id,
-            frequency: normalize01(state.grid.columnSummaryCells[`column-summary::${column.id}`]?.value ?? 0),
-        }))
-        .sort((a, b) => b.frequency - a.frequency);
+    const attackerMix = buildMix(state.grid.rows, (row) => state.grid.rowSummaryCells[`row-summary::${row.id}`]?.value);
+    const defenderMix = buildMix(state.grid.columns, (column) => state.grid.columnSummaryCells[`column-summary::${column.id}`]?.value);
 
     const payoffByCell = state.grid.rows.flatMap((row) =>
         state.grid.columns.map((column) => {
@@ -121,23 +118,6 @@ export function buildMatrixInsights(state: MatrixEditorState, displayedBodyValue
     }
     weightedOutcomes.sort((a, b) => b.probability - a.probability);
 
-    const evDistributionMap = payoffByCell.reduce<Record<number, number>>((acc, entry) => {
-        if (entry.value === null || entry.probability <= 0) {
-            return acc;
-        }
-        const roundedValue = Math.round(entry.value);
-        acc[roundedValue] = (acc[roundedValue] ?? 0) + entry.probability;
-        return acc;
-    }, {});
-
-    const evHistogram = Object.entries(evDistributionMap)
-        .map(([value, likelihood]) => ({
-            payoff: Number(value),
-            likelihood: Number((likelihood * 100).toFixed(4)),
-            eventLabel: `${classifyEventLabel(Number(value))} (${Number(value)})`,
-        }))
-        .sort((a, b) => a.payoff - b.payoff);
-
     const heatmapToneByCellKey = payoffByCell.reduce<Record<string, MatrixHeatmapTone>>((acc, entry) => {
         if (entry.value === null) {
             acc[entry.key] = "neutral";
@@ -164,7 +144,6 @@ export function buildMatrixInsights(state: MatrixEditorState, displayedBodyValue
         payoffMin,
         payoffMax,
         weightedOutcomes,
-        evHistogram,
         heatmapToneByCellKey,
     };
 }

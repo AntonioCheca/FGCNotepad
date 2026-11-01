@@ -17,7 +17,7 @@ Research articles live at `/research` and `/research/<slug>`. Each article is on
 ## Workflow
 
 1. Analyze the replay data in SF6ReplaysDb.
-2. Export the figures from Matplotlib. Use SVG for charts (`fig.savefig("x.svg", bbox_inches="tight")`), or PNG at `dpi=200` for dense scatter plots.
+2. Export the figures with `replay-analysis research article-figures` in SF6ReplaysDb. It uses the site's dark theme, and `notes.md` next to the figures holds the sample sizes and definitions for the captions.
 3. Copy the selected figures into `frontend/public/research/<slug>/figures/`.
 4. Copy `_template.md` to `<slug>.md`, fill in the frontmatter and write the article. Keep `draft: true` while writing.
 5. Preview it with the dev server at `http://localhost:3000/research/<slug>`. Drafts show a Draft chip.
@@ -56,7 +56,15 @@ Social sites (Reddit, Discord, X) do not render SVG previews, so `image` must be
   ![Alt text for screen readers](figures/damage-by-rank.svg "Figure 1. Median damage by rank. n = 12,500 combos.")
   ```
 
-  Figures sit on a white plate so that Matplotlib's default white background also reads in dark mode.
+  A caption starting `Figure 1.` gets that label in bold.
+
+  Add `#right-40` to the path to float a figure to the right at 40% of the column, with the text wrapping beside it. Any width from 25 to 60 works, and phones show it full width. Put the figure before the text it goes with, and use a figure exported for that size:
+
+  ```markdown
+  ![Alt text](figures/damage-side.png#right-40 "Figure 2. Median damage by rank.")
+  ```
+
+  Figures sit directly on the dark page, so export them with a transparent background and light text. A default white Matplotlib export will show as a white block.
 - **Math.** KaTeX renders `$inline$` and `$$display$$` math.
 - **Tables.** GFM tables scroll horizontally on phones. Right-align number columns with `---:`.
 - **Notes.** Blockquotes render as notes. Use them for caveats, filters and definitions (`> **Methodology note.** ...`).

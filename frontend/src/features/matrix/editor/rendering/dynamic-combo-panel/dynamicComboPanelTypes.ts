@@ -1,7 +1,7 @@
 import type {MatrixDynamicComboData} from "@/src/features/matrix/model";
 
 export type DynamicComboPresentation = "modal" | "inline";
-export type StarterContextPreset = "normal" | "punish_counter" | "counter_hit";
+export type StarterContextPreset = "normal" | "punish_counter" | "perfect_parry" | "counter_hit";
 
 export interface DynamicComboPanelProps {
     open: boolean;

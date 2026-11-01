@@ -151,6 +151,7 @@ export default function ScenarioDetailPage() {
                 <ScenarioDetailHeader
                     scenarioId={scenarioId}
                     showActions={liveSolving === true}
+                    canExport={authContext?.canManageUsers ?? false}
                     refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
                     onRefreshDynamicCombos={() => void dynamicResolution.refreshDynamicCombosWithLoading()}
                 />

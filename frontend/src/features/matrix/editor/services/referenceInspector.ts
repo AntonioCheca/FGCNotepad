@@ -5,6 +5,7 @@ export interface ReferenceInspectorData {
     scenarioId: string;
     scenarioName: string;
     referenceKind: "reference" | "computed";
+    weight: number;
     resolvedValue: number | null;
     cachedValue: number | null;
     metadata: Array<{ label: string; value: string }>;
@@ -61,6 +62,7 @@ export function buildReferenceInspectorData(
             cell.reference.scenarioLabel ??
             (typeof metadataName === "string" && metadataName.trim() !== "" ? metadataName : "Linked Scenario"),
         referenceKind: cell.reference.kind,
+        weight: cell.reference.weight ?? 1,
         resolvedValue: displayedBodyValues[cell.key] ?? cell.value,
         cachedValue: cell.reference.cachedValue,
         metadata: metadataList,

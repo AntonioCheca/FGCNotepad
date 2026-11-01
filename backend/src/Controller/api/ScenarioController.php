@@ -13,9 +13,10 @@ use App\Service\EndpointAuthorizationService;
 use App\Service\ModerationTransitionService;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioExecutionModeService;
+use App\Service\ScenarioLinkedComponentSolveService;
 use App\Service\ScenarioLinkedExpectedValueResolverService;
+use App\Service\ScenarioLinkFixedPoint;
 use App\Service\ScenarioResponseBuilder;
-use App\Service\ScenarioLayerSolveService;
 use App\Service\ScenarioSavedSolutionService;
 use App\Service\ScenarioResourceContextService;
 use App\Service\ScenarioComboContextService;
@@ -45,9 +46,9 @@ class ScenarioController extends AbstractController
         private readonly MoveRepository $moveRepository,
         private readonly AggregatedDefenseCatalogService $aggregatedDefenseCatalogService,
         private readonly ScenarioResponseBuilder $scenarioResponseBuilder,
-        private readonly ScenarioLayerSolveService $scenarioLayerSolveService,
         private readonly ScenarioSavedSolutionService $scenarioSavedSolutionService,
         private readonly ScenarioLinkedExpectedValueResolverService $scenarioLinkedExpectedValueResolverService,
+        private readonly ScenarioLinkedComponentSolveService $linkedComponentSolveService,
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ResolveScenarioDynamicComboCellsService $resolveScenarioDynamicComboCellsService,
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
@@ -112,7 +113,7 @@ class ScenarioController extends AbstractController
                     $this->scenarioComboContextService->buildEffectiveContext($scenario, $data)
                 );
                 $scenario->setAuthor($actor);
-                $this->scenarioSavedSolutionService->refresh($scenario);
+                $this->linkedComponentSolveService->solveAndStore([$scenario]);
                 $this->moderationTransitionService->submitScenarioForReview($scenario);
 
                 $this->entityManager->persist($scenario);
@@ -166,7 +167,8 @@ class ScenarioController extends AbstractController
                 );
             }
 
-            $this->scenarioSavedSolutionService->refresh($scenario);
+            // Re-solves every scenario linked to this one, so their reference cells never keep a stale value.
+            $this->linkedComponentSolveService->solveAndStore([$scenario]);
             $this->moderationTransitionService->submitScenarioForReview($scenario);
 
             $this->entityManager->flush();
@@ -279,10 +281,11 @@ class ScenarioController extends AbstractController
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $solvedLayers = $this->scenarioLayerSolveService->solveByLayer(
+        $solvedLayers = $this->linkedComponentSolveService->solveLayers(
             $scenario,
             $execution['mode'],
-            $execution['difficultyCap']
+            $execution['difficultyCap'],
+            $this->parseLinkPasses($request)
         );
 
         return new JsonResponse([
@@ -293,6 +296,7 @@ class ScenarioController extends AbstractController
             ],
             'maxLayer' => $solvedLayers['maxLayer'],
             'layers' => $solvedLayers['layers'],
+            'linkConvergence' => $solvedLayers['convergence'],
         ], JsonResponse::HTTP_OK);
     }
 
@@ -317,6 +321,7 @@ class ScenarioController extends AbstractController
             $execution['difficultyCap'],
             $resourceContext,
             $requestPayload,
+            $this->parseLinkPasses($request),
         );
 
         return new JsonResponse([
@@ -325,11 +330,11 @@ class ScenarioController extends AbstractController
                 'mode' => $execution['mode'],
                 'difficultyCap' => $execution['difficultyCap'],
             ],
-            'depth' => $solution['depth'],
             'expectedValue' => $solution['expectedValue'],
             'rowAxis' => $solution['rowAxis'],
             'columnAxis' => $solution['columnAxis'],
             'resolvedCells' => $solution['resolvedCells'],
+            'linkConvergence' => $solution['convergence'],
         ], JsonResponse::HTTP_OK);
     }
 
@@ -362,15 +367,7 @@ class ScenarioController extends AbstractController
             throw new BadRequestHttpException('starterContext is required.');
         }
 
-        $isPunishCounter = true === ($starterContext['isPunishCounter'] ?? false);
-        $isCounterHit = true === ($starterContext['isCounterHit'] ?? false);
-        if ($isPunishCounter && $isCounterHit) {
-            throw new BadRequestHttpException('starterContext cannot set both isPunishCounter and isCounterHit to true.');
-        }
-
-        $hitType = $isPunishCounter
-            ? 'punish_counter'
-            : ($isCounterHit ? 'counter_hit' : 'normal');
+        $hitType = $this->scenarioMatrixMapper->resolveStarterContext($starterContext);
 
         $executionPayload = is_array($data['executionMode'] ?? null) ? $data['executionMode'] : [];
         $requestedMode = isset($executionPayload['mode']) && is_string($executionPayload['mode'])
@@ -620,6 +617,16 @@ class ScenarioController extends AbstractController
             'mode' => $this->scenarioExecutionModeService->normalizeMode($requestedMode, null !== $this->extractCurrentUser()),
             'difficultyCap' => $this->scenarioExecutionModeService->normalizeDifficultyCap($executionPayload['difficultyCap'] ?? null),
         ];
+    }
+
+    /**
+     * Optional linkPasses in the request body: fixed-point passes over linked scenarios, clamped to 1..5.
+     */
+    private function parseLinkPasses(Request $request): ?int
+    {
+        $passes = $this->decodeOptionalRequestBody($request)['linkPasses'] ?? null;
+
+        return is_int($passes) ? ScenarioLinkFixedPoint::clampPasses($passes) : null;
     }
 
     private function extractCurrentUser(): ?User

@@ -1,4 +1,4 @@
-import type {MatrixDensityMode, MatrixEditorState, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue} from "@/src/features/matrix/model";
+import type {MatrixDensityMode, MatrixEditorState, MatrixLinkedCellResolution, MatrixResourceRequirement, MatrixSelectionTarget, MatrixValidationIssue} from "@/src/features/matrix/model";
 import type {MatrixEditorPermissions} from "../../hooks/useMatrixEditorPermissions";
 import type {MatrixHeatmapTone} from "../../services/matrixInsightService";
 
@@ -32,7 +32,7 @@ export interface MatrixGridProps {
     draftHasFormatError: boolean;
     validationByKey: Record<string, MatrixValidationIssue[]>;
     displayedBodyValues: Record<string, number | null>;
-    displayLabelsByKey?: Record<string, string>;
+    linkedResolutionsByKey?: Record<string, MatrixLinkedCellResolution>;
     moveLabelById: Record<string, string>;
     unavailableRowIds?: Set<string>;
     unavailableColumnIds?: Set<string>;

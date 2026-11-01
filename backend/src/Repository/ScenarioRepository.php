@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Scenario;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<Scenario>
@@ -79,6 +80,50 @@ class ScenarioRepository extends ServiceEntityRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /**
+     * Resolves a scenario_export_v1 key. Scenarios created on this site have no import key; they export under
+     * $siteSource with their public id as externalId.
+     */
+    public function findOneByExportKey(string $source, string $externalId, string $siteSource): ?Scenario
+    {
+        $imported = $this->findOneBy(['importSource' => $source, 'importExternalId' => $externalId]);
+        if (null !== $imported || $source !== $siteSource || !Uuid::isValid($externalId)) {
+            return $imported;
+        }
+
+        return $this->findOneByPublicId($externalId);
+    }
+
+    /**
+     * Scenarios with a reference cell linking to any of the given scenarios.
+     *
+     * @param list<int> $scenarioIds
+     *
+     * @return list<Scenario>
+     */
+    public function findLinkingTo(array $scenarioIds): array
+    {
+        if ([] === $scenarioIds) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('scenario')
+            ->distinct()
+            ->innerJoin('scenario.cells', 'cell')
+            ->andWhere('cell.referenceScenario IN (:scenarioIds)')
+            ->setParameter('scenarioIds', $scenarioIds)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return list<Scenario>
+     */
+    public function findByImportSource(string $source): array
+    {
+        return $this->findBy(['importSource' => $source], ['importExternalId' => 'ASC']);
     }
 
     public function findOneApprovedByPublicId(string $publicId): ?Scenario

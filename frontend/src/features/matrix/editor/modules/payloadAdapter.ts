@@ -3,7 +3,7 @@ import {deserializeMatrixPayload} from "@/src/features/matrix/serialization/dese
 import {createColumnSummaryKey, createExpectedValueKey, createRowSummaryKey} from "@/src/features/matrix/model";
 import {createInitialMatrixEditorState} from "@/src/features/matrix/state";
 import {MatrixDynamicComboPayload, MatrixPayload} from "@/src/types/matrixPayload";
-import {MatrixEditorState, MatrixOptionColorTag, MatrixReferencePreValue} from "@/src/features/matrix/model";
+import {MatrixEditorState, MatrixOptionColorTag, MatrixReferencePerspective, MatrixReferencePreValue} from "@/src/features/matrix/model";
 
 type AxisOptionColorTagMap = {
     rows: Record<string, MatrixOptionColorTag>;
@@ -69,6 +69,7 @@ function toDynamicComboPayload(value: unknown): MatrixDynamicComboPayload | null
         starterContext: {
             isPunishCounter: starterContext.isPunishCounter,
             isCounterHit: starterContext.isCounterHit,
+            ...(starterContext.isPerfectParry === true ? {isPerfectParry: true} : {}),
         },
     };
 }
@@ -106,12 +107,21 @@ function toReferencePreValuePayload(value: MatrixReferencePreValue): Record<stri
                 starterContext: {
                     isPunishCounter: value.dynamicCombo.starterContext.isPunishCounter,
                     isCounterHit: value.dynamicCombo.starterContext.isCounterHit,
+                    ...(value.dynamicCombo.starterContext.isPerfectParry === true ? {isPerfectParry: true} : {}),
                 },
             },
         };
     }
 
     return {kind: "none"};
+}
+
+function toReferenceWeight(value: unknown): number {
+    return typeof value === "number" && Number.isFinite(value) && value > 0 && value <= 1 ? value : 1;
+}
+
+function toReferencePerspective(value: unknown): MatrixReferencePerspective {
+    return value === "opponent" ? "opponent" : "same";
 }
 
 export function matrixPayloadToEditorState(matrix: MatrixPayload) {
@@ -130,6 +140,7 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
         layer: typeof safe.axes.rowLayers?.[index] === "number" ? safe.axes.rowLayers[index] : 1,
         requirements: safe.axes.rowRequirements?.[index] ?? [],
         colorTag: axisOptionColorTags.rows[`row_${index + 1}`] ?? null,
+        seenStats: safe.axes.rowSeenStats?.[index] ?? null,
     }));
     runtime.grid.columns = safe.axes.columns.map((label, index) => ({
         id: `column_${index + 1}`,
@@ -137,6 +148,7 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
         layer: typeof safe.axes.columnLayers?.[index] === "number" ? safe.axes.columnLayers[index] : 1,
         requirements: safe.axes.columnRequirements?.[index] ?? [],
         colorTag: axisOptionColorTags.columns[`column_${index + 1}`] ?? null,
+        seenStats: safe.axes.columnSeenStats?.[index] ?? null,
     }));
 
     safe.axes.rows.forEach((_, rowIndex) => {
@@ -178,6 +190,8 @@ export function matrixPayloadToEditorState(matrix: MatrixPayload) {
                                         ? cell.value
                                         : null,
                             preValue: toReferencePreValue(cell.metadata?.preValue),
+                            weight: toReferenceWeight(cell.metadata?.weight),
+                            perspective: toReferencePerspective(cell.metadata?.perspective),
                         }
                         : null,
             };
@@ -252,6 +266,8 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
                 scenarioLabel: cell.reference.scenarioLabel,
                 cachedValue: cell.reference.cachedValue,
                 referenceKind: cell.reference.kind,
+                weight: cell.reference.weight ?? 1,
+                perspective: cell.reference.perspective ?? "same",
                 preValue: toReferencePreValuePayload(cell.reference.preValue),
             };
         })
@@ -270,6 +286,7 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
                 starterContext: {
                     isPunishCounter: cell.dynamicCombo.starterContext.isPunishCounter,
                     isCounterHit: cell.dynamicCombo.starterContext.isCounterHit,
+                    ...(cell.dynamicCombo.starterContext.isPerfectParry === true ? {isPerfectParry: true} : {}),
                 },
             };
         })
@@ -304,6 +321,8 @@ export function matrixEditorStateToPayload(state: MatrixEditorState, previous?: 
         columnLayers,
         rowRequirements,
         columnRequirements,
+        rowSeenStats: state.grid.rows.map((row) => row.seenStats ?? null),
+        columnSeenStats: state.grid.columns.map((column) => column.seenStats ?? null),
         values,
         bodyCellTypes,
         bodyCellMetadata,

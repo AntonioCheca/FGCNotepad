@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
     ResearchFrontmatterError,
+    parseFigurePlacement,
     parseResearchFrontmatter,
     resolveResearchAssetPath,
     sortResearchArticlesNewestFirst,
@@ -67,4 +68,15 @@ test("articles sort newest first with slug as tiebreaker", () => {
     ]);
 
     assert.deepEqual(sorted.map((article) => article.slug), ["c", "a", "b"]);
+});
+
+test("figure placement reads a right float and keeps plain images full width", () => {
+    assert.deepEqual(parseFigurePlacement("combo-routes", "figures/rank.png"), {path: "figures/rank.png", rightWidth: null});
+    assert.deepEqual(parseFigurePlacement("combo-routes", "figures/rank.png#right-40"), {path: "figures/rank.png", rightWidth: 40});
+});
+
+test("figure placement rejects typos and widths outside the supported range", () => {
+    assert.throws(() => parseFigurePlacement("combo-routes", "figures/rank.png#rigth-40"), /combo-routes.*#right-25/);
+    assert.throws(() => parseFigurePlacement("combo-routes", "figures/rank.png#right-90"), ResearchFrontmatterError);
+    assert.throws(() => parseFigurePlacement("combo-routes", "figures/rank.png#right-10"), ResearchFrontmatterError);
 });
