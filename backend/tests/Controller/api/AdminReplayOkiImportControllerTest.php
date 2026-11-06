@@ -156,7 +156,7 @@ final class AdminReplayOkiImportControllerTest extends DatabaseTestCase
     {
         return [
             'format' => 'oki_export_v1',
-            'source' => ['replay_id' => 'F7SQ9KBSH', 'source_sha256' => str_repeat('a', 64)],
+            'source' => ['replay_id' => 'RPLOKI001', 'source_sha256' => str_repeat('a', 64)],
             'okis' => $okis,
         ];
     }

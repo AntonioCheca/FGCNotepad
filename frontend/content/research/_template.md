@@ -12,7 +12,7 @@ author: Checa
 # youtube: https://www.youtube.com/watch?v=VIDEO_ID
 tags: [SF6]
 data:
-  source: SF6ReplaysDb
+  source: Own replay analysis
   sampleSize: 12500 replays
   period: "2026-01-01 to 2026-01-31"
   gameVersion: "Season 3"

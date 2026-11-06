@@ -29,3 +29,10 @@ frame-data-imports/
 frontend/public/ffmpeg-core/
 frontend/test-results/
 frontend/playwright-report/
+
+# Replay-derived data never belongs in this repo (exports, match stats, player data).
+/*.json
+/*.csv
+*export*.json
+!docs/scenario-export/*.json
+*.replay.json

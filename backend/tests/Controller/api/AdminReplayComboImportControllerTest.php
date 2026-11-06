@@ -59,7 +59,7 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
         $created = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
         self::assertInstanceOf(ComboSequences::class, $created);
         self::assertSame('pending_review', $created->getModerationState());
-        self::assertSame('CH: 2LP > 5LP [RR95Y8A56 r1-s1-c1]', $created->getName());
+        self::assertSame('CH: 2LP > 5LP [RPLCMB001 r1-s1-c1]', $created->getName());
         self::assertCount(2, $created->getSteps());
         self::assertSame('Initial Move', $created->getSteps()->first()->getConnectionType()?->getName());
 
@@ -93,7 +93,7 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
 
         $perfectParry = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
         self::assertInstanceOf(ComboSequences::class, $perfectParry);
-        self::assertSame('PP+PC: 2LP > 5LP [RR95Y8A56 r1-s1-c1]', $perfectParry->getName());
+        self::assertSame('PP+PC: 2LP > 5LP [RPLCMB001 r1-s1-c1]', $perfectParry->getName());
         self::assertSame(230, $this->entityManager->getRepository(ComboMetrics::class)->findOneBy(['sequence' => $perfectParry])?->getDamage());
         $requirement = $this->entityManager->getRepository(ComboRequirement::class)->findOneBy(['sequence' => $perfectParry]);
         self::assertInstanceOf(ComboRequirement::class, $requirement);
@@ -150,7 +150,7 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
 
         $results = [];
         $spacingCodes = [];
-        foreach ([['mid', 'RR95Y8A56'], ['far', 'RR95Y8A57'], ['close', 'RR95Y8A58'], [null, 'RR95Y8A59']] as [$classification, $replayId]) {
+        foreach ([['mid', 'RPLCMB001'], ['far', 'RPLCMB002'], ['close', 'RPLCMB003'], [null, 'RPLCMB004']] as [$classification, $replayId]) {
             $this->client->request('POST', '/api/admin/replay-combo-imports', [], [], $headers, json_encode($this->document([$combo($classification)], $replayId), JSON_THROW_ON_ERROR));
             $results[] = json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['results'][0];
             $this->entityManager->clear();
@@ -499,7 +499,7 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
         self::assertSame('imported', $payload['results'][0]['status']);
         $created = $this->entityManager->getRepository(ComboSequences::class)->find($payload['results'][0]['comboId']);
         self::assertInstanceOf(ComboSequences::class, $created);
-        self::assertSame('2LP > 5LP [RR95Y8A56 r1-s1-c1]', $created->getName());
+        self::assertSame('2LP > 5LP [RPLCMB001 r1-s1-c1]', $created->getName());
         self::assertStringContainsString('"cr.LP" read as "2LP".', (string) $created->getDescription());
     }
 
@@ -688,7 +688,7 @@ final class AdminReplayComboImportControllerTest extends DatabaseTestCase
      *
      * @return array<string, mixed>
      */
-    private function document(array $combos, string $replayId = 'RR95Y8A56'): array
+    private function document(array $combos, string $replayId = 'RPLCMB001'): array
     {
         return [
             'format' => 'combo_export_v1',

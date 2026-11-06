@@ -36,7 +36,7 @@ imageAlt: "Damage by rank"     # optional
 youtube: https://www.youtube.com/watch?v=...   # optional; shows a "Watch the video" link
 tags: [SF6, Juri, Ken]
 data:                          # optional; rendered as the data box under the title
-  source: SF6ReplaysDb         # or a list: [SF6ReplaysDb, FAT frame data]
+  source: Own replay analysis  # or a list: [Own replay analysis, FAT frame data]
   sampleSize: 12500 replays
   period: "2026-09-01 to 2026-10-01"
   gameVersion: "Season 3"

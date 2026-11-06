@@ -5,6 +5,6 @@ date: 2026-10-12
 author: Checa
 tags: [SF6, Juri, Ken, Combos]
 data:
-  source: SF6ReplaysDb
+  source: Own replay analysis
 draft: true
 ---

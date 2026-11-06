@@ -51,7 +51,7 @@ final class ReplayContextImportControllerTest extends DatabaseTestCase
         self::assertTrue($performer->isMaster());
         self::assertNull($performer->getLeagueTier());
         self::assertNull($performer->getRegion());
-        self::assertSame('2599733375', $performer->getShortId());
+        self::assertSame('1000000002', $performer->getShortId());
         self::assertSame('Ed', $performer->getCharacter()?->getName());
         self::assertSame(400, $observation->getDamage());
     }
@@ -292,8 +292,8 @@ final class ReplayContextImportControllerTest extends DatabaseTestCase
                 'battle_type' => null, 'game_mode' => null, 'replay_tab' => null, 'is_registered' => false, 'is_rival_ai' => false,
             ] : null,
             'players' => [
-                ['slot' => 1, 'character' => 'Ed', 'character_id' => 20, 'cfn_name' => 'Player One', 'short_id' => 3042706214, 'region' => null, 'region_id' => null, 'rank' => $withMetadata ? $rank(1753, 19202) : null],
-                ['slot' => 2, 'character' => 'Ed', 'character_id' => 2, 'cfn_name' => 'Modern hater', 'short_id' => 2599733375, 'region' => null, 'region_id' => null, 'rank' => $withMetadata ? $rank(2178, 153) : null],
+                ['slot' => 1, 'character' => 'Ed', 'character_id' => 20, 'cfn_name' => 'Fixture Player A', 'short_id' => 1000000001, 'region' => null, 'region_id' => null, 'rank' => $withMetadata ? $rank(1753, 19202) : null],
+                ['slot' => 2, 'character' => 'Ed', 'character_id' => 2, 'cfn_name' => 'Fixture Player B', 'short_id' => 1000000002, 'region' => null, 'region_id' => null, 'rank' => $withMetadata ? $rank(2178, 153) : null],
             ],
         ];
     }
