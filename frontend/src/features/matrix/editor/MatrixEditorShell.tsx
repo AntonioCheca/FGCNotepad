@@ -42,6 +42,7 @@ interface MatrixEditorShellProps {
     layerSolveSnapshots?: Record<number, {rowAxis: Array<number | null>; columnAxis: Array<number | null>; expectedValue: number | null}>;
     displayFrequenciesAsPercent?: boolean;
     resourceContext?: MatrixResourceContext | null;
+    snapshotsMatchResources?: boolean;
     currentScenarioId?: string | null;
     canSolve?: boolean;
     linkedCellResolutions?: Record<string, MatrixLinkedCellResolution>;
@@ -68,6 +69,7 @@ export function MatrixEditorShell({
     layerSolveSnapshots,
     displayFrequenciesAsPercent = false,
     resourceContext = null,
+    snapshotsMatchResources = false,
     currentScenarioId = null,
     canSolve = true,
     linkedCellResolutions = EMPTY_LINKED_CELL_RESOLUTIONS,
@@ -118,6 +120,7 @@ export function MatrixEditorShell({
         displayFrequenciesAsPercent,
         layerSolveSnapshots,
         resourceContext,
+        snapshotsMatchResources,
     });
 
     const referenceModel = useMatrixReferenceViewModel({
@@ -128,6 +131,7 @@ export function MatrixEditorShell({
         editorLinkedCellResolutions,
         dispatch,
         actions,
+        expectedValueOverride: snapshotsMatchResources ? viewModel.layerSnapshot?.expectedValue ?? null : null,
     });
 
     const resolveLinkedCellsForSolve = React.useCallback(() => resolveEditorLinkedReferences({

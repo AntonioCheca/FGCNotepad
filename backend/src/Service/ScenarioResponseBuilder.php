@@ -10,6 +10,7 @@ class ScenarioResponseBuilder
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
         private readonly ScenarioComboContextService $scenarioComboContextService,
         private readonly ScenarioSavedSolutionService $scenarioSavedSolutionService,
+        private readonly ScenarioAliasService $scenarioAliasService,
     ) {
     }
 
@@ -54,6 +55,7 @@ class ScenarioResponseBuilder
         return [
             'id' => $scenario->getPublicId()->toRfc4122(),
             'name' => $scenario->getName(),
+            'alias' => $this->scenarioAliasService->findAlias($scenario),
             'searchLabel' => $scenario->getSearchLabel(),
             'scenarioType' => $scenario->getScenarioType(),
             'typeLabel' => $this->toTypeLabel($scenario->getScenarioType()),

@@ -227,3 +227,32 @@ function optionalUrl(raw: Record<string, unknown>, key: string, fail: (message: 
 
     return value;
 }
+
+export type ResearchHtmlSegment = {kind: "html"; html: string} | {kind: "scenarioExplorer"; scenarioRef: string};
+
+const SCENARIO_EXPLORER_PLACEHOLDER = /<div data-scenario-explorer="([a-z0-9-]{1,80})"><\/div>/g;
+
+// Same normalization as the backend's scenario aliases: "Juri 214MK main oki" becomes "juri-214mk-main-oki". Public
+// ids come through unchanged.
+export function normalizeScenarioReference(reference: string): string {
+    return reference.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// The rendered article split around its scenario explorer placeholders, which the page fills with live components.
+export function splitResearchHtml(html: string): ResearchHtmlSegment[] {
+    const segments: ResearchHtmlSegment[] = [];
+    let cursor = 0;
+    for (const match of html.matchAll(SCENARIO_EXPLORER_PLACEHOLDER)) {
+        const start = match.index ?? 0;
+        if (start > cursor) {
+            segments.push({kind: "html", html: html.slice(cursor, start)});
+        }
+        segments.push({kind: "scenarioExplorer", scenarioRef: match[1]});
+        cursor = start + match[0].length;
+    }
+    if (cursor < html.length) {
+        segments.push({kind: "html", html: html.slice(cursor)});
+    }
+
+    return segments;
+}

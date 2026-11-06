@@ -24,6 +24,18 @@ class ScenarioLinkedExpectedValueResolverService
     /** Distinct (scenario, resources) nodes solved per request; links past it count the linked scenario's saved EV. */
     private const MAX_NODES = 32;
 
+    /** Entries kept in each memo; batch callers such as the resource grid reuse them across many contexts. */
+    private const MEMO_LIMIT = 50000;
+
+    /** @var array<string, array{resolvedDamage:float|null,resolvedComboId:int|null,resolvedStarterMoveId:string|null,resourceContext:array<string,mixed>|null}> */
+    private array $comboMemo = [];
+
+    /** @var array<string, array<string, mixed>> */
+    private array $solveMemo = [];
+
+    /** @var array<string, array<string, mixed>> */
+    private array $resolveMemo = [];
+
     public function __construct(
         private readonly MixedStrategyGameSolver $mixedStrategyGameSolver,
         private readonly ResolveDynamicComboCellService $resolveDynamicComboCellService,
@@ -74,6 +86,11 @@ class ScenarioLinkedExpectedValueResolverService
             }
         }
 
+        $fingerprint = $this->fingerprint($nodes, $linksByNode, $seedKey, $passes);
+        if (isset($this->resolveMemo[$fingerprint])) {
+            return $this->resolveMemo[$fingerprint];
+        }
+
         $fixedPoint = ScenarioLinkFixedPoint::iterate(
             $linksByNode,
             fn (string $key, array $values): ?float => $this->solveNode($nodes[$key], $values)['expectedValue'],
@@ -99,7 +116,11 @@ class ScenarioLinkedExpectedValueResolverService
 
         $lastPassDelta = [] === $seed['references'] ? null : $fixedPoint['lastPassDeltas'][$seedKey];
 
-        return [
+        if (count($this->resolveMemo) >= self::MEMO_LIMIT) {
+            $this->resolveMemo = [];
+        }
+
+        return $this->resolveMemo[$fingerprint] = [
             'scenarioId' => $scenario->getPublicId()->toRfc4122(),
             'expectedValue' => $solved['expectedValue'],
             'rowAxis' => $solved['rowAxis'],
@@ -115,7 +136,8 @@ class ScenarioLinkedExpectedValueResolverService
 
     /**
      * The scenario's top-layer payoffs with every non-reference cell resolved for this viewer. Reference cells keep
-     * only their axis costs in payoffs; their value comes from the iteration.
+     * only their axis costs in payoffs; their value comes from the iteration. Options whose resource requirements the
+     * node's resources do not meet are left out, as the matrix editor does before solving.
      *
      * @param array<string, array<string, mixed>|null> $resourceContext
      *
@@ -136,8 +158,8 @@ class ScenarioLinkedExpectedValueResolverService
         usort($columns, static fn (ScenarioColumn $a, ScenarioColumn $b): int => $a->getPosition() <=> $b->getPosition());
 
         $maxLayer = $this->computeMaxLayer($rows, $columns);
-        $visibleRowIndexes = $this->visibleIndexes($rows, $maxLayer);
-        $visibleColumnIndexes = $this->visibleIndexes($columns, $maxLayer);
+        $visibleRowIndexes = $this->visibleIndexes($rows, $maxLayer, $resourceContext);
+        $visibleColumnIndexes = $this->visibleIndexes($columns, $maxLayer, $resourceContext);
         $cellsByCoordinate = $this->buildCellCoordinateMap($scenario);
         $payoffs = [];
         $links = [];
@@ -204,7 +226,7 @@ class ScenarioLinkedExpectedValueResolverService
             }
         }
 
-        $result = $this->mixedStrategyGameSolver->solveMixedStrategyGame($payoffMatrix);
+        $result = $this->solveMemoized($payoffMatrix);
         $equilibrium = $result['equilibria'][0] ?? null;
         if (!is_array($equilibrium)) {
             return ['expectedValue' => null, 'rowAxis' => $rowAxis, 'columnAxis' => $columnAxis];
@@ -326,7 +348,11 @@ class ScenarioLinkedExpectedValueResolverService
         $isAttackerInitiated = $cell->isComboInitiatorAttacker();
         $initiatorRole = $isAttackerInitiated ? 'attacker' : 'defender';
         $initiatorContext = null !== $resourceContext ? ($resourceContext[$initiatorRole] ?? null) : null;
-        $resolution = $this->resolveDynamicComboCellService->resolve(
+        $memoKey = md5(serialize([$cell->getId() ?? 'unsaved-' . spl_object_id($cell), $user?->getId(), $executionMode, $difficultyCap, $initiatorContext, $viewerContextPayload]));
+        if (count($this->comboMemo) >= self::MEMO_LIMIT) {
+            $this->comboMemo = [];
+        }
+        $resolution = $this->comboMemo[$memoKey] ??= $this->resolveDynamicComboCellService->resolve(
             $isAttackerInitiated ? $attackerCharacterId : $defenderCharacterId,
             $starterMoveIds,
             $this->toHitType($cell->getStarterContext()),
@@ -367,20 +393,80 @@ class ScenarioLinkedExpectedValueResolverService
     }
 
     /**
-     * @param list<ScenarioRow|ScenarioColumn> $items
+     * Two requests with the same nodes, payoffs and links solve to the same result, whatever resources led there. Node
+     * keys carry the resources, so they are replaced by their order of discovery, which is deterministic.
+     *
+     * @param array<string, ViewerNode>                 $nodes
+     * @param array<string, list<FixedPointLink>>       $linksByNode
+     */
+    private function fingerprint(array $nodes, array $linksByNode, string $seedKey, ?int $passes): string
+    {
+        $order = array_flip(array_keys($nodes));
+        $canonical = [$order[$seedKey], $passes];
+        foreach ($nodes as $key => $node) {
+            $links = array_map(static fn (array $link): array => [
+                $link['id'],
+                $link['base'],
+                $link['factor'],
+                null === $link['target'] ? null : $order[$link['target']],
+                $link['initial'],
+                $link['fallback'],
+            ], $linksByNode[$key]);
+            $canonical[] = [$node['scenario']->getPublicId()->toRfc4122(), $node['rowKeys'], $node['columnKeys'], $node['payoffs'], $node['links'], $links];
+        }
+
+        return md5(serialize($canonical));
+    }
+
+    /**
+     * @param array<string, array<string, int>> $payoffMatrix
+     *
+     * @return array<string, mixed>
+     */
+    private function solveMemoized(array $payoffMatrix): array
+    {
+        $key = md5(serialize($payoffMatrix));
+        if (!isset($this->solveMemo[$key])) {
+            if (count($this->solveMemo) >= self::MEMO_LIMIT) {
+                $this->solveMemo = [];
+            }
+            $this->solveMemo[$key] = $this->mixedStrategyGameSolver->solveMixedStrategyGame($payoffMatrix);
+        }
+
+        return $this->solveMemo[$key];
+    }
+
+    /**
+     * @param list<ScenarioRow|ScenarioColumn>         $items
+     * @param array<string, array<string, mixed>|null>|null $resourceContext
      *
      * @return list<int>
      */
-    private function visibleIndexes(array $items, int $layer): array
+    private function visibleIndexes(array $items, int $layer, ?array $resourceContext = null): array
     {
         $indexes = [];
         foreach ($items as $index => $item) {
-            if ($item->getLayer() <= $layer) {
+            if ($item->getLayer() <= $layer && (null === $resourceContext || $this->meetsRequirements($item, $resourceContext))) {
                 $indexes[] = $index;
             }
         }
 
         return $indexes;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>|null> $resourceContext
+     */
+    private function meetsRequirements(ScenarioRow|ScenarioColumn $item, array $resourceContext): bool
+    {
+        foreach ($item->getResourceRequirements() as $requirement) {
+            $available = $resourceContext[$requirement->getResourceOwner()][$requirement->getResourceType()] ?? null;
+            if (is_numeric($available) && (float) $available < $requirement->getThresholdValue()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

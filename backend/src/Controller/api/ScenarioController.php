@@ -14,9 +14,11 @@ use App\Service\ModerationTransitionService;
 use App\Service\ScenarioMatrixMapper;
 use App\Service\ScenarioExecutionModeService;
 use App\Service\ScenarioLinkedComponentSolveService;
+use App\Service\ScenarioAliasService;
 use App\Service\ScenarioLinkedExpectedValueResolverService;
 use App\Service\ScenarioLinkFixedPoint;
 use App\Service\ScenarioResponseBuilder;
+use App\Service\ScenarioResourceGridService;
 use App\Service\ScenarioSavedSolutionService;
 use App\Service\ScenarioResourceContextService;
 use App\Service\ScenarioComboContextService;
@@ -47,6 +49,8 @@ class ScenarioController extends AbstractController
         private readonly AggregatedDefenseCatalogService $aggregatedDefenseCatalogService,
         private readonly ScenarioResponseBuilder $scenarioResponseBuilder,
         private readonly ScenarioSavedSolutionService $scenarioSavedSolutionService,
+        private readonly ScenarioResourceGridService $scenarioResourceGridService,
+        private readonly ScenarioAliasService $scenarioAliasService,
         private readonly ScenarioLinkedExpectedValueResolverService $scenarioLinkedExpectedValueResolverService,
         private readonly ScenarioLinkedComponentSolveService $linkedComponentSolveService,
         private readonly ScenarioMatrixMapper $scenarioMatrixMapper,
@@ -132,6 +136,68 @@ class ScenarioController extends AbstractController
         $scenario = $this->findViewableByPublicId($id);
 
         return new JsonResponse($this->scenarioResponseBuilder->buildDetail($scenario), JsonResponse::HTTP_OK);
+    }
+
+    /**
+     * The scenario a research article names by alias.
+     */
+    #[Route('/alias/{alias}', name: 'read_by_alias', requirements: ['alias' => '[A-Za-z0-9-]{1,80}'], methods: ['GET'])]
+    public function readByAlias(string $alias): JsonResponse
+    {
+        $scenario = $this->scenarioAliasService->findScenario($alias);
+        if (null === $scenario) {
+            throw new NotFoundHttpException(sprintf('No scenario has the alias %s', $alias));
+        }
+
+        return new JsonResponse($this->scenarioResponseBuilder->buildDetail($this->findViewableByPublicId($scenario->getPublicId()->toRfc4122())), JsonResponse::HTTP_OK);
+    }
+
+    /**
+     * Sets or clears the alias research articles use to embed the scenario. Moderators only: an alias change moves
+     * every embed that uses it.
+     */
+    #[Route('/{id}/alias', name: 'alias', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['PUT'])]
+    public function setAlias(string $id, Request $request): JsonResponse
+    {
+        try {
+            $actor = $this->endpointAuthorizationService->requireAuthenticatedUser($this->security->getUser(), 'Authentication required.');
+            $this->endpointAuthorizationService->assertCanModerateContent($actor);
+        } catch (UnauthorizedHttpException) {
+            return new JsonResponse(['error' => 'Unauthorized'], JsonResponse::HTTP_UNAUTHORIZED);
+        } catch (AccessDeniedHttpException) {
+            return new JsonResponse(['error' => 'Forbidden'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
+        $scenario = $this->findByPublicId($id);
+        $alias = $this->decodeRequestBody($request)['alias'] ?? null;
+        if (null !== $alias && !is_string($alias)) {
+            return new JsonResponse(['error' => 'alias must be a string or null'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        try {
+            $saved = $this->scenarioAliasService->assign($scenario, $alias);
+        } catch (\InvalidArgumentException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], JsonResponse::HTTP_CONFLICT);
+        }
+        $this->entityManager->flush();
+
+        return new JsonResponse(['alias' => $saved], JsonResponse::HTTP_OK);
+    }
+
+    /**
+     * The precomputed equilibrium for every resource combination. A grid computed before the scenario's last edit
+     * is not served: its option positions may no longer match.
+     */
+    #[Route('/{id}/resource-grid', name: 'resource_grid', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['GET'])]
+    public function resourceGrid(string $id): JsonResponse
+    {
+        $scenario = $this->findViewableByPublicId($id);
+        $grid = $this->scenarioResourceGridService->findFor($scenario);
+        if (null === $grid || $scenario->getUpdatedAt() > $grid->getComputedAt()) {
+            return new JsonResponse(['error' => 'No up-to-date resource grid for this scenario.'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        return new JsonResponse($this->scenarioResourceGridService->buildPayload($grid), JsonResponse::HTTP_OK);
     }
 
     #[Route('/{id}', name: 'update', requirements: ['id' => '[0-9a-fA-F-]{36}'], methods: ['PATCH'])]

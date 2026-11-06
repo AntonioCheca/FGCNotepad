@@ -14,6 +14,7 @@ import {useScenarioDetailData} from "@/src/features/scenarios/detail/hooks/useSc
 import {useScenarioDynamicResolution} from "@/src/features/scenarios/detail/hooks/useScenarioDynamicResolution";
 import {useScenarioExecutionSelection} from "@/src/features/scenarios/detail/hooks/useScenarioExecutionSelection";
 import {useScenarioResourceState} from "@/src/features/scenarios/detail/hooks/useScenarioResourceState";
+import {ScenarioAliasControl} from "@/src/features/scenarios/detail/rendering/ScenarioAliasControl";
 import {ScenarioComboEnvironmentCard} from "@/src/features/scenarios/detail/rendering/ScenarioComboEnvironmentCard";
 import {ScenarioDetailHeader} from "@/src/features/scenarios/detail/rendering/ScenarioDetailHeader";
 import {ScenarioExecutionControls} from "@/src/features/scenarios/detail/rendering/ScenarioExecutionControls";
@@ -21,6 +22,11 @@ import {ScenarioMatrixViewer} from "@/src/features/scenarios/detail/rendering/Sc
 import {ScenarioPersonalizedDefenderControl} from "@/src/features/scenarios/detail/rendering/ScenarioPersonalizedDefenderControl";
 import {ScenarioResourcesPanel} from "@/src/features/scenarios/detail/rendering/ScenarioResourcesPanel";
 import {ScenarioSummaryCard} from "@/src/features/scenarios/detail/rendering/ScenarioSummaryCard";
+import {gridObjectDefinitions} from "@/src/features/scenarios/explorer/ScenarioResourceExplorer";
+import {matrixPayloadToEditorState} from "@/src/features/matrix/editor/modules/payloadAdapter";
+import {computeHighestLayer} from "@/src/features/matrix/editor/services/matrixLayerVisibility";
+import {findResourceGridSolution} from "@/src/features/scenarios/explorer/resourceGridLookup";
+import {initialGridResources, useScenarioResourceGrid} from "@/src/features/scenarios/explorer/useScenarioResourceGrid";
 import {MobileCollapsible, MobileOrder} from "@/src/components/ui/tactical/MobileLayout";
 import {InlineNotice} from "@/src/components/ui/tactical/InlineNotice";
 import AuthContext from "@/services/AuthContext";
@@ -73,6 +79,34 @@ export default function ScenarioDetailPage() {
     React.useEffect(() => {
         setIncludeCornerSpecific(false);
     }, [scenarioId]);
+
+    // Visitors who can't solve live read the precomputed grid instead, the same one research articles embed.
+    const {grid} = useScenarioResourceGrid(scenarioId, liveSolving === false);
+    const gridView = liveSolving === false && grid !== null && scenario !== null && grid.scenarioId === scenario.id;
+
+    React.useEffect(() => {
+        if (gridView && grid && scenario) {
+            setScenarioResources(initialGridResources(grid, scenario));
+        }
+    }, [grid, gridView, scenario, setScenarioResources]);
+
+    // The all-layers solution for the current resources, from the grid or from the backend's live linked solve, so
+    // this page and research embeds agree. Lower layers keep their snapshots only when no option has a resource
+    // requirement; otherwise they are solved in the browser.
+    const {layerSolveSnapshots: solvedSnapshots, resourceAwareLayer} = dynamicResolution;
+    const liveLinkedView = liveSolving === true && resourceAwareLayer !== null;
+    const layerSolveSnapshots = React.useMemo(() => {
+        if (!scenario || (!gridView && !liveLinkedView)) {
+            return solvedSnapshots;
+        }
+
+        const editorState = matrixPayloadToEditorState(scenario.matrix);
+        const highestLayer = computeHighestLayer(editorState);
+        const solution = gridView && grid ? findResourceGridSolution(grid, scenarioResources, includeCornerSpecific) : solvedSnapshots[highestLayer];
+        const hasRequirements = [...editorState.grid.rows, ...editorState.grid.columns].some((axis) => axis.requirements.length > 0);
+        const lowerLayers = gridView || hasRequirements ? {} : solvedSnapshots;
+        return solution ? {...lowerLayers, [highestLayer]: solution} : lowerLayers;
+    }, [grid, gridView, includeCornerSpecific, liveLinkedView, scenario, scenarioResources, solvedSnapshots]);
 
     React.useEffect(() => {
         let canceled = false;
@@ -156,9 +190,11 @@ export default function ScenarioDetailPage() {
                     onRefreshDynamicCombos={() => void dynamicResolution.refreshDynamicCombosWithLoading()}
                 />
                 {liveSolving === false ? (
-                    <InlineNotice severity="info">Showing the saved solution with every resource available. Log in to change execution and resources.</InlineNotice>
+                    <InlineNotice severity="info">
+                        {gridView ? "Log in to change execution." : "Showing the saved solution with every resource available. Log in to change execution and resources."}
+                    </InlineNotice>
                 ) : null}
-                {liveSolving ? (
+                {liveSolving || (gridView && grid?.axes.cornerToggle) ? (
                     <MobileCollapsible title="Calculation settings" order={3}>
                         <ScenarioComboEnvironmentCard
                             scenario={scenario}
@@ -166,31 +202,40 @@ export default function ScenarioDetailPage() {
                             onIncludeCornerSpecificChange={setIncludeCornerSpecific}
                             theme={theme}
                         />
-                        <ScenarioExecutionControls
-                            executionSelection={executionSelection}
-                            isAuthenticated={isAuthenticated}
-                            onExecutionSelectionChange={setExecutionSelection}
-                            theme={theme}
-                        />
+                        {liveSolving ? (
+                            <ScenarioExecutionControls
+                                executionSelection={executionSelection}
+                                isAuthenticated={isAuthenticated}
+                                onExecutionSelectionChange={setExecutionSelection}
+                                theme={theme}
+                            />
+                        ) : null}
                     </MobileCollapsible>
                 ) : null}
                 <MobileOrder order={1}>
                     <ScenarioSummaryCard scenario={scenario} />
                 </MobileOrder>
-                {liveSolving ? (
+                {authContext?.canModerate ? (
+                    <MobileOrder order={5}>
+                        <ScenarioAliasControl scenarioId={scenarioId} alias={scenario.alias}/>
+                    </MobileOrder>
+                ) : null}
+                {liveSolving || gridView ? (
                     <MobileCollapsible title="Resources" order={4}>
                         <ScenarioResourcesPanel
                             scenarioResources={scenarioResources}
                             attackerLifeMax={attackerLifeMax}
                             defenderLifeMax={defenderLifeMax}
                             scenario={scenario}
-                            objectDefinitions={comboContextCatalog?.characterStatuses ?? []}
+                            objectDefinitions={gridView && grid ? gridObjectDefinitions(grid, scenario) : comboContextCatalog?.characterStatuses ?? []}
                             dynamicRefreshQueued={dynamicResolution.dynamicRefreshQueued}
                             refreshingDynamicCombos={dynamicResolution.refreshingDynamicCombos}
+                            showHealth={!gridView}
+                            showRefreshNote={!gridView}
                             theme={theme}
                             onScenarioResourcesChange={setScenarioResources}
                         />
-                        {scenario.scenarioType === "aggregated_oki" ? (
+                        {liveSolving && scenario.scenarioType === "aggregated_oki" ? (
                             <ScenarioPersonalizedDefenderControl
                                 personalizedDefenderId={personalizedDefenderId}
                                 characters={characters}
@@ -205,11 +250,12 @@ export default function ScenarioDetailPage() {
                         scenario={scenario}
                         scenarioId={scenarioId}
                         columnVisibilityByLabel={columnVisibilityByLabel}
-                        layerSolveSnapshots={dynamicResolution.layerSolveSnapshots}
+                        layerSolveSnapshots={layerSolveSnapshots}
                         linkedCellResolutions={dynamicResolution.linkedCellResolutions}
                         scenarioResources={scenarioResources}
                         onRefreshDynamicCells={dynamicResolution.refreshDynamicCombos}
                         canSolve={liveSolving === true}
+                        snapshotsMatchResources={gridView || liveLinkedView}
                     />
                 </MobileOrder>
             </AppBox>

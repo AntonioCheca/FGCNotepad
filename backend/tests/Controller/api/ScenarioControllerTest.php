@@ -17,6 +17,7 @@ use App\Entity\Step;
 use App\Entity\User;
 use App\Entity\UserCombo;
 use App\Entity\Visibility;
+use App\Util\Enum\UserRole;
 use App\Tests\Controller\AuthenticatedWebTestCase;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -1112,6 +1113,203 @@ class ScenarioControllerTest extends AuthenticatedWebTestCase
     /**
      * @return array{Character, Character, Move}
      */
+    /**
+     * Meaty vs Block pays 1000, but OD DP needs the defender to have 2 Drive. Without it the meaty is safe and the
+     * attacker plays it every time; with it the defender mixes in OD DP. The grid serves both, anonymously, and stops
+     * serving once the scenario is edited after it was computed.
+     */
+    public function testResourceGridLeavesOutUnaffordableOptionsAndIsServedAnonymouslyUntilTheScenarioChanges(): void
+    {
+        $scenario = $this->createGatedOdDpScenario('Gated OD DP');
+        $gridService = static::getContainer()->get(\App\Service\ScenarioResourceGridService::class);
+        $gridService->computeAndStore($scenario);
+
+        $this->client->getCookieJar()->clear();
+        $url = sprintf('/api/scenarios/%s/resource-grid', $scenario->getPublicId()->toRfc4122());
+        $this->client->request('GET', $url);
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $grid = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertNull($grid['axes']['attackerObject']);
+        self::assertSame(3, $grid['axes']['superMax']);
+        self::assertTrue($grid['axes']['cornerToggle'], 'A scenario without a position lock gets the corner combos axis.');
+
+        $broke = $this->gridSolutionAt($grid, 0);
+        self::assertNull($broke['columnAxis'][1], 'OD DP is left out at 0 Drive.');
+        self::assertEqualsWithDelta(1.0, $broke['rowAxis'][0], 0.001);
+        self::assertEqualsWithDelta(1000.0, $broke['expectedValue'], 0.5);
+
+        $twoBars = $this->gridSolutionAt($grid, 4);
+        self::assertGreaterThan(0.0, $twoBars['columnAxis'][1], 'OD DP is played at 2 Drive.');
+        self::assertLessThan(1000.0, $twoBars['expectedValue']);
+
+        $scenario->setUpdatedAt(new \DateTimeImmutable('+1 minute'));
+        $this->em->flush();
+        $this->client->request('GET', $url);
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testLinkedSolveLeavesOutOptionsTheResourcesCannotPay(): void
+    {
+        $scenario = $this->createGatedOdDpScenario('Live gated OD DP');
+        $url = sprintf('/api/scenarios/%s/solve-linked-ev', $scenario->getPublicId()->toRfc4122());
+        $solve = function (float $defenderDrive) use ($url): array {
+            $this->client->request('POST', $url, [], [], $this->getHeaders(), json_encode([
+                'executionMode' => ['mode' => 'standard'],
+                'resourceContext' => [
+                    'attacker' => ['health' => 10000, 'drive' => 6, 'super' => 0, 'objectStatuses' => []],
+                    'defender' => ['health' => 10000, 'drive' => $defenderDrive, 'super' => 0, 'objectStatuses' => []],
+                ],
+            ]));
+            self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+            return json_decode((string) $this->client->getResponse()->getContent(), true);
+        };
+
+        $broke = $solve(0.0);
+        self::assertNull($broke['columnAxis'][1]);
+        self::assertEqualsWithDelta(1000.0, $broke['expectedValue'], 0.5);
+        self::assertGreaterThan(0.0, $solve(2.0)['columnAxis'][1]);
+    }
+
+    public function testModeratorsAliasScenariosAndArticlesReadThemByAlias(): void
+    {
+        $actors = $this->createScenarioActors();
+        $scenario = $this->createGatedOdDpScenario('Aliased oki', $actors);
+        $other = $this->createGatedOdDpScenario('Other oki', $actors);
+        $gridService = static::getContainer()->get(\App\Service\ScenarioResourceGridService::class);
+        $gridService->computeAndStore($scenario);
+        $aliasUrl = sprintf('/api/scenarios/%s/alias', $scenario->getPublicId()->toRfc4122());
+
+        $this->client->request('PUT', $aliasUrl, [], [], $this->getHeaders(), json_encode(['alias' => 'Juri 214MK main oki']));
+        self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+
+        $this->loginTestUserWithRoles([UserRole::MODERATOR->value]);
+        $this->client->request('PUT', $aliasUrl, [], [], $this->getHeaders(), json_encode(['alias' => 'Juri 214MK main oki']));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        self::assertSame('juri-214mk-main-oki', json_decode((string) $this->client->getResponse()->getContent(), true)['alias']);
+
+        $this->client->request('PUT', sprintf('/api/scenarios/%s/alias', $other->getPublicId()->toRfc4122()), [], [], $this->getHeaders(), json_encode(['alias' => 'juri-214MK-main-oki']));
+        self::assertSame(Response::HTTP_CONFLICT, $this->client->getResponse()->getStatusCode());
+
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', '/api/scenarios/alias/Juri-214MK-main-oki');
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $payload = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame($scenario->getPublicId()->toRfc4122(), $payload['id']);
+        self::assertSame('juri-214mk-main-oki', $payload['alias']);
+
+        $this->client->request('GET', sprintf('/api/scenarios/%s/resource-grid', $scenario->getPublicId()->toRfc4122()));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode(), 'Setting an alias is not an edit that outdates the grid.');
+
+        $this->client->request('GET', '/api/scenarios/alias/no-such-oki');
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function testResourceGridsMoveBetweenEnvironmentsWithoutSolving(): void
+    {
+        $scenario = $this->createGatedOdDpScenario('Exported oki');
+        $scenario->setImportKey('sf6replaysdb', 'test/exported-oki');
+        $this->em->flush();
+        $gridService = static::getContainer()->get(\App\Service\ScenarioResourceGridService::class);
+        $aliasService = static::getContainer()->get(\App\Service\ScenarioAliasService::class);
+        $aliasService->assign($scenario, 'exported oki');
+        $grid = $gridService->computeAndStore($scenario);
+        $document = json_decode((string) json_encode($gridService->exportDocument([$grid])), true);
+        self::assertSame('exported-oki', $document['grids'][0]['alias']);
+
+        // Production has the same scenario under another public id and without an alias or a grid.
+        $this->em->remove($grid);
+        $aliasService->assign($scenario, null);
+        $scenario->setPublicId(Uuid::v7());
+        $this->em->flush();
+
+        $mismatched = $document;
+        $mismatched['grids'][0]['scenario']['columnLabels'] = ['Block', 'Jump'];
+        self::assertSame([], $gridService->importDocument($mismatched)['imported']);
+        self::assertNull($gridService->findFor($scenario));
+
+        $report = $gridService->importDocument($document);
+        self::assertCount(1, $report['imported']);
+        self::assertSame([], $report['skipped']);
+        self::assertSame('exported-oki', $aliasService->findAlias($scenario));
+
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', sprintf('/api/scenarios/%s/resource-grid', $scenario->getPublicId()->toRfc4122()));
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $imported = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame($document['grids'][0]['runs'], $imported['runs']);
+        self::assertSame($document['grids'][0]['solutions'], $imported['solutions']);
+    }
+
+    /**
+     * Meaty/Shimmy against Block/OD DP, where OD DP needs 2 defender Drive.
+     */
+    private function createGatedOdDpScenario(string $name, ?array $actors = null): Scenario
+    {
+        [$defender, $attacker, $triggerMove] = $actors ?? $this->createScenarioActors();
+        $scenario = (new Scenario())
+            ->setName($name)
+            ->setScenarioType('oki')
+            ->setDefenderCharacter($defender)
+            ->setAttackerCharacter($attacker)
+            ->setTriggerMove($triggerMove)
+            ->setModerationState('approved');
+        $rows = [];
+        foreach (['Meaty', 'Shimmy'] as $position => $label) {
+            $rows[] = (new \App\Entity\ScenarioRow())->setScenario($scenario)->setPosition($position)->setLabel($label)->setLayer(1);
+        }
+        $columns = [];
+        foreach (['Block', 'OD DP'] as $position => $label) {
+            $columns[] = (new \App\Entity\ScenarioColumn())->setScenario($scenario)->setPosition($position)->setLabel($label)->setLayer(1);
+        }
+        $columns[1]->addResourceRequirement((new \App\Entity\ScenarioColumnResourceRequirement())
+            ->setPosition(0)
+            ->setResourceOwner('defender')
+            ->setResourceType('drive')
+            ->setOperator('>=')
+            ->setThresholdValue(2.0));
+        foreach ($rows as $row) {
+            $scenario->addRow($row);
+        }
+        foreach ($columns as $column) {
+            $scenario->addColumn($column);
+        }
+        foreach ([[0, 0, 1000.0], [0, 1, -2000.0], [1, 0, 0.0], [1, 1, 3000.0]] as [$row, $column, $value]) {
+            $scenario->addCell((new \App\Entity\ScenarioCell())
+                ->setScenario($scenario)
+                ->setRow($rows[$row])
+                ->setColumn($columns[$column])
+                ->setKind(\App\Entity\ScenarioCell::KIND_STATIC)
+                ->setStaticValue($value));
+        }
+        $this->em->persist($scenario);
+        $this->em->flush();
+
+        return $scenario;
+    }
+
+    /**
+     * The solution at a defender Drive step with every other axis at 0. Index order: corner combos, defender Drive,
+     * defender Super, attacker object, attacker Super, attacker Drive, defender object.
+     *
+     * @param array<string, mixed> $grid
+     *
+     * @return array<string, mixed>
+     */
+    private function gridSolutionAt(array $grid, int $defenderDriveStep): array
+    {
+        $index = $defenderDriveStep * 4 * 4 * 13;
+        $position = null;
+        foreach ($grid['runs'] as [$start, $solution]) {
+            if ($start > $index) {
+                break;
+            }
+            $position = $solution;
+        }
+
+        return $grid['solutions'][$position];
+    }
+
     private function createScenarioActors(): array
     {
         $defender = (new Character())->setName('Ryu');

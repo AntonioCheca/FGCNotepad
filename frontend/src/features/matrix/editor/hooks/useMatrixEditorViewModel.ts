@@ -16,6 +16,9 @@ interface UseMatrixEditorViewModelOptions {
     displayFrequenciesAsPercent: boolean;
     layerSolveSnapshots?: Record<number, {rowAxis: Array<number | null>; columnAxis: Array<number | null>; expectedValue: number | null}>;
     resourceContext?: MatrixResourceContext | null;
+    // Snapshots already solved for resourceContext (a precomputed resource grid), so they stay valid when options
+    // have resource requirements.
+    snapshotsMatchResources?: boolean;
 }
 
 export function useMatrixEditorViewModel({
@@ -27,6 +30,7 @@ export function useMatrixEditorViewModel({
     displayFrequenciesAsPercent,
     layerSolveSnapshots,
     resourceContext = null,
+    snapshotsMatchResources = false,
 }: UseMatrixEditorViewModelOptions) {
     const layerVisibility = useMatrixLayerVisibility({state});
     const {effectiveLayerLimit, highestLayer, visibleState} = layerVisibility;
@@ -110,13 +114,13 @@ export function useMatrixEditorViewModel({
     }, [displayFrequenciesAsPercent]);
 
     const layerSnapshot = React.useMemo(() => {
-        if (editable || !layerSolveSnapshots || (resourceContext && hasResourceRequirements)) {
+        if (editable || !layerSolveSnapshots || (resourceContext && hasResourceRequirements && !snapshotsMatchResources)) {
             return null;
         }
 
         // Each layer includes every layer below it, so all layers is the highest layer's solution.
         return layerSolveSnapshots[effectiveLayerLimit ?? highestLayer] ?? null;
-    }, [editable, effectiveLayerLimit, hasResourceRequirements, highestLayer, layerSolveSnapshots, resourceContext]);
+    }, [editable, effectiveLayerLimit, hasResourceRequirements, highestLayer, layerSolveSnapshots, resourceContext, snapshotsMatchResources]);
 
     const displayState = React.useMemo(() => {
         if (!layerSnapshot) {
@@ -169,6 +173,7 @@ export function useMatrixEditorViewModel({
         ...layerVisibility,
         expectedValue,
         filteredVisibleState: displayState,
+        layerSnapshot,
         resourceGating,
         hasResourceRequirements,
         forceSolveColumnIds,

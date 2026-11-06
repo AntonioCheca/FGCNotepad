@@ -4,6 +4,7 @@ import {
     AccountCircleOutlinedIcon,
     AltRouteIcon,
     AutoAwesomeOutlinedIcon,
+    DiscordIcon,
     ArticleOutlinedIcon,
     FactCheckOutlinedIcon,
     HelpOutlineOutlinedIcon,
@@ -26,6 +27,8 @@ import {
 } from "@/src/components/ui/AppIcons";
 
 const QA_ROLES: UserRole[] = ["ROLE_QA_TESTER", "ROLE_ADMIN"];
+
+export const DISCORD_INVITE_URL = "https://discord.gg/SSQwtSjUeD";
 
 export const navigationSections: NavigationSection[] = [
     {
@@ -203,6 +206,12 @@ export const accountNavigationSections: NavigationSection[] = [
                 label: "About Us",
                 href: "/about/aboutUs",
                 icon: <HelpOutlineOutlinedIcon/>
+            },
+            {
+                label: "Discord",
+                href: DISCORD_INVITE_URL,
+                icon: <DiscordIcon/>,
+                external: true,
             },
             {
                 label: "AI Transparency",

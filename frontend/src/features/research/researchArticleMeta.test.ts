@@ -3,10 +3,12 @@ import test from "node:test";
 
 import {
     ResearchFrontmatterError,
+    normalizeScenarioReference,
     parseFigurePlacement,
     parseResearchFrontmatter,
     resolveResearchAssetPath,
     sortResearchArticlesNewestFirst,
+    splitResearchHtml,
 } from "./researchArticleMeta";
 
 const minimal = {title: "Combo routes", description: "How players route combos", date: "2026-10-12"};
@@ -79,4 +81,23 @@ test("figure placement rejects typos and widths outside the supported range", ()
     assert.throws(() => parseFigurePlacement("combo-routes", "figures/rank.png#rigth-40"), /combo-routes.*#right-25/);
     assert.throws(() => parseFigurePlacement("combo-routes", "figures/rank.png#right-90"), ResearchFrontmatterError);
     assert.throws(() => parseFigurePlacement("combo-routes", "figures/rank.png#right-10"), ResearchFrontmatterError);
+});
+
+test("research html splits around scenario explorer placeholders", () => {
+    const id = "01a18439-344d-79df-99f5-2cedb1d1c653";
+    assert.deepEqual(splitResearchHtml(`<p>Before</p><div data-scenario-explorer="${id}"></div><p>After</p>`), [
+        {kind: "html", html: "<p>Before</p>"},
+        {kind: "scenarioExplorer", scenarioRef: id},
+        {kind: "html", html: "<p>After</p>"},
+    ]);
+    assert.deepEqual(splitResearchHtml(`<div data-scenario-explorer="juri-214mk-main-oki"></div>`), [
+        {kind: "scenarioExplorer", scenarioRef: "juri-214mk-main-oki"},
+    ]);
+    assert.deepEqual(splitResearchHtml("<p>No embeds</p>"), [{kind: "html", html: "<p>No embeds</p>"}]);
+});
+
+test("scenario references normalize like backend aliases", () => {
+    assert.equal(normalizeScenarioReference("Juri 214MK main oki"), "juri-214mk-main-oki");
+    assert.equal(normalizeScenarioReference("  Juri--214MK (main) "), "juri-214mk-main");
+    assert.equal(normalizeScenarioReference("01A18439-344d-79df-99f5-2cedb1d1c653"), "01a18439-344d-79df-99f5-2cedb1d1c653");
 });

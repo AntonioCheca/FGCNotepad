@@ -6,6 +6,7 @@ import {OndemandVideoOutlinedIcon} from "@/src/components/ui/AppIcons";
 import {AppTypography} from "@/src/components/ui/AppTypography";
 import {ResearchArticleBody} from "@/src/features/research/ResearchArticleBody";
 import {ResearchHead} from "@/src/features/research/ResearchHead";
+import {ResearchArticleFooter} from "@/src/features/research/ResearchArticleFooter";
 import {
     RESEARCH_BASE_PATH,
     type ResearchArticleMeta,
@@ -38,6 +39,7 @@ export function ResearchArticlePage({meta, html, headings}: ResearchArticlePageP
                 {meta.data ? <ArticleDataInfo data={meta.data}/> : null}
                 {headings.length >= MIN_HEADINGS_FOR_CONTENTS ? <ArticleContents headings={headings}/> : null}
                 <ResearchArticleBody html={html}/>
+                <ResearchArticleFooter slug={meta.slug}/>
             </AppBox>
         </AppContainer>
     );

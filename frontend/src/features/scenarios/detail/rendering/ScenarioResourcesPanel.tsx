@@ -17,6 +17,9 @@ interface ScenarioResourcesPanelProps {
     objectDefinitions: ObjectDefinition[];
     dynamicRefreshQueued: boolean;
     refreshingDynamicCombos: boolean;
+    // A precomputed view has no health axis and nothing to refresh.
+    showHealth?: boolean;
+    showRefreshNote?: boolean;
     theme: Theme;
     onScenarioResourcesChange: React.Dispatch<React.SetStateAction<ScenarioResourceContextPayload>>;
 }
@@ -29,6 +32,8 @@ export function ScenarioResourcesPanel({
     objectDefinitions,
     dynamicRefreshQueued,
     refreshingDynamicCombos,
+    showHealth = true,
+    showRefreshNote = true,
     theme,
     onScenarioResourcesChange,
 }: ScenarioResourcesPanelProps) {
@@ -37,24 +42,29 @@ export function ScenarioResourcesPanel({
     return (
         <AppBox sx={{display: "grid", gap: {xs: 0.9, md: 1.2}, p: {xs: 1, md: 1.2}, border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.5, backgroundColor: theme.fgc.surface.base, minWidth: 0}}>
             <AppTypography variant="h6">Resources</AppTypography>
-            <AppTypography variant="body2" color="text.secondary" sx={{display: {xs: refreshStatus ? "block" : "none", md: "block"}}}>
-                <AppBox component="span" sx={{display: {xs: "none", md: "inline"}}}>Resource changes update option availability immediately. Dynamic combos refresh automatically after 1 second of no slider input.</AppBox>
-                {refreshStatus ? ` ${refreshStatus}` : ""}
-            </AppTypography>
+            {showRefreshNote ? (
+                <AppTypography variant="body2" color="text.secondary" sx={{display: {xs: refreshStatus ? "block" : "none", md: "block"}}}>
+                    <AppBox component="span" sx={{display: {xs: "none", md: "inline"}}}>Resource changes update option availability immediately. Dynamic combos refresh automatically after 1 second of no slider input.</AppBox>
+                    {refreshStatus ? ` ${refreshStatus}` : ""}
+                </AppTypography>
+            ) : null}
             <AppBox sx={{display: "grid", gap: {xs: 0.8, md: 1.2}, gridTemplateColumns: {xs: "1fr", md: "repeat(auto-fit, minmax(280px, 1fr))"}}}>
                 {([
                     {key: "attacker", label: `${scenario.attackerCharacterName ?? "Attacker"} Resources`, characterName: scenario.attackerCharacterName, lifeMax: attackerLifeMax},
                     {key: "defender", label: `${scenario.defenderCharacterName ?? "Defender"} Resources`, characterName: scenario.defenderCharacterName, lifeMax: defenderLifeMax},
                 ] as const).map((player) => {
                     const values = scenarioResources[player.key];
-                    const playerObjects = objectDefinitions.filter((definition) => player.characterName && definition.character_name?.toLowerCase() === player.characterName.toLowerCase());
+                    const characterObjects = objectDefinitions.filter((definition) => player.characterName && definition.character_name?.toLowerCase() === player.characterName.toLowerCase());
+                    // Stocks with a known maximum move like Super; other objects keep a free field.
+                    const stockObjects = characterObjects.filter(isBoundedStock);
+                    const playerObjects = characterObjects.filter((definition) => !isBoundedStock(definition));
                     return (
                         <AppBox
                             key={player.key}
-                            sx={{border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.5, p: {xs: 0.9, md: 1.2}, display: "grid", gap: {xs: 0.75, md: 1}, backgroundColor: theme.fgc.surface.subtle, minWidth: 0}}
+                            sx={{border: "1px solid", borderColor: theme.fgc.border.default, borderRadius: 1.5, p: {xs: 0.9, md: 1.2}, display: "grid", alignContent: "start", gap: {xs: 0.75, md: 1}, backgroundColor: theme.fgc.surface.subtle, minWidth: 0}}
                         >
                             <AppTypography variant="body1" sx={{fontWeight: 700}}>{player.label}</AppTypography>
-                            <ScenarioResourceSlider
+                            {showHealth ? <ScenarioResourceSlider
                                 label="Health"
                                 value={values.health}
                                 displayValue={`${values.health} / ${player.lifeMax}`}
@@ -71,7 +81,7 @@ export function ScenarioResourcesPanel({
                                         health: Math.min(nextValue, player.lifeMax),
                                     },
                                 }))}
-                            />
+                            /> : null}
                             <ScenarioResourceSlider
                                 label="Drive"
                                 value={values.drive}
@@ -109,6 +119,35 @@ export function ScenarioResourcesPanel({
                                     },
                                 }))}
                             />
+                            {stockObjects.map((definition) => {
+                                const objectKey = definition.object_key ?? definition.name;
+                                const stock = Number(values.objectStatuses?.[objectKey] ?? 0) || 0;
+                                return (
+                                    <ScenarioResourceSlider
+                                        key={objectKey}
+                                        label={definition.name}
+                                        value={stock}
+                                        displayValue={String(stock)}
+                                        min={0}
+                                        max={definition.max_status ?? 0}
+                                        step={1}
+                                        marks
+                                        color={theme.fgc.action.primary}
+                                        railColor={theme.fgc.surface.sunken}
+                                        ariaLabel={`${player.label} ${definition.name}`}
+                                        onChange={(nextValue) => onScenarioResourcesChange((current) => {
+                                            const nextObjectStatuses = {...(current[player.key].objectStatuses ?? {})};
+                                            if (nextValue > 0) {
+                                                nextObjectStatuses[objectKey] = nextValue;
+                                            } else {
+                                                delete nextObjectStatuses[objectKey];
+                                            }
+
+                                            return {...current, [player.key]: {...current[player.key], objectStatuses: nextObjectStatuses}};
+                                        })}
+                                    />
+                                );
+                            })}
                             {playerObjects.length > 0 ? (
                                 <AppBox sx={{display: "grid", gap: 0.65, pt: 0.35}}>
                                     <AppTypography variant="body2" color="text.secondary">Character objects</AppTypography>
@@ -158,6 +197,10 @@ export function ScenarioResourcesPanel({
             </AppBox>
         </AppBox>
     );
+}
+
+function isBoundedStock(definition: ObjectDefinition): boolean {
+    return definition.status_type === "integer" && (definition.max_status ?? 0) > 0;
 }
 
 interface ScenarioResourceSliderProps {

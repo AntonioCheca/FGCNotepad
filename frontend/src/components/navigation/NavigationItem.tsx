@@ -67,6 +67,7 @@ export default function NavigationItem({item, isActive = false, collapsed = fals
                 href={item.href}
                 passHref
                 onClick={onNavigate}
+                {...(item.external ? {target: "_blank", rel: "noopener noreferrer"} : {})}
                 style={{width: '100%', textDecoration: 'none', color: 'inherit'}}
             >
                 {collapsed ? <AppTooltip title={item.label} placement="right">{navButton}</AppTooltip> : navButton}

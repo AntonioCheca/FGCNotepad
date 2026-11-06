@@ -236,39 +236,143 @@ never delay teching, so the average gets lowered by them.
 ![Delay tech as a share of wake-ups by rank, one dot per player with at least 8 wake-ups and a bold line for the rank's average: most Masters sit at 0%, while High/Grand Master and Ultimate Master dots spread out](figures/delay-tech-per-player.png)
 
 
-[Explain here RPS mathematically]
+For the next part, I have created a small mathematical model that tries to
+solve the RPS by knowing the different rewards each player gets for choosing
+their options. Before we go onto that, I wanted to talk a bit how the model
+was built, what good things it has and what bad things it has. Do not confuse
+the model for 'the truth', mathematical models are an estimation of the
+reality. I don't trust this model enough for people to think it's perfect, it
+isn't. It simplifies some things. Even so, it's a working first iteration and
+it already shows potential.
 
-To build it, I list each side's options and estimate what each pair is worth. A
-shimmy against a delay tech is a big punish, a shimmy against someone patiently
-blocking is worth about nothing, and a meaty can be a combo, keep pressure on
-block or lose to a reversal.
+If you don't care about maths, skip this part.
 
-[Review: put the matrix screenshot from the Oki page here, plus the link to the interactive scenario. I don't have the production URL and won't guess it.]
+### Mathematical model
+
+RPS, or rock paper scissor scenarios, are defined by two players choosing 
+'simultaneously' different options, and the reward for these is predefined and
+known. They can be called zero-sum mixed strategy games. Zero-sum means
+both players play an antagonistic role, the value of the outcome for player 1
+is exactly the opposite for player 2. Dealing 2k damage is as good for you,
+as it's bad for your opponent. Mixed strategy means that the optimal way to 
+play them is never one single option, but mixing your options with appropriate
+weights. 
+
+A way to study mixed strategy games is to find the Nash Equilibrium points of
+the games. One of these defines the mixed strategy for player 1, and for
+player 2. For example 'Use Block 70% on your wake-up and 30% OD DP' for defense
+and 'Use strike, throw and shimmy a 33.3% each' for offense would be a pair of
+strategies. A pair like this forms an equilibrium as long as no player can 
+unilaterally improve their chances by changing their strategy, assuming the 
+other player maintains theirs. In FGC terms, this means there is no possible
+'adaptation' in a Nash equilibrium.
+
+An example translated to fighting games. If your opponent does 3 OD DPs in
+4 of their wake-ups, that means that whatever mixed strategy they use, OD DP
+has a very big weight. We know, by experience, that the risk reward for OD DP
+is not good enough for using it a 75% to be a sustainable strategy long term.
+Because we can simply adapt to this pattern, start blocking or doing shimmy
+most of the time and end up coming on top, by punishing them. This means using
+OD DP that much can't ever be part of a Nash Equilibrium.
+
+Equilibriums can be seen as the 'default optimal percentages under uncertainty'.
+They are what you want to use when you have zero information. They are also very
+good to see your long term patterns. If we measure your games and see a 50% of
+OD DP usage, any player will tell you to stop, as it's losing you games. If you
+use the equilibrium percentage (which in all my calculations so far, tends to
+be around 8-12% depending on resources and life), it's less likely you would get
+scolded for it, as that seems 'more reasonable'. 
+
+However, they shouldn't be used as 'mathematically optimal' way of playing.
+Fighting game players know one of the most important skills in the game is
+adapting. Seems fairly unintuitive to now model RPS under a way that assumes
+this vital skill doesn't exist. The main problem with equilibriums is that it
+does not take into account the information from your opponent. People are very
+bad at being random, not just in fighting games, in general it has been proved
+multiple times. So seeing your opponent patterns allow you to exploit their
+weaknesses much faster, which is extremely important in a game that can finish
+in three bad guesses. The mathematical way of calculating adaptation would be
+to model how your 'idea' of the opponent's mind changes while you play and
+can see their patterns. Every oki, blockstring response and micro decisions
+can affect the distribution and condition what your optimal now looks like.
+
+An improvement on the current model therefore could be to use Bayesian
+Inference. This is a formal way to infer an unknown distribution as you sample
+from it. In this case, the unknown distribution is what your opponent likes to
+do in this matchup, and the samples are everything you notice from them.
+And then adapt the optimal accordingly. As that's fundamentally harder, I have
+maintained the current model on the Equilibriums. In favour of that, a lot of
+the stats I have collected seem to point to equilibriums being a very good
+predictor of people trends.
+
+### Back to fighting games stats
+
+So I defined the reward for every pair of decisions on oki, and I compared it
+with what people actually do. These are the results, comparing the Nash Eq.
+vs what people do on ranked. 
+
+In this site, the Oki section in the sidebar is a library of all the existing
+okis and blockstrings I have studied so far. It contains the rewards on every 
+pair of decisions from both players, mathematical prediction for optimal 
+strategy and Expected Value (how much damage you 'win' from participating in 
+this RPS). This allows you to compare different RPS between one another, how 
+much 'value' you get for going into a setup that works against reversals, etc.
+
+As an example here, this is Juri 214MK midscreen oki, which in Juri vs Ken
+was by far the most common Oki scenario seen, so it's the one with most data.
+
+![Juri's 214MK midscreen oki: equilibrium mixes for any Drive, Super and Fuha stocks](scenario:juri-214mk-midscreen-oki)
 
 The website lets you play with this yourself and see how Drive and Super change
-the options and payoffs. For a readable comparison here, I use one fixed setup:
-raw damage, at the gauges UM+ players typically had in each oki. So the numbers
-in that screenshot won't match the table below: the page includes meter gained
-and spent, and the table doesn't. Then we can compare the solved mix with what
-UMs really did.
+the options and payoffs. I will warn here, but the amount of optimal combos
+in most resource drive+super is not... complete. So if you change the sliders,
+and you don't see much change, it's because the data is partially there. 
+
+Another warning, right now the Oki resource slider is a bit... dumber, than
+my other stuff in the site. So for example, right now it does not let you
+use OD DP if you have 1 bar of drive, even if in the game that's completely
+doable. I want to refine that for the future but I did not have time to do
+that before writing this.
+
+One of the most noticeable changes though is if Ken has 0 drive, as he is then
+not allowed to use OD DP. Another big difference is if Ken has 3 of super or
+not.
+
+To discuss some notable differences between the equilibrium model and what is
+actually seen in matches:
+
+ - Delay tech, the model absolutely hates the risk reward of it and it
+basically does not ever recommend using it. This aligns with what some UM+ say
+about the move, but the difference is quite stark.
+ - Super 3, if available, is incredibly liked by the model but not seen by
+players. Risk is too high and the current model does NOT take into account
+round resources management, which is a vital skill. Adding that to the model
+would probably make the super 3 expected usage to lower accordingly.
+ - Shimmy, the model loves shimmies. In some resource cases it even recommends
+doing it half the time on oki. Usually it's the most expected option for the
+offense. One stat I got on shimmies that can explain this discrepancy is that
+even in UMs, not all correctly guessed shimmies get properly converted, less
+than half do. This might mean in practice, shimmy might get a reduction of
+damage simply because it's harder to execute than other options that are
+easier to autopilot. 
+ - Delay strike is not that recommended even if it's seen more. I believe the
+reason behind it is the model doesn't like delay tech to begin with, and it
+just thinks shimmies are incredible, so delay strike seems redundant in its
+eyes. 
 
 ## Conclusions
 
-What I enjoyed the most was the investigating. A weird number would show up,
-lead to another question, and I'd end up asking people in Discord or checking
-replays to understand it. Sometimes the answer was simple, sometimes it stayed
-unclear, and sometimes I found out I was asking the wrong question.
+I hope this was half as fun to read as it was for me to write. I liked doing
+the research on the different stats, and I plan to expand the library of 
+combos and okis for future characters. I will probably try to extend some of
+these stats to other characters and matchups. 
 
-More than anything, I hope this kind of analysis helps people learn these games.
-There's so much to figure out when you start a character: what to press, how to
-convert, where to stand, what's worth practicing first. Better evidence about
-what players do and where they struggle can make that easier, at every level,
-since even UMs clearly still have things to work on.
+The stats were seen in the current patch of the game as of writing, Arjun's 
+patch. If you detect any issue or discrepancy, please let me know. If you
+would like to see more of these in the future, you can click the 'Like' button
+here in this page. Can be done anonymously, it's just to track if these are
+interesting to others or not.
 
-I'd like to keep doing this. A lot of the work on combos, anti-airs, neutral and
-oki can be reused for other characters and matchups, and many of these combos
-and oki situations are already on the site for you to explore. Thanks for
-reading, and if you find something weird in here, please tell me. I'd love to
-know.
+If you want to discuss any of this, join the FG Theory Discord below.
 
-[Add the discord link here]
+Thanks for reading, Checa.

@@ -37,6 +37,8 @@ export interface ScenarioListItem {
 }
 
 export interface ScenarioDetail extends ScenarioListItem {
+    // Readable name research articles embed the scenario by; set by moderators.
+    alias: string | null;
     searchLabel: string;
     matrix: MatrixPayload;
     comboContext: ScenarioComboContextPayload;
@@ -116,6 +118,29 @@ export interface ScenarioResourceContextPayload {
         super: number;
         objectStatuses?: Record<string, string | number | boolean>;
     };
+}
+
+export interface ScenarioResourceGridObjectAxis {
+    key: string;
+    name: string;
+    max: number;
+}
+
+// Equilibria precomputed for every Drive, Super, stock and (without a position lock) corner combo combination;
+// runs are [startIndex, solutionIndex] pairs.
+export interface ScenarioResourceGrid {
+    scenarioId: string;
+    computedAt: string;
+    axes: {
+        driveStep: number;
+        driveMax: number;
+        superMax: number;
+        cornerToggle: boolean;
+        attackerObject: ScenarioResourceGridObjectAxis | null;
+        defenderObject: ScenarioResourceGridObjectAxis | null;
+    };
+    solutions: ScenarioLayerSolveSnapshot[];
+    runs: Array<[number, number]>;
 }
 
 export interface ScenarioLayerSolveSnapshot {
@@ -201,6 +226,18 @@ export function useScenarios() {
         return request(() => api.get(`/scenarios/${id}`));
     }, [request]);
 
+    const getScenarioByAlias = React.useCallback(async (alias: string): Promise<ScenarioDetail> => {
+        return request(() => api.get(`/scenarios/alias/${encodeURIComponent(alias)}`));
+    }, [request]);
+
+    const setScenarioAlias = React.useCallback(async (id: string, alias: string | null): Promise<{alias: string | null}> => {
+        return request(() => api.put(`/scenarios/${id}/alias`, {alias}));
+    }, [request]);
+
+    const getScenarioResourceGrid = React.useCallback(async (id: string): Promise<ScenarioResourceGrid> => {
+        return request(() => api.get(`/scenarios/${id}/resource-grid`));
+    }, [request]);
+
     const createScenario = React.useCallback(async (payload: ScenarioSavePayload): Promise<ScenarioDetail> => {
         return request(() => api.post("/scenarios", payload));
     }, [request]);
@@ -268,6 +305,9 @@ export function useScenarios() {
     return {
         listScenarios,
         getScenario,
+        getScenarioByAlias,
+        setScenarioAlias,
+        getScenarioResourceGrid,
         createScenario,
         updateScenario,
         deleteScenario,

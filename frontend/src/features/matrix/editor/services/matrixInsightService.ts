@@ -59,7 +59,7 @@ function classifyOutcome(value: number): string {
 }
 
 // Ordered by the Nash share, then the seen share, so both bars read in the same order.
-function buildMix(axis: MatrixAxisItem[], optimalFrequency: (item: MatrixAxisItem) => number | null | undefined): MatrixMixDatum[] {
+export function buildMix(axis: MatrixAxisItem[], optimalFrequency: (item: MatrixAxisItem) => number | null | undefined): MatrixMixDatum[] {
     return axis
         .map((item) => ({
             id: item.id,

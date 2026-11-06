@@ -14,6 +14,7 @@ import {AppTooltip} from "@/src/components/ui/AppTooltip";
 import {AccountCircleOutlinedIcon, LogoutIcon, UnfoldMoreIcon} from "@/src/components/ui/AppIcons";
 import type {Theme} from "@/src/components/ui/AppThemeUtils";
 import {accountNavigationSections} from "@/src/data/navigationData";
+import type {NavigationItem} from "@/src/types/navigation";
 import {useVisibleNavigationSections} from "./useVisibleNavigationSections";
 
 interface SidebarAccountMenuProps {
@@ -35,10 +36,14 @@ export default function SidebarAccountMenu({collapsed, onNavigate}: SidebarAccou
 
     const closeMenu = () => setAnchorEl(null);
 
-    const navigate = (href: string) => {
+    const navigate = (item: NavigationItem) => {
         closeMenu();
         onNavigate?.();
-        void router.push(href);
+        if (item.external) {
+            window.open(item.href, "_blank", "noopener,noreferrer");
+            return;
+        }
+        void router.push(item.href);
     };
 
     const logout = () => {
@@ -126,7 +131,7 @@ export default function SidebarAccountMenu({collapsed, onNavigate}: SidebarAccou
                 {sections.flatMap((section, index) => [
                     ...(index > 0 ? [<AppDivider key={`${section.title}-divider`} sx={{my: 0.5}}/>] : []),
                     ...section.items.map((item) => (
-                        <AppMenuItem key={item.href} selected={item.href === router.pathname} onClick={() => navigate(item.href)} sx={{minHeight: 44}}>
+                        <AppMenuItem key={item.href} selected={item.href === router.pathname} onClick={() => navigate(item)} sx={{minHeight: 44}}>
                             <AppListItemIcon sx={{color: (theme: Theme) => theme.fgc.icon.muted}}>{item.icon}</AppListItemIcon>
                             <AppListItemText primary={item.label} primaryTypographyProps={{variant: "body2"}}/>
                         </AppMenuItem>

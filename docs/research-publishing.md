@@ -65,6 +65,28 @@ Social sites (Reddit, Discord, X) do not render SVG previews, so `image` must be
   ```
 
   Figures sit directly on the dark page, so export them with a transparent background and light text. A default white Matplotlib export will show as a white block.
+- **Interactive oki explorer.** An image line whose path is `scenario:` plus a scenario's alias embeds that oki's resource explorer: Drive, Super and stock sliders for both players, a corner-combos switch for okis without a fixed position, and the Nash and Seen mixes with the expected value. It reads a precomputed grid, so it works for anonymous readers:
+
+  ```markdown
+  ![Juri's 214MK midscreen oki for any Drive, Super and Fuha stocks](scenario:juri-214mk-midscreen-oki)
+  ![Same thing, with spaces](<scenario:Juri 214MK midscreen oki>)
+  ```
+
+  Moderators set the alias in the "Article alias" field on the scenario page. It is stored lowercase with hyphens, so both lines above name the same oki. A public id also works in place of the alias.
+
+  Solve grids locally, then copy them to production, which only loads them:
+
+  ```bash
+  # Local: solve (all scenarios, or --scenario=<alias or public id> repeated), then export the aliased ones.
+  docker compose exec -T -e XDEBUG_MODE=off backend php bin/console app:scenario:solve-resource-grids --no-debug
+  docker compose exec -T backend php bin/console app:scenario:export-resource-grids > resource-grids.json
+
+  # Production: check, then load. The file comes in through standard input.
+  sudo docker compose -f docker-compose.prod.yml exec -T backend php bin/console app:scenario:import-resource-grids - --dry-run < resource-grids.json
+  sudo docker compose -f docker-compose.prod.yml exec -T backend php bin/console app:scenario:import-resource-grids - < resource-grids.json
+  ```
+
+  The import matches each grid to the same scenario by import key, then public id, then alias, and sets the alias there. It skips a grid whose scenario is missing or has different options, so import the scenarios first (`app:scenario:import`). A grid older than the scenario's last edit is not served, and the explorer says it isn't available. Changes to combos or to linked okis don't count as edits, so solve and copy again after those.
 - **Math.** KaTeX renders `$inline$` and `$$display$$` math.
 - **Tables.** GFM tables scroll horizontally on phones. Right-align number columns with `---:`.
 - **Notes.** Blockquotes render as notes. Use them for caveats, filters and definitions (`> **Methodology note.** ...`).

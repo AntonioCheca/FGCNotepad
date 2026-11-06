@@ -38,6 +38,8 @@ interface UseMatrixReferenceViewModelOptions {
     editorLinkedCellResolutions: Record<string, MatrixLinkedCellResolution>;
     dispatch: React.Dispatch<MatrixAction>;
     actions: typeof matrixActions;
+    // The equilibrium value solved with the mixes (a precomputed resource grid's), shown instead of mixes × cells.
+    expectedValueOverride?: number | null;
 }
 
 export function useMatrixReferenceViewModel({
@@ -48,6 +50,7 @@ export function useMatrixReferenceViewModel({
     editorLinkedCellResolutions,
     dispatch,
     actions,
+    expectedValueOverride = null,
 }: UseMatrixReferenceViewModelOptions) {
     const referenceSourceMap = React.useMemo(() => {
         const raw = matrix.extensions?.referenceValueByScenarioId;
@@ -90,8 +93,8 @@ export function useMatrixReferenceViewModel({
     );
 
     const displayedExpectedValue = React.useMemo(
-        () => computeDisplayedExpectedValue(filteredVisibleState, payoffBodyValues),
-        [filteredVisibleState, payoffBodyValues]
+        () => expectedValueOverride ?? computeDisplayedExpectedValue(filteredVisibleState, payoffBodyValues),
+        [expectedValueOverride, filteredVisibleState, payoffBodyValues]
     );
 
     const matrixInsights = React.useMemo(

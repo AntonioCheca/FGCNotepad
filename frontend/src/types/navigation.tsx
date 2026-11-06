@@ -5,6 +5,8 @@ export interface NavigationItem {
     label: string;
     href: string;
     icon?: JSX.Element;
+    // Opens in a new tab, outside the app.
+    external?: boolean;
     requiresAuth?: boolean;
     guestOnly?: boolean;
     allowedRoles?: UserRole[];

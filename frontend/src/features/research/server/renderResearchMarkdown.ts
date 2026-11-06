@@ -10,6 +10,7 @@ import {unified} from "unified";
 import {
     type ResearchHeading,
     ResearchFrontmatterError,
+    normalizeScenarioReference,
     parseFigurePlacement,
     resolveResearchAssetPath,
 } from "@/src/features/research/researchArticleMeta";
@@ -21,6 +22,7 @@ export interface RenderedResearchMarkdown {
 
 const GFM_FOOTNOTES_HEADING_ID = "footnote-label";
 const FIGURE_NUMBER_PATTERN = /^(Figure \d+\.)(\s[\s\S]*)$/;
+const SCENARIO_EMBED_PREFIX = "scenario:";
 
 export async function renderResearchMarkdown(slug: string, markdown: string): Promise<RenderedResearchMarkdown> {
     const headings: ResearchHeading[] = [];
@@ -55,7 +57,8 @@ function enhanceNode<T extends RootContent | ElementContent>(slug: string, node:
 
     const figureImage = node.tagName === "p" ? singleImage(node) : null;
     if (figureImage) {
-        return toFigure(slug, figureImage);
+        const scenarioRef = scenarioExplorerReference(slug, figureImage);
+        return scenarioRef ? scenarioExplorerPlaceholder(scenarioRef) : toFigure(slug, figureImage);
     }
 
     if (node.tagName === "img") {
@@ -78,6 +81,32 @@ function singleImage(paragraph: Element): Element | null {
     const [only] = meaningful;
 
     return meaningful.length === 1 && only.type === "element" && only.tagName === "img" ? only : null;
+}
+
+// `![Alt](scenario:<alias>)` on its own line embeds that oki's interactive resource explorer. An alias with spaces
+// goes in angle brackets: `![Alt](<scenario:Juri 214MK main oki>)`. A public id works too.
+function scenarioExplorerReference(slug: string, image: Element): string | null {
+    const src = typeof image.properties.src === "string" ? image.properties.src : "";
+    if (!src.startsWith(SCENARIO_EMBED_PREFIX)) {
+        return null;
+    }
+
+    let raw = src.slice(SCENARIO_EMBED_PREFIX.length);
+    try {
+        raw = decodeURIComponent(raw);
+    } catch {
+        // Keeps the raw text; normalizing drops whatever made it undecodable.
+    }
+    const reference = normalizeScenarioReference(raw);
+    if (reference === "") {
+        throw new ResearchFrontmatterError(slug, `"${src}": a scenario embed needs the scenario's alias or public id`);
+    }
+
+    return reference;
+}
+
+function scenarioExplorerPlaceholder(scenarioRef: string): Element {
+    return {type: "element", tagName: "div", properties: {dataScenarioExplorer: scenarioRef}, children: []};
 }
 
 function toFigure(slug: string, image: Element): Element {

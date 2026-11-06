@@ -59,6 +59,7 @@ security:
         - { path: ^/api/(replay-|share-links|practice-tasks|study/), roles: [ROLE_QA_TESTER, ROLE_ADMIN] }
         - { path: ^/api/profile/combo-recommendations, roles: [ROLE_QA_TESTER, ROLE_ADMIN] }
         - { path: ^/api/guides, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: '^/api/research/[^/]+/likes$', roles: PUBLIC_ACCESS, methods: [GET, POST] }
         - { path: ^/api/scenarios, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/neutral-stats, roles: PUBLIC_ACCESS, methods: [GET] }
         # Anonymous read access for the public search/detail pages. Writes, solving and the full move list stay behind login;

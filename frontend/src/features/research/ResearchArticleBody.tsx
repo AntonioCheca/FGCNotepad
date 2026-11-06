@@ -1,14 +1,30 @@
 import "katex/dist/katex.min.css";
+import React from "react";
 import {AppBox} from "@/src/components/ui/AppBox";
 import type {Theme} from "@/src/components/ui/AppThemeUtils";
+import {splitResearchHtml} from "@/src/features/research/researchArticleMeta";
+import {ScenarioResourceExplorer} from "@/src/features/scenarios/explorer/ScenarioResourceExplorer";
 
 interface ResearchArticleBodyProps {
     html: string;
 }
 
 // The HTML is rendered at build time from Markdown files committed to this repository; raw HTML in them is dropped.
+// Scenario explorers are live components between HTML segments, outside the prose styles so their controls keep
+// the app's own look.
 export function ResearchArticleBody({html}: ResearchArticleBodyProps) {
-    return <AppBox sx={articleProseStyles} dangerouslySetInnerHTML={{__html: html}}/>;
+    const segments = React.useMemo(() => splitResearchHtml(html), [html]);
+    if (!segments.some((segment) => segment.kind === "scenarioExplorer")) {
+        return <AppBox sx={articleProseStyles} dangerouslySetInnerHTML={{__html: html}}/>;
+    }
+
+    return (
+        <AppBox sx={{minWidth: 0}}>
+            {segments.map((segment, index) => segment.kind === "html"
+                ? <AppBox key={index} sx={articleProseStyles} dangerouslySetInnerHTML={{__html: segment.html}}/>
+                : <AppBox key={index} sx={{clear: "both", my: 3, minWidth: 0}}><ScenarioResourceExplorer scenarioRef={segment.scenarioRef}/></AppBox>)}
+        </AppBox>
+    );
 }
 
 const articleProseStyles = (theme: Theme) => ({

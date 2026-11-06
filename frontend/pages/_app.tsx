@@ -5,7 +5,6 @@ import {useRouter} from 'next/router';
 import {AuthProvider} from '@/services/AuthProvider';
 import SidebarLayout from '@/src/components/layouts/SidebarLayout';
 import {ThemeModeProvider} from "@/src/context/ThemeContext";
-import {THEME_MODE_PRELOAD_SCRIPT} from "@/src/context/themeModeScript";
 import {getDesignTokens} from "@/styles/theme";
 
 const BROWSER_THEME_COLOR = getDesignTokens("dark").fgc.app.sidebar;
@@ -25,7 +24,6 @@ export default function App({Component, pageProps}: AppProps) {
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
                 <link rel="icon" href="/logos/favicon-color-pos.svg"/>
                 <meta name="theme-color" content={BROWSER_THEME_COLOR}/>
-                <script dangerouslySetInnerHTML={{__html: THEME_MODE_PRELOAD_SCRIPT}} />
             </Head>
 
             <AuthProvider>

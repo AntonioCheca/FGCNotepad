@@ -54,12 +54,15 @@ export function useScenarioDynamicResolution({
     const [dynamicRefreshQueued, setDynamicRefreshQueued] = React.useState(false);
     const [layerSolveSnapshots, setLayerSolveSnapshots] = React.useState<Record<number, ScenarioLayerSolveSnapshot>>({});
     const [linkedCellResolutions, setLinkedCellResolutions] = React.useState<Record<string, MatrixLinkedCellResolution>>({});
+    // The layer whose snapshot is the backend's linked solve for the current resources, if that solve succeeded.
+    const [resourceAwareLayer, setResourceAwareLayer] = React.useState<number | null>(null);
 
     React.useEffect(() => {
         if (null === liveSolving) {
             return;
         }
 
+        setResourceAwareLayer(null);
         if (!liveSolving) {
             setLayerSolveSnapshots(toLayerSnapshots(scenario?.savedSolution?.layers ?? {}));
             setLinkedCellResolutions({});
@@ -93,6 +96,7 @@ export function useScenarioDynamicResolution({
                         columnAxis: linked.columnAxis,
                         expectedValue: linked.expectedValue,
                     };
+                    setResourceAwareLayer(response.maxLayer);
                 } catch {
                     if (!canceled) {
                         setLinkedCellResolutions({});
@@ -169,6 +173,7 @@ export function useScenarioDynamicResolution({
         refreshingDynamicCombos,
         dynamicRefreshQueued,
         layerSolveSnapshots,
+        resourceAwareLayer,
         linkedCellResolutions,
         refreshDynamicCombos,
         refreshDynamicCombosWithLoading,

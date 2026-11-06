@@ -16,6 +16,7 @@ interface ScenarioMatrixViewerProps {
     scenarioResources: ScenarioResourceContextPayload;
     onRefreshDynamicCells: () => Promise<MatrixPayload>;
     canSolve: boolean;
+    snapshotsMatchResources?: boolean;
 }
 
 export function ScenarioMatrixViewer({
@@ -27,6 +28,7 @@ export function ScenarioMatrixViewer({
     scenarioResources,
     onRefreshDynamicCells,
     canSolve,
+    snapshotsMatchResources = false,
 }: ScenarioMatrixViewerProps) {
     return (
         <AppBox sx={{display: "grid", gap: 0.75, minWidth: 0}}>
@@ -49,6 +51,7 @@ export function ScenarioMatrixViewer({
                     linkedCellResolutions={linkedCellResolutions}
                     resourceContext={scenarioResources}
                     canSolve={canSolve}
+                    snapshotsMatchResources={snapshotsMatchResources}
                 />
             </AppBox>
         </AppBox>

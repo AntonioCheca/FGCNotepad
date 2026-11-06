@@ -15,6 +15,11 @@ framework:
             lock_factory: null
             limit: 100
             interval: '1 minute'
+        research_like:
+            policy: sliding_window
+            lock_factory: null
+            limit: 20
+            interval: '1 hour'
 
 # The array pool is reset between test requests, so functional tests never share one 127.0.0.1 bucket.
 # AnonymousApiReadRateLimitSubscriberTest covers the limit itself with its own limiter.
