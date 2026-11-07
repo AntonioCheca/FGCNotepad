@@ -126,6 +126,7 @@ async function resolveRoutes(session) {
         route("/moderation/queue", "Moderation Queue", "Moderation"),
         route("/moderation/frame-data", "Frame Data", "Moderation"),
         route("/moderation/resources", "Resources", "Moderation"),
+        route("/moderation/report-import", "Report Import", "Moderation"),
         route("/admin/situations", "Situations", "Moderation"),
         route("/admin/users", "User Management", "Admin", true),
         route("/admin/replay-combo-imports", "Replay Import", "Admin", true),

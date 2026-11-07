@@ -4,7 +4,6 @@ description: "How the matchup changes from Iron to Ultimate Master: trends on co
 date: 2026-10-31
 author: Checa
 tags: [ SF6, Juri, Ken ]
-draft: true
 ---
 
 The data is hundreds of Juri vs Ken matches with both players on Classic

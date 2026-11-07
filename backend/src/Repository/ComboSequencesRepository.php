@@ -570,6 +570,33 @@ class ComboSequencesRepository extends ServiceEntityRepository
     }
 
     /**
+     * Approved multi-move combos whose first move belongs to one of these characters, oldest first.
+     *
+     * @param list<string> $characterNames
+     *
+     * @return list<ComboSequences>
+     */
+    public function findApprovedCombosByStarterCharacterNames(array $characterNames): array
+    {
+        return $this->createQueryBuilder('combo')
+            ->innerJoin('combo.type', 'comboType')
+            ->innerJoin('combo.steps', 'starterStep')
+            ->innerJoin('starterStep.child_sequence', 'starterSequence')
+            ->innerJoin('starterSequence.move', 'starterMove')
+            ->innerJoin('starterMove.character', 'starterCharacter')
+            ->where('comboType.name = :comboTypeName')
+            ->andWhere('combo.moderationState = :approvedState')
+            ->andWhere('starterStep.ordinal_in_combo = 1')
+            ->andWhere('starterCharacter.name IN (:characterNames)')
+            ->setParameter('comboTypeName', 'combo')
+            ->setParameter('approvedState', ModerationState::APPROVED->value)
+            ->setParameter('characterNames', $characterNames)
+            ->orderBy('combo.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @return array<int, array{id: int, name: string, character_id: string, character_name: string}>
      */
     public function findLeafSummariesByCharacterId(string $characterId): array

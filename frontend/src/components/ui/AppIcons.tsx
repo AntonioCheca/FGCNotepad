@@ -60,6 +60,7 @@ export {default as GppBadOutlinedIcon} from "@mui/icons-material/GppBadOutlined"
 export {default as FastRewindOutlinedIcon} from "@mui/icons-material/FastRewindOutlined";
 export {default as ExpandMoreIcon} from "@mui/icons-material/ExpandMore";
 export {default as CategoryOutlinedIcon} from "@mui/icons-material/CategoryOutlined";
+export {default as PublishOutlinedIcon} from "@mui/icons-material/PublishOutlined";
 export {default as ThumbUpIcon} from "@mui/icons-material/ThumbUp";
 export {default as ThumbUpOutlinedIcon} from "@mui/icons-material/ThumbUpOutlined";
 

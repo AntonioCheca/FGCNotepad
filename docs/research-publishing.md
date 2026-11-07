@@ -94,6 +94,22 @@ Social sites (Reddit, Discord, X) do not render SVG previews, so `image` must be
 - **Links and code.** External links open in a new tab. Code blocks are supported, without syntax highlighting.
 - **Raw HTML.** It is dropped, so stick to Markdown.
 
+## Publishing a report's data
+
+A report's combos, scenarios and resource grids go to production as one `report_bundle_v1` file. Build it locally, keep it in the private Sf6ReplaysDb repo, and import it from **Moderation → Report Import** (moderators and admins). The import approves everything it creates, so nothing waits in the moderation queue.
+
+```bash
+# Local: re-solve the grids, then build the bundle from approved combos started by these characters and every scenario from the source.
+docker compose exec -T -e XDEBUG_MODE=off backend php bin/console app:scenario:solve-resource-grids --no-debug
+docker compose exec -T backend php bin/console app:report-bundle:build --report=<slug> --character=Juri --character=Ken --scenario-source=sf6replaysdb -o /tmp/<slug>.report-bundle.json
+docker compose exec -T backend cat /tmp/<slug>.report-bundle.json > ../Sf6ReplaysDb/research/fgcnotepad/<slug>.report-bundle.json
+```
+
+- Combos travel as moves by character and notation, so database ids never matter. Replay tags and importer notes are dropped from combo names and descriptions; nothing from the replay tables is included.
+- Choosing the file runs a dry run: the whole import happens and is rolled back, so the summary is exact. Import is all-or-nothing.
+- Combos already on the site (same moves, conditions and damage) are kept, and approved if they were waiting in the queue. Re-importing the same file changes nothing.
+- Fallback without the UI: `app:report-bundle:import <file|-> --moderator=<username> [--dry-run]`.
+
 ## Notes
 
 - Share links use `https://fightinggametheory.com`. To build for another domain, set `NEXT_PUBLIC_SITE_URL` at build time.
